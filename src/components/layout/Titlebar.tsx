@@ -18,11 +18,15 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
         Lamprey
       </span>
 
-      <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        className="flex items-center gap-2"
+      >
         <select
           value={activeModel}
           onChange={(e) => setModel(e.target.value)}
           className="rounded border border-[var(--border)] bg-[var(--bg-tertiary)] px-2 py-1 font-mono text-xs text-[var(--text-secondary)] outline-none focus:border-[var(--accent)]"
+          title={activeModel === 'deepseek-reasoner' ? 'R1 does not support tool use. MCP tools unavailable while R1 is active.' : undefined}
         >
           {models.map((m) => (
             <option key={m.id} value={m.id}>
@@ -36,6 +40,11 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
             </>
           )}
         </select>
+        {activeModel === 'deepseek-reasoner' && (
+          <span className="font-mono text-[10px] text-[var(--warning)]" title="R1 does not support tool use. MCP tools unavailable while R1 is active.">
+            No tools
+          </span>
+        )}
       </div>
 
       <button

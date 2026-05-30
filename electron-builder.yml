@@ -19,6 +19,8 @@ extraResources:
     to: vendor
   - from: resources/skills
     to: skills
+  - from: resources/icon.png
+    to: icon.png
 
 mac:
   category: public.app-category.developer-tools

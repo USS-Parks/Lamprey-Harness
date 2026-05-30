@@ -71,6 +71,37 @@ Verification: `npx tsc --noEmit -p tsconfig.node.json` and `npx tsc --noEmit -p 
 
 (replaced by the backfill above)
 
+## CI fixes round 3 — Node 24 action bumps (2026-05-30)
+
+GitHub deprecation notice: Node 20 actions get force-bumped to Node 24 on 2026-06-16 and Node 20 is removed from runners 2026-09-16. Researched current majors for all four actions we use via a parallel-fanout workflow (4 agents, each WebFetching the action's repo + action.yml):
+
+- `actions/checkout` v4 → v6 (v6.0.2 released 2026-01-09; action.yml `using: node24`, no input changes from v4)
+- `actions/setup-node` v4 → v6 (v6.4.0 released 2026-04-20; same surface, only the runtime moved)
+- `actions/upload-artifact` v4 → v6 (v6.0.0 added node24 support; v7 introduced a breaking direct-upload API we don't use, so v6 is the safer bump)
+- `softprops/action-gh-release` v2 → v3 (v3.0.0 released 2026-04-12; default branch is `master`)
+
+Eight `uses:` refs updated across the windows + linux jobs.
+
+## CI fixes round 2 (2026-05-30)
+
+Both Linux and Windows jobs got through `electron-vite build` cleanly this time, then died at electron-builder with `⨯ Package "electron" is only allowed in "devDependencies"`. The original scaffold put `electron` in `dependencies` (I'd noticed it earlier but didn't move it) — electron-builder enforces that runtime electron is a devDep so it isn't bundled into the packaged app's node_modules. Moved it. Local `npm install` + tsc on both configs + `npx electron-vite build` all still pass.
+
+Also added `--publish never` to `build:win` / `build:mac` / `build:linux` to suppress the "Implicit publishing triggered by CI detection" warning that was about to start auto-publishing in electron-builder 27. The workflow already uses `softprops/action-gh-release@v2` for tag pushes — electron-builder shouldn't try to publish independently.
+
+## CI fixes (2026-05-30)
+
+Three independent CI failures landed at once:
+
+**1. Jekyll Pages build — README is UTF-16 LE, not UTF-8.** Hex dump of `README.md` showed every other byte was null (`23 00 20 00 4c 00 ...` for "# L..."). My earlier `Write` calls on Windows wrote UTF-16 instead of UTF-8, which Jekyll's kramdown parser rejects as "invalid byte sequence in UTF-8". Fix: `iconv -f UTF-16LE -t UTF-8 README.md > README.utf8.md && mv README.utf8.md README.md`. Now `iconv -f UTF-8` validates clean and the hex dump shows `23 20 4c 61 6d 70 72 65 79` ("# Lamprey"). Also added an empty `.nojekyll` file at repo root so GitHub Pages stops trying to Jekyll-build this repo at all — it's a Node/Electron app, not a Pages site.
+
+**2. better-sqlite3 12.10 doesn't compile against Electron 42's V8 13.** Both the Linux gcc and Windows MSVC jobs failed on `v8::External::Value()` (now requires `ExternalPointerTypeTag`), `v8::External::New(isolate, value)` (now takes 3 args), and `v8::Template::SetNativeDataProperty` (overload ambiguity). better-sqlite3 12.10 has partial V8 13 conditionals (`GET_PROTOTYPE`, `PROPERTY_HOLDER`) but missed the External APIs. The dev machine appeared to work only because the `.node` binary from May 12 was still loadable against the old ABI — a fresh `npm ci` in CI exposes the real incompatibility. **Fix: pin `electron: ^35.7.5`** (last major before V8 13). Electron 35 keeps everything we depend on — WebContentsView, `webUtils.getPathForFile`, safeStorage, globalShortcut, Tray. Local re-install + `electron-rebuild` succeeds clean; `npx electron-vite build` succeeds. When better-sqlite3 ships V8 13 support, bump Electron forward again.
+
+**3. CI Node 20 produces EBADENGINE warnings for `@electron/get`, `@electron/rebuild`, `node-abi`, and Electron itself (all want Node ≥22.12).** Bumped both CI jobs to `node-version: '22'`. Doesn't cause the build failure on its own, but the warnings were noise.
+
+Updated CLAUDE.md's WebContentsView note to record the Electron-35 pin and the rationale (so the next session doesn't try to bump Electron forward without checking better-sqlite3 first).
+
+Verification: `npx tsc --noEmit -p tsconfig.node.json` + `npx tsc --noEmit -p tsconfig.web.json` + `npx electron-vite build` all pass under Electron 35.7.5. `electron-rebuild -f -w better-sqlite3` completes with "Rebuild Complete" — the same step that was failing in CI.
+
 ## Visual pass (2026-05-30, post-asset integration)
 
 Reference design cues pulled from four UI screenshots the user shared (centered hero on welcome, primary "+ New Chat" button, prompt cards, input chip strip). Three components touched, plus a small ui-store extension.

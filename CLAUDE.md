@@ -37,7 +37,7 @@ npx electron-vite build
 - `mcp-manager.ts` is fully implemented (Prompt 10) with SSE + stdio transports, Google OAuth token refresh, and auto-restart
 - `mcp:approveToolCall` handler lives in `chat.ts` (not `mcp.ts`) because it resolves confirmation promises
 - Branding: display name "Lamprey", desktop icon = green 3D lamprey (`ASSETS/Lamprey Desktop Icon-1.png`), splash screen = `ASSETS/Lamprey New Startup Splash.png` (3s duration)
-- `WebContentsView` (Electron 42) replaces deprecated `BrowserView` — uses DIP coordinates (no scaleFactor multiplication needed)
+- `WebContentsView` (Electron 35) replaces deprecated `BrowserView` — uses DIP coordinates (no scaleFactor multiplication needed). Electron is pinned to ^35.7.5 because better-sqlite3 12.10 doesn't yet support V8 13 (Electron 36+). Bump when better-sqlite3 ships V8 13 compat.
 - React 19 has no UMD builds — JSX artifacts use a custom `react-shim.js` for createElement/createRoot
 - `react-markdown` v10 requires `pre` passthrough override to prevent double-wrapping CodeBlock components
 

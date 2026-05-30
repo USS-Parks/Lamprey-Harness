@@ -243,7 +243,8 @@ class McpManager {
       }
 
       const expiryStr = keychain.getKey('google-token-expiry')
-      if (expiryStr && Date.now() > parseInt(expiryStr, 10)) {
+      const FIVE_MINUTES = 5 * 60 * 1000
+      if (expiryStr && Date.now() + FIVE_MINUTES > parseInt(expiryStr, 10)) {
         const refreshed = await this.refreshGoogleToken()
         if (!refreshed) {
           state.status = 'error'

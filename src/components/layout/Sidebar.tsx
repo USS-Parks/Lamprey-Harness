@@ -1,5 +1,6 @@
 import { useChatStore } from '@/stores/chat-store'
 import { SkillPanel } from '@/components/skills/SkillPanel'
+import { MemoryPanel } from '@/components/memory/MemoryPanel'
 import type { Conversation } from '@/lib/types'
 
 function formatRelativeTime(timestamp: number): string {
@@ -103,6 +104,7 @@ export function Sidebar() {
         ))}
         </div>
         <SkillPanel />
+        <MemoryPanel />
       </div>
     </div>
   )

@@ -11,6 +11,7 @@ import { useModelStore } from '@/stores/model-store'
 import { useChat } from '@/hooks/useChat'
 import { useMcp } from '@/hooks/useMcp'
 import { useSkills } from '@/hooks/useSkills'
+import { useMemory } from '@/hooks/useMemory'
 import type { McpConfirmationEvent } from '@/lib/types'
 
 function App(): React.ReactElement {
@@ -27,6 +28,7 @@ function App(): React.ReactElement {
   useChat()
   useMcp()
   useSkills()
+  useMemory()
 
   const handleArtifactOpen = useCallback((type: string, source: string) => {
     setArtifactType(type)

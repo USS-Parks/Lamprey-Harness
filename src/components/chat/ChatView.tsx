@@ -1,6 +1,7 @@
 import { useChatStore } from '@/stores/chat-store'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
+import { MCPStatusBar } from '@/components/mcp/MCPStatusBar'
 
 export function ChatView() {
   const { messages, isStreaming, streamingContent, activeConversationId, sendMessage, cancelStream, toolCalls } = useChatStore()
@@ -20,6 +21,7 @@ export function ChatView() {
             </p>
           </div>
         </div>
+        <MCPStatusBar />
         <ChatInput onSend={handleSend} onCancel={cancelStream} isStreaming={false} />
       </div>
     )
@@ -33,6 +35,7 @@ export function ChatView() {
         streamingContent={streamingContent}
         toolCalls={toolCalls}
       />
+      <MCPStatusBar />
       <ChatInput onSend={handleSend} onCancel={cancelStream} isStreaming={isStreaming} />
     </div>
   )

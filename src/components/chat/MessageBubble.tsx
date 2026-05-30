@@ -1,19 +1,45 @@
+import { useState } from 'react'
 import type { Message } from '@/lib/types'
 import { MarkdownRenderer } from '@/components/artifacts/MarkdownRenderer'
+import { useMemoryStore } from '@/stores/memory-store'
 
 interface MessageBubbleProps {
   message: Message
 }
 
+const REMEMBER_MAX = 280
+
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function truncateForMemory(content: string): string {
+  const trimmed = content.trim()
+  if (trimmed.length <= REMEMBER_MAX) return trimmed
+  return trimmed.slice(0, REMEMBER_MAX).trimEnd() + '…'
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   const isTool = message.role === 'tool'
+  const addMemory = useMemoryStore((s) => s.addMemory)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   if (isTool) return null
+
+  const handleRemember = async () => {
+    if (saving || saved) return
+    const text = truncateForMemory(message.content)
+    if (!text) return
+    setSaving(true)
+    const result = await addMemory(text)
+    setSaving(false)
+    if (result) {
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    }
+  }
 
   return (
     <div className={`group flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
@@ -36,6 +62,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               {message.model === 'deepseek-reasoner' ? 'R1' : 'V3'}
             </span>
           )}
+          <button
+            onClick={handleRemember}
+            disabled={saving || saved}
+            title="Save to memory"
+            className={`ml-auto rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+              saved
+                ? 'text-[var(--success)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--accent)]'
+            } disabled:opacity-60`}
+          >
+            {saved ? '✓ Saved' : saving ? 'Saving…' : 'Remember this'}
+          </button>
         </div>
       </div>
     </div>

@@ -4,14 +4,17 @@ import { Titlebar } from '@/components/layout/Titlebar'
 import { ChatView } from '@/components/chat/ChatView'
 import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel'
 import { ApiKeyModal } from '@/components/settings/ApiKeyModal'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { ConfirmationModal } from '@/components/mcp/ConfirmationModal'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { useChat } from '@/hooks/useChat'
+import { useMcp } from '@/hooks/useMcp'
 import type { McpConfirmationEvent } from '@/lib/types'
 
 function App(): React.ReactElement {
   const [needsApiKey, setNeedsApiKey] = useState<boolean | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [artifactOpen, setArtifactOpen] = useState(false)
   const [artifactType, setArtifactType] = useState<string | null>(null)
   const [artifactSource, setArtifactSource] = useState<string | null>(null)
@@ -21,6 +24,7 @@ function App(): React.ReactElement {
 
   // Wire IPC event listeners
   useChat()
+  useMcp()
 
   const handleArtifactOpen = useCallback((type: string, source: string) => {
     setArtifactType(type)
@@ -73,6 +77,10 @@ function App(): React.ReactElement {
         />
       )}
 
+      {settingsOpen && (
+        <SettingsDialog onClose={() => setSettingsOpen(false)} />
+      )}
+
       {confirmationEvent && (
         <ConfirmationModal
           event={confirmationEvent}
@@ -83,7 +91,7 @@ function App(): React.ReactElement {
       <Sidebar />
 
       <div className="flex flex-1 flex-col">
-        <Titlebar onSettingsClick={() => {}} />
+        <Titlebar onSettingsClick={() => setSettingsOpen(true)} />
         <ChatView />
       </div>
 

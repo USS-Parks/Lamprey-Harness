@@ -17,7 +17,5 @@ export function registerMcpHandlers(): void {
     return { success: true, data: null }
   })
 
-  ipcMain.handle('mcp:approveToolCall', async (_event, _callId, _approved) => {
-    return { success: true, data: null }
-  })
+  // mcp:approveToolCall is registered in chat.ts (handles confirmation flow)
 }

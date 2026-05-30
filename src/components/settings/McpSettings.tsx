@@ -4,8 +4,19 @@ import { useMcpStore } from '@/stores/mcp-store'
 export function McpSettings() {
   const servers = useMcpStore((s) => s.servers)
   const reconnect = useMcpStore((s) => s.reconnect)
+  const loadServers = useMcpStore((s) => s.loadServers)
   const [oauthLoading, setOauthLoading] = useState(false)
   const [oauthStatus, setOauthStatus] = useState<string | null>(null)
+  const [clientId, setClientId] = useState('')
+  const [clientSecret, setClientSecret] = useState('')
+  const [credsSaved, setCredsSaved] = useState(false)
+
+  const handleSaveCredentials = async () => {
+    if (!clientId.trim() || !clientSecret.trim()) return
+    await window.api.settings.saveGoogleCredentials(clientId.trim(), clientSecret.trim())
+    setCredsSaved(true)
+    setTimeout(() => setCredsSaved(false), 3000)
+  }
 
   const handleGoogleOAuth = async () => {
     setOauthLoading(true)
@@ -14,6 +25,7 @@ export function McpSettings() {
       const result = await window.api.mcp.setupGoogleOAuth()
       if (result.success) {
         setOauthStatus('Connected successfully')
+        await loadServers()
       } else {
         setOauthStatus(`Error: ${result.error}`)
       }
@@ -80,17 +92,53 @@ export function McpSettings() {
       </div>
 
       {servers.some((s) => s.auth === 'google-oauth') && (
-        <div className="space-y-2 border-t border-[var(--border)] pt-4">
+        <div className="space-y-3 border-t border-[var(--border)] pt-4">
           <h4 className="font-mono text-xs font-semibold text-[var(--text-primary)]">Google Account</h4>
           <p className="font-mono text-[11px] text-[var(--text-secondary)]">
-            Connect your Google account to enable Gmail and Drive MCP servers.
+            Enter your Google Cloud OAuth credentials, then click Connect to authorize.
           </p>
+
+          <div className="space-y-2">
+            <div>
+              <label className="mb-1 block font-mono text-[11px] text-[var(--text-secondary)]">Client ID</label>
+              <input
+                type="password"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                placeholder="Enter client_id"
+                className="w-full rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block font-mono text-[11px] text-[var(--text-secondary)]">Client Secret</label>
+              <input
+                type="password"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                placeholder="Enter client_secret"
+                className="w-full rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSaveCredentials}
+                disabled={!clientId.trim() || !clientSecret.trim()}
+                className="rounded bg-[var(--bg-tertiary)] px-3 py-1.5 font-mono text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50"
+              >
+                Save credentials
+              </button>
+              {credsSaved && (
+                <span className="font-mono text-[11px] text-[var(--success)]">Saved</span>
+              )}
+            </div>
+          </div>
+
           <button
             onClick={handleGoogleOAuth}
             disabled={oauthLoading}
             className="rounded bg-[var(--accent-dim)] px-3 py-1.5 font-mono text-xs text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white disabled:opacity-50"
           >
-            {oauthLoading ? 'Connecting...' : 'Connect Google Account'}
+            {oauthLoading ? 'Waiting for authorization...' : 'Connect Google Account'}
           </button>
           {oauthStatus && (
             <p className={`font-mono text-[11px] ${oauthStatus.startsWith('Error') ? 'text-[var(--error)]' : 'text-[var(--success)]'}`}>

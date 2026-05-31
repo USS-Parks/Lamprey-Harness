@@ -3,11 +3,16 @@ const DEFAULT_BASE = `You are Lamprey, a multi-agent coding harness running Deep
 export function buildSystemPrompt(
   activeSkillContents: { name: string; content: string }[],
   memoryBlock: string,
-  systemPromptOverride?: string
+  systemPromptOverride?: string,
+  agentsMd?: string
 ): string {
   const base = systemPromptOverride?.trim() ? systemPromptOverride.trim() : DEFAULT_BASE
 
   const parts: string[] = [base]
+
+  if (agentsMd && agentsMd.trim()) {
+    parts.push(`<agents_md>\n${agentsMd.trim()}\n</agents_md>`)
+  }
 
   if (memoryBlock) {
     parts.push(memoryBlock)

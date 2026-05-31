@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
 import type { ProviderInfo } from '@/lib/types'
 
@@ -87,22 +87,24 @@ export function ApiKeySettings() {
     <div className="space-y-5">
       <div>
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Provider API keys</h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
-          Lamprey routes each model to its provider. Add a key for any provider whose models you want to use —
-          DeepSeek (V4 Pro/Flash, V3, R1), Google (Gemma), or Alibaba DashScope (Qwen). Keys are stored
-          locally and never transmitted anywhere except their own provider.
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
+          Each model routes to a provider over its real, published API endpoint. Add a key per
+          provider to unlock that provider's models: DeepSeek (V4 Pro &amp; Flash, plus legacy chat/
+          reasoner aliases), Alibaba DashScope (Qwen3 family), Google AI Studio (Gemma 3), or
+          OpenRouter (Gemma 4 and many other open models). Keys are stored locally with OS-level
+          encryption and only transmitted to the provider they belong to.
         </p>
       </div>
 
-      <div className="rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-[11px]">
+      <div className="rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-[13px]">
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
-          <span aria-hidden>{encrypted ? '🔒' : '⚠'}</span>
+          <span aria-hidden>{encrypted ? 'ðŸ”’' : 'âš '}</span>
           <span>
             {encrypted === null
-              ? 'Checking storage backend…'
+              ? 'Checking storage backendâ€¦'
               : encrypted
               ? 'Stored using OS encryption (safeStorage).'
-              : 'Warning: stored as plaintext — install libsecret or run on a host with native keychain support.'}
+              : 'Warning: stored as plaintext â€” install libsecret or run on a host with native keychain support.'}
           </span>
         </div>
       </div>
@@ -125,7 +127,7 @@ export function ApiKeySettings() {
                   <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">
                     {p.label}
                   </span>
-                  <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                  <span className="font-mono text-[12px] text-[var(--text-muted)]">
                     {p.hasKey ? 'Stored' : 'No key'}
                   </span>
                 </div>
@@ -135,9 +137,9 @@ export function ApiKeySettings() {
                     e.preventDefault()
                     window.api?.artifact?.openExternal?.(p.docsUrl)
                   }}
-                  className="mt-1 inline-block font-mono text-[10px] text-[var(--accent)] hover:underline"
+                  className="mt-1 inline-block font-mono text-[12px] text-[var(--accent)] hover:underline"
                 >
-                  Get a key →
+                  Get a key â†’
                 </a>
               </div>
             </div>
@@ -147,7 +149,7 @@ export function ApiKeySettings() {
                 type={visible ? 'text' : 'password'}
                 value={draft}
                 onChange={(e) => setDrafts((s) => ({ ...s, [p.id]: e.target.value }))}
-                placeholder={p.hasKey ? 'Replace key…' : 'Paste API key'}
+                placeholder={p.hasKey ? 'Replace keyâ€¦' : 'Paste API key'}
                 className="flex-1 rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               />
               <button
@@ -183,7 +185,7 @@ export function ApiKeySettings() {
               </button>
               {status && (
                 <span
-                  className={`text-[11px] ${
+                  className={`text-[13px] ${
                     status.startsWith('Invalid') || status.startsWith('Error')
                       ? 'text-[var(--error)]'
                       : 'text-[var(--success)]'

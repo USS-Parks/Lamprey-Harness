@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import { useThemedIcon } from '@/lib/themed-icon'
 import codeWindowLight from '@assets/Lamprey Code Window Icon.png'
 import codeWindowDark from '@assets/Lamprey Code Window Icon Dark View.png'
@@ -100,7 +100,7 @@ export function ArtifactPanel({ artifactType, artifactSource, onClose }: Artifac
             <img src={codeWindowIconUrl} alt="" aria-hidden className="icon-asset h-9 w-9 object-contain" />
             <span className="text-sm font-medium text-[var(--text-secondary)]">Artifact</span>
             {artifactType && (
-              <span className="rounded bg-[var(--accent-dim)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--accent)]">
+              <span className="rounded bg-[var(--accent-dim)] px-1.5 py-0.5 text-[12px] font-mono text-[var(--accent)]">
                 {artifactType}
               </span>
             )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useSkillsStore } from '@/stores/skills-store'
 import { SkillEditor, type SkillEditorTarget } from './SkillEditor'
 
@@ -36,7 +36,7 @@ export function SkillPanel() {
     <>
       <div className="border-t border-[var(--border)] px-2 py-2">
         <div className="flex items-center justify-between px-2 py-1">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+          <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Skills
           </span>
           <button
@@ -49,7 +49,7 @@ export function SkillPanel() {
         </div>
 
         {skills.length === 0 ? (
-          <p className="px-2 py-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+          <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
             Drop .md files into the skills/ folder or click + to create one.
           </p>
         ) : (

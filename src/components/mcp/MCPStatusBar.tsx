@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useMcpStore } from '@/stores/mcp-store'
 import { useChatStore } from '@/stores/chat-store'
 import type { McpServerConfig } from '@/lib/types'
@@ -40,12 +40,12 @@ function ServerPopover({ server, onClose }: { server: ServerWithStatus; onClose:
       <div className="mb-2 flex items-center gap-2">
         <StatusDot status={server.status} />
         <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">{server.name}</span>
-        <span className="ml-auto rounded bg-[var(--bg-secondary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-muted)] uppercase">
+        <span className="ml-auto rounded bg-[var(--bg-secondary)] px-1.5 py-0.5 font-mono text-[12px] text-[var(--text-muted)] uppercase">
           {server.transport}
         </span>
       </div>
 
-      <div className="mb-2 font-mono text-[11px] text-[var(--text-secondary)]">
+      <div className="mb-2 font-mono text-[13px] text-[var(--text-secondary)]">
         Status: <span className="capitalize">{server.status}</span>
         {server.error && (
           <div className="mt-1 text-[var(--error)]">{server.error}</div>
@@ -56,7 +56,7 @@ function ServerPopover({ server, onClose }: { server: ServerWithStatus; onClose:
         {server.status !== 'connecting' && (
           <button
             onClick={() => reconnect(server.id)}
-            className="rounded bg-[var(--accent-dim)] px-2 py-1 font-mono text-[11px] text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+            className="rounded bg-[var(--accent-dim)] px-2 py-1 font-mono text-[13px] text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
           >
             Reconnect
           </button>
@@ -67,7 +67,7 @@ function ServerPopover({ server, onClose }: { server: ServerWithStatus; onClose:
               window.api?.mcp.setupGoogleOAuth()
               onClose()
             }}
-            className="rounded bg-[var(--accent-dim)] px-2 py-1 font-mono text-[11px] text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+            className="rounded bg-[var(--accent-dim)] px-2 py-1 font-mono text-[13px] text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
           >
             Setup OAuth
           </button>
@@ -90,13 +90,13 @@ export function MCPStatusBar() {
   return (
     <div className="flex h-8 items-center gap-3 border-t border-[var(--border)] bg-[var(--bg-secondary)] px-3">
       {isR1 && (
-        <span className="font-mono text-[11px] text-[var(--warning)]">
-          R1 active — MCP tools unavailable
+        <span className="font-mono text-[13px] text-[var(--warning)]">
+          R1 active â€” MCP tools unavailable
         </span>
       )}
 
       {!isR1 && connectedCount === 0 && servers.length > 0 && (
-        <span className="font-mono text-[11px] text-[var(--text-muted)]">
+        <span className="font-mono text-[13px] text-[var(--text-muted)]">
           No MCP servers connected
         </span>
       )}
@@ -105,7 +105,7 @@ export function MCPStatusBar() {
         <div key={server.id} className="relative">
           <button
             onClick={() => setPopoverServer(popoverServer === server.id ? null : server.id)}
-            className="flex items-center gap-1.5 rounded px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+            className="flex items-center gap-1.5 rounded px-1.5 py-0.5 font-mono text-[13px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           >
             <StatusDot status={server.status} />
             <span>{server.name}</span>

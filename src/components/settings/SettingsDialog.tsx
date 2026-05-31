@@ -5,6 +5,8 @@ import { AppearanceSettings } from './AppearanceSettings'
 import { ModelSettings } from './ModelSettings'
 import { ApiKeySettings } from './ApiKeySettings'
 import { AgentSettings } from './AgentSettings'
+import { HooksSettings } from './HooksSettings'
+import { AutomationsSettings } from './AutomationsSettings'
 
 interface SettingsDialogProps {
   onClose: () => void
@@ -16,7 +18,9 @@ const TABS = [
   { id: 'agents', label: 'Agents' },
   { id: 'api', label: 'API Keys' },
   { id: 'appearance', label: 'Appearance' },
-  { id: 'mcp', label: 'MCP Servers' }
+  { id: 'mcp', label: 'MCP Servers' },
+  { id: 'hooks', label: 'Hooks' },
+  { id: 'automations', label: 'Automations' }
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -65,6 +69,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'api' && <ApiKeySettings />}
             {activeTab === 'appearance' && <AppearanceSettings />}
             {activeTab === 'mcp' && <McpSettings />}
+            {activeTab === 'hooks' && <HooksSettings />}
+            {activeTab === 'automations' && <AutomationsSettings />}
           </div>
         </div>
       </div>

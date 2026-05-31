@@ -8,6 +8,8 @@ export interface Message {
   toolCallId?: string
 }
 
+export type ConversationKind = 'local' | 'cloud' | 'worktree'
+
 export interface Conversation {
   id: string
   title: string
@@ -15,6 +17,8 @@ export interface Conversation {
   createdAt: number
   updatedAt: number
   messageCount: number
+  kind?: ConversationKind
+  worktreePath?: string | null
 }
 
 export interface Skill {
@@ -46,7 +50,7 @@ export interface McpServerConfig {
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
 }
 
-export type ProviderId = 'deepseek' | 'google' | 'dashscope'
+export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter'
 
 export interface ProviderInfo {
   id: ProviderId

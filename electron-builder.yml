@@ -2,6 +2,8 @@ appId: com.lamprey.harness
 productName: Lamprey
 copyright: Copyright © 2026 Lamprey Contributors
 
+afterPack: scripts/embed-win-icon.js
+
 directories:
   output: dist
   buildResources: resources
@@ -25,6 +27,8 @@ extraResources:
     to: skills
   - from: resources/icon.png
     to: icon.png
+  - from: resources/icon.ico
+    to: icon.ico
   - from: resources/splash.png
     to: splash.png
 
@@ -36,7 +40,7 @@ mac:
   hardenedRuntime: true
 
 win:
-  icon: resources/icon.png
+  icon: resources/icon.ico
   target:
     - nsis
   artifactName: ${productName}-${version}-${arch}.${ext}
@@ -51,6 +55,8 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Lamprey
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
   # No custom sidebar/header — NSIS expects 164x314 BMP for sidebar and
   # 150x57 for header. Until we ship pixel-correct bitmaps the default
   # NSIS modern UI renders sharper than a downscaled wide-aspect image.

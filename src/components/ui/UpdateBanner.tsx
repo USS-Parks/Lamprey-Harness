@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 
 interface UpdateInfo {
   version: string | null
@@ -26,12 +26,12 @@ export function UpdateBanner() {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-[var(--accent)] bg-[var(--accent-dim)] px-4 py-2 text-xs text-[var(--text-primary)]">
       <span>
-        Update available{info.version ? ` (v${info.version})` : ''} — restart to install.
+        Update available{info.version ? ` (v${info.version})` : ''} â€” restart to install.
       </span>
       <div className="flex items-center gap-2">
         <button
           onClick={() => window.api.update.restart()}
-          className="rounded bg-[var(--accent)] px-2 py-1 text-[11px] font-medium text-white hover:opacity-90"
+          className="rounded bg-[var(--accent)] px-2 py-1 text-[13px] font-medium text-white hover:opacity-90"
         >
           Restart
         </button>

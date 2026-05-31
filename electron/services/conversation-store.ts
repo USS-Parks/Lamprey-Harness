@@ -7,6 +7,8 @@ export interface ConversationRow {
   model: string
   created_at: number
   updated_at: number
+  kind?: string
+  worktree_path?: string | null
 }
 
 export interface MessageRow {
@@ -19,14 +21,28 @@ export interface MessageRow {
   created_at: number
 }
 
-export function createConversation(model: string) {
+export function createConversation(
+  model: string,
+  opts?: { kind?: 'local' | 'cloud' | 'worktree'; worktreePath?: string | null }
+) {
   const db = getDb()
   const id = randomUUID()
   const now = Date.now()
+  const kind = opts?.kind ?? 'local'
+  const worktreePath = opts?.worktreePath ?? null
   db.prepare(
-    'INSERT INTO conversations (id, title, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(id, null, model, now, now)
-  return { id, title: null, model, createdAt: now, updatedAt: now, messageCount: 0 }
+    'INSERT INTO conversations (id, title, model, created_at, updated_at, kind, worktree_path) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, null, model, now, now, kind, worktreePath)
+  return {
+    id,
+    title: null,
+    model,
+    createdAt: now,
+    updatedAt: now,
+    messageCount: 0,
+    kind,
+    worktreePath
+  }
 }
 
 export function getConversation(id: string) {
@@ -44,7 +60,9 @@ export function getConversation(id: string) {
     model: row.model,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    messageCount: count.cnt
+    messageCount: count.cnt,
+    kind: (row.kind as 'local' | 'cloud' | 'worktree' | undefined) ?? 'local',
+    worktreePath: row.worktree_path ?? null
   }
 }
 
@@ -61,7 +79,9 @@ export function listConversations() {
       model: row.model,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      messageCount: count.cnt
+      messageCount: count.cnt,
+      kind: (row.kind as 'local' | 'cloud' | 'worktree' | undefined) ?? 'local',
+      worktreePath: row.worktree_path ?? null
     }
   })
 }

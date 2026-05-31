@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSkillsStore } from '@/stores/skills-store'
 import { toast } from '@/stores/toast-store'
 
@@ -148,7 +148,7 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
               {isEdit ? 'Edit Skill' : 'New Skill'}
             </h2>
             {isEdit && (
-              <div className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">
+              <div className="mt-0.5 truncate text-[12px] text-[var(--text-muted)]">
                 {initialSkill?.id}.md
               </div>
             )}
@@ -168,7 +168,7 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
         <div className="flex flex-1 overflow-hidden">
           <div className="flex w-1/2 flex-col gap-3 overflow-y-auto border-r border-[var(--border)] px-5 py-4">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                 Name
               </span>
               <input
@@ -182,7 +182,7 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                 Description
               </span>
               <textarea
@@ -197,11 +197,11 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
 
             <label className="flex min-h-0 flex-1 flex-col gap-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   Content
                 </span>
                 <span
-                  className={`text-[10px] ${overLimit ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}
+                  className={`text-[12px] ${overLimit ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}
                 >
                   {charCount} {overLimit ? `(over ${CHAR_WARN} char soft limit)` : 'chars'}
                 </span>
@@ -224,7 +224,7 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
           </div>
 
           <div className="flex w-1/2 flex-col overflow-hidden bg-[var(--bg-primary)]">
-            <div className="border-b border-[var(--border)] px-5 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            <div className="border-b border-[var(--border)] px-5 py-2 text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
               System prompt preview
             </div>
             <pre className="flex-1 overflow-auto px-5 py-3 font-mono text-xs leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
@@ -267,14 +267,14 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
               disabled={busy}
               className="rounded border border-[var(--border)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-30"
             >
-              {busy ? 'Saving…' : 'Save'}
+              {busy ? 'Savingâ€¦' : 'Save'}
             </button>
             <button
               onClick={handleSaveAndEnable}
               disabled={busy}
               className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-30"
             >
-              {busy ? 'Saving…' : 'Save & Enable'}
+              {busy ? 'Savingâ€¦' : 'Save & Enable'}
             </button>
           </div>
         </div>

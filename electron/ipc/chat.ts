@@ -1,14 +1,15 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
 import { randomUUID } from 'crypto'
+import { readFileSync, existsSync } from 'fs'
+import { join } from 'path'
 import { chatOnce, chatStream, resolveModel } from '../services/providers/registry'
 import * as convStore from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
-import { buildSystemPrompt, buildAgentSystemPrompt } from '../services/system-prompt-builder'
+import { buildSystemPrompt } from '../services/system-prompt-builder'
+import { readAgentsMd } from '../services/agents-md-loader'
+import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
 import { listSkills, getSkillContent } from '../services/skill-loader'
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
-import { app } from 'electron'
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
 
 interface ModelParams {
@@ -40,19 +41,6 @@ function loadModelConfig(model: string): { params: ModelParams; systemPromptOver
     }
   } catch {
     return { params: {} }
-  }
-}
-
-function loadAgentRoster(): { mode: 'single' | 'multi'; roster: Record<string, string> } {
-  try {
-    const path = join(app.getPath('userData'), 'settings.json')
-    if (!existsSync(path)) return { mode: 'single', roster: {} }
-    const raw = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>
-    const mode = raw.agentMode === 'multi' ? 'multi' : 'single'
-    const roster = (raw.agentRoster as Record<string, string>) || {}
-    return { mode, roster }
-  } catch {
-    return { mode: 'single', roster: {} }
   }
 }
 
@@ -104,6 +92,8 @@ export function registerChatHandlers(): void {
         model
       })
 
+      fireHooks('promptSubmit', { conversationId, promptBody: content })
+
       const allMessages = convStore.getMessages(conversationId)
       const memoryBlock = memStore.buildMemoryBlock()
 
@@ -121,7 +111,13 @@ export function registerChatHandlers(): void {
       }
 
       const { params: modelParams, systemPromptOverride } = loadModelConfig(model)
-      const systemPrompt = buildSystemPrompt(skillContents, memoryBlock, systemPromptOverride)
+      const agentsMd = readAgentsMd()
+      const systemPrompt = buildSystemPrompt(
+        skillContents,
+        memoryBlock,
+        systemPromptOverride,
+        agentsMd
+      )
 
       // Build MCP tools list
       const mcpTools: ChatCompletionTool[] = []
@@ -159,21 +155,9 @@ export function registerChatHandlers(): void {
       const abortController = new AbortController()
       activeAbortControllers.set(conversationId, abortController)
 
-      const { mode: storedMode, roster } = loadAgentRoster()
-      const mode: 'single' | 'multi' = requestedAgentMode === 'multi' ? 'multi' : storedMode
-
-      if (mode === 'multi') {
-        await runMultiAgent(
-          conversationId,
-          model,
-          systemPrompt,
-          allMessages,
-          roster,
-          abortController.signal
-        )
-        activeAbortControllers.delete(conversationId)
-        return { success: true, data: { conversationId } }
-      }
+      // Single-model only. The previous multi-agent pipeline was removed
+      // because the user explicitly does not want concurrent multi-model output.
+      void requestedAgentMode
 
       await runChatRound(
         conversationId,
@@ -272,6 +256,7 @@ async function runChatRound(
               model
             })
             send('chat:done', { conversationId, message: assistantMsg })
+            fireHooks('agentStop', { conversationId })
             resolve()
             return
           }
@@ -398,63 +383,3 @@ async function runChatRound(
   })
 }
 
-// Multi-agent orchestrator: Planner → Coder → Reviewer, then a final
-// consolidated message gets persisted as the assistant turn. Each role can
-// use a different provider/model from the roster.
-async function runMultiAgent(
-  conversationId: string,
-  fallbackModel: string,
-  systemPrompt: string,
-  history: Array<{ role: string; content: string }>,
-  roster: Record<string, string>,
-  signal: AbortSignal
-): Promise<void> {
-  const userTurn = [...history].reverse().find((m) => m.role === 'user')?.content || ''
-  const plannerModel = roster.planner || fallbackModel
-  const coderModel = roster.coder || fallbackModel
-  const reviewerModel = roster.reviewer || fallbackModel
-
-  send('agent:status', { conversationId, role: 'planner', model: plannerModel, state: 'running' })
-  const plannerMessages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildAgentSystemPrompt('planner', systemPrompt) },
-    { role: 'user', content: userTurn }
-  ]
-  const planText = await chatOnce(plannerMessages, plannerModel)
-  send('agent:status', { conversationId, role: 'planner', model: plannerModel, state: 'done', output: planText })
-  if (signal.aborted) return
-
-  send('agent:status', { conversationId, role: 'coder', model: coderModel, state: 'running' })
-  const coderMessages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildAgentSystemPrompt('coder', systemPrompt) },
-    { role: 'user', content: `User request:\n${userTurn}\n\nPlanner output:\n${planText}` }
-  ]
-  const coderText = await chatOnce(coderMessages, coderModel)
-  send('agent:status', { conversationId, role: 'coder', model: coderModel, state: 'done', output: coderText })
-  if (signal.aborted) return
-
-  send('agent:status', { conversationId, role: 'reviewer', model: reviewerModel, state: 'running' })
-  const reviewerMessages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildAgentSystemPrompt('reviewer', systemPrompt) },
-    {
-      role: 'user',
-      content: `User request:\n${userTurn}\n\nPlan:\n${planText}\n\nCoder output:\n${coderText}`
-    }
-  ]
-  const reviewText = await chatOnce(reviewerMessages, reviewerModel)
-  send('agent:status', { conversationId, role: 'reviewer', model: reviewerModel, state: 'done', output: reviewText })
-
-  const consolidated =
-    `### Plan (${plannerModel})\n${planText}\n\n` +
-    `### Implementation (${coderModel})\n${coderText}\n\n` +
-    `### Review (${reviewerModel})\n${reviewText}`
-
-  const assistantMsg = convStore.saveMessage({
-    id: randomUUID(),
-    conversationId,
-    role: 'assistant',
-    content: consolidated,
-    model: `multi:${plannerModel}+${coderModel}+${reviewerModel}`
-  })
-  send('chat:chunk', { conversationId, content: consolidated })
-  send('chat:done', { conversationId, message: assistantMsg })
-}

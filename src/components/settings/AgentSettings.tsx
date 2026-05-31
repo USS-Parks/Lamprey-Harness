@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useAgentStore } from '@/stores/agent-store'
@@ -59,15 +59,15 @@ export function AgentSettings() {
     <div className="space-y-5">
       <div>
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Agent roster</h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Lamprey can run as a single chat or as a multi-agent pipeline. In multi-agent mode the Planner,
-          Coder, and Reviewer roles each get their own model — pair DeepSeek V4 Pro on planning with V4
+          Coder, and Reviewer roles each get their own model â€” pair DeepSeek V4 Pro on planning with V4
           Flash on coding for the canonical setup, or assign Gemma / Qwen3 Coder to any role.
         </p>
       </div>
 
       <div className="rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3">
-        <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Run mode</div>
+        <div className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">Run mode</div>
         <div className="mt-2 flex gap-2">
           <button
             onClick={() => persistMode('single')}
@@ -78,7 +78,7 @@ export function AgentSettings() {
             }`}
           >
             <div className="font-mono font-semibold">Single model</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+            <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
               One model answers each turn. Tools + MCP fully active.
             </div>
           </button>
@@ -91,8 +91,8 @@ export function AgentSettings() {
             }`}
           >
             <div className="font-mono font-semibold">Multi-agent</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-              Planner → Coder → Reviewer pipeline, each on its own model.
+            <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+              Planner â†’ Coder â†’ Reviewer pipeline, each on its own model.
             </div>
           </button>
         </div>
@@ -111,9 +111,9 @@ export function AgentSettings() {
                 <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">
                   {meta.title}
                 </span>
-                <span className="font-mono text-[10px] text-[var(--text-muted)]">{value}</span>
+                <span className="font-mono text-[12px] text-[var(--text-muted)]">{value}</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{meta.blurb}</p>
+              <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">{meta.blurb}</p>
               <select
                 value={value}
                 onChange={(e) => void persistRole(role, e.target.value)}
@@ -122,7 +122,7 @@ export function AgentSettings() {
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
-                    {m.provider ? ` · ${m.provider}` : ''}
+                    {m.provider ? ` Â· ${m.provider}` : ''}
                   </option>
                 ))}
               </select>

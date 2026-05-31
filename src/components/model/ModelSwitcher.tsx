@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { useUiStore } from '@/stores/ui-store'
@@ -44,7 +44,7 @@ function ModelRow({
             </svg>
           )}
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px]">
+        <div className="mt-1 flex flex-wrap items-center gap-1 text-[12px]">
           {model.provider && (
             <span className="rounded bg-[var(--bg-primary)] px-1.5 py-0.5 font-mono uppercase tracking-wider text-[var(--text-muted)]">
               {model.provider}
@@ -123,7 +123,7 @@ export function ModelSwitcher() {
 
       {activeIsReasoner && (
         <span
-          className="ml-2 font-mono text-[10px] text-[var(--warning)]"
+          className="ml-2 font-mono text-[12px] text-[var(--warning)]"
           title="Reasoner models do not support tool use. MCP tools unavailable while active."
         >
           No tools
@@ -132,7 +132,7 @@ export function ModelSwitcher() {
 
       {open && (
         <div className="absolute right-0 top-full z-30 mt-1 w-72 overflow-hidden rounded border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
-          <div className="border-b border-[var(--border)] px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+          <div className="border-b border-[var(--border)] px-3 py-1.5 text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Active model
           </div>
           <div className="max-h-80 overflow-y-auto">
@@ -186,9 +186,9 @@ export function ModelSwitcher() {
               setOpen(false)
               openSettings()
             }}
-            className="block w-full border-t border-[var(--border)] px-3 py-2 text-left text-[11px] text-[var(--accent)] transition-colors hover:bg-[var(--bg-tertiary)]"
+            className="block w-full border-t border-[var(--border)] px-3 py-2 text-left text-[13px] text-[var(--accent)] transition-colors hover:bg-[var(--bg-tertiary)]"
           >
-            Configure models →
+            Configure models â†’
           </button>
         </div>
       )}

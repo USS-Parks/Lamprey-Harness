@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { ProviderInfo } from '@/lib/types'
 
 interface ApiKeyModalProps {
   onComplete: () => void
+  onDismiss?: () => void
+  defaultProvider?: string
+  required?: boolean
 }
 
 interface ProviderEntry extends ProviderInfo {
   hasKey: boolean
 }
 
-export function ApiKeyModal({ onComplete }: ApiKeyModalProps) {
+export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required = true }: ApiKeyModalProps) {
   const [providers, setProviders] = useState<ProviderEntry[]>([])
-  const [selected, setSelected] = useState<string>('deepseek')
+  const [selected, setSelected] = useState<string>(defaultProvider ?? 'deepseek')
   const [key, setKey] = useState('')
   const [testing, setTesting] = useState(false)
   const [error, setError] = useState('')
@@ -22,11 +25,15 @@ export function ApiKeyModal({ onComplete }: ApiKeyModalProps) {
       if (result.success) {
         const list = result.data as ProviderEntry[]
         setProviders(list)
+        if (defaultProvider && list.some((p) => p.id === defaultProvider)) {
+          setSelected(defaultProvider)
+          return
+        }
         const firstMissing = list.find((p) => !p.hasKey)
         if (firstMissing) setSelected(firstMissing.id)
       }
     })()
-  }, [])
+  }, [defaultProvider])
 
   const handleSubmit = async () => {
     if (!key.trim()) return
@@ -53,20 +60,36 @@ export function ApiKeyModal({ onComplete }: ApiKeyModalProps) {
   }
 
   const currentProvider = providers.find((p) => p.id === selected)
+  const scoped = !!defaultProvider
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="w-[460px] rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
+      <div className="relative w-[460px] rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
+        {!required && onDismiss && (
+          <button
+            onClick={onDismiss}
+            aria-label="Close"
+            title="Close"
+            className="absolute right-3 top-3 rounded p-1 text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
         <h2 className="font-mono text-lg font-semibold text-[var(--text-primary)]">
-          Welcome to the Lamprey Harness
+          {scoped && currentProvider ? `Add a ${currentProvider.label} API key` : 'Welcome to the Lamprey Harness'}
         </h2>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-          Multi-agent coding UI for DeepSeek V4 Pro &amp; Flash, Gemma, and Qwen. Drop in a key for at
-          least one provider to get started — you can add the rest from Settings → API Keys later.
+          Bring your own key for any supported provider: DeepSeek (V4 Pro &amp; Flash, 1M context),
+          Alibaba DashScope (Qwen3 family), Google AI Studio (Gemma 3), or OpenRouter (Gemma 4
+          + many more). You must paste a real key from each provider's own dashboard before its
+          models become selectable.
         </p>
 
         <label className="mt-4 block">
-          <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Provider</span>
+          <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">Provider</span>
           <select
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
@@ -75,7 +98,7 @@ export function ApiKeyModal({ onComplete }: ApiKeyModalProps) {
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
-                {p.hasKey ? ' · key already stored' : ''}
+                {p.hasKey ? ' Â· key already stored' : ''}
               </option>
             ))}
           </select>
@@ -98,9 +121,9 @@ export function ApiKeyModal({ onComplete }: ApiKeyModalProps) {
               e.preventDefault()
               window.api?.artifact?.openExternal?.(currentProvider.docsUrl)
             }}
-            className="mt-2 inline-block font-mono text-[10px] text-[var(--accent)] hover:underline"
+            className="mt-2 inline-block font-mono text-[12px] text-[var(--accent)] hover:underline"
           >
-            Get a {currentProvider.label} key →
+            Get a {currentProvider.label} key â†’
           </a>
         )}
 
@@ -111,10 +134,10 @@ export function ApiKeyModal({ onComplete }: ApiKeyModalProps) {
           disabled={!key.trim() || testing}
           className="mt-4 w-full rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
         >
-          {testing ? 'Validating…' : 'Connect'}
+          {testing ? 'Validatingâ€¦' : 'Connect'}
         </button>
 
-        <p className="mt-3 text-[10px] text-[var(--text-muted)]">
+        <p className="mt-3 text-[12px] text-[var(--text-muted)]">
           Keys are encrypted with OS-level storage (safeStorage) and never leave this device except to
           call the provider's own API.
         </p>

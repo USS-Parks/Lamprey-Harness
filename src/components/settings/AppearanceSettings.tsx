@@ -1,4 +1,4 @@
-import { useSettingsStore } from '@/stores/settings-store'
+﻿import { useSettingsStore } from '@/stores/settings-store'
 import { THEME_PRESETS } from '@/styles/theme-presets'
 import type { ThemePreset } from '@/lib/types'
 
@@ -17,14 +17,14 @@ export function AppearanceSettings() {
     <div className="space-y-4">
       <div>
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Appearance</h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Color presets affect interface tokens only. Layout and accessibility structure remain
           unchanged.
         </p>
       </div>
 
       <div>
-        <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+        <div className="mb-2 text-[13px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
           Mode
         </div>
         <div className="inline-flex overflow-hidden rounded-md border border-[var(--border)]">
@@ -72,12 +72,12 @@ export function AppearanceSettings() {
                   {preset.name}
                 </span>
                 {active && (
-                  <span className="rounded bg-[var(--accent-dim)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--accent)]">
+                  <span className="rounded bg-[var(--accent-dim)] px-1.5 py-0.5 text-[12px] uppercase tracking-wider text-[var(--accent)]">
                     Active
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-[var(--text-muted)]">{preset.source}</span>
+              <span className="text-[12px] text-[var(--text-muted)]">{preset.source}</span>
               <div className="flex items-center gap-1">
                 {preset.swatch.map((color, idx) => (
                   <span

@@ -1,9 +1,14 @@
 import { app, BrowserWindow, ipcMain, session, shell, screen, clipboard } from 'electron'
-import { basename, join } from 'path'
+import { basename, extname, join } from 'path'
+import { readFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { registerAllIpcHandlers } from './ipc'
 import { closeDb } from './services/database'
 import { destroy as destroyArtifactSandbox } from './services/artifact-sandbox'
+import { ptyKillAll } from './services/pty-manager'
+import { destroyAll as destroyBrowserTabs } from './services/browser-manager'
+import { fireHooks } from './services/hooks-runner'
+import { startAutomations, stopAutomations } from './services/automations-runner'
 import { mcpManager } from './services/mcp-manager'
 import { initializeSkillLoader, shutdownSkillLoader } from './services/skill-loader'
 import { destroyTray, handleWindowClose, initializeTray, refreshTrayMenu } from './services/tray'
@@ -92,7 +97,21 @@ function schedulePersistBounds(win: BrowserWindow): void {
 
 function resolveSplashPath(): string {
   if (app.isPackaged) return join(process.resourcesPath, 'splash.png')
-  return join(app.getAppPath(), 'ASSETS', 'Lamprey Startup FINAL.png')
+  return join(app.getAppPath(), 'ASSETS', 'LAMPREY LOGO RED AI.png')
+}
+
+function resolveAppIconPath(): string {
+  // Prefer .ico on Windows — it carries multi-resolution sub-images and is
+  // what the OS uses for taskbar / window-class icons.
+  if (app.isPackaged) {
+    return process.platform === 'win32'
+      ? join(process.resourcesPath, 'icon.ico')
+      : join(process.resourcesPath, 'icon.png')
+  }
+  if (process.platform === 'win32') {
+    return join(app.getAppPath(), 'resources', 'icon.ico')
+  }
+  return join(app.getAppPath(), 'ASSETS', 'Lamprey Desktop Icon-1.png')
 }
 
 function createSplashWindow(): void {
@@ -114,12 +133,25 @@ function createSplashWindow(): void {
     }
   })
 
-  const fileUrl = 'file:///' + splashPath.replace(/\\/g, '/')
+  // The splash HTML is served from a data: URL. Recent Chromium blocks
+  // file:// requests originating from data: documents, so we can't reference
+  // splashPath via <img src="file://..."> — it silently fails to load.
+  // Inline the PNG bytes as a base64 data:image/png src instead.
+  let imgSrc = ''
+  try {
+    const bytes = readFileSync(splashPath)
+    const ext = extname(splashPath).toLowerCase().slice(1) || 'png'
+    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`
+    imgSrc = `data:${mime};base64,${bytes.toString('base64')}`
+  } catch (err) {
+    console.error('[main] splash image read failed:', (err as Error).message, splashPath)
+  }
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
     html,body{margin:0;padding:0;background:transparent;overflow:hidden;height:100vh;width:100vw;display:flex;align-items:center;justify-content:center}
     img{max-width:100%;max-height:100%;object-fit:contain;animation:fade-in 600ms ease-out both}
     @keyframes fade-in{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
-  </style></head><body><img src="${fileUrl}" alt="Lamprey"/></body></html>`
+  </style></head><body>${imgSrc ? `<img src="${imgSrc}" alt="Lamprey"/>` : ''}</body></html>`
   splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
   splashWindow.once('ready-to-show', () => splashWindow?.show())
 }
@@ -147,6 +179,7 @@ function createWindow(): void {
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     backgroundColor: '#0d0d0d',
+    icon: resolveAppIconPath(),
     show: false,
     frame: false,
     titleBarStyle: 'hidden',
@@ -198,6 +231,14 @@ function getMainWindow(): BrowserWindow | null {
 }
 
 app.whenReady().then(() => {
+  // Match electron-builder's appId so Windows associates pinned taskbar /
+  // start-menu entries with this app's icon and JumpLists. Without this,
+  // Windows can group the running window under a different AUMID and show
+  // a stale cached icon.
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.lamprey.harness')
+  }
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     if (details.url.includes('lamprey-artifact')) {
       callback({
@@ -255,6 +296,38 @@ app.whenReady().then(() => {
     return { success: true, data: mainWindow?.isMaximized() ?? false }
   })
 
+  ipcMain.handle('window:reload', () => {
+    mainWindow?.webContents.reload()
+    return { success: true, data: null }
+  })
+
+  ipcMain.handle('window:toggleDevTools', () => {
+    mainWindow?.webContents.toggleDevTools()
+    return { success: true, data: null }
+  })
+
+  ipcMain.handle('app:getDataDir', () => {
+    const userData = app.getPath('userData')
+    return {
+      success: true,
+      data: {
+        userData,
+        dbPath: join(userData, 'lamprey.db')
+      }
+    }
+  })
+
+  ipcMain.handle('app:openPath', async (_event, p: string) => {
+    try {
+      const { shell } = await import('electron')
+      const err = await shell.openPath(p)
+      if (err) return { success: false, error: err }
+      return { success: true, data: null }
+    } catch (e: any) {
+      return { success: false, error: e?.message ?? 'openPath failed' }
+    }
+  })
+
   ipcMain.handle('app:getWorkingFolder', () => {
     // In dev, app.getAppPath() returns the project root (e.g. "Lamprey Harness").
     // In a packaged build it returns the path to app.asar — fall back to the
@@ -281,6 +354,13 @@ app.whenReady().then(() => {
     initializeSkillLoader()
   } catch (err) {
     console.error('[main] Skill loader init error:', (err as Error).message)
+  }
+
+  try {
+    fireHooks('sessionStart')
+    startAutomations()
+  } catch (err) {
+    console.error('[main] hooks/automations init error:', (err as Error).message)
   }
 
   mcpManager.initialize().catch((err) => {
@@ -318,5 +398,8 @@ app.on('will-quit', () => {
   shutdownSkillLoader()
   destroyArtifactSandbox()
   destroyTray()
+  ptyKillAll()
+  destroyBrowserTabs()
+  stopAutomations()
   closeDb()
 })

@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
-import { useAgentStore } from '@/stores/agent-store'
+import { useProvidersStore } from '@/stores/providers-store'
 import { useUiStore, type PermissionsMode } from '@/stores/ui-store'
 import { toast } from '@/stores/toast-store'
 import { useThemedIcon } from '@/lib/themed-icon'
+import { ApiKeyModal } from '@/components/settings/ApiKeyModal'
 import type { ModelInfo, ProcessedFile } from '@/lib/types'
 
 import defaultAccessLight from '@assets/Lamprey Default Access Icon.png'
@@ -18,6 +19,14 @@ import micLight from '@assets/Lamprey Microphone Icon.png'
 import micDark from '@assets/Lamprey Microphone Icon Dark View.png'
 import sendLight from '@assets/Lamprey Prompt Enter Icon.png'
 import sendDark from '@assets/Lamprey Send Prompt Icon Dark View.png'
+import workLocationLight from '@assets/Lamprey Work Location Icon.png'
+import workLocationDark from '@assets/Lamprey Work Location Icon Dark View.png'
+import folderLight from '@assets/Lamprey Folder 1 Icon.png'
+import folderDark from '@assets/Lamprey Folder 1 Dark View.png'
+import worktreeLight from '@assets/Lamprey Worktree Icon.png'
+import worktreeDark from '@assets/Lamprey Worktree Icon Dark View.png'
+import addFileLight from '@assets/Lamprey Add File Icon.png'
+import addFileDark from '@assets/Lamprey Add File Icon Dark View.png'
 
 interface ChatInputProps {
   onSend: (content: string) => void
@@ -147,85 +156,401 @@ function PermissionsDropdown() {
   )
 }
 
-function AgentModeToggle() {
-  const mode = useAgentStore((s) => s.mode)
-  const setMode = useAgentStore((s) => s.setMode)
-  const updateSettings = useSettingsStore((s) => s.updateSettings)
+interface ModelDropdownProps {
+  onRequestKey: (providerId: string) => void
+}
 
-  const handleToggle = async () => {
-    const next = mode === 'multi' ? 'single' : 'multi'
-    setMode(next)
-    await updateSettings({ agentMode: next })
-    toast.info(next === 'multi' ? 'Multi-agent ON · Planner→Coder→Reviewer' : 'Single-model mode')
-  }
-
+function LockIcon() {
   return (
-    <button
-      onClick={handleToggle}
-      title={
-        mode === 'multi'
-          ? 'Multi-agent pipeline active. Click to switch to single-model.'
-          : 'Single-model. Click to enable Planner→Coder→Reviewer pipeline.'
-      }
-      className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs transition-colors ${
-        mode === 'multi'
-          ? 'bg-[var(--accent-dim)] text-[var(--accent)] hover:opacity-90'
-          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
-      }`}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-        <circle cx="6" cy="6" r="2.5" />
-        <circle cx="18" cy="6" r="2.5" />
-        <circle cx="12" cy="18" r="2.5" />
-        <path d="M6 8.5l5.2 8M18 8.5l-5.2 8M8 6h8" />
-      </svg>
-      <span className="font-medium">{mode === 'multi' ? 'Multi-agent' : 'Single model'}</span>
-    </button>
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 1 1 8 0v4" />
+    </svg>
   )
 }
 
-function ModelDropdown() {
+function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   const activeModel = useChatStore((s) => s.activeModel)
   const setModel = useChatStore((s) => s.setModel)
   const allModels = useModelStore((s) => s.models)
+  const hasKey = useProvidersStore((s) => s.hasKey)
+  const refreshProviders = useProvidersStore((s) => s.refresh)
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   useClickOutside(wrapRef, () => setOpen(false), open)
 
+  useEffect(() => {
+    void refreshProviders()
+  }, [refreshProviders])
+
   const fallback: ModelInfo[] = [
-    { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', provider: 'deepseek', contextWindow: 131072, supportsTools: true, supportsVision: false },
-    { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', provider: 'deepseek', contextWindow: 131072, supportsTools: true, supportsVision: false },
+    { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
+    { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
+    { id: 'qwen3-max', name: 'Qwen3 Max', provider: 'dashscope', contextWindow: 262144, supportsTools: true, supportsVision: false },
+    { id: 'qwen3-coder-plus', name: 'Qwen3 Coder Plus', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
+    { id: 'qwen3-coder-flash', name: 'Qwen3 Coder Flash', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
+    { id: 'qwen3.5-plus', name: 'Qwen 3.5 Plus', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: false, supportsVision: true },
+    { id: 'qwen3.5-flash', name: 'Qwen 3.5 Flash', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: false, supportsVision: true },
+    { id: 'qwen-long', name: 'Qwen Long', provider: 'dashscope', contextWindow: 10_000_000, supportsTools: false, supportsVision: false },
+    { id: 'gemma-4-31b-it-free', name: 'Gemma 4 31B (free, OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
+    { id: 'gemma-4-31b-it', name: 'Gemma 4 31B (OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
+    { id: 'gemma-4-26b-a4b-it-free', name: 'Gemma 4 26B A4B (free, OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
+    { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B A4B (OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
     { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'google', contextWindow: 131072, supportsTools: true, supportsVision: true },
-    { id: 'qwen3-coder-plus', name: 'Qwen3 Coder Plus', provider: 'dashscope', contextWindow: 1000000, supportsTools: true, supportsVision: false }
+    { id: 'gemma-3-12b-it', name: 'Gemma 3 12B', provider: 'google', contextWindow: 131072, supportsTools: true, supportsVision: true },
+    { id: 'deepseek-chat', name: 'DeepSeek Chat (legacy alias)', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
+    { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (legacy alias)', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: false, supportsVision: false }
   ]
   const models = allModels.length > 0 ? allModels : fallback
   const active = models.find((m) => m.id === activeModel) ?? models[0]
+  const activeLocked = !hasKey(active.provider)
 
   return (
     <div ref={wrapRef} className="relative">
       <DropdownButton open={open} onToggle={() => setOpen((v) => !v)} title="Switch model">
+        {activeLocked && (
+          <span className="text-[var(--warning)]" title={`${active.provider ?? 'provider'} key required`}>
+            <LockIcon />
+          </span>
+        )}
         <span className="font-medium">{active.name}</span>
       </DropdownButton>
       {open && (
-        <div className="absolute bottom-full right-0 z-30 mb-1 w-60 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
-          {models.map((m) => (
+        <div className="absolute bottom-full right-0 z-30 mb-1 w-72 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
+          {models.map((m) => {
+            const locked = !hasKey(m.provider)
+            return (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setOpen(false)
+                  if (locked) {
+                    if (m.provider) onRequestKey(m.provider)
+                    else toast.error(`No provider configured for ${m.name}`)
+                    return
+                  }
+                  void setModel(m.id)
+                }}
+                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors ${
+                  m.id === activeModel
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                    : locked
+                    ? 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <span className="flex items-center gap-1.5 truncate">
+                  {locked && (
+                    <span className="text-[var(--warning)]">
+                      <LockIcon />
+                    </span>
+                  )}
+                  <span className="truncate font-medium">{m.name}</span>
+                </span>
+                {locked ? (
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--warning)]">
+                    Add key
+                  </span>
+                ) : m.id === activeModel ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]" aria-hidden>
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface ChipMenuItem {
+  label: string
+  description?: string
+  onSelect: () => void
+  active?: boolean
+}
+
+interface ContextChipProps {
+  iconLight: string
+  iconDark: string
+  label: string
+  title?: string
+  onClick?: () => void
+  menu?: ChipMenuItem[]
+}
+
+function ContextChip({ iconLight, iconDark, label, title, onClick, menu }: ContextChipProps) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  useClickOutside(wrapRef, () => setOpen(false), open)
+
+  const hasMenu = !!menu && menu.length > 0
+  const interactive = hasMenu || !!onClick
+
+  const handleClick = () => {
+    if (hasMenu) {
+      setOpen((v) => !v)
+      return
+    }
+    onClick?.()
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={handleClick}
+        title={title ?? label}
+        disabled={!interactive}
+        aria-haspopup={hasMenu ? 'menu' : undefined}
+        aria-expanded={hasMenu ? open : undefined}
+        className={`flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1 text-[12px] text-[var(--text-secondary)] transition-colors ${
+          interactive
+            ? 'hover:border-[var(--accent)] hover:text-[var(--text-primary)]'
+            : 'cursor-default opacity-90'
+        } ${open ? 'border-[var(--accent)] text-[var(--text-primary)]' : ''}`}
+      >
+        <span className="relative flex h-[18px] w-[18px] items-center justify-center">
+          <img
+            src={iconLight}
+            alt=""
+            aria-hidden
+            className="themed-variant-light icon-asset h-[18px] w-[18px] object-contain"
+          />
+          <img
+            src={iconDark}
+            alt=""
+            aria-hidden
+            className="themed-variant-dark icon-asset h-[18px] w-[18px] object-contain"
+          />
+        </span>
+        <span className="leading-none">{label}</span>
+        {hasMenu && (
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        )}
+      </button>
+
+      {hasMenu && open && (
+        <div
+          role="menu"
+          className="absolute bottom-full left-0 z-30 mb-1 min-w-[220px] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-xl"
+        >
+          {menu!.map((item) => (
             <button
-              key={m.id}
+              key={item.label}
+              type="button"
               onClick={() => {
                 setOpen(false)
-                void setModel(m.id)
+                item.onSelect()
               }}
-              className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors ${
-                m.id === activeModel
+              className={`flex w-full flex-col items-start gap-0.5 px-3 py-1.5 text-left text-[12px] transition-colors ${
+                item.active
                   ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <span className="font-medium">{m.name}</span>
-              {m.id === activeModel && (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]" aria-hidden>
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+              <span className="font-medium">{item.label}</span>
+              {item.description && (
+                <span className="text-[11px] text-[var(--text-muted)]">{item.description}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface ContextChipRowProps {
+  onAddFile: () => void
+}
+
+function ContextChipRow({ onAddFile }: ContextChipRowProps) {
+  const [workdir, setWorkdir] = useState<{ path: string; name: string } | null>(null)
+
+  useEffect(() => {
+    if (!window.api?.files?.getWorkdir) return
+    let cancelled = false
+    window.api.files
+      .getWorkdir()
+      .then((res: { success: boolean; data?: { path: string; name: string } }) => {
+        if (!cancelled && res.success && res.data) setWorkdir(res.data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handlePickFolder = async () => {
+    if (!window.api?.files?.pickWorkdir) return
+    try {
+      const res = await window.api.files.pickWorkdir()
+      if (res.success && res.data) setWorkdir(res.data)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const folderLabel = workdir?.name ?? '(no folder)'
+  const folderTitle = workdir?.path
+    ? `Working folder: ${workdir.path} (click to change)`
+    : 'Click to choose a working folder'
+
+  const locationMenu: ChipMenuItem[] = [
+    {
+      label: 'Local',
+      description: 'This machine',
+      active: true,
+      onSelect: () => {
+        /* already local */
+      }
+    },
+    {
+      label: 'Remote (coming soon)',
+      description: 'Run against a remote dev container',
+      onSelect: () => toast.info('Remote execution — coming soon')
+    }
+  ]
+
+  const folderMenu: ChipMenuItem[] = [
+    {
+      label: 'Change folder…',
+      description: workdir?.path ?? 'No folder selected',
+      onSelect: handlePickFolder
+    },
+    {
+      label: 'Use current process folder',
+      description: 'Reset to the folder Lamprey was launched from',
+      onSelect: () => {
+        window.api?.files
+          ?.getWorkdir?.()
+          .then((res: { success: boolean; data?: { path: string; name: string } }) => {
+            if (res.success && res.data) setWorkdir(res.data)
+          })
+          .catch(() => {})
+      }
+    }
+  ]
+
+  const worktreeMenu: ChipMenuItem[] = [
+    { label: 'main', description: 'Default branch', active: true, onSelect: () => {} },
+    {
+      label: 'Switch branch (coming soon)',
+      description: 'Pick a different git branch',
+      onSelect: () => toast.info('Branch switching — coming soon')
+    },
+    {
+      label: 'New worktree (coming soon)',
+      description: 'Run agents in an isolated worktree',
+      onSelect: () => toast.info('Worktrees — coming soon')
+    }
+  ]
+
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+      <ContextChip
+        iconLight={workLocationLight}
+        iconDark={workLocationDark}
+        label="Local"
+        title="Running locally on this machine"
+        menu={locationMenu}
+      />
+      <ContextChip
+        iconLight={folderLight}
+        iconDark={folderDark}
+        label={folderLabel}
+        title={folderTitle}
+        menu={folderMenu}
+      />
+      <ContextChip
+        iconLight={worktreeLight}
+        iconDark={worktreeDark}
+        label="main · worktree"
+        title="Active git worktree"
+        menu={worktreeMenu}
+      />
+      <ContextChip
+        iconLight={addFileLight}
+        iconDark={addFileDark}
+        label="Add file"
+        title="Attach a file to your prompt"
+        onClick={onAddFile}
+      />
+    </div>
+  )
+}
+
+interface AddMenuItem {
+  label: string
+  shortcut?: string
+  onSelect: () => void
+}
+
+interface AddMenuProps {
+  onPickFile: () => void
+  onOpenSettings: () => void
+  onInsertSlash: () => void
+}
+
+function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  useClickOutside(wrapRef, () => setOpen(false), open)
+
+  const items: AddMenuItem[] = [
+    { label: 'Add files or photos', shortcut: 'Ctrl+U', onSelect: onPickFile },
+    { label: 'Add folder', onSelect: () => toast.info('Add folder — coming soon') },
+    { label: 'Import GitHub issue', onSelect: () => toast.info('Import GitHub issue — coming soon') },
+    { label: 'Slash commands', onSelect: onInsertSlash },
+    { label: 'Connectors', onSelect: () => toast.info('Connectors — coming soon') },
+    { label: 'Plugins', onSelect: onOpenSettings }
+  ]
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        title="Add"
+        aria-label="Add"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 z-30 mb-1 w-60 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-xl">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                item.onSelect()
+              }}
+              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+            >
+              <span>{item.label}</span>
+              {item.shortcut && (
+                <span className="font-mono text-[11px] text-[var(--text-muted)]">{item.shortcut}</span>
               )}
             </button>
           ))}
@@ -238,11 +563,20 @@ function ModelDropdown() {
 export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInputProps) {
   const [content, setContent] = useState('')
   const [pasteOffer, setPasteOffer] = useState<string | null>(null)
+  const [keyPromptProvider, setKeyPromptProvider] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const addAttachments = useChatStore((s) => s.addAttachments)
   const setProcessing = useChatStore((s) => s.setAttachmentsProcessing)
   const composeSeedToken = useUiStore((s) => s.composeSeedToken)
   const consumeComposeDraft = useUiStore((s) => s.consumeComposeDraft)
+  const openSettings = useUiStore((s) => s.openSettings)
+  const refreshProviders = useProvidersStore((s) => s.refresh)
+  const hasKey = useProvidersStore((s) => s.hasKey)
+  const activeModel = useChatStore((s) => s.activeModel)
+  const allModels = useModelStore((s) => s.models)
+  const activeModelInfo = allModels.find((m) => m.id === activeModel)
+  const activeProvider = activeModelInfo?.provider
+  const activeProviderHasKey = activeProvider ? hasKey(activeProvider) : true
 
   const micIcon = useThemedIcon(micLight, micDark)
   const sendIcon = useThemedIcon(sendLight, sendDark)
@@ -269,15 +603,93 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     }
   }, [composeSeedToken, consumeComposeDraft])
 
+  const handleSlashCommand = async (raw: string): Promise<boolean> => {
+    const tokens = raw.trim().split(/\s+/)
+    const cmd = tokens[0]?.toLowerCase()
+    const activeConvId = useChatStore.getState().activeConversationId
+    switch (cmd) {
+      case '/compact': {
+        if (!activeConvId) {
+          toast.error('No active conversation.')
+          return true
+        }
+        toast.info('Compacting conversation…')
+        const res = await window.api?.conversation?.compact(activeConvId)
+        if (!res?.success) {
+          toast.error(res?.error ?? 'Compact failed')
+        } else {
+          await useChatStore.getState().selectConversation(activeConvId)
+          toast.success('Conversation compacted.')
+        }
+        return true
+      }
+      case '/fork': {
+        if (!activeConvId) {
+          toast.error('No active conversation.')
+          return true
+        }
+        const res = await window.api?.conversation?.fork(activeConvId)
+        if (!res?.success) {
+          toast.error(res?.error ?? 'Fork failed')
+        } else {
+          await useChatStore.getState().loadConversations()
+          const forked = res.data as { id: string }
+          await useChatStore.getState().selectConversation(forked.id)
+          toast.success('Forked conversation.')
+        }
+        return true
+      }
+      case '/models': {
+        // Open settings on the Models pane — closest hook we have.
+        useUiStore.getState().openSettings()
+        toast.info('Pick a model in Settings → Models')
+        return true
+      }
+      case '/fast': {
+        toast.info('Fast mode is not yet wired to a provider in Lamprey.')
+        return true
+      }
+      case '/plan': {
+        useUiStore.getState().togglePlanMode()
+        const next = useUiStore.getState().planMode
+        toast.info(`Plan mode ${next ? 'ON' : 'OFF'}`)
+        return true
+      }
+      default:
+        return false
+    }
+  }
+
   const handleSubmit = () => {
     const trimmed = content.trim()
     if (!trimmed || isStreaming || disabled) return
-    onSend(trimmed)
+    if (activeProvider && !activeProviderHasKey) {
+      setKeyPromptProvider(activeProvider)
+      return
+    }
+    if (trimmed.startsWith('/')) {
+      void handleSlashCommand(trimmed).then((handled) => {
+        if (handled) setContent('')
+      })
+      return
+    }
+    const planMode = useUiStore.getState().planMode
+    const final = planMode
+      ? `[PLAN MODE — produce a plan first, list assumptions and steps, then await my confirmation before executing.]\n\n${trimmed}`
+      : trimmed
+    onSend(final)
     setContent('')
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (pasteOffer) return
+    if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault()
+      useUiStore.getState().togglePlanMode()
+      const next = useUiStore.getState().planMode
+      toast.info(`Plan mode ${next ? 'ON' : 'OFF'}`)
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
@@ -343,7 +755,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       mimeType: 'text/plain',
       size: new Blob([pasteOffer]).size,
       content: pasteOffer,
-      previewText: `${pasteOffer.split(/\r?\n/).length} lines · pasted`
+      previewText: `${pasteOffer.split(/\r?\n/).length} lines Â· pasted`
     }
     addAttachments([attachment])
     setPasteOffer(null)
@@ -363,9 +775,22 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   }
 
   const canSend = content.trim().length > 0 && !disabled && !isStreaming
+  const planMode = useUiStore((s) => s.planMode)
 
   return (
     <div className="w-full">
+      {planMode && (
+        <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-1.5 text-[12px] text-[var(--accent)]">
+          <span className="font-mono">PLAN MODE · Shift+Tab to toggle</span>
+          <button
+            onClick={() => useUiStore.getState().setPlanMode(false)}
+            className="rounded px-1 text-[10px] uppercase tracking-wider hover:bg-[var(--bg-tertiary)]"
+            title="Turn plan mode off"
+          >
+            off
+          </button>
+        </div>
+      )}
       {pasteOffer && (
         <div className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-2 text-xs text-[var(--text-primary)]">
           <span className="flex-1">
@@ -374,13 +799,13 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           </span>
           <button
             onClick={handlePasteOfferAccept}
-            className="rounded bg-[var(--accent)] px-2 py-1 text-[11px] font-medium text-white hover:opacity-90"
+            className="rounded bg-[var(--accent)] px-2 py-1 text-[13px] font-medium text-white hover:opacity-90"
           >
             Paste as attachment
           </button>
           <button
             onClick={handlePasteOfferInline}
-            className="rounded border border-[var(--border)] px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+            className="rounded border border-[var(--border)] px-2 py-1 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           >
             Paste inline
           </button>
@@ -389,10 +814,12 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             className="rounded px-1.5 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             title="Dismiss"
           >
-            ×
+            Ã—
           </button>
         </div>
       )}
+
+      <ContextChipRow onAddFile={handlePickerClick} />
 
       <div className="flex w-full flex-col gap-2 rounded-3xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 pt-3 pb-2 shadow-lg backdrop-blur-sm">
         <textarea
@@ -405,30 +832,24 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           placeholder=""
           rows={1}
           disabled={disabled}
-          className="max-h-[200px] min-h-[28px] w-full resize-none bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+          className="max-h-[200px] min-h-[28px] w-full resize-none bg-transparent pl-10 pt-6 text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
         />
 
         <div className="flex items-center gap-1">
-          <button
-            onClick={handlePickerClick}
-            disabled={disabled || isStreaming}
-            title="Attach file"
-            aria-label="Attach file"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-40"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
+          <AddMenu
+            onPickFile={handlePickerClick}
+            onOpenSettings={openSettings}
+            onInsertSlash={() => {
+              setContent((c) => (c.startsWith('/') ? c : `/${c}`))
+              textareaRef.current?.focus()
+            }}
+          />
 
           <PermissionsDropdown />
 
-          <AgentModeToggle />
-
           <div className="flex-1" />
 
-          <ModelDropdown />
+          <ModelDropdown onRequestKey={(providerId) => setKeyPromptProvider(providerId)} />
 
           <button
             onClick={() => toast.info('Voice input coming soon')}
@@ -456,13 +877,31 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               disabled={!canSend}
               title="Send (Enter)"
               aria-label="Send"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--accent)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-[var(--bg-tertiary)]"
+              className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--accent)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-[var(--bg-tertiary)]"
             >
-              <img src={sendIcon} alt="" aria-hidden className="icon-asset h-[30px] w-[30px] object-contain" />
+              <img
+                src={sendIcon}
+                alt=""
+                aria-hidden
+                className="icon-asset-crisp h-[45px] w-[45px] object-contain"
+              />
             </button>
           )}
         </div>
       </div>
+
+      {keyPromptProvider && (
+        <ApiKeyModal
+          defaultProvider={keyPromptProvider}
+          required={false}
+          onDismiss={() => setKeyPromptProvider(null)}
+          onComplete={async () => {
+            await refreshProviders()
+            setKeyPromptProvider(null)
+            toast.success('Key saved — model unlocked')
+          }}
+        />
+      )}
     </div>
   )
 }

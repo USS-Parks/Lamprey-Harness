@@ -4,9 +4,13 @@ import { Titlebar } from '@/components/layout/Titlebar'
 import { ChatView } from '@/components/chat/ChatView'
 import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel'
 import { RightPanelHome } from '@/components/artifacts/RightPanelHome'
+import { ToolsPanel } from '@/components/tools/ToolsPanel'
+import { QuickOpenPalette } from '@/components/tools/QuickOpenPalette'
+import { WorktreeManagerModal } from '@/components/worktree/WorktreeManagerModal'
 import { ApiKeyModal } from '@/components/settings/ApiKeyModal'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { ConfirmationModal } from '@/components/mcp/ConfirmationModal'
+import { MemoryModal } from '@/components/memory/MemoryModal'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
@@ -44,6 +48,7 @@ function App(): React.ReactElement {
   const rightPanelWidth = useUiStore((s) => s.rightPanelWidth)
   const setRightPanelCollapsed = useUiStore((s) => s.setRightPanelCollapsed)
   const setRightPanelWidth = useUiStore((s) => s.setRightPanelWidth)
+  const activeTool = useUiStore((s) => s.activeTool)
   const artifactsPlaceholderUrl = useThemedIcon(artifactsPlaceholderLight, artifactsPlaceholderDark)
 
   const handleRightResizeStart = useCallback(
@@ -91,6 +96,15 @@ function App(): React.ReactElement {
       delete (window as unknown as Record<string, unknown>).__openArtifact
     }
   }, [handleArtifactOpen])
+
+  // When a tool opens while an artifact's WebContentsView is mounted, the
+  // OS-level overlay would stay pinned to the (now-hidden) artifact slot.
+  // Hide the view so the tool panel renders cleanly underneath.
+  useEffect(() => {
+    if (activeTool && window.api) {
+      void window.api.artifact?.hide?.()
+    }
+  }, [activeTool])
 
   useEffect(() => {
     if (!window.api) return
@@ -143,7 +157,7 @@ function App(): React.ReactElement {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {needsApiKey && (
         <ApiKeyModal
           onComplete={() => {
@@ -154,6 +168,8 @@ function App(): React.ReactElement {
 
       {settingsOpen && <SettingsDialog onClose={closeSettings} />}
 
+      <MemoryModal />
+
       {confirmationEvent && (
         <ConfirmationModal
           event={confirmationEvent}
@@ -161,16 +177,18 @@ function App(): React.ReactElement {
         />
       )}
 
-      <Sidebar />
+      <Titlebar onSettingsClick={openSettings} />
 
-      <div className="flex flex-1 flex-col">
-        <Titlebar onSettingsClick={openSettings} />
-        <SecurityBanner />
-        <UpdateBanner />
-        <ChatView />
-      </div>
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
 
-      {rightPanelCollapsed ? (
+        <div className="flex flex-1 flex-col">
+          <SecurityBanner />
+          <UpdateBanner />
+          <ChatView />
+        </div>
+
+        {rightPanelCollapsed ? (
         <div className="flex h-full w-8 flex-col items-center border-l border-[var(--border)] bg-[var(--bg-secondary)] py-2">
           <button
             onClick={() => setRightPanelCollapsed(false)}
@@ -183,6 +201,21 @@ function App(): React.ReactElement {
             </svg>
           </button>
           <img src={artifactsPlaceholderUrl} alt="" aria-hidden className="icon-asset mt-2 h-[25px] w-[25px] object-contain opacity-60" />
+        </div>
+      ) : activeTool ? (
+        <div
+          className="relative flex flex-col border-l border-[var(--border)] bg-[var(--bg-secondary)]"
+          style={{ width: rightPanelWidth, minWidth: rightPanelWidth }}
+        >
+          <div
+            onMouseDown={handleRightResizeStart}
+            onDoubleClick={() => setRightPanelWidth(RIGHT_PANEL_BOUNDS.default)}
+            title="Drag to resize · double-click to reset"
+            role="separator"
+            aria-orientation="vertical"
+            className="resize-handle-v resize-handle-v-left"
+          />
+          <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
         </div>
       ) : artifactOpen ? (
         <ArtifactPanel
@@ -206,6 +239,10 @@ function App(): React.ReactElement {
           <RightPanelHome onCollapse={() => setRightPanelCollapsed(true)} />
         </div>
       )}
+      </div>
+
+      <QuickOpenPalette />
+      <WorktreeManagerModal />
 
       <ToastContainer />
     </div>

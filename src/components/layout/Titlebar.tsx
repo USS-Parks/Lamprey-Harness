@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useUiStore } from '@/stores/ui-store'
+import { useChatStore } from '@/stores/chat-store'
 import { useThemedIcon } from '@/lib/themed-icon'
+import { toast } from '@/stores/toast-store'
 import { THEME_PRESETS, getActiveTokens, getPreset } from '@/styles/theme-presets'
-import workLight from '@assets/Lamprey Work Location Icon.png'
-import workDark from '@assets/Lamprey Work Location Icon Dark View.png'
 import settingsLight from '@assets/Lamprey Settings Icon.png'
 import settingsDark from '@assets/Lamprey Settings Icon Dark View.png'
+import lampreyLogo from '@assets/Lamprey Desktop Icon-1.png'
 
 interface TitlebarProps {
   onSettingsClick: () => void
@@ -15,20 +16,152 @@ interface TitlebarProps {
 const NO_DRAG = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 const DRAG = { WebkitAppRegion: 'drag' } as React.CSSProperties
 
+interface MenuItem {
+  label?: string
+  shortcut?: string
+  onSelect?: () => void
+  separator?: boolean
+  disabled?: boolean
+}
+
+function useClickOutside(
+  ref: React.RefObject<HTMLElement | null>,
+  onOutside: () => void,
+  active: boolean
+) {
+  useEffect(() => {
+    if (!active) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onOutside()
+    }
+    window.addEventListener('mousedown', handler)
+    return () => window.removeEventListener('mousedown', handler)
+  }, [active, onOutside, ref])
+}
+
+interface MenuButtonProps {
+  label: string
+  items: MenuItem[]
+  open: boolean
+  onToggle: () => void
+  onClose: () => void
+  onHover: () => void
+}
+
+function MenuButton({ label, items, open, onToggle, onClose, onHover }: MenuButtonProps) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  useClickOutside(wrapRef, onClose, open)
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        onMouseEnter={onHover}
+        className={`rounded px-2 py-1 text-[13px] transition-colors ${
+          open
+            ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+        }`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {label}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-0 top-full z-50 mt-1 min-w-[220px] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-xl"
+        >
+          {items.map((item, i) =>
+            item.separator ? (
+              <div
+                key={`sep-${i}`}
+                className="my-1 border-t border-[var(--border)]"
+                aria-hidden
+              />
+            ) : (
+              <button
+                key={item.label}
+                type="button"
+                disabled={item.disabled}
+                onClick={() => {
+                  onClose()
+                  item.onSelect?.()
+                }}
+                className={`flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left text-[13px] transition-colors ${
+                  item.disabled
+                    ? 'cursor-not-allowed text-[var(--text-muted)] opacity-60'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <span>{item.label}</span>
+                {item.shortcut && (
+                  <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                    {item.shortcut}
+                  </span>
+                )}
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Collapsed-rail widths must match Sidebar's `w-12` (48px) and App's `w-8`
+// (32px) — kept in sync manually so the centered logo never misaligns.
+const SIDEBAR_COLLAPSED_PX = 48
+const RIGHT_COLLAPSED_PX = 32
+
 export function Titlebar({ onSettingsClick }: TitlebarProps) {
   const settings = useSettingsStore((s) => s.settings)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
   const toggleThemeMode = useSettingsStore((s) => s.toggleThemeMode)
+  const toggleSidebar = useUiStore((s) => s.toggleSidebar)
   const toggleRightPanel = useUiStore((s) => s.toggleRightPanel)
+  const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed)
+  const sidebarWidth = useUiStore((s) => s.sidebarWidth)
   const rightPanelCollapsed = useUiStore((s) => s.rightPanelCollapsed)
+  const rightPanelWidth = useUiStore((s) => s.rightPanelWidth)
+  const requestSearchFocus = useUiStore((s) => s.requestSearchFocus)
+  const createConversation = useChatStore((s) => s.createConversation)
+  const conversations = useChatStore((s) => s.conversations)
+  const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const selectConversation = useChatStore((s) => s.selectConversation)
+
+  // Index into the conversation list (sorted as the store returns them).
+  // null when nothing is selected yet — back goes to the first, forward to
+  // the most recent.
+  const activeIdx = conversations.findIndex((c) => c.id === activeConversationId)
+  const canGoBack = conversations.length > 0 && activeIdx !== 0
+  const canGoForward =
+    conversations.length > 0 && activeIdx !== -1 && activeIdx < conversations.length - 1
+
+  const goBack = () => {
+    if (!conversations.length) return
+    const next = activeIdx <= 0 ? 0 : activeIdx - 1
+    void selectConversation(conversations[next].id)
+  }
+  const goForward = () => {
+    if (!conversations.length) return
+    if (activeIdx === -1) {
+      void selectConversation(conversations[conversations.length - 1].id)
+      return
+    }
+    const next = Math.min(conversations.length - 1, activeIdx + 1)
+    void selectConversation(conversations[next].id)
+  }
   const activePreset = getPreset(settings.themePreset)
   const activeTokens = getActiveTokens(activePreset, settings.themeMode)
   const isDark = settings.themeMode === 'dark'
   const settingsIconUrl = useThemedIcon(settingsLight, settingsDark)
-  const workIconUrl = useThemedIcon(workLight, workDark)
 
   const [isMaximized, setIsMaximized] = useState(false)
-  const [folderName, setFolderName] = useState('')
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+
+  const effectiveSidebar = sidebarCollapsed ? SIDEBAR_COLLAPSED_PX : sidebarWidth
+  const effectiveRight = rightPanelCollapsed ? RIGHT_COLLAPSED_PX : rightPanelWidth
 
   useEffect(() => {
     if (!window.api?.window) return
@@ -38,40 +171,266 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
     return window.api.window.onMaximizedChanged((m) => setIsMaximized(m))
   }, [])
 
-  useEffect(() => {
-    if (!window.api?.app?.getWorkingFolder) return
-    window.api.app.getWorkingFolder().then((r) => {
-      if (r.success && r.data?.name) setFolderName(r.data.name)
-    })
-  }, [])
-
   const handleMinimize = () => window.api?.window?.minimize()
   const handleMaximize = () => window.api?.window?.maximizeToggle()
   const handleClose = () => window.api?.window?.close()
+  const handleReload = () => window.api?.window?.reload?.()
+  const handleDevTools = () => window.api?.window?.toggleDevTools?.()
+  const handlePickFolder = async () => {
+    try {
+      const res = await window.api?.files?.pickWorkdir?.()
+      if (res?.success && res.data) {
+        toast.success(`Working folder set: ${res.data.name}`)
+      }
+    } catch {
+      toast.error('Could not open folder picker')
+    }
+  }
+
+  const fileMenu: MenuItem[] = [
+    { label: 'New chat', shortcut: 'Ctrl+N', onSelect: () => createConversation() },
+    { label: 'Search conversations', shortcut: 'Ctrl+K', onSelect: requestSearchFocus },
+    { separator: true },
+    { label: 'Open folder…', onSelect: handlePickFolder },
+    { separator: true },
+    { label: 'Exit Lamprey', onSelect: handleClose }
+  ]
+
+  const editMenu: MenuItem[] = [
+    { label: 'Undo', shortcut: 'Ctrl+Z', onSelect: () => document.execCommand('undo') },
+    { label: 'Redo', shortcut: 'Ctrl+Shift+Z', onSelect: () => document.execCommand('redo') },
+    { separator: true },
+    { label: 'Cut', shortcut: 'Ctrl+X', onSelect: () => document.execCommand('cut') },
+    { label: 'Copy', shortcut: 'Ctrl+C', onSelect: () => document.execCommand('copy') },
+    { label: 'Paste', shortcut: 'Ctrl+V', onSelect: () => document.execCommand('paste') },
+    { separator: true },
+    { label: 'Select all', shortcut: 'Ctrl+A', onSelect: () => document.execCommand('selectAll') }
+  ]
+
+  const viewMenu: MenuItem[] = [
+    { label: 'Toggle sidebar', shortcut: 'Ctrl+B', onSelect: toggleSidebar },
+    {
+      label: rightPanelCollapsed ? 'Show artifacts panel' : 'Hide artifacts panel',
+      onSelect: toggleRightPanel
+    },
+    { separator: true },
+    {
+      label: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+      onSelect: toggleThemeMode
+    },
+    { label: 'Settings', shortcut: 'Ctrl+,', onSelect: onSettingsClick }
+  ]
+
+  const windowMenu: MenuItem[] = [
+    { label: 'Minimize', onSelect: handleMinimize },
+    {
+      label: isMaximized ? 'Restore' : 'Maximize',
+      onSelect: handleMaximize
+    },
+    { separator: true },
+    { label: 'Reload', shortcut: 'Ctrl+R', onSelect: handleReload },
+    { label: 'Toggle DevTools', shortcut: 'Ctrl+Shift+I', onSelect: handleDevTools }
+  ]
+
+  const helpMenu: MenuItem[] = [
+    {
+      label: 'About Lamprey',
+      onSelect: () => toast.info('Lamprey — multi-agent coding harness')
+    },
+    {
+      label: 'View on GitHub',
+      onSelect: () => toast.info('https://github.com/USS-Parks/lamprey')
+    },
+    {
+      label: 'Report an issue',
+      onSelect: () => toast.info('Open the GitHub repo and file an issue')
+    }
+  ]
+
+  const menus: Array<{ label: string; items: MenuItem[] }> = [
+    { label: 'File', items: fileMenu },
+    { label: 'Edit', items: editMenu },
+    { label: 'View', items: viewMenu },
+    { label: 'Window', items: windowMenu },
+    { label: 'Help', items: helpMenu }
+  ]
 
   return (
     <div
-      className="flex h-16 items-stretch border-b border-[var(--border)] bg-[var(--bg-secondary)]"
+      className="flex flex-col border-b border-[var(--border)] bg-[var(--bg-secondary)]"
       style={DRAG}
     >
-      <div className="flex flex-1 items-center gap-4 pl-4">
-        <span
-          className="flex items-center gap-2 font-mono text-sm font-semibold tracking-wide text-[var(--text-primary)]"
-          title={folderName ? `Working folder: ${folderName}` : 'Working folder'}
+      {/* ─── Row 1 ─── nav + menus (left) · centered logo (over chat column) · window controls (right) */}
+      <div className="relative flex h-9 items-stretch">
+        <div className="flex items-center gap-3 pl-3" style={NO_DRAG}>
+          <NavIconButton
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            ariaLabel="Toggle sidebar"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <line x1="9" y1="4" x2="9" y2="20" />
+            </svg>
+          </NavIconButton>
+          <NavIconButton
+            onClick={goBack}
+            disabled={!canGoBack}
+            title="Previous conversation"
+            ariaLabel="Previous conversation"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </NavIconButton>
+          <NavIconButton
+            onClick={goForward}
+            disabled={!canGoForward}
+            title="Next conversation"
+            ariaLabel="Next conversation"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </NavIconButton>
+          <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden />
+          {menus.map((m) => (
+            <MenuButton
+              key={m.label}
+              label={m.label}
+              items={m.items}
+              open={openMenu === m.label}
+              onToggle={() => setOpenMenu(openMenu === m.label ? null : m.label)}
+              onClose={() => setOpenMenu(null)}
+              onHover={() => {
+                if (openMenu !== null) setOpenMenu(m.label)
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Centered logo — tracks the chat column as sidebar/right-panel resize. */}
+        <div
+          className="pointer-events-none absolute inset-y-0 flex items-center justify-center"
+          style={{ left: effectiveSidebar, right: effectiveRight }}
+          aria-hidden
         >
-          <img
-            src={workIconUrl}
-            alt=""
-            aria-hidden
-            className="icon-asset h-[45px] w-[45px] object-contain"
-          />
-          <span className="max-w-[260px] truncate">{folderName || 'Lamprey'}</span>
-        </span>
+          <span className="flex items-center gap-2 font-mono text-[13px] font-semibold text-[var(--text-primary)]">
+            <img
+              src={lampreyLogo}
+              alt=""
+              aria-hidden
+              className="h-6 w-6 object-contain"
+            />
+            <span className="tracking-wide">Lamprey</span>
+          </span>
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="flex" style={NO_DRAG}>
+          <WindowControlButton
+            onClick={handleMinimize}
+            title="Minimize"
+            aria-label="Minimize"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+              <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+          </WindowControlButton>
+          <WindowControlButton
+            onClick={handleMaximize}
+            title={isMaximized ? 'Restore' : 'Maximize'}
+            aria-label={isMaximized ? 'Restore' : 'Maximize'}
+          >
+            {isMaximized ? (
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+                <rect
+                  x="3.5"
+                  y="1.5"
+                  width="7"
+                  height="7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+                <rect
+                  x="1.5"
+                  y="3.5"
+                  width="7"
+                  height="7"
+                  fill="var(--bg-secondary)"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+                <rect
+                  x="2"
+                  y="2"
+                  width="8"
+                  height="8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+              </svg>
+            )}
+          </WindowControlButton>
+          <WindowControlButton
+            onClick={handleClose}
+            title="Close"
+            aria-label="Close"
+            variant="close"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+              <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+          </WindowControlButton>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 px-3" style={NO_DRAG}>
+      {/* ─── Row 2 ─── theme pill, theme toggle, settings, right-panel toggle */}
+      <div
+        className="flex h-9 items-center gap-2 border-t border-[var(--border)] px-3"
+        style={NO_DRAG}
+      >
+        <div className="flex-1" />
+
         <label
-          className="relative flex cursor-pointer items-center gap-1.5 rounded border border-[var(--border)] bg-[var(--bg-tertiary)] px-2 py-1 font-mono text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="relative flex cursor-pointer items-center gap-1.5 rounded border border-[var(--border)] bg-[var(--bg-tertiary)] px-2 py-1 font-mono text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           title="Switch theme preset"
         >
           <span
@@ -82,7 +441,9 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           <span className="max-w-[110px] truncate">{activePreset.name}</span>
           <select
             value={settings.themePreset}
-            onChange={(e) => updateSettings({ themePreset: e.target.value as typeof settings.themePreset })}
+            onChange={(e) =>
+              updateSettings({ themePreset: e.target.value as typeof settings.themePreset })
+            }
             className="absolute inset-0 cursor-pointer opacity-0"
             aria-label="Theme preset"
           >
@@ -101,12 +462,32 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           aria-label="Toggle theme mode"
         >
           {isDark ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
             </svg>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           )}
@@ -117,62 +498,34 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           className="rounded p-1 transition-colors hover:bg-[var(--bg-tertiary)]"
           title="Settings (Ctrl+,)"
         >
-          <img src={settingsIconUrl} alt="Settings" className="icon-asset h-9 w-9 object-contain" />
+          <img
+            src={settingsIconUrl}
+            alt="Settings"
+            className="icon-asset h-7 w-7 object-contain"
+          />
         </button>
-      </div>
 
-      <div className="flex flex-col" style={NO_DRAG}>
-        <div className="flex">
-          <WindowControlButton
-            onClick={handleMinimize}
-            title="Minimize"
-            aria-label="Minimize"
+        <button
+          onClick={toggleRightPanel}
+          title={rightPanelCollapsed ? 'Show right panel' : 'Hide right panel'}
+          aria-label="Toggle right panel"
+          className="rounded p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-              <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-          </WindowControlButton>
-          <WindowControlButton
-            onClick={handleMaximize}
-            title={isMaximized ? 'Restore' : 'Maximize'}
-            aria-label={isMaximized ? 'Restore' : 'Maximize'}
-          >
-            {isMaximized ? (
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-                <rect x="3.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1" />
-                <rect x="1.5" y="3.5" width="7" height="7" fill="var(--bg-secondary)" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-                <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            )}
-          </WindowControlButton>
-          <WindowControlButton
-            onClick={handleClose}
-            title="Close"
-            aria-label="Close"
-            variant="close"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-              <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" />
-              <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-          </WindowControlButton>
-        </div>
-        <div className="flex flex-1 items-center justify-end pr-1.5">
-          <button
-            onClick={toggleRightPanel}
-            title={rightPanelCollapsed ? 'Show right panel' : 'Hide right panel'}
-            aria-label="Toggle right panel"
-            className="rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <line x1="15" y1="4" x2="15" y2="20" />
-            </svg>
-          </button>
-        </div>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <line x1="15" y1="4" x2="15" y2="20" />
+          </svg>
+        </button>
       </div>
     </div>
   )
@@ -184,6 +537,39 @@ interface WindowControlButtonProps {
   'aria-label': string
   variant?: 'default' | 'close'
   children: React.ReactNode
+}
+
+interface NavIconButtonProps {
+  onClick: () => void
+  title: string
+  ariaLabel: string
+  disabled?: boolean
+  children: React.ReactNode
+}
+
+function NavIconButton({
+  onClick,
+  title,
+  ariaLabel,
+  disabled,
+  children
+}: NavIconButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={ariaLabel}
+      className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
+        disabled
+          ? 'cursor-not-allowed text-[var(--text-muted)] opacity-40'
+          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+      }`}
+    >
+      {children}
+    </button>
+  )
 }
 
 function WindowControlButton({
@@ -200,7 +586,12 @@ function WindowControlButton({
       ? 'hover:bg-[var(--error)] hover:text-white'
       : 'hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
   return (
-    <button onClick={onClick} title={title} aria-label={ariaLabel} className={`${baseClass} ${hoverClass}`}>
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={ariaLabel}
+      className={`${baseClass} ${hoverClass}`}
+    >
       {children}
     </button>
   )

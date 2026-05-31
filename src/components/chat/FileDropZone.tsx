@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { toast } from '@/stores/toast-store'
 import type { ProcessedFile } from '@/lib/types'
@@ -91,10 +91,10 @@ export function FileDropZone() {
         <div className="font-mono text-sm font-semibold uppercase tracking-wider text-[var(--accent)]">
           Drop files to attach
         </div>
-        <p className="mt-2 text-[11px] text-[var(--text-secondary)]">
-          .txt .md .py .js .ts .html .css .json .csv .pdf · images
+        <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
+          .txt .md .py .js .ts .html .css .json .csv .pdf Â· images
         </p>
-        <p className="mt-1 text-[10px] text-[var(--text-muted)]">10 MB per file · 25 MB total</p>
+        <p className="mt-1 text-[12px] text-[var(--text-muted)]">10 MB per file Â· 25 MB total</p>
       </div>
     </div>
   )

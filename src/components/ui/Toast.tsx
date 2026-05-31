@@ -1,4 +1,4 @@
-import { useToastStore, type ToastType } from '@/stores/toast-store'
+﻿import { useToastStore, type ToastType } from '@/stores/toast-store'
 
 const accentByType: Record<ToastType, string> = {
   success: 'border-[var(--success)] text-[var(--success)]',
@@ -8,9 +8,9 @@ const accentByType: Record<ToastType, string> = {
 }
 
 const iconByType: Record<ToastType, string> = {
-  success: '✓',
+  success: 'âœ“',
   warning: '!',
-  error: '✕',
+  error: 'âœ•',
   info: 'i'
 }
 
@@ -29,7 +29,7 @@ export function ToastContainer() {
           aria-live="polite"
           className={`pointer-events-auto flex items-start gap-2 rounded-lg border-l-2 bg-[var(--bg-secondary)] px-3 py-2 text-xs shadow-lg ${accentByType[t.type]}`}
         >
-          <span aria-hidden className={`mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-bold ${accentByType[t.type]}`}>
+          <span aria-hidden className={`mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full border text-[12px] font-bold ${accentByType[t.type]}`}>
             {iconByType[t.type]}
           </span>
           <span className="min-w-0 flex-1 break-words leading-snug text-[var(--text-primary)]">

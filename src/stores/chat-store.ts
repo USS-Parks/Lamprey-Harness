@@ -27,6 +27,7 @@ interface ChatState {
   messages: Message[]
   isStreaming: boolean
   streamingContent: string
+  streamStartedAt: number | null
   activeModel: string
   toolCalls: ToolCallState[]
   pendingAttachments: ProcessedFile[]
@@ -79,6 +80,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isStreaming: false,
   streamingContent: '',
+  streamStartedAt: null,
   activeModel: 'deepseek-v4-pro',
   toolCalls: [],
   pendingAttachments: [],
@@ -167,6 +169,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [...s.messages, userMessage],
       isStreaming: true,
       streamingContent: '',
+      streamStartedAt: Date.now(),
       toolCalls: [],
       pendingAttachments: []
     }))
@@ -252,13 +255,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       messages: [...state.messages, message],
       isStreaming: false,
-      streamingContent: ''
+      streamingContent: '',
+      streamStartedAt: null
     }))
     get().loadConversations()
   },
 
   streamError: (_error: string) => {
-    set({ isStreaming: false, streamingContent: '' })
+    set({ isStreaming: false, streamingContent: '', streamStartedAt: null })
   },
 
   addToolCall: (event: ToolCallEvent) => {

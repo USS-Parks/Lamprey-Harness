@@ -7,6 +7,12 @@ import { registerMemoryHandlers } from './memory'
 import { registerMcpHandlers } from './mcp'
 import { registerArtifactHandlers } from './artifact'
 import { registerFilesHandlers } from './files'
+import { registerTerminalHandlers } from './terminal'
+import { registerBrowserHandlers } from './browser'
+import { registerReviewHandlers } from './review'
+import { registerWorktreeHandlers } from './worktree'
+import { registerHooksHandlers } from './hooks'
+import { registerAutomationsHandlers } from './automations'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -18,4 +24,10 @@ export function registerAllIpcHandlers(): void {
   registerMcpHandlers()
   registerArtifactHandlers()
   registerFilesHandlers()
+  registerTerminalHandlers()
+  registerBrowserHandlers()
+  registerReviewHandlers()
+  registerWorktreeHandlers()
+  registerHooksHandlers()
+  registerAutomationsHandlers()
 }

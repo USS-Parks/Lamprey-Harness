@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useMcpStore } from '@/stores/mcp-store'
 import { toast } from '@/stores/toast-store'
 
@@ -78,20 +78,20 @@ export function McpSettings() {
                 <span className="font-mono text-xs font-medium text-[var(--text-primary)]">
                   {server.name}
                 </span>
-                <span className="rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-muted)] uppercase">
+                <span className="rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[12px] text-[var(--text-muted)] uppercase">
                   {server.transport}
                 </span>
               </div>
-              <span className={`font-mono text-[11px] capitalize ${statusColor(server.status)}`}>
+              <span className={`font-mono text-[13px] capitalize ${statusColor(server.status)}`}>
                 {server.status}
-                {server.error && ` — ${server.error}`}
+                {server.error && ` â€” ${server.error}`}
               </span>
             </div>
 
             <button
               onClick={() => reconnect(server.id)}
               disabled={server.status === 'connecting'}
-              className="rounded bg-[var(--bg-tertiary)] px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50"
+              className="rounded bg-[var(--bg-tertiary)] px-2 py-1 font-mono text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50"
             >
               Reconnect
             </button>
@@ -106,13 +106,13 @@ export function McpSettings() {
       {servers.some((s) => s.auth === 'google-oauth') && (
         <div className="space-y-3 border-t border-[var(--border)] pt-4">
           <h4 className="font-mono text-xs font-semibold text-[var(--text-primary)]">Google Account</h4>
-          <p className="font-mono text-[11px] text-[var(--text-secondary)]">
+          <p className="font-mono text-[13px] text-[var(--text-secondary)]">
             Enter your Google Cloud OAuth credentials, then click Connect to authorize.
           </p>
 
           <div className="space-y-2">
             <div>
-              <label className="mb-1 block font-mono text-[11px] text-[var(--text-secondary)]">Client ID</label>
+              <label className="mb-1 block font-mono text-[13px] text-[var(--text-secondary)]">Client ID</label>
               <input
                 type="password"
                 value={clientId}
@@ -122,7 +122,7 @@ export function McpSettings() {
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[11px] text-[var(--text-secondary)]">Client Secret</label>
+              <label className="mb-1 block font-mono text-[13px] text-[var(--text-secondary)]">Client Secret</label>
               <input
                 type="password"
                 value={clientSecret}
@@ -140,7 +140,7 @@ export function McpSettings() {
                 Save credentials
               </button>
               {credsSaved && (
-                <span className="font-mono text-[11px] text-[var(--success)]">Saved</span>
+                <span className="font-mono text-[13px] text-[var(--success)]">Saved</span>
               )}
             </div>
           </div>
@@ -153,7 +153,7 @@ export function McpSettings() {
             {oauthLoading ? 'Waiting for authorization...' : 'Connect Google Account'}
           </button>
           {oauthStatus && (
-            <p className={`font-mono text-[11px] ${oauthStatus.startsWith('Error') ? 'text-[var(--error)]' : 'text-[var(--success)]'}`}>
+            <p className={`font-mono text-[13px] ${oauthStatus.startsWith('Error') ? 'text-[var(--error)]' : 'text-[var(--success)]'}`}>
               {oauthStatus}
             </p>
           )}

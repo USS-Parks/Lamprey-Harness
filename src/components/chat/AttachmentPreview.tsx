@@ -1,4 +1,4 @@
-import type { ProcessedFile } from '@/lib/types'
+﻿import type { ProcessedFile } from '@/lib/types'
 import { useChatStore } from '@/stores/chat-store'
 
 function formatSize(bytes: number): string {
@@ -8,10 +8,10 @@ function formatSize(bytes: number): string {
 }
 
 function kindIcon(file: ProcessedFile) {
-  if (file.kind === 'image') return '🖼'
-  if (file.kind === 'pdf') return '📄'
-  if (file.kind === 'binary') return '📦'
-  return '📝'
+  if (file.kind === 'image') return 'ðŸ–¼'
+  if (file.kind === 'pdf') return 'ðŸ“„'
+  if (file.kind === 'binary') return 'ðŸ“¦'
+  return 'ðŸ“'
 }
 
 function Tile({ file, index }: { file: ProcessedFile; index: number }) {
@@ -20,7 +20,7 @@ function Tile({ file, index }: { file: ProcessedFile; index: number }) {
 
   return (
     <div
-      className={`group flex items-center gap-2 rounded border bg-[var(--bg-primary)] px-2 py-1.5 text-[11px] ${
+      className={`group flex items-center gap-2 rounded border bg-[var(--bg-primary)] px-2 py-1.5 text-[13px] ${
         file.error
           ? 'border-[var(--error)] text-[var(--error)]'
           : 'border-[var(--border)] text-[var(--text-secondary)]'
@@ -39,9 +39,9 @@ function Tile({ file, index }: { file: ProcessedFile; index: number }) {
       )}
       <div className="min-w-0 flex-1">
         <div className="truncate font-mono text-xs text-[var(--text-primary)]">{file.name}</div>
-        <div className="truncate text-[10px] text-[var(--text-muted)]">
+        <div className="truncate text-[12px] text-[var(--text-muted)]">
           {formatSize(file.size)}
-          {file.previewText && ` · ${file.previewText}`}
+          {file.previewText && ` Â· ${file.previewText}`}
         </div>
       </div>
       <button
@@ -66,7 +66,7 @@ export function AttachmentPreview() {
   return (
     <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2">
       {processing && (
-        <div className="mb-1 text-[10px] text-[var(--text-muted)]">Processing attachments…</div>
+        <div className="mb-1 text-[12px] text-[var(--text-muted)]">Processing attachmentsâ€¦</div>
       )}
       <div className="flex flex-wrap gap-2">
         {attachments.map((file, idx) => (

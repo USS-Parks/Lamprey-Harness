@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { toast } from '@/stores/toast-store'
@@ -191,7 +191,7 @@ export function ModelSettings() {
     <div className="space-y-5">
       <div>
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Models</h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Per-model temperature, top-p, max tokens, and an optional system prompt override applied
           on every chat with this model.
         </p>
@@ -210,7 +210,7 @@ export function ModelSettings() {
           >
             {m.name}
             {settings.defaultModel === m.id && (
-              <span className="ml-1.5 text-[9px] uppercase text-[var(--text-muted)]">default</span>
+              <span className="ml-1.5 text-[11px] uppercase text-[var(--text-muted)]">default</span>
             )}
           </button>
         ))}
@@ -220,7 +220,7 @@ export function ModelSettings() {
         <div className="space-y-3 rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Temperature ({cfg.temperature.toFixed(2)})
               </span>
               <input
@@ -234,7 +234,7 @@ export function ModelSettings() {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Top-p ({cfg.topP.toFixed(2)})
               </span>
               <input
@@ -250,7 +250,7 @@ export function ModelSettings() {
           </div>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
               Max tokens (blank = model default)
             </span>
             <input
@@ -267,7 +267,7 @@ export function ModelSettings() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
               System prompt override (blank = use Lamprey default)
             </span>
             <textarea
@@ -275,7 +275,7 @@ export function ModelSettings() {
               onChange={(e) => writeConfig({ systemPromptOverride: e.target.value })}
               rows={3}
               spellCheck={false}
-              placeholder="Replaces 'You are Lamprey, a helpful AI assistant…' when set."
+              placeholder="Replaces 'You are Lamprey, a helpful AI assistantâ€¦' when set."
               className="resize-none rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
             />
           </label>
@@ -293,11 +293,11 @@ export function ModelSettings() {
               disabled={testing}
               className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {testing ? 'Testing…' : 'Test model'}
+              {testing ? 'Testingâ€¦' : 'Test model'}
             </button>
             {testStatus && (
               <span
-                className={`text-[11px] ${
+                className={`text-[13px] ${
                   testStatus.startsWith('Error')
                     ? 'text-[var(--error)]'
                     : 'text-[var(--success)]'
@@ -312,11 +312,11 @@ export function ModelSettings() {
 
       <div className="space-y-3 border-t border-[var(--border)] pt-4">
         <div>
-          <h4 className="font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+          <h4 className="font-mono text-[13px] uppercase tracking-wider text-[var(--text-muted)]">
             Custom models
           </h4>
-          <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
-            Add any model id your DeepSeek key can call — e.g. <span className="font-mono">deepseek-v4-pro</span>.
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
+            Add any model id your DeepSeek key can call â€” e.g. <span className="font-mono">deepseek-v4-pro</span>.
             Builtins stay; customs override built-ins with the same id.
           </p>
         </div>
@@ -330,10 +330,10 @@ export function ModelSettings() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-mono text-[var(--text-primary)]">{m.name}</div>
-                  <div className="mt-0.5 truncate font-mono text-[10px] text-[var(--text-muted)]">
-                    {m.id} · {Math.round(m.contextWindow / 1024)}K
-                    {m.supportsTools ? ' · tools' : ''}
-                    {m.supportsVision ? ' · vision' : ''}
+                  <div className="mt-0.5 truncate font-mono text-[12px] text-[var(--text-muted)]">
+                    {m.id} Â· {Math.round(m.contextWindow / 1024)}K
+                    {m.supportsTools ? ' Â· tools' : ''}
+                    {m.supportsVision ? ' Â· vision' : ''}
                   </div>
                 </div>
                 <button
@@ -352,14 +352,14 @@ export function ModelSettings() {
 
         <div className="space-y-2 rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3">
           <div className="flex flex-wrap items-center gap-1">
-            <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="mr-1 text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
               Quick presets:
             </span>
             {PRESET_TEMPLATES.map((p) => (
               <button
                 key={p.id}
                 onClick={() => usePreset(p)}
-                className="rounded bg-[var(--bg-tertiary)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
+                className="rounded bg-[var(--bg-tertiary)] px-2 py-0.5 font-mono text-[12px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
               >
                 {p.name}
               </button>
@@ -368,7 +368,7 @@ export function ModelSettings() {
 
           <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Model id
               </span>
               <input
@@ -380,7 +380,7 @@ export function ModelSettings() {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Display name
               </span>
               <input
@@ -392,7 +392,7 @@ export function ModelSettings() {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Context window
               </span>
               <input
@@ -407,7 +407,7 @@ export function ModelSettings() {
               />
             </label>
             <div className="flex flex-col justify-end gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Capabilities
               </span>
               <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">

@@ -5,8 +5,48 @@ const SIDEBAR_COLLAPSED_KEY = 'lamprey.ui.sidebarCollapsed'
 const RIGHT_WIDTH_KEY = 'lamprey.ui.rightPanelWidth'
 const RIGHT_COLLAPSED_KEY = 'lamprey.ui.rightPanelCollapsed'
 const PERMISSIONS_KEY = 'lamprey.ui.permissionsMode'
+const CONV_FILTERS_KEY = 'lamprey.ui.convFilters'
 
 export type PermissionsMode = 'default' | 'auto-review' | 'full'
+
+export type ToolId = 'files' | 'sidechat' | 'browser' | 'review' | 'terminal'
+
+export type ConvStatus = 'active' | 'all'
+export type ConvProject = 'all'
+export type ConvEnvironment = 'all'
+export type ConvLastActivity = 'all' | 'today' | 'week' | 'month'
+export type ConvGroupBy = 'none' | 'date' | 'model'
+export type ConvSortBy = 'recency' | 'created' | 'az' | 'za'
+
+export interface ConvFilters {
+  status: ConvStatus
+  project: ConvProject
+  environment: ConvEnvironment
+  lastActivity: ConvLastActivity
+  groupBy: ConvGroupBy
+  sortBy: ConvSortBy
+}
+
+const DEFAULT_CONV_FILTERS: ConvFilters = {
+  status: 'active',
+  project: 'all',
+  environment: 'all',
+  lastActivity: 'all',
+  groupBy: 'date',
+  sortBy: 'recency'
+}
+
+function readConvFilters(): ConvFilters {
+  if (typeof window === 'undefined') return DEFAULT_CONV_FILTERS
+  try {
+    const raw = window.localStorage?.getItem(CONV_FILTERS_KEY)
+    if (!raw) return DEFAULT_CONV_FILTERS
+    const parsed = JSON.parse(raw)
+    return { ...DEFAULT_CONV_FILTERS, ...parsed }
+  } catch {
+    return DEFAULT_CONV_FILTERS
+  }
+}
 
 function readPermissions(): PermissionsMode {
   if (typeof window === 'undefined') return 'default'
@@ -50,6 +90,7 @@ interface UiState {
   searchQuery: string
   searchFocusToken: number
   settingsOpen: boolean
+  memoryOpen: boolean
   composeDraft: string
   composeSeedToken: number
   sidebarCollapsed: boolean
@@ -57,11 +98,34 @@ interface UiState {
   rightPanelCollapsed: boolean
   rightPanelWidth: number
   permissionsMode: PermissionsMode
+  activeTool: ToolId | null
+  setActiveTool: (tool: ToolId | null) => void
+  closeActiveTool: () => void
+  toggleTool: (tool: ToolId) => void
+  quickOpenVisible: boolean
+  openQuickOpen: () => void
+  closeQuickOpen: () => void
+  toggleQuickOpen: () => void
+  worktreeModalOpen: boolean
+  openWorktreeModal: () => void
+  closeWorktreeModal: () => void
+  planMode: boolean
+  togglePlanMode: () => void
+  setPlanMode: (v: boolean) => void
+  requestedOpenFilePath: string | null
+  requestedOpenFileToken: number
+  requestOpenFile: (path: string) => void
+  convFilters: ConvFilters
+  setConvFilters: (partial: Partial<ConvFilters>) => void
+  resetConvFilters: () => void
   setSearchQuery: (q: string) => void
   requestSearchFocus: () => void
   openSettings: () => void
   closeSettings: () => void
   toggleSettings: () => void
+  openMemory: () => void
+  closeMemory: () => void
+  toggleMemory: () => void
   seedComposeDraft: (text: string) => void
   consumeComposeDraft: () => string
   setSidebarCollapsed: (v: boolean) => void
@@ -77,6 +141,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   searchQuery: '',
   searchFocusToken: 0,
   settingsOpen: false,
+  memoryOpen: false,
   composeDraft: '',
   composeSeedToken: 0,
   sidebarCollapsed: readBool(SIDEBAR_COLLAPSED_KEY, false),
@@ -84,12 +149,22 @@ export const useUiStore = create<UiState>((set, get) => ({
   rightPanelCollapsed: readBool(RIGHT_COLLAPSED_KEY, false),
   rightPanelWidth: readNumber(RIGHT_WIDTH_KEY, RIGHT_DEFAULT, RIGHT_MIN, RIGHT_MAX),
   permissionsMode: readPermissions(),
+  activeTool: null,
+  quickOpenVisible: false,
+  requestedOpenFilePath: null,
+  requestedOpenFileToken: 0,
+  worktreeModalOpen: false,
+  planMode: false,
+  convFilters: readConvFilters(),
   setSearchQuery: (q: string) => set({ searchQuery: q }),
   requestSearchFocus: () =>
     set((s) => ({ searchFocusToken: s.searchFocusToken + 1, searchQuery: get().searchQuery })),
   openSettings: () => set({ settingsOpen: true }),
   closeSettings: () => set({ settingsOpen: false }),
   toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+  openMemory: () => set({ memoryOpen: true }),
+  closeMemory: () => set({ memoryOpen: false }),
+  toggleMemory: () => set((s) => ({ memoryOpen: !s.memoryOpen })),
   seedComposeDraft: (text: string) =>
     set((s) => ({ composeDraft: text, composeSeedToken: s.composeSeedToken + 1 })),
   consumeComposeDraft: () => {
@@ -128,6 +203,54 @@ export const useUiStore = create<UiState>((set, get) => ({
   setPermissionsMode: (mode: PermissionsMode) => {
     writeLocal(PERMISSIONS_KEY, mode)
     set({ permissionsMode: mode })
+  },
+  setActiveTool: (tool: ToolId | null) => {
+    if (tool && get().rightPanelCollapsed) {
+      writeLocal(RIGHT_COLLAPSED_KEY, '0')
+      set({ rightPanelCollapsed: false })
+    }
+    set({ activeTool: tool })
+  },
+  closeActiveTool: () => set({ activeTool: null }),
+  toggleTool: (tool: ToolId) => {
+    const current = get().activeTool
+    if (current === tool) {
+      set({ activeTool: null })
+    } else {
+      if (get().rightPanelCollapsed) {
+        writeLocal(RIGHT_COLLAPSED_KEY, '0')
+        set({ rightPanelCollapsed: false })
+      }
+      set({ activeTool: tool })
+    }
+  },
+  openQuickOpen: () => set({ quickOpenVisible: true }),
+  closeQuickOpen: () => set({ quickOpenVisible: false }),
+  toggleQuickOpen: () => set((s) => ({ quickOpenVisible: !s.quickOpenVisible })),
+  openWorktreeModal: () => set({ worktreeModalOpen: true }),
+  closeWorktreeModal: () => set({ worktreeModalOpen: false }),
+  togglePlanMode: () => set((s) => ({ planMode: !s.planMode })),
+  setPlanMode: (v: boolean) => set({ planMode: v }),
+  requestOpenFile: (path: string) => {
+    if (get().rightPanelCollapsed) {
+      writeLocal(RIGHT_COLLAPSED_KEY, '0')
+      set({ rightPanelCollapsed: false })
+    }
+    set((s) => ({
+      activeTool: 'files',
+      requestedOpenFilePath: path,
+      requestedOpenFileToken: s.requestedOpenFileToken + 1,
+      quickOpenVisible: false
+    }))
+  },
+  setConvFilters: (partial: Partial<ConvFilters>) => {
+    const next = { ...get().convFilters, ...partial }
+    writeLocal(CONV_FILTERS_KEY, JSON.stringify(next))
+    set({ convFilters: next })
+  },
+  resetConvFilters: () => {
+    writeLocal(CONV_FILTERS_KEY, JSON.stringify(DEFAULT_CONV_FILTERS))
+    set({ convFilters: { ...DEFAULT_CONV_FILTERS } })
   }
 }))
 

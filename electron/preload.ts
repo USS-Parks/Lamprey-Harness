@@ -31,20 +31,52 @@ const api = {
         'chat:tool-call-result',
         'agent:status'
       ].forEach((ch) => ipcRenderer.removeAllListeners(ch))
+    },
+    // Per-conversation subscription that returns an unsubscribe function.
+    // Use for side-chat panels so they don't fight the global useChat listener.
+    subscribe: (
+      conversationId: string,
+      cbs: {
+        onChunk?: (e: { conversationId: string; content: string }) => void
+        onDone?: (e: { conversationId: string; message: unknown }) => void
+        onError?: (e: { conversationId: string; error: string }) => void
+      }
+    ) => {
+      const handlers: Array<[string, (...args: any[]) => void]> = []
+      const wire = (channel: string, fn?: (e: any) => void) => {
+        if (!fn) return
+        const h = (_: any, e: any) => {
+          if (e?.conversationId === conversationId) fn(e)
+        }
+        ipcRenderer.on(channel, h)
+        handlers.push([channel, h])
+      }
+      wire('chat:chunk', cbs.onChunk)
+      wire('chat:done', cbs.onDone)
+      wire('chat:error', cbs.onError)
+      return () => {
+        for (const [ch, h] of handlers) ipcRenderer.removeListener(ch, h)
+      }
     }
   },
 
   conversation: {
     list: () => ipcRenderer.invoke('conversation:list'),
     get: (id: string) => ipcRenderer.invoke('conversation:get', id),
-    create: (model: string) => ipcRenderer.invoke('conversation:create', model),
+    create: (
+      model: string,
+      opts?: { kind?: 'local' | 'cloud' | 'worktree'; worktreePath?: string | null }
+    ) => ipcRenderer.invoke('conversation:create', model, opts),
     delete: (id: string) => ipcRenderer.invoke('conversation:delete', id),
     updateTitle: (id: string, title: string) =>
       ipcRenderer.invoke('conversation:updateTitle', id, title),
     getMessages: (id: string) => ipcRenderer.invoke('conversation:getMessages', id),
     appendSystem: (id: string, content: string) =>
       ipcRenderer.invoke('conversation:appendSystem', id, content),
-    setModel: (id: string, model: string) => ipcRenderer.invoke('conversation:setModel', id, model)
+    setModel: (id: string, model: string) =>
+      ipcRenderer.invoke('conversation:setModel', id, model),
+    fork: (id: string) => ipcRenderer.invoke('conversation:fork', id),
+    compact: (id: string) => ipcRenderer.invoke('conversation:compact', id)
   },
 
   settings: {
@@ -125,12 +157,105 @@ const api = {
   files: {
     process: (paths: string[]) => ipcRenderer.invoke('files:process', paths),
     openPicker: () => ipcRenderer.invoke('files:openPicker'),
+    getWorkdir: () => ipcRenderer.invoke('files:getWorkdir'),
+    pickWorkdir: () => ipcRenderer.invoke('files:pickWorkdir'),
+    listDir: (dirPath: string) => ipcRenderer.invoke('files:listDir', dirPath),
+    readText: (filePath: string) => ipcRenderer.invoke('files:readText', filePath),
+    walkProject: (rootPath: string) => ipcRenderer.invoke('files:walkProject', rootPath),
     getPathForFile: (file: File) => {
       try {
         return webUtils.getPathForFile(file)
       } catch {
         return ''
       }
+    }
+  },
+
+  hooks: {
+    list: () => ipcRenderer.invoke('hooks:list'),
+    create: (input: { event: string; label: string; command: string }) =>
+      ipcRenderer.invoke('hooks:create', input),
+    update: (
+      id: string,
+      patch: Partial<{ event: string; label: string; command: string; enabled: boolean }>
+    ) => ipcRenderer.invoke('hooks:update', id, patch),
+    delete: (id: string) => ipcRenderer.invoke('hooks:delete', id)
+  },
+
+  automations: {
+    list: () => ipcRenderer.invoke('automations:list'),
+    create: (input: { label: string; cron: string; prompt: string; model?: string }) =>
+      ipcRenderer.invoke('automations:create', input),
+    update: (
+      id: string,
+      patch: Partial<{ label: string; cron: string; prompt: string; model: string; enabled: boolean }>
+    ) => ipcRenderer.invoke('automations:update', id, patch),
+    delete: (id: string) => ipcRenderer.invoke('automations:delete', id),
+    runNow: (id: string) => ipcRenderer.invoke('automations:runNow', id)
+  },
+
+  worktree: {
+    list: (args: { cwd?: string }) => ipcRenderer.invoke('worktree:list', args),
+    create: (args: { cwd?: string; path: string; branch: string; baseRef?: string }) =>
+      ipcRenderer.invoke('worktree:create', args),
+    remove: (args: { cwd?: string; path: string; force?: boolean }) =>
+      ipcRenderer.invoke('worktree:remove', args)
+  },
+
+  review: {
+    status: (args: { cwd?: string }) => ipcRenderer.invoke('review:status', args),
+    diff: (args: { cwd?: string; path?: string; staged?: boolean }) =>
+      ipcRenderer.invoke('review:diff', args),
+    stage: (args: { cwd?: string; path: string }) => ipcRenderer.invoke('review:stage', args),
+    unstage: (args: { cwd?: string; path: string }) => ipcRenderer.invoke('review:unstage', args),
+    discard: (args: { cwd?: string; path: string }) => ipcRenderer.invoke('review:discard', args)
+  },
+
+  browser: {
+    newTab: (args: { url?: string }) => ipcRenderer.invoke('browser:newTab', args),
+    closeTab: (args: { id: string }) => ipcRenderer.invoke('browser:closeTab', args),
+    setActiveTab: (args: { id: string }) => ipcRenderer.invoke('browser:setActiveTab', args),
+    navigate: (args: { id: string; url: string }) => ipcRenderer.invoke('browser:navigate', args),
+    back: (args: { id: string }) => ipcRenderer.invoke('browser:back', args),
+    forward: (args: { id: string }) => ipcRenderer.invoke('browser:forward', args),
+    reload: (args: { id: string }) => ipcRenderer.invoke('browser:reload', args),
+    setBounds: (args: { x: number; y: number; width: number; height: number }) =>
+      ipcRenderer.invoke('browser:setBounds', args),
+    setVisible: (args: { visible: boolean }) => ipcRenderer.invoke('browser:setVisible', args),
+    listTabs: () => ipcRenderer.invoke('browser:listTabs'),
+    onTabUpdated: (
+      cb: (e: {
+        id: string
+        title: string
+        url: string
+        loading: boolean
+        canGoBack: boolean
+        canGoForward: boolean
+      }) => void
+    ) => ipcRenderer.on('browser:tabUpdated', (_, e) => cb(e)),
+    onTabClosed: (cb: (e: { id: string; activeTabId: string | null }) => void) =>
+      ipcRenderer.on('browser:tabClosed', (_, e) => cb(e)),
+    onActiveTab: (cb: (e: { id: string }) => void) =>
+      ipcRenderer.on('browser:activeTab', (_, e) => cb(e)),
+    offAll: () => {
+      ;['browser:tabUpdated', 'browser:tabClosed', 'browser:activeTab'].forEach((ch) =>
+        ipcRenderer.removeAllListeners(ch)
+      )
+    }
+  },
+
+  terminal: {
+    spawn: (args: { id: string; cwd?: string }) => ipcRenderer.invoke('terminal:spawn', args),
+    write: (args: { id: string; data: string }) => ipcRenderer.invoke('terminal:write', args),
+    resize: (args: { id: string; cols: number; rows: number }) =>
+      ipcRenderer.invoke('terminal:resize', args),
+    kill: (args: { id: string }) => ipcRenderer.invoke('terminal:kill', args),
+    onData: (cb: (e: { id: string; chunk: string }) => void) =>
+      ipcRenderer.on('terminal:data', (_, e) => cb(e)),
+    onExit: (cb: (e: { id: string; code: number | null; signal: string | null }) => void) =>
+      ipcRenderer.on('terminal:exit', (_, e) => cb(e)),
+    offAll: () => {
+      ;['terminal:data', 'terminal:exit'].forEach((ch) => ipcRenderer.removeAllListeners(ch))
     }
   },
 
@@ -177,6 +302,8 @@ const api = {
     maximizeToggle: () => ipcRenderer.invoke('window:maximizeToggle'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    reload: () => ipcRenderer.invoke('window:reload'),
+    toggleDevTools: () => ipcRenderer.invoke('window:toggleDevTools'),
     onMaximizedChanged: (cb: (maximized: boolean) => void): (() => void) => {
       const handler = (_: unknown, maximized: boolean) => cb(maximized)
       ipcRenderer.on('window:maximizedChanged', handler)
@@ -191,7 +318,9 @@ const api = {
       ipcRenderer.on('app:error', (_, e) => cb(e)),
     onWarning: (cb: (e: { message: string }) => void) =>
       ipcRenderer.on('app:warning', (_, e) => cb(e)),
-    getWorkingFolder: () => ipcRenderer.invoke('app:getWorkingFolder')
+    getWorkingFolder: () => ipcRenderer.invoke('app:getWorkingFolder'),
+    getDataDir: () => ipcRenderer.invoke('app:getDataDir'),
+    openPath: (p: string) => ipcRenderer.invoke('app:openPath', p)
   }
 }
 

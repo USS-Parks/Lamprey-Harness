@@ -1,4 +1,4 @@
-import { useAgentStore } from '@/stores/agent-store'
+﻿import { useAgentStore } from '@/stores/agent-store'
 
 const ROLE_ORDER: Array<'planner' | 'coder' | 'reviewer'> = ['planner', 'coder', 'reviewer']
 
@@ -9,7 +9,7 @@ export function AgentRunBanner() {
   if (mode !== 'multi' || activeRun.length === 0) return null
 
   return (
-    <div className="pointer-events-auto mb-2 flex w-full max-w-3xl items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-[11px]">
+    <div className="pointer-events-auto mb-2 flex w-full max-w-3xl items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-[13px]">
       <span className="font-mono uppercase tracking-wider text-[var(--text-muted)]">Pipeline</span>
       <div className="flex flex-1 items-center gap-2">
         {ROLE_ORDER.map((role, idx) => {
@@ -29,11 +29,11 @@ export function AgentRunBanner() {
               <span className="font-mono text-[var(--text-secondary)]">
                 {role}
                 {entry?.model && (
-                  <span className="ml-1 text-[var(--text-muted)]">· {entry.model}</span>
+                  <span className="ml-1 text-[var(--text-muted)]">Â· {entry.model}</span>
                 )}
               </span>
               {idx < ROLE_ORDER.length - 1 && (
-                <span className="text-[var(--text-muted)]">→</span>
+                <span className="text-[var(--text-muted)]">â†’</span>
               )}
             </div>
           )

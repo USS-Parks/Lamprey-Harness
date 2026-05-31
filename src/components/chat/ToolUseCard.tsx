@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import type { ToolCallState } from '@/stores/chat-store'
 
 const SERVER_ICONS: Record<string, string> = {
@@ -54,28 +54,28 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-3 py-2 text-left transition-colors hover:bg-[var(--bg-secondary)]"
       >
-        <span className="flex h-5 w-5 items-center justify-center rounded bg-[var(--accent-dim)] text-[10px] font-bold text-[var(--accent)]">
+        <span className="flex h-5 w-5 items-center justify-center rounded bg-[var(--accent-dim)] text-[12px] font-bold text-[var(--accent)]">
           {icon}
         </span>
         <span className="flex-1 text-xs text-[var(--text-secondary)]">{summaryText}</span>
         {statusIndicator}
-        <span className="text-[10px] text-[var(--text-muted)]">{expanded ? '▲' : '▼'}</span>
+        <span className="text-[12px] text-[var(--text-muted)]">{expanded ? 'â–²' : 'â–¼'}</span>
       </button>
 
       {expanded && (
         <div className="mt-1 rounded-b-lg border border-t-0 border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2">
-          <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+          <div className="mb-1 text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Arguments
           </div>
-          <pre className="mb-2 overflow-x-auto text-[11px] font-mono text-[var(--text-secondary)]">
+          <pre className="mb-2 overflow-x-auto text-[13px] font-mono text-[var(--text-secondary)]">
             {JSON.stringify(args, null, 2)}
           </pre>
           {truncatedResult && (
             <>
-              <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+              <div className="mb-1 text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                 Result
               </div>
-              <pre className="overflow-x-auto text-[11px] font-mono text-[var(--text-secondary)]">
+              <pre className="overflow-x-auto text-[13px] font-mono text-[var(--text-secondary)]">
                 {truncatedResult}
               </pre>
             </>

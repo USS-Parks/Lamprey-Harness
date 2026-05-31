@@ -1,23 +1,35 @@
 import { useEffect, useRef } from 'react'
 import type { Message } from '@/lib/types'
 import type { ToolCallState } from '@/stores/chat-store'
+import { parseReasoning } from '@/lib/reasoning'
+import { useThemedIcon } from '@/lib/themed-icon'
 import { MessageBubble } from './MessageBubble'
 import { StreamingText } from './StreamingText'
 import { ToolUseCard } from './ToolUseCard'
+import { StreamStatusLine } from './StreamStatusLine'
+import { CHAT_COLUMN_CLASS } from './ChatView'
+import thinkingLight from '@assets/Lamprey Thinking Icon.png'
+import thinkingDark from '@assets/Lamprey Thinking Icon Dark View.png'
 
 interface MessageListProps {
   messages: Message[]
   isStreaming: boolean
   streamingContent: string
+  streamStartedAt: number | null
   toolCalls: ToolCallState[]
   activeModel: string
 }
+
+// Pixels from the bottom of the scroll container that still count as "near
+// the bottom". If the user is within this, auto-scroll follows new content;
+// if they've scrolled further up, we leave them alone.
+const STICK_THRESHOLD_PX = 120
 
 function SystemMarker({ content }: { content: string }) {
   return (
     <div
       role="separator"
-      className="my-3 flex items-center gap-3 px-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)]"
+      className="my-3 flex items-center gap-3 px-2 text-[12px] uppercase tracking-wider text-[var(--text-muted)]"
     >
       <span className="h-px flex-1 bg-[var(--border)]" />
       <span>{content}</span>
@@ -30,35 +42,91 @@ export function MessageList({
   messages,
   isStreaming,
   streamingContent,
+  streamStartedAt,
   toolCalls,
   activeModel
 }: MessageListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  // Mutable flag we update on user scroll — avoids a React state round-trip
+  // (which would re-render the message list on every wheel tick).
+  const stuckToBottomRef = useRef(true)
 
+  // Track whether the user is currently anchored at/near the bottom. We
+  // use this to decide whether new chunks should drag the viewport down.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent, toolCalls])
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+      stuckToBottomRef.current = distanceFromBottom <= STICK_THRESHOLD_PX
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    // Prime with current position.
+    onScroll()
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Auto-scroll new content into view, but ONLY if the user is still
+  // anchored at the bottom. Scrolled-up readers stay where they are even
+  // while output streams in.
+  useEffect(() => {
+    if (!stuckToBottomRef.current) return
+    const el = scrollRef.current
+    if (!el) return
+    // Use scrollTop = scrollHeight directly so we don't trigger a smooth
+    // animation that lags behind the stream.
+    el.scrollTop = el.scrollHeight
+  }, [messages, streamingContent, toolCalls, isStreaming])
+
+  const thinkingIconUrl = useThemedIcon(thinkingLight, thinkingDark)
+  const isReasoner = activeModel === 'deepseek-reasoner'
+  const parsed = isReasoner
+    ? parseReasoning(streamingContent)
+    : { reasoning: null as string | null, body: streamingContent, isThinking: false }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4">
-      {messages.map((msg) =>
-        msg.role === 'system' ? (
-          <SystemMarker key={msg.id} content={msg.content} />
-        ) : (
-          <MessageBubble key={msg.id} message={msg} />
-        )
-      )}
-      {toolCalls.map((tc) => (
-        <ToolUseCard key={tc.callId} toolCall={tc} />
-      ))}
-      {isStreaming && streamingContent && (
-        <div className="mb-3 flex justify-start">
-          <div className="max-w-[80%] rounded-lg bg-[var(--bg-secondary)] px-4 py-3">
-            <StreamingText content={streamingContent} model={activeModel} />
-          </div>
+    <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
+      {/* Belt-and-suspenders centering: flex wrapper guarantees horizontal
+          centering even if Tailwind's mx-auto can't compute against the
+          parent's flex context. */}
+      <div className="flex w-full justify-center">
+        <div className={CHAT_COLUMN_CLASS}>
+          {messages.map((msg) =>
+            msg.role === 'system' ? (
+              <SystemMarker key={msg.id} content={msg.content} />
+            ) : (
+              <MessageBubble key={msg.id} message={msg} />
+            )
+          )}
+          {toolCalls.map((tc) => (
+            <ToolUseCard key={tc.callId} toolCall={tc} />
+          ))}
+          {isStreaming && (streamingContent || streamStartedAt) && (
+            <div className="mb-3 flex justify-start">
+              <div className="max-w-[80%] rounded-lg bg-[var(--bg-secondary)] px-4 py-3">
+                {streamingContent ? (
+                  <StreamingText content={streamingContent} model={activeModel} />
+                ) : (
+                  <div className="flex items-center text-[var(--text-muted)]">
+                    <img
+                      src={thinkingIconUrl}
+                      alt="Thinking"
+                      className="icon-asset h-[31px] w-[31px] animate-pulse object-contain"
+                    />
+                  </div>
+                )}
+                <StreamStatusLine
+                  startedAt={streamStartedAt}
+                  content={parsed.body}
+                  reasoning={parsed.reasoning}
+                />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
         </div>
-      )}
-      <div ref={bottomRef} />
+      </div>
     </div>
   )
 }

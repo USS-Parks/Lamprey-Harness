@@ -1,4 +1,4 @@
-import { useSettingsStore } from '@/stores/settings-store'
+﻿import { useSettingsStore } from '@/stores/settings-store'
 
 export function GeneralSettings() {
   const settings = useSettingsStore((s) => s.settings)
@@ -9,7 +9,7 @@ export function GeneralSettings() {
       <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">General</h3>
 
       <section className="space-y-3">
-        <h4 className="font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+        <h4 className="font-mono text-[13px] uppercase tracking-wider text-[var(--text-muted)]">
           Conversation titles
         </h4>
         <label className="flex cursor-pointer items-start gap-3 rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)]">
@@ -21,8 +21,8 @@ export function GeneralSettings() {
           />
           <span className="flex-1">
             <span className="block font-medium text-[var(--text-primary)]">AI-generated titles</span>
-            <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
-              After the first response, ask DeepSeek for a 3–5 word title. Defaults off — without it
+            <span className="mt-1 block text-[13px] leading-relaxed text-[var(--text-muted)]">
+              After the first response, ask DeepSeek for a 3â€“5 word title. Defaults off â€” without it
               we use the first 40 characters of your opening message.
             </span>
           </span>

@@ -5,6 +5,7 @@ import { useMemoryStore } from '@/stores/memory-store'
 import { toast } from '@/stores/toast-store'
 import { parseReasoning } from '@/lib/reasoning'
 import { ReasoningBlock } from './ReasoningBlock'
+import { MessageActions } from './MessageActions'
 
 interface MessageBubbleProps {
   message: Message
@@ -50,7 +51,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   }
 
   return (
-    <div className={`group flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+    <div className={`group flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-8`}>
       <div
         className={`max-w-[80%] rounded-lg px-4 py-3 ${
           isUser
@@ -66,7 +67,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <MarkdownRenderer content={body} />
           </>
         )}
-        <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
           <span>{formatTime(message.timestamp)}</span>
           {message.model && (
             <span className="rounded bg-[var(--bg-primary)] px-1">
@@ -77,12 +78,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             onClick={handleRemember}
             disabled={saving}
             title="Save to memory"
-            className="ml-auto rounded px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] disabled:opacity-60"
+            className="ml-auto rounded px-1.5 py-0.5 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] disabled:opacity-60"
           >
             {saving ? 'Saving…' : 'Remember this'}
           </button>
         </div>
       </div>
+      {!isUser && <MessageActions content={body || message.content} />}
     </div>
   )
 }

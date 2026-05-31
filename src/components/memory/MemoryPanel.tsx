@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useMemoryStore } from '@/stores/memory-store'
 import type { MemoryEntry } from '@/lib/types'
 
@@ -99,11 +99,11 @@ export function MemoryPanel() {
     <div className="border-t border-[var(--border)] px-2 py-2">
       <div className="flex items-center justify-between px-2 py-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+          <span className="text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Memory
           </span>
           {memories.length > 0 && (
-            <span className="rounded bg-[var(--bg-tertiary)] px-1 text-[10px] text-[var(--text-secondary)]">
+            <span className="rounded bg-[var(--bg-tertiary)] px-1 text-[12px] text-[var(--text-secondary)]">
               {memories.length}
             </span>
           )}
@@ -122,7 +122,7 @@ export function MemoryPanel() {
               title="Memory actions"
               className="rounded px-1.5 py-0.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
             >
-              …
+              â€¦
             </button>
             {menuOpen && (
               <>
@@ -167,13 +167,13 @@ export function MemoryPanel() {
       />
 
       {importError && (
-        <div className="mx-1 mt-1 rounded border border-[var(--error)] bg-[var(--error)]/10 px-2 py-1 text-[10px] text-[var(--error)]">
+        <div className="mx-1 mt-1 rounded border border-[var(--error)] bg-[var(--error)]/10 px-2 py-1 text-[12px] text-[var(--error)]">
           Import failed: {importError}
         </div>
       )}
 
       {memories.length === 0 && !adding ? (
-        <p className="px-2 py-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+        <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
           Tell me something to remember.
         </p>
       ) : (
@@ -214,14 +214,14 @@ export function MemoryPanel() {
             }}
             onBlur={commitAdd}
             rows={2}
-            placeholder="Something to remember…"
+            placeholder="Something to rememberâ€¦"
             className="w-full resize-none rounded border border-[var(--accent)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none"
           />
         </div>
       )}
 
       {undo && (
-        <div className="mx-1 mt-2 flex items-center justify-between rounded border border-[var(--border)] bg-[var(--bg-tertiary)] px-2 py-1.5 text-[10px] text-[var(--text-secondary)]">
+        <div className="mx-1 mt-2 flex items-center justify-between rounded border border-[var(--border)] bg-[var(--bg-tertiary)] px-2 py-1.5 text-[12px] text-[var(--text-secondary)]">
           <span>Memory deleted</span>
           <button
             onClick={handleUndo}
@@ -254,7 +254,7 @@ function MemoryRow({ entry, index, isEditing, onStartEdit, onFinishEdit, onDelet
   if (isEditing) {
     return (
       <div className="flex gap-2 rounded border-l-2 border-[var(--accent)] bg-[var(--bg-tertiary)] px-2 py-1">
-        <span className="pt-1 text-[10px] text-[var(--text-muted)]">{index}.</span>
+        <span className="pt-1 text-[12px] text-[var(--text-muted)]">{index}.</span>
         <textarea
           autoFocus
           value={value}
@@ -278,7 +278,7 @@ function MemoryRow({ entry, index, isEditing, onStartEdit, onFinishEdit, onDelet
 
   return (
     <div className="group flex items-start gap-2 rounded border-l-2 border-transparent px-2 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
-      <span className="pt-0.5 text-[10px] text-[var(--text-muted)]">{index}.</span>
+      <span className="pt-0.5 text-[12px] text-[var(--text-muted)]">{index}.</span>
       <button
         onClick={onStartEdit}
         title={entry.content}

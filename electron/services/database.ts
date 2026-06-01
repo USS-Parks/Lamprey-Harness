@@ -96,6 +96,12 @@ function initSchema(db: Database.Database): void {
   safeAddColumn(db, 'conversations', 'worktree_path TEXT')
   safeAddColumn(db, 'conversations', 'project_id TEXT')
 
+  // Persisted tool_calls on assistant messages. Without this, replaying a
+  // conversation that includes a tool round drops the assistant's tool_calls
+  // and the API rejects the next turn with "Messages with role 'tool' must
+  // be a response to a preceding message with 'tool_calls'".
+  safeAddColumn(db, 'messages', 'tool_calls TEXT')
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_conversations_project
       ON conversations(project_id, updated_at DESC);

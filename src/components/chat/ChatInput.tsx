@@ -755,7 +755,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       mimeType: 'text/plain',
       size: new Blob([pasteOffer]).size,
       content: pasteOffer,
-      previewText: `${pasteOffer.split(/\r?\n/).length} lines Â· pasted`
+      previewText: `${pasteOffer.split(/\r?\n/).length} lines · pasted`
     }
     addAttachments([attachment])
     setPasteOffer(null)
@@ -814,7 +814,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             className="rounded px-1.5 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             title="Dismiss"
           >
-            Ã—
+            x
           </button>
         </div>
       )}

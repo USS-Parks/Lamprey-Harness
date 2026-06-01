@@ -119,7 +119,8 @@ const api = {
       supportsTools: boolean
       supportsVision: boolean
     }) => ipcRenderer.invoke('model:addCustom', model),
-    removeCustom: (id: string) => ipcRenderer.invoke('model:removeCustom', id)
+    removeCustom: (id: string) => ipcRenderer.invoke('model:removeCustom', id),
+    verifyCatalog: () => ipcRenderer.invoke('model:verifyCatalog')
   },
 
   skills: {

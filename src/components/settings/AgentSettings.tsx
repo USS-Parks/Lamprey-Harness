@@ -61,7 +61,7 @@ export function AgentSettings() {
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Agent roster</h3>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Lamprey can run as a single chat or as a multi-agent pipeline. In multi-agent mode the Planner,
-          Coder, and Reviewer roles each get their own model â€” pair DeepSeek V4 Pro on planning with V4
+          Coder, and Reviewer roles each get their own model - pair DeepSeek V4 Pro on planning with V4
           Flash on coding for the canonical setup, or assign Gemma / Qwen3 Coder to any role.
         </p>
       </div>
@@ -92,7 +92,7 @@ export function AgentSettings() {
           >
             <div className="font-mono font-semibold">Multi-agent</div>
             <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-              Planner â†’ Coder â†’ Reviewer pipeline, each on its own model.
+              Planner → Coder → Reviewer pipeline, each on its own model.
             </div>
           </button>
         </div>
@@ -122,7 +122,7 @@ export function AgentSettings() {
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
-                    {m.provider ? ` Â· ${m.provider}` : ''}
+                    {m.provider ? ` · ${m.provider}` : ''}
                   </option>
                 ))}
               </select>

@@ -2,7 +2,12 @@ import { ipcMain } from 'electron'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
-import { MODEL_CATALOG, PROVIDERS, type ProviderId } from '../services/providers/registry'
+import {
+  MODEL_CATALOG,
+  PROVIDERS,
+  verifyCatalog,
+  type ProviderId
+} from '../services/providers/registry'
 
 interface ModelInfo {
   id: string
@@ -132,6 +137,15 @@ export function registerModelHandlers(): void {
       return { success: true, data: combinedModels() }
     } catch (err: any) {
       return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('model:verifyCatalog', async () => {
+    try {
+      const report = await verifyCatalog()
+      return { success: true, data: report }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Catalog verification failed.' }
     }
   })
 }

@@ -116,7 +116,8 @@ export function registerChatHandlers(): void {
         skillContents,
         memoryBlock,
         systemPromptOverride,
-        agentsMd
+        agentsMd,
+        model
       )
 
       // Build MCP tools list
@@ -137,20 +138,52 @@ export function registerChatHandlers(): void {
 
       const tools: ChatCompletionTool[] = [MEMORY_ADD_TOOL, ...mcpTools]
 
+      // Rebuild the chat history for the API. Tool replies are only valid if
+      // the directly preceding assistant message has a matching entry in
+      // tool_calls — otherwise the provider 400s with "Messages with role
+      // 'tool' must be a response to a preceding message with 'tool_calls'".
+      // Legacy DB rows from before the tool_calls column landed have orphan
+      // tool replies; we drop those silently so old conversations don't break.
       const apiMessages: ChatCompletionMessageParam[] = [
-        { role: 'system' as const, content: systemPrompt },
-        ...allMessages
-          .filter((m) => m.role !== 'system')
-          .map((m): ChatCompletionMessageParam => {
-            if (m.role === 'tool' && m.toolCallId) {
-              return { role: 'tool' as const, content: m.content, tool_call_id: m.toolCallId }
-            }
-            if (m.role === 'assistant') {
-              return { role: 'assistant' as const, content: m.content }
-            }
-            return { role: 'user' as const, content: m.content }
-          })
+        { role: 'system' as const, content: systemPrompt }
       ]
+      for (const m of allMessages) {
+        if (m.role === 'system') continue
+        if (m.role === 'tool' && m.toolCallId) {
+          const prev = apiMessages[apiMessages.length - 1] as
+            | (ChatCompletionMessageParam & { tool_calls?: Array<{ id: string }> })
+            | undefined
+          const hasMatchingCall =
+            prev?.role === 'assistant' &&
+            Array.isArray(prev.tool_calls) &&
+            prev.tool_calls.some((tc) => tc.id === m.toolCallId)
+          if (hasMatchingCall) {
+            apiMessages.push({
+              role: 'tool' as const,
+              content: m.content,
+              tool_call_id: m.toolCallId
+            })
+          }
+          continue
+        }
+        if (m.role === 'assistant') {
+          if (m.toolCalls && m.toolCalls.length > 0) {
+            apiMessages.push({
+              role: 'assistant' as const,
+              content: m.content || null,
+              tool_calls: m.toolCalls.map((tc) => ({
+                id: tc.id,
+                type: 'function' as const,
+                function: { name: tc.function.name, arguments: tc.function.arguments }
+              }))
+            } as ChatCompletionMessageParam)
+          } else {
+            apiMessages.push({ role: 'assistant' as const, content: m.content })
+          }
+          continue
+        }
+        apiMessages.push({ role: 'user' as const, content: m.content })
+      }
 
       const abortController = new AbortController()
       activeAbortControllers.set(conversationId, abortController)
@@ -261,22 +294,25 @@ async function runChatRound(
             return
           }
 
+          const persistedToolCalls = toolCalls.map((tc) => ({
+            id: tc.id,
+            type: 'function' as const,
+            function: { name: tc.function.name, arguments: tc.function.arguments }
+          }))
+
           convStore.saveMessage({
             id: randomUUID(),
             conversationId,
             role: 'assistant',
             content: fullContent || '',
-            model
+            model,
+            toolCalls: persistedToolCalls
           })
 
           messages.push({
             role: 'assistant',
             content: fullContent || null,
-            tool_calls: toolCalls.map((tc) => ({
-              id: tc.id,
-              type: 'function' as const,
-              function: { name: tc.function.name, arguments: tc.function.arguments }
-            }))
+            tool_calls: persistedToolCalls
           } as any)
 
           for (const tc of toolCalls) {

@@ -91,7 +91,7 @@ export function MCPStatusBar() {
     <div className="flex h-8 items-center gap-3 border-t border-[var(--border)] bg-[var(--bg-secondary)] px-3">
       {isR1 && (
         <span className="font-mono text-[13px] text-[var(--warning)]">
-          R1 active â€” MCP tools unavailable
+          R1 active - MCP tools unavailable
         </span>
       )}
 

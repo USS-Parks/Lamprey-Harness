@@ -40,19 +40,42 @@ function reportToRenderer(channel: 'app:error' | 'app:warning', message: string)
 // user: it just means "no update available right now." Suppress the
 // renderer push for anything that originated in electron-updater or the
 // known stream-close pattern; the log channel still records it.
+function extractErrorMeta(reason: unknown): { msg: string; stack: string; code: string } {
+  if (reason instanceof Error) {
+    return {
+      msg: reason.message ?? '',
+      stack: reason.stack ?? '',
+      code: (reason as { code?: unknown }).code === undefined ? '' : String((reason as { code?: unknown }).code)
+    }
+  }
+  // Some libraries (electron-updater included) reject with plain objects that
+  // carry .message / .code / .stack without being an Error instance. The old
+  // version of this check fell back to String(reason) which yields
+  // "[object Object]" and skipped the regex.
+  if (reason && typeof reason === 'object') {
+    const obj = reason as Record<string, unknown>
+    const rawMsg = typeof obj.message === 'string' ? obj.message : ''
+    return {
+      msg: rawMsg || String(reason),
+      stack: typeof obj.stack === 'string' ? obj.stack : '',
+      code: typeof obj.code === 'string' ? obj.code : ''
+    }
+  }
+  return { msg: String(reason ?? ''), stack: '', code: '' }
+}
+
 function isUpdaterNoise(reason: unknown): boolean {
-  const stack =
-    reason instanceof Error ? reason.stack ?? '' : ''
+  const { msg, stack, code } = extractErrorMeta(reason)
   if (/electron-updater|ElectronHttpExecutor|SimpleURLLoaderWrapper/.test(stack)) return true
-  const msg =
-    reason instanceof Error ? reason.message ?? '' : String(reason ?? '')
   if (/write after end/i.test(msg)) return true
+  if (/Cannot call write after a stream was destroyed/i.test(msg)) return true
   if (/releases\/download\/v[\d.]+\/latest\.yml/i.test(msg)) return true
+  if (code === 'ERR_STREAM_WRITE_AFTER_END' || code === 'ERR_STREAM_DESTROYED') return true
   return false
 }
 
 process.on('unhandledRejection', (reason) => {
-  const msg = reason instanceof Error ? reason.message : String(reason)
+  const { msg } = extractErrorMeta(reason)
   if (isUpdaterNoise(reason)) {
     console.warn('[updater] suppressed unhandled rejection:', msg)
     return
@@ -62,12 +85,13 @@ process.on('unhandledRejection', (reason) => {
 })
 
 process.on('uncaughtException', (err) => {
+  const { msg } = extractErrorMeta(err)
   if (isUpdaterNoise(err)) {
-    console.warn('[updater] suppressed uncaught exception:', err.message)
+    console.warn('[updater] suppressed uncaught exception:', msg)
     return
   }
-  console.error('[main] uncaughtException:', err.message)
-  reportToRenderer('app:error', `Unhandled error: ${err.message}`)
+  console.error('[main] uncaughtException:', msg)
+  reportToRenderer('app:error', `Unhandled error: ${msg}`)
 })
 
 const DEFAULT_BOUNDS = { x: undefined as number | undefined, y: undefined as number | undefined, width: 1280, height: 800 }

@@ -92,9 +92,9 @@ export function FileDropZone() {
           Drop files to attach
         </div>
         <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-          .txt .md .py .js .ts .html .css .json .csv .pdf Â· images
+          .txt .md .py .js .ts .html .css .json .csv .pdf · images
         </p>
-        <p className="mt-1 text-[12px] text-[var(--text-muted)]">10 MB per file Â· 25 MB total</p>
+        <p className="mt-1 text-[12px] text-[var(--text-muted)]">10 MB per file · 25 MB total</p>
       </div>
     </div>
   )

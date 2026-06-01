@@ -22,7 +22,7 @@ export function GeneralSettings() {
           <span className="flex-1">
             <span className="block font-medium text-[var(--text-primary)]">AI-generated titles</span>
             <span className="mt-1 block text-[13px] leading-relaxed text-[var(--text-muted)]">
-              After the first response, ask DeepSeek for a 3â€“5 word title. Defaults off â€” without it
+              After the first response, ask DeepSeek for a 3-5 word title. Defaults off - without it
               we use the first 40 characters of your opening message.
             </span>
           </span>

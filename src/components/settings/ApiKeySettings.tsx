@@ -1,9 +1,14 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
 import type { ProviderInfo } from '@/lib/types'
 
 interface ProviderEntry extends ProviderInfo {
   hasKey: boolean
+}
+
+interface TestResult {
+  ok: boolean
+  message: string
 }
 
 export function ApiKeySettings() {
@@ -12,7 +17,7 @@ export function ApiKeySettings() {
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [busy, setBusy] = useState<string | null>(null)
-  const [testStatus, setTestStatus] = useState<Record<string, string | null>>({})
+  const [testStatus, setTestStatus] = useState<Record<string, TestResult | null>>({})
 
   const refresh = async () => {
     if (!window.api) return
@@ -52,16 +57,32 @@ export function ApiKeySettings() {
     setTestStatus((s) => ({ ...s, [providerId]: null }))
     try {
       const result = await window.api.settings.testProviderKey(providerId)
-      if (result.success && result.data) {
-        setTestStatus((s) => ({ ...s, [providerId]: `${label} responded` }))
-        toast.success(`${label} key valid`)
+      // The IPC handler now returns { ok, reason?, modelCount? } in `data`.
+      const data = (result.success ? (result.data as { ok: boolean; reason?: string; modelCount?: number } | boolean | undefined) : undefined)
+      if (typeof data === 'object' && data !== null) {
+        if (data.ok) {
+          const detail = typeof data.modelCount === 'number'
+            ? `${label} authenticated (${data.modelCount} models exposed by /v1/models).`
+            : `${label} authenticated.`
+          setTestStatus((s) => ({ ...s, [providerId]: { ok: true, message: detail } }))
+          toast.success(`${label} key valid`)
+        } else {
+          const reason = data.reason || 'Provider rejected the key.'
+          setTestStatus((s) => ({ ...s, [providerId]: { ok: false, message: reason } }))
+          toast.error(`${label} key check failed: ${reason}`)
+        }
+      } else if (typeof data === 'boolean') {
+        const msg = data ? `${label} authenticated.` : 'Provider rejected the key.'
+        setTestStatus((s) => ({ ...s, [providerId]: { ok: data, message: msg } }))
+        data ? toast.success(`${label} key valid`) : toast.error(`Invalid ${label} key`)
       } else {
-        setTestStatus((s) => ({ ...s, [providerId]: 'Invalid or rejected' }))
-        toast.error(`Invalid ${label} key`)
+        const reason = result.success ? 'No response from provider.' : (result.error || 'Unknown error.')
+        setTestStatus((s) => ({ ...s, [providerId]: { ok: false, message: reason } }))
+        toast.error(`${label} test failed: ${reason}`)
       }
     } catch (err) {
       const msg = (err as Error).message ?? 'unknown error'
-      setTestStatus((s) => ({ ...s, [providerId]: `Error: ${msg}` }))
+      setTestStatus((s) => ({ ...s, [providerId]: { ok: false, message: msg } }))
       toast.error(`${label} test failed: ${msg}`)
     }
     setBusy(null)
@@ -88,23 +109,32 @@ export function ApiKeySettings() {
       <div>
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Provider API keys</h3>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
-          Each model routes to a provider over its real, published API endpoint. Add a key per
-          provider to unlock that provider's models: DeepSeek (V4 Pro &amp; Flash, plus legacy chat/
-          reasoner aliases), Alibaba DashScope (Qwen3 family), Google AI Studio (Gemma 3), or
-          OpenRouter (Gemma 4 and many other open models). Keys are stored locally with OS-level
-          encryption and only transmitted to the provider they belong to.
+          Each model routes to a real provider over its published API endpoint. Add a key per
+          provider to unlock that provider's models. Keys are encrypted with Electron safeStorage
+          and stored locally in your userData directory; they are only transmitted to the provider
+          they belong to.
         </p>
       </div>
 
       <div className="rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-[13px]">
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
-          <span aria-hidden>{encrypted ? 'ðŸ”’' : 'âš '}</span>
+          <span
+            className={`inline-block rounded px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider ${
+              encrypted
+                ? 'bg-[var(--success)]/15 text-[var(--success)]'
+                : encrypted === false
+                ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+            }`}
+          >
+            {encrypted === null ? 'checking' : encrypted ? 'encrypted' : 'plaintext'}
+          </span>
           <span>
             {encrypted === null
-              ? 'Checking storage backendâ€¦'
+              ? 'Checking storage backend...'
               : encrypted
-              ? 'Stored using OS encryption (safeStorage).'
-              : 'Warning: stored as plaintext â€” install libsecret or run on a host with native keychain support.'}
+              ? 'Stored using OS-level encryption (Electron safeStorage), persisted to userData/keys.json.'
+              : 'safeStorage is unavailable on this host. Keys are written as plaintext. Install libsecret (Linux) or run on a host with a native keychain.'}
           </span>
         </div>
       </div>
@@ -139,7 +169,7 @@ export function ApiKeySettings() {
                   }}
                   className="mt-1 inline-block font-mono text-[12px] text-[var(--accent)] hover:underline"
                 >
-                  Get a key â†’
+                  Get a key →
                 </a>
               </div>
             </div>
@@ -149,7 +179,7 @@ export function ApiKeySettings() {
                 type={visible ? 'text' : 'password'}
                 value={draft}
                 onChange={(e) => setDrafts((s) => ({ ...s, [p.id]: e.target.value }))}
-                placeholder={p.hasKey ? 'Replace keyâ€¦' : 'Paste API key'}
+                placeholder={p.hasKey ? 'Replace key...' : 'Paste API key'}
                 className="flex-1 rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               />
               <button
@@ -186,12 +216,10 @@ export function ApiKeySettings() {
               {status && (
                 <span
                   className={`text-[13px] ${
-                    status.startsWith('Invalid') || status.startsWith('Error')
-                      ? 'text-[var(--error)]'
-                      : 'text-[var(--success)]'
+                    status.ok ? 'text-[var(--success)]' : 'text-[var(--error)]'
                   }`}
                 >
-                  {status}
+                  {status.message}
                 </span>
               )}
             </div>

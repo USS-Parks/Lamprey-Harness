@@ -7,7 +7,7 @@ import { deepseekClient } from '../services/deepseek'
 import {
   PROVIDERS,
   resetProviderClient,
-  validateProviderKey,
+  validateProviderKeyDetailed,
   type ProviderId
 } from '../services/providers/registry'
 
@@ -98,9 +98,11 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:testProviderKey', async (_event, provider) => {
     try {
       if (!isProvider(provider)) return { success: false, error: `Unknown provider: ${provider}` }
-      const valid = await validateProviderKey(provider)
-      return { success: true, data: valid }
+      const result = await validateProviderKeyDetailed(provider)
+      return { success: true, data: result }
     } catch (err: any) {
+      // validateProviderKeyDetailed already swallows provider errors into
+      // { ok: false, reason }, so reaching here is genuinely unexpected.
       return { success: false, error: err.message }
     }
   })

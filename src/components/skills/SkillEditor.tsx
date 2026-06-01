@@ -267,14 +267,14 @@ export function SkillEditor({ initialSkill, onClose }: SkillEditorProps) {
               disabled={busy}
               className="rounded border border-[var(--border)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-30"
             >
-              {busy ? 'Savingâ€¦' : 'Save'}
+              {busy ? 'Saving...' : 'Save'}
             </button>
             <button
               onClick={handleSaveAndEnable}
               disabled={busy}
               className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-30"
             >
-              {busy ? 'Savingâ€¦' : 'Save & Enable'}
+              {busy ? 'Saving...' : 'Save & Enable'}
             </button>
           </div>
         </div>

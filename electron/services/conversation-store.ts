@@ -20,7 +20,14 @@ export interface MessageRow {
   content: string
   model: string | null
   tool_call_id: string | null
+  tool_calls: string | null
   created_at: number
+}
+
+export interface StoredToolCall {
+  id: string
+  type: 'function'
+  function: { name: string; arguments: string }
 }
 
 export function createConversation(
@@ -147,12 +154,14 @@ export function saveMessage(msg: {
   content: string
   model?: string
   toolCallId?: string
+  toolCalls?: StoredToolCall[]
 }) {
   const db = getDb()
   const now = Date.now()
+  const toolCallsJson = msg.toolCalls && msg.toolCalls.length > 0 ? JSON.stringify(msg.toolCalls) : null
   db.prepare(
-    'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(msg.id, msg.conversationId, msg.role, msg.content, msg.model || null, msg.toolCallId || null, now)
+    'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(msg.id, msg.conversationId, msg.role, msg.content, msg.model || null, msg.toolCallId || null, toolCallsJson, now)
   touchConversation(msg.conversationId)
   return {
     id: msg.id,
@@ -161,7 +170,8 @@ export function saveMessage(msg: {
     content: msg.content,
     timestamp: now,
     model: msg.model,
-    toolCallId: msg.toolCallId
+    toolCallId: msg.toolCallId,
+    toolCalls: msg.toolCalls
   }
 }
 
@@ -170,13 +180,26 @@ export function getMessages(conversationId: string) {
   const rows = db.prepare(
     'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
   ).all(conversationId) as MessageRow[]
-  return rows.map((row) => ({
-    id: row.id,
-    conversationId: row.conversation_id,
-    role: row.role as 'user' | 'assistant' | 'system' | 'tool',
-    content: row.content,
-    timestamp: row.created_at,
-    model: row.model || undefined,
-    toolCallId: row.tool_call_id || undefined
-  }))
+  return rows.map((row) => {
+    let toolCalls: StoredToolCall[] | undefined
+    if (row.tool_calls) {
+      try {
+        const parsed = JSON.parse(row.tool_calls)
+        if (Array.isArray(parsed)) toolCalls = parsed as StoredToolCall[]
+      } catch {
+        // Corrupt JSON — drop. The orphan-tool filter in chat.ts will
+        // handle the consequence (drop tool replies that have no parent).
+      }
+    }
+    return {
+      id: row.id,
+      conversationId: row.conversation_id,
+      role: row.role as 'user' | 'assistant' | 'system' | 'tool',
+      content: row.content,
+      timestamp: row.created_at,
+      model: row.model || undefined,
+      toolCallId: row.tool_call_id || undefined,
+      toolCalls
+    }
+  })
 }

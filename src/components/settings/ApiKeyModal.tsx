@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ProviderInfo } from '@/lib/types'
 
 interface ApiKeyModalProps {
@@ -47,10 +47,19 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         return
       }
       const result = await window.api.settings.testProviderKey(selected)
-      if (result.success && result.data) {
-        onComplete()
+      const data = result.success
+        ? (result.data as { ok: boolean; reason?: string } | boolean | undefined)
+        : undefined
+      if (typeof data === 'object' && data !== null) {
+        if (data.ok) {
+          onComplete()
+        } else {
+          setError(data.reason || 'Provider rejected the key.')
+        }
+      } else if (typeof data === 'boolean') {
+        data ? onComplete() : setError('Provider rejected the key.')
       } else {
-        setError('Invalid API key. Check it and try again.')
+        setError(result.success ? 'No response from provider.' : (result.error || 'Unknown error.'))
       }
     } catch {
       setError('Connection failed. Check your network and try again.')
@@ -82,10 +91,9 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           {scoped && currentProvider ? `Add a ${currentProvider.label} API key` : 'Welcome to the Lamprey Harness'}
         </h2>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-          Bring your own key for any supported provider: DeepSeek (V4 Pro &amp; Flash, 1M context),
-          Alibaba DashScope (Qwen3 family), Google AI Studio (Gemma 3), or OpenRouter (Gemma 4
-          + many more). You must paste a real key from each provider's own dashboard before its
-          models become selectable.
+          Bring your own key for any supported provider. Paste a real key from that provider's
+          dashboard; we authenticate against the provider's published API endpoint before unlocking
+          its models.
         </p>
 
         <label className="mt-4 block">
@@ -98,7 +106,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
-                {p.hasKey ? ' Â· key already stored' : ''}
+                {p.hasKey ? ' (key stored)' : ''}
               </option>
             ))}
           </select>
@@ -123,7 +131,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
             }}
             className="mt-2 inline-block font-mono text-[12px] text-[var(--accent)] hover:underline"
           >
-            Get a {currentProvider.label} key â†’
+            Get a {currentProvider.label} key →
           </a>
         )}
 
@@ -134,12 +142,12 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           disabled={!key.trim() || testing}
           className="mt-4 w-full rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
         >
-          {testing ? 'Validatingâ€¦' : 'Connect'}
+          {testing ? 'Validating...' : 'Connect'}
         </button>
 
         <p className="mt-3 text-[12px] text-[var(--text-muted)]">
-          Keys are encrypted with OS-level storage (safeStorage) and never leave this device except to
-          call the provider's own API.
+          Keys are encrypted with OS-level storage (Electron safeStorage) and never leave this
+          device except to call the provider's own API.
         </p>
       </div>
     </div>

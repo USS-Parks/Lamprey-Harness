@@ -188,7 +188,7 @@ export function ModelSwitcher() {
             }}
             className="block w-full border-t border-[var(--border)] px-3 py-2 text-left text-[13px] text-[var(--accent)] transition-colors hover:bg-[var(--bg-tertiary)]"
           >
-            Configure models â†’
+            Configure models →
           </button>
         </div>
       )}

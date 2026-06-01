@@ -59,9 +59,12 @@ export interface ModelDescriptor {
   description: string
 }
 
-// Verified against the providers' published model lists. Each `apiModelId`
-// is a string the provider currently accepts in the `model` field of an API
-// request. DeepSeek catalog reference: https://api-docs.deepseek.com/quick_start/pricing
+// Each `apiModelId` is sent verbatim in the `model` field of the request to
+// that provider's published API. These IDs come from each provider's docs
+// and the OpenRouter live /v1/models response captured during development;
+// they are NOT guaranteed to still be live. Use Settings -> Models ->
+// "Verify against providers" to check every entry against the provider's
+// current /v1/models list with your stored key.
 export const MODEL_CATALOG: ModelDescriptor[] = [
   {
     id: 'deepseek-v4-pro',
@@ -316,27 +319,196 @@ export function getApiModelId(modelId: string): string {
   return resolveModel(modelId).apiModelId
 }
 
-export async function validateProviderKey(provider: ProviderId): Promise<boolean> {
+export interface KeyValidationResult {
+  ok: boolean
+  reason?: string
+  modelCount?: number
+}
+
+export async function validateProviderKeyDetailed(provider: ProviderId): Promise<KeyValidationResult> {
+  let client: OpenAI
   try {
-    const client = getClientForProvider(provider)
-    // Use one of the catalog models the provider actually publishes.
-    const probeModel =
-      provider === 'deepseek'
-        ? 'deepseek-v4-flash'
-        : provider === 'google'
-        ? 'gemma-3-27b-it'
-        : provider === 'openrouter'
-        ? 'google/gemma-4-31b-it:free'
-        : 'qwen3-max'
-    const response = await client.chat.completions.create({
-      model: probeModel,
-      messages: [{ role: 'user', content: 'Respond with only: OK' }],
-      max_tokens: 5
-    })
-    return !!response.choices[0]?.message?.content
+    client = getClientForProvider(provider)
   } catch (err: any) {
-    if (err?.status === 401 || err?.status === 403) return false
-    throw err
+    return { ok: false, reason: err?.message || 'No API key stored for this provider.' }
+  }
+
+  // Primary check: GET /v1/models. Costs nothing, requires only auth, and
+  // works on every OpenAI-compatible provider we route to. A 401/403 here
+  // is the only thing that proves the key itself is bad.
+  try {
+    const response = await client.models.list()
+    const count = Array.isArray(response.data) ? response.data.length : 0
+    return { ok: true, modelCount: count }
+  } catch (err: any) {
+    if (err?.status === 401 || err?.status === 403) {
+      return { ok: false, reason: `Provider rejected the key (HTTP ${err.status}).` }
+    }
+    // Fall through to a chat-completion fallback for providers that don't
+    // expose /v1/models — DashScope's compatible-mode endpoint, for instance.
+    return validateViaChatProbe(provider, client, err)
+  }
+}
+
+async function validateViaChatProbe(
+  provider: ProviderId,
+  client: OpenAI,
+  originalError: any
+): Promise<KeyValidationResult> {
+  // Pick the cheapest catalog model we know about for this provider. This is
+  // a fallback only — if the call fails for any non-auth reason we report it
+  // verbatim rather than claiming the key is invalid.
+  const probe = MODEL_CATALOG.find((m) => m.provider === provider)
+  if (!probe) {
+    return {
+      ok: false,
+      reason: originalError?.message || `No catalog model available to probe ${provider}.`
+    }
+  }
+  try {
+    const response = await client.chat.completions.create({
+      model: probe.apiModelId,
+      messages: [{ role: 'user', content: 'ok' }],
+      max_tokens: 1
+    })
+    return { ok: !!response.choices[0]?.message }
+  } catch (err: any) {
+    if (err?.status === 401 || err?.status === 403) {
+      return { ok: false, reason: `Provider rejected the key (HTTP ${err.status}).` }
+    }
+    return {
+      ok: false,
+      reason:
+        err?.message ||
+        originalError?.message ||
+        'Provider returned an unexpected error during validation.'
+    }
+  }
+}
+
+// Boolean wrapper retained for the legacy single-key path
+// (settings:testApiKey -> DeepSeekClient.validateKey).
+export async function validateProviderKey(provider: ProviderId): Promise<boolean> {
+  const result = await validateProviderKeyDetailed(provider)
+  return result.ok
+}
+
+export type CatalogStatus = 'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
+
+export interface ProviderCatalogReport {
+  provider: ProviderId
+  status: 'ok' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
+  reason?: string
+  // Sample of live ids returned by /v1/models (capped for size).
+  liveIds?: string[]
+  liveCount?: number
+}
+
+export interface CatalogVerificationReport {
+  generatedAt: number
+  providers: ProviderCatalogReport[]
+  models: Array<{
+    modelId: string
+    name: string
+    provider: ProviderId
+    apiModelId: string
+    status: CatalogStatus
+    reason?: string
+  }>
+}
+
+// Calls each provider's /v1/models endpoint with the stored key and confirms
+// that every catalog apiModelId is present in the live response. Returns a
+// structured report so the UI can show per-model status — no inferences, no
+// fabricated "verified" claims.
+export async function verifyCatalog(): Promise<CatalogVerificationReport> {
+  const providerIds = Object.keys(PROVIDERS) as ProviderId[]
+
+  const providerReports = await Promise.all(
+    providerIds.map(async (pid): Promise<ProviderCatalogReport> => {
+      let client: OpenAI
+      try {
+        client = getClientForProvider(pid)
+      } catch (err: any) {
+        return { provider: pid, status: 'no-key', reason: err?.message || 'No API key stored.' }
+      }
+      try {
+        const response = await client.models.list()
+        const ids = (Array.isArray(response.data) ? response.data : [])
+          .map((m: any) => (typeof m?.id === 'string' ? m.id : null))
+          .filter((id): id is string => !!id)
+        return {
+          provider: pid,
+          status: 'ok',
+          liveIds: ids.slice(0, 500),
+          liveCount: ids.length
+        }
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) {
+          return {
+            provider: pid,
+            status: 'auth-failed',
+            reason: `Provider rejected the key (HTTP ${err.status}).`
+          }
+        }
+        if (err?.status === 404 || err?.status === 405) {
+          // Provider's compatible-mode endpoint doesn't expose /v1/models;
+          // we can't confirm or refute the catalog without spending tokens.
+          return {
+            provider: pid,
+            status: 'unsupported-endpoint',
+            reason: `Provider does not expose /v1/models (HTTP ${err.status}). Catalog entries for this provider cannot be auto-verified.`
+          }
+        }
+        return {
+          provider: pid,
+          status: 'error',
+          reason: err?.message || 'Unknown error contacting provider.'
+        }
+      }
+    })
+  )
+
+  const providerReportByProvider = new Map<ProviderId, ProviderCatalogReport>(
+    providerReports.map((r) => [r.provider, r])
+  )
+
+  const models = MODEL_CATALOG.map((m) => {
+    const report = providerReportByProvider.get(m.provider)
+    let status: CatalogStatus
+    let reason: string | undefined
+    if (!report || report.status === 'no-key') {
+      status = 'no-key'
+      reason = `Add a ${PROVIDERS[m.provider].label} key in Settings → API Keys to verify.`
+    } else if (report.status === 'auth-failed') {
+      status = 'auth-failed'
+      reason = report.reason
+    } else if (report.status === 'unsupported-endpoint') {
+      status = 'unsupported-endpoint'
+      reason = report.reason
+    } else if (report.status === 'error') {
+      status = 'error'
+      reason = report.reason
+    } else if (report.liveIds && report.liveIds.includes(m.apiModelId)) {
+      status = 'verified'
+    } else {
+      status = 'missing'
+      reason = `Provider's /v1/models response did not include "${m.apiModelId}".`
+    }
+    return {
+      modelId: m.id,
+      name: m.name,
+      provider: m.provider,
+      apiModelId: m.apiModelId,
+      status,
+      reason
+    }
+  })
+
+  return {
+    generatedAt: Date.now(),
+    providers: providerReports,
+    models
   }
 }
 

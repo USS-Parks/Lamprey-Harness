@@ -8,10 +8,10 @@ function formatSize(bytes: number): string {
 }
 
 function kindIcon(file: ProcessedFile) {
-  if (file.kind === 'image') return 'ðŸ–¼'
-  if (file.kind === 'pdf') return 'ðŸ“„'
-  if (file.kind === 'binary') return 'ðŸ“¦'
-  return 'ðŸ“'
+  if (file.kind === 'image') return 'IMG'
+  if (file.kind === 'pdf') return 'PDF'
+  if (file.kind === 'binary') return 'BIN'
+  return 'FILE'
 }
 
 function Tile({ file, index }: { file: ProcessedFile; index: number }) {
@@ -41,7 +41,7 @@ function Tile({ file, index }: { file: ProcessedFile; index: number }) {
         <div className="truncate font-mono text-xs text-[var(--text-primary)]">{file.name}</div>
         <div className="truncate text-[12px] text-[var(--text-muted)]">
           {formatSize(file.size)}
-          {file.previewText && ` Â· ${file.previewText}`}
+          {file.previewText && ` · ${file.previewText}`}
         </div>
       </div>
       <button
@@ -66,7 +66,7 @@ export function AttachmentPreview() {
   return (
     <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2">
       {processing && (
-        <div className="mb-1 text-[12px] text-[var(--text-muted)]">Processing attachmentsâ€¦</div>
+        <div className="mb-1 text-[12px] text-[var(--text-muted)]">Processing attachments...</div>
       )}
       <div className="flex flex-wrap gap-2">
         {attachments.map((file, idx) => (

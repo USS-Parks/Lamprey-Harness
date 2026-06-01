@@ -122,7 +122,7 @@ export function MemoryPanel() {
               title="Memory actions"
               className="rounded px-1.5 py-0.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
             >
-              â€¦
+              ...
             </button>
             {menuOpen && (
               <>
@@ -214,7 +214,7 @@ export function MemoryPanel() {
             }}
             onBlur={commitAdd}
             rows={2}
-            placeholder="Something to rememberâ€¦"
+            placeholder="Something to remember..."
             className="w-full resize-none rounded border border-[var(--accent)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none"
           />
         </div>

@@ -29,11 +29,11 @@ export function AgentRunBanner() {
               <span className="font-mono text-[var(--text-secondary)]">
                 {role}
                 {entry?.model && (
-                  <span className="ml-1 text-[var(--text-muted)]">Â· {entry.model}</span>
+                  <span className="ml-1 text-[var(--text-muted)]">· {entry.model}</span>
                 )}
               </span>
               {idx < ROLE_ORDER.length - 1 && (
-                <span className="text-[var(--text-muted)]">â†’</span>
+                <span className="text-[var(--text-muted)]">→</span>
               )}
             </div>
           )

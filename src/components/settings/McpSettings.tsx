@@ -84,7 +84,7 @@ export function McpSettings() {
               </div>
               <span className={`font-mono text-[13px] capitalize ${statusColor(server.status)}`}>
                 {server.status}
-                {server.error && ` â€” ${server.error}`}
+                {server.error && ` - ${server.error}`}
               </span>
             </div>
 

@@ -4,6 +4,45 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { toast } from '@/stores/toast-store'
 import { DEFAULT_MODEL_CONFIG, type ModelConfig, type ModelInfo } from '@/lib/types'
 
+type CatalogStatus = 'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
+
+interface CatalogVerification {
+  generatedAt: number
+  providers: Array<{
+    provider: string
+    status: 'ok' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
+    reason?: string
+    liveCount?: number
+  }>
+  models: Array<{
+    modelId: string
+    name: string
+    provider: string
+    apiModelId: string
+    status: CatalogStatus
+    reason?: string
+  }>
+}
+
+function statusChip(status: CatalogStatus | undefined): { label: string; tone: string } {
+  switch (status) {
+    case 'verified':
+      return { label: 'verified', tone: 'bg-[var(--success)]/15 text-[var(--success)]' }
+    case 'missing':
+      return { label: 'missing', tone: 'bg-[var(--error)]/15 text-[var(--error)]' }
+    case 'auth-failed':
+      return { label: 'auth failed', tone: 'bg-[var(--error)]/15 text-[var(--error)]' }
+    case 'no-key':
+      return { label: 'no key', tone: 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]' }
+    case 'unsupported-endpoint':
+      return { label: 'unverifiable', tone: 'bg-[var(--warning)]/15 text-[var(--warning)]' }
+    case 'error':
+      return { label: 'error', tone: 'bg-[var(--error)]/15 text-[var(--error)]' }
+    default:
+      return { label: 'unchecked', tone: 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]' }
+  }
+}
+
 const BUILTIN_IDS = new Set([
   'deepseek-v4-pro',
   'deepseek-v4-flash',
@@ -62,6 +101,8 @@ export function ModelSettings() {
   )
   const [testStatus, setTestStatus] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
+  const [verification, setVerification] = useState<CatalogVerification | null>(null)
+  const [verifying, setVerifying] = useState(false)
   const [draft, setDraft] = useState<ModelInfo>({
     id: '',
     name: '',
@@ -151,6 +192,44 @@ export function ModelSettings() {
     }
   }
 
+  const statusByModelId = useMemo(() => {
+    const map = new Map<string, CatalogStatus>()
+    verification?.models.forEach((m) => map.set(m.modelId, m.status))
+    return map
+  }, [verification])
+
+  const handleVerifyCatalog = async () => {
+    if (!window.api) return
+    setVerifying(true)
+    try {
+      const result = await window.api.model.verifyCatalog()
+      if (!result.success) {
+        toast.error(`Catalog verification failed: ${result.error}`)
+        return
+      }
+      const report = result.data as CatalogVerification
+      setVerification(report)
+      const verifiedCount = report.models.filter((m) => m.status === 'verified').length
+      const missingCount = report.models.filter((m) => m.status === 'missing').length
+      const noKeyCount = report.models.filter((m) => m.status === 'no-key').length
+      if (missingCount > 0) {
+        toast.warning(
+          `${verifiedCount} verified, ${missingCount} missing from live /v1/models, ${noKeyCount} pending a key`
+        )
+      } else if (verifiedCount > 0) {
+        toast.success(
+          `${verifiedCount} verified against live /v1/models${noKeyCount > 0 ? `, ${noKeyCount} pending a key` : ''}`
+        )
+      } else {
+        toast.warning('No models could be verified. Add a provider key in Settings → API Keys.')
+      }
+    } catch (err) {
+      toast.error(`Catalog verification failed: ${(err as Error).message ?? 'unknown error'}`)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   const handleTest = async () => {
     if (!window.api) return
     setTesting(true)
@@ -193,27 +272,81 @@ export function ModelSettings() {
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Models</h3>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Per-model temperature, top-p, max tokens, and an optional system prompt override applied
-          on every chat with this model.
+          on every chat with this model. Use "Verify against providers" to confirm every model id
+          in the picker actually exists at the provider it's routed to — the check calls each
+          provider's live /v1/models endpoint with your stored key, no inferences.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {models.map((m) => (
+      <div className="rounded border border-[var(--border)] bg-[var(--bg-primary)] p-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            key={m.id}
-            onClick={() => setSelectedId(m.id)}
-            className={`rounded border px-3 py-1.5 font-mono text-xs transition-colors ${
-              selectedId === m.id
-                ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--accent)]'
-                : 'border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
+            onClick={handleVerifyCatalog}
+            disabled={verifying}
+            className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {m.name}
-            {settings.defaultModel === m.id && (
-              <span className="ml-1.5 text-[11px] uppercase text-[var(--text-muted)]">default</span>
-            )}
+            {verifying ? 'Verifying...' : 'Verify against providers'}
           </button>
-        ))}
+          {verification && (
+            <span className="font-mono text-[12px] text-[var(--text-muted)]">
+              {verification.providers.map((p) => {
+                const tone =
+                  p.status === 'ok'
+                    ? 'text-[var(--success)]'
+                    : p.status === 'no-key'
+                    ? 'text-[var(--text-muted)]'
+                    : p.status === 'unsupported-endpoint'
+                    ? 'text-[var(--warning)]'
+                    : 'text-[var(--error)]'
+                return (
+                  <span key={p.provider} className={`mr-3 ${tone}`}>
+                    {p.provider}:
+                    {p.status === 'ok' ? ` ${p.liveCount ?? 0} live ids` : ` ${p.status}`}
+                  </span>
+                )
+              })}
+            </span>
+          )}
+        </div>
+        {verification && (
+          <p className="mt-2 text-[12px] text-[var(--text-muted)]">
+            Chips on each model below show whether the apiModelId is present in the provider's
+            live /v1/models response. Missing = the provider does not currently serve that id;
+            unverifiable = the provider does not expose /v1/models (no auto-check possible).
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {models.map((m) => {
+          const status = statusByModelId.get(m.id)
+          const chip = statusChip(status)
+          const found = verification?.models.find((x) => x.modelId === m.id)
+          return (
+            <button
+              key={m.id}
+              onClick={() => setSelectedId(m.id)}
+              title={found?.reason ?? `${m.id}`}
+              className={`rounded border px-3 py-1.5 font-mono text-xs transition-colors ${
+                selectedId === m.id
+                  ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--accent)]'
+                  : 'border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {m.name}
+              {settings.defaultModel === m.id && (
+                <span className="ml-1.5 text-[11px] uppercase text-[var(--text-muted)]">default</span>
+              )}
+              {verification && (
+                <span
+                  className={`ml-1.5 rounded px-1 py-0.5 text-[10px] uppercase tracking-wider ${chip.tone}`}
+                >
+                  {chip.label}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {selectedModel && (
@@ -275,7 +408,7 @@ export function ModelSettings() {
               onChange={(e) => writeConfig({ systemPromptOverride: e.target.value })}
               rows={3}
               spellCheck={false}
-              placeholder="Replaces 'You are Lamprey, a helpful AI assistantâ€¦' when set."
+              placeholder="Replaces 'You are Lamprey, a helpful AI assistant...' when set."
               className="resize-none rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
             />
           </label>
@@ -293,7 +426,7 @@ export function ModelSettings() {
               disabled={testing}
               className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {testing ? 'Testingâ€¦' : 'Test model'}
+              {testing ? 'Testing...' : 'Test model'}
             </button>
             {testStatus && (
               <span
@@ -316,7 +449,7 @@ export function ModelSettings() {
             Custom models
           </h4>
           <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
-            Add any model id your DeepSeek key can call â€” e.g. <span className="font-mono">deepseek-v4-pro</span>.
+            Add any model id your DeepSeek key can call - e.g. <span className="font-mono">deepseek-v4-pro</span>.
             Builtins stay; customs override built-ins with the same id.
           </p>
         </div>
@@ -331,9 +464,9 @@ export function ModelSettings() {
                 <div className="min-w-0 flex-1">
                   <div className="font-mono text-[var(--text-primary)]">{m.name}</div>
                   <div className="mt-0.5 truncate font-mono text-[12px] text-[var(--text-muted)]">
-                    {m.id} Â· {Math.round(m.contextWindow / 1024)}K
-                    {m.supportsTools ? ' Â· tools' : ''}
-                    {m.supportsVision ? ' Â· vision' : ''}
+                    {m.id} · {Math.round(m.contextWindow / 1024)}K
+                    {m.supportsTools ? ' · tools' : ''}
+                    {m.supportsVision ? ' · vision' : ''}
                   </div>
                 </div>
                 <button

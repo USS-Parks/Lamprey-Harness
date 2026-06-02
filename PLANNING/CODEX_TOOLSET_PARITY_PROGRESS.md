@@ -108,16 +108,30 @@ suites now execute and pass.
   in `.github/workflows/ci.yml` now runs the full Vitest suite on every PR + push
   (installs deps `--ignore-scripts` and fetches just the Electron binary, since
   the suite runs under Node and does not load the native better-sqlite3 DB).
-- **Renderer-side bundle smoke** — `smoke:bundle` covers only the main bundle; the
-  renderer bundle has no equivalent headless load check.
+- **Renderer-side bundle smoke** — *resolved in follow-up:* `npm run smoke:renderer`
+  (`scripts/smoke-renderer.cjs`) verifies `out/renderer/index.html` + every referenced
+  asset was emitted non-empty and the entry chunk mounts a React root — the "white
+  screen" failure class. Runs after the build in both CI jobs. (Deliberately an
+  integrity check, not a headless execution: the React/Shiki/Mermaid+workers bundle
+  is too fragile to run faithfully under jsdom; src component tests cover execution.)
 - **`askUser` permission path** — *resolved in follow-up:* covered by
   `permissions-store-askuser.test.ts`, which mocks the BrowserWindow round-trip
   with `vi.hoisted` (no Electron host needed) and drives the renderer reply via
   `respond()` — modal dispatch, once/always/conversation persistence, timeout,
   and cancellation.
-- **`requiresApproval: false` review** — image generation and any plugin-driven
-  file writes should be re-audited next sprint to confirm none bypass gating that
-  ought to be gated.
+- **`requiresApproval: false` review** — *resolved in follow-up (audit + one fix):*
+  Gating is `requiresApproval || risk ∈ {network,destructive,secret}`. Findings:
+  (a) image-generation tools carry `network`, so they already gate — the "KNOWN GAP"
+  comment claiming no per-call gate was stale and is corrected; (b) all MCP tools get
+  at least `['network']`, so they gate too; (c) there are no `providerKind:'plugin'`
+  tools — that path is unused, so there are no ungated plugin file-writes; (d) the
+  read/write-only locals (`update_plan`, `create_goal`, `update_goal`, `memory_add`)
+  are intentionally not gated. One real bug found and fixed: `request_permissions`
+  carried `secret`, so the dispatcher gated it *and* its handler prompted again
+  (double-prompt; a global "deny secret" would have locked the user out of ever
+  requesting a permission). Added a metadata-driven `selfApproves` descriptor flag
+  (honored by the new `descriptorNeedsApproval` predicate) and set it on
+  `request_permissions`; the `secret` risk stays for the UI badge.
 
 **Acceptance:** automated regression green locally; docs updated (`README.md`
 roadmap, `CONTRIBUTING.md` gate list, `DEVLOG.md` entry, this roster + entry);

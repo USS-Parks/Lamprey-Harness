@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { toast } from '@/stores/toast-store'
 import type { MemoryEntry } from '@/lib/types'
 
 interface MemoryState {
@@ -30,6 +31,8 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     const result = await window.api.memory.list()
     if (result.success) {
       set({ memories: (result.data as MemoryEntry[]) ?? [] })
+    } else {
+      toast.error(`Failed to load memory: ${result.error}`)
     }
   },
 
@@ -45,7 +48,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     const trimmed = content.trim()
     if (!trimmed) return null
     const result = await window.api.memory.add(trimmed)
-    if (!result.success) return null
+    if (!result.success) {
+      toast.error(`Failed to add memory: ${result.error}`)
+      return null
+    }
     const entry = result.data as MemoryEntry
     set((state) =>
       state.memories.some((m) => m.id === entry.id)
@@ -60,7 +66,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     const trimmed = content.trim()
     if (!trimmed) return
     const result = await window.api.memory.update(id, trimmed)
-    if (!result.success) return
+    if (!result.success) {
+      toast.error(`Failed to update memory: ${result.error}`)
+      return
+    }
     const entry = result.data as MemoryEntry
     set((state) => ({
       memories: state.memories.map((m) => (m.id === id ? entry : m))
@@ -73,6 +82,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     set((state) => ({ memories: state.memories.filter((m) => m.id !== id) }))
     const result = await window.api.memory.delete(id)
     if (!result.success) {
+      toast.error(`Failed to delete memory: ${result.error}`)
       await get().loadMemories()
       return null
     }
@@ -82,27 +92,42 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   restoreMemory: async (entry: MemoryEntry) => {
     if (!window.api) return
     const result = await window.api.memory.add(entry.content)
-    if (!result.success) return
+    if (!result.success) {
+      toast.error(`Failed to restore memory: ${result.error}`)
+      return
+    }
     await get().loadMemories()
   },
 
   clearAll: async () => {
     if (!window.api) return
+    const previous = get().memories
     set({ memories: [] })
-    await window.api.memory.clear()
+    const result = await window.api.memory.clear()
+    if (!result.success) {
+      toast.error(`Failed to clear memory: ${result.error}`)
+      set({ memories: previous })
+    }
   },
 
   exportMemories: async () => {
     if (!window.api) return null
     const result = await window.api.memory.export()
-    return result.success ? (result.data as string) : null
+    if (!result.success) {
+      toast.error(`Failed to export memory: ${result.error}`)
+      return null
+    }
+    return result.data as string
   },
 
   importMemories: async (json: string) => {
     if (!window.api) return
     const parsed = JSON.parse(json)
     if (!Array.isArray(parsed)) throw new Error('Import JSON must be an array')
-    await window.api.memory.import(parsed)
+    // Surface IPC failure as a thrown error so the caller's catch reports it
+    // through the same toast path as parse/validation errors.
+    const result = await window.api.memory.import(parsed)
+    if (!result.success) throw new Error(result.error)
     await get().loadMemories()
   },
 

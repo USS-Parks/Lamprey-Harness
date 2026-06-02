@@ -30,9 +30,10 @@ npm run lint                              # ESLint (flat config)
 npm test                                  # vitest unit/integration suite
 npx electron-vite build                   # full build, no warnings
 npm run smoke:bundle                      # headless load of out/main/index.js
+npm run smoke:renderer                    # integrity of the renderer bundle
 ```
 
-All six must pass before a PR, plus the manual smoke checklist for release-bound
+All seven must pass before a PR, plus the manual smoke checklist for release-bound
 changes. In CI today: the `ci` workflow runs ESLint + both typechecks (`lint` job)
 and the full Vitest suite (`test` job) on every PR and push; the `build` workflow
 runs both typechecks + build + bundle smoke on Windows and Linux. The Windows

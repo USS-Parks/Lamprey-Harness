@@ -15,7 +15,7 @@ import {
   partitionToolCallWindows,
   type ProviderToolCall
 } from '../services/tool-call-windowing'
-import { permissionsService, shouldGateOnRisks } from '../services/permissions-store'
+import { permissionsService, descriptorNeedsApproval } from '../services/permissions-store'
 import { inferPhaseFromDescriptor, type AgentRunPhase } from '../services/agent-run-phase'
 import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
@@ -537,8 +537,7 @@ async function resolveSingleToolCall(
   if (descriptor) {
     emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
   }
-  const needsApproval =
-    !!descriptor && (descriptor.requiresApproval || shouldGateOnRisks(descriptor.risks))
+  const needsApproval = descriptorNeedsApproval(descriptor)
   const approvalOutcome =
     needsApproval && descriptor
       ? await permissionsService.requestApprovalDetailed({

@@ -43,6 +43,12 @@ jobs:
         # missing pack registrations) that vitest cannot observe.
         run: npm run smoke:bundle
 
+      - name: Integrity smoke of renderer bundle
+        # Verifies out/renderer/index.html + every referenced asset was emitted
+        # and non-empty, and the entry chunk mounts a React root. Catches the
+        # "white screen" class of broken renderer build.
+        run: npm run smoke:renderer
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v6
         with:
@@ -96,6 +102,12 @@ jobs:
         # bundler-specific failures (TDZ from hoisted side-effect imports,
         # missing pack registrations) that vitest cannot observe.
         run: npm run smoke:bundle
+
+      - name: Integrity smoke of renderer bundle
+        # Verifies out/renderer/index.html + every referenced asset was emitted
+        # and non-empty, and the entry chunk mounts a React root. Catches the
+        # "white screen" class of broken renderer build.
+        run: npm run smoke:renderer
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v6

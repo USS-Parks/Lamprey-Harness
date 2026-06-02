@@ -45,6 +45,16 @@ export interface LampreyToolDescriptor {
    * don't gate (memory_add, update_plan).
    */
   parallelizable?: boolean
+  /**
+   * When true, the chat dispatcher never routes this call through the approval
+   * service — the tool's own handler IS the approval gate. Only `request_permissions`
+   * sets this: its handler prompts the user for a scope, so gating it again at
+   * dispatch time would double-prompt (and a global "deny secret" policy would
+   * otherwise lock the user out of ever requesting a permission). The descriptor
+   * keeps its `risks` (e.g. `secret`) so the UI still surfaces the escalation
+   * badge; this flag only suppresses the dispatch-time modal.
+   */
+  selfApproves?: boolean
 }
 
 /**

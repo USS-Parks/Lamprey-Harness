@@ -1,5 +1,49 @@
 # Lamprey Harness Dev Log
 
+## Plans & Goals settings panel — inspect / clear persisted state (2026-06-02)
+
+Final deferred item from the parity sprint: a settings UI over the plan + goal persistence that landed earlier. Modeled on `PermissionsSettings` (the inspect/clear side of a write-through store).
+
+**Backend.** `plan-goal-persistence.ts` gains `listAllPlanGoalState()` (distinct conversation ids across `plan_steps` ∪ `goals`, each loaded; memory-fallback aware), re-exported from `plan-goal-store.ts` as `getAllPlanGoalState()` (reads through persistence, which is authoritative since writes are write-through). `electron/ipc/plan.ts` adds `plan:listAllState`, `plan:clearConversationState`, and `plan:clearAllState`; the clear handlers emit `plan:updated` (via `emitChatEvent`) for affected conversations so an open `PlanChecklist` refreshes to empty. preload exposes the three on `window.api.plan`.
+
+**Frontend.** New `PlanGoalSettings.tsx` lists each conversation with stored state — plan steps (status dot + label) and goals (status, optional due date) — with per-conversation Clear and a global Clear all (both confirm first), plus a summary line and an empty state. Registered as the **Plans & Goals** tab in `SettingsDialog` and `SettingsTabId`. Added renderer mirror types `Goal` / `GoalStatus` / `ConversationPlanGoalState` to `src/lib/types.ts`.
+
+**Verification.** `tsc` (node + web) pass; ESLint 0 errors; Vitest **340 tests / 25 files** (+3 `listAllPlanGoalState` tests); `electron-vite build` + `smoke:bundle` + `smoke:renderer` all PASS. With this, every deferred item from the Codex parity regression pass is closed; the only remaining plan/goal item is cross-device sync (out of scope).
+
+## Tool-gating audit (selfApproves fix) + renderer bundle smoke (2026-06-02)
+
+Closes the last two regression-pass carry-forwards.
+
+**`requiresApproval: false` audit.** The dispatch gate is `requiresApproval || risk ∈ {network, destructive, secret}` (`chat.ts`). Audited every `requiresApproval: false` tool against it. Conclusions: image-generation tools carry `network` so they already gate (their "KNOWN GAP — no per-call gate" comment was stale; corrected); all MCP tools get at least `['network']` so they gate; there are no `providerKind: 'plugin'` tools at all, so the "ungated plugin file-write" concern is moot; the read/write-only locals (`update_plan`, `create_goal`, `update_goal`, `memory_add`) are intentionally ungated.
+
+One real bug: `request_permissions` declared `risks: ['secret']` with `requiresApproval: false`, intending to avoid a double-prompt (its handler IS the approval call). But the risk-based gate ignored that intent — the dispatcher gated it on `secret` *and then* the handler prompted again, and a global "deny secret" policy would have locked the user out of ever requesting a permission. Fix: a metadata-driven `selfApproves` descriptor flag (kept off the hard-coded-id path, per the registry's design). Extracted the gate into `descriptorNeedsApproval(descriptor)` in `permissions-store.ts` (`selfApproves` short-circuits to "no gate"); `chat.ts` now calls it; `request_permissions` sets `selfApproves: true` and keeps `secret` only for the UI escalation badge. Added 5 unit tests for the predicate (missing descriptor, requiresApproval, each gating risk, read/write-only, and the self-approve override).
+
+**Renderer bundle smoke (`scripts/smoke-renderer.cjs`, `npm run smoke:renderer`).** The main smoke can `require()` the CommonJS main bundle; the renderer is a browser bundle (React 19 + Shiki + Mermaid + workers + dynamic imports) that would be fragile to execute under jsdom. So this is an artifact-integrity smoke: it parses `out/renderer/index.html`, resolves every referenced asset to a real non-empty file, and checks the entry chunk is non-trivially sized and mounts a React root (`createRoot`) — the "white screen" failure class. Wired into both `build.yml` jobs after the build, and added to the CONTRIBUTING gate list. Verified it fails on a missing asset and passes on a real build.
+
+**Verification.** `tsc` (node + web) pass; ESLint 0 errors; Vitest **337 tests / 25 files** (+5); `electron-vite build` + `smoke:bundle` + `smoke:renderer` all PASS.
+
+## askUser permission round-trip tests (2026-06-02)
+
+Closes the next carry-forward gap: the `askUser` path in `permissions-store.ts` — the BrowserWindow approval round-trip — had no coverage because the sibling `permissions-store.test.ts` stubs `getAllWindows()` to `[]` (every case there resolves via a sticky policy, so the modal path is never reached).
+
+**New file `permissions-store-askuser.test.ts`.** Uses `vi.hoisted` to share a mutable window list + a sent-event log between the `electron` mock and the test body, so a fake window with a spying `webContents.send` can be installed — no Electron host required. The renderer's reply is driven through `permissionsService.respond()`. 12 tests cover: no-window → `deny`/`no-window` with nothing sent; modal dispatch of `tools:approvalRequired` (+ the legacy `mcp:confirmationRequired` event) carrying the request; "just this once" allow/deny → `modal` source with no persisted policy; "always" allow → persists a global tool policy and reports `policy:<id>` as the source; "conversation" scope without an id → no persist, with an id → a conversation-scoped policy; the persisted policy short-circuiting a second request without re-prompting; the 30s auto-deny timeout (fake timers); a late reply after timeout being a harmless no-op; `cancelPending` resolving as a one-time deny; and `respond` for an unknown callId being a no-op.
+
+**Verification.** `tsc` (node + web) pass; ESLint 0 errors; Vitest **332 tests / 25 files** (was 320/24, +12 in the new file).
+
+## Plan + goal state persistence (2026-06-02)
+
+Closes the top carry-forward gap from the Regression Pass: plan steps and goals were in-memory only and wiped on restart. They now persist to SQLite, following the same write-through + memory-fallback pattern Prompt 7 used for permission policies.
+
+**Schema (`database.ts`).** Two new tables created in `initSchema`: `plan_steps` (`id`, `conversation_id`, `text`, `status` CHECK pending/in_progress/done, `position` for order, timestamps) and `goals` (`id`, `conversation_id`, `title`, `description`, `due_date`, `status` CHECK open/in_progress/done/abandoned, timestamps), each with a `conversation_id` index. No FK to `conversations` — the `__global__` bucket and ephemeral runs need rows without a conversation row.
+
+**Persistence layer (`plan-goal-persistence.ts`, new).** Mirrors `permission-policies-store`: `loadPlanSteps` / `savePlanSteps` (replace-all in a transaction, `position` = array index), `loadGoals` / `upsertGoal` (`ON CONFLICT(id) DO UPDATE`), `clearConversation`, `clearAllPlanGoalState`. A `getDb()` failure activates an in-memory fallback so the API never throws into the caller.
+
+**Store wiring (`plan-goal-store.ts`).** Now a per-session cache in front of persistence: `getState` hydrates a conversation from disk on first access; `applyUpdatePlan` writes through `savePlanSteps`; `createGoal`/`updateGoal` write through `upsertGoal`. Added public `clearConversationState` / `clearAllState` (for a future settings UI and for cleanup), and `deleteConversation` now clears a deleted conversation's plan/goal rows (no FK cascade exists). The `monoNow` ordering and all snapshot/merge/replace semantics are unchanged, so consumers (`native-dev-tool-pack`, `plan.ts` IPC, `PlanChecklist`) need no changes — persistence is transparent.
+
+**Verification.** `tsc` (node + web) pass; ESLint 0 errors; `electron-vite build` + `smoke:bundle` PASS. Vitest **320 tests / 24 files** (was 307/23): a new `plan-goal-persistence.test.ts` (9 tests, exercises the layer through its forced memory fallback) plus 5 new "survives a simulated restart" tests in `plan-goal-store.test.ts` that drop the session cache and confirm rehydration of plan order/status, goal fields, replace-mode wipes, per-conversation isolation, and `clearConversationState`. Both test files mock `electron` to force the fallback, matching the permission-policies test.
+
+**Still open (next sprint):** no settings UI to inspect/clear plan+goal state (the `clear*` API is ready for it), and no cross-device sync.
+
 ## Codex-parity Prompt 15 — Regression Pass (2026-06-02)
 
 Final QA sweep that closes the Codex toolset parity sprint. No new features — verification + documentation only, per the Prompt 15 spec. Full write-up in the `## Sprint complete — Regression Pass` block of `PLANNING/CODEX_TOOLSET_PARITY_PROGRESS.md`.

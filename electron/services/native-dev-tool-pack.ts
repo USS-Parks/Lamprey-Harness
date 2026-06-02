@@ -138,10 +138,14 @@ toolRegistry.registerNative(
       },
       required: ['scope', 'reason']
     },
-    // The handler IS the approval call; flipping requiresApproval here would
-    // double-prompt. The 'secret' risk badge surfaces the escalation in UI.
+    // The handler IS the approval call, so this tool self-approves: the
+    // dispatcher must not gate it, or we'd double-prompt — and a global "deny
+    // secret" policy would otherwise block the user from ever requesting any
+    // permission. The 'secret' risk is kept only so the UI surfaces the
+    // escalation badge; `selfApproves` suppresses the dispatch-time modal.
     risks: ['secret'],
     requiresApproval: false,
+    selfApproves: true,
     enabled: true
   },
   async (args, ctx) =>

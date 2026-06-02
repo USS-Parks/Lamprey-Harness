@@ -33,10 +33,10 @@ npm run smoke:bundle                      # headless load of out/main/index.js
 ```
 
 All six must pass before a PR, plus the manual smoke checklist for release-bound
-changes. In CI today: the `lint` workflow runs ESLint + both typechecks on every
-PR and push; the `build` workflow runs both typechecks + build + bundle smoke on
-Windows and Linux. `npm test` currently runs locally (and is a release gate) but
-is not yet wired into CI — see the Codex parity progress log for that carry-forward.
+changes. In CI today: the `ci` workflow runs ESLint + both typechecks (`lint` job)
+and the full Vitest suite (`test` job) on every PR and push; the `build` workflow
+runs both typechecks + build + bundle smoke on Windows and Linux. The Windows
+installer build and the manual smoke checklist are owner/release-runner steps.
 
 `smoke:bundle` stubs `electron` and `better-sqlite3` at the Node module loader and `require()`s the packaged main bundle. It catches the class of bundler-specific failures vitest cannot observe — ES-module import hoisting that puts a side-effect register call ahead of its target's initialization, TDZ ReferenceErrors during module evaluation, and missing pack registrations. Source-tree tests can be green while the bundle is broken; the smoke is the last gate before that ships.
 

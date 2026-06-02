@@ -106,3 +106,22 @@ projects pass, all 307 tests pass.
   inside a single-quoted string.
 - `@typescript-eslint/no-require-imports` (1) — `pty-manager.ts`: the lazy
   `require('fs')` became a top-level `import { existsSync } from 'fs'`.
+
+## Error-chaining hardening
+
+To stop dropped error causes from recurring:
+
+- **Audit beyond the linter.** `preserve-caught-error` only sees `try/catch`
+  re-throws. Swept the codebase for patterns it cannot reach — custom `Error`
+  subclasses (none), `.catch()` handlers, and `reject(new Error(...))` in Promise
+  executors / event handlers. One genuine gap found and fixed:
+  `electron/ipc/mcp.ts` `server.on('error', ...)` wrapped the underlying error
+  without `cause`. (The `onError(error: string)` provider-stream boundaries in
+  `chat.ts`/`registry.ts` are string-typed by contract — a `cause` cannot cross
+  the IPC boundary there — and the `main.ts` `.catch()` handlers are terminal
+  log-only, so neither is a chaining defect.)
+- **Pinned the rule explicitly.** `preserve-caught-error: 'error'` is now set
+  directly in `eslint.config.mjs` (both the TS and JS blocks) rather than relying
+  on `js.configs.recommended`, so it stays enforced even if the recommended set
+  changes. Verified end-to-end: an injected re-throw-without-`cause` is reported
+  as an error (non-zero exit).

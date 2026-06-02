@@ -111,6 +111,49 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, onOutside: ()
   }, [active, onOutside, ref])
 }
 
+function CodingModeToggle() {
+  // Pill mirrors AppSettings.agenticCodingMode. Persists via the standard
+  // settings store, so the chat input and the SettingsDialog stay in sync
+  // both ways without a separate IPC channel.
+  const on = useSettingsStore((s) => s.settings.agenticCodingMode)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
+  const openSettings = useUiStore((s) => s.openSettings)
+
+  const handleToggle = () => {
+    void updateSettings({ agenticCodingMode: !on })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        openSettings('agenticCoding')
+      }}
+      title={
+        on
+          ? 'Agentic coding mode is ON · click to turn off · right-click to configure'
+          : 'Turn on agentic coding mode (coding contract + codex skills + composer) · right-click to configure'
+      }
+      aria-pressed={on}
+      className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs transition-colors ${
+        on
+          ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--accent)]'
+          : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+      }`}
+    >
+      <span
+        className={`inline-block h-1.5 w-1.5 rounded-full ${
+          on ? 'bg-[var(--accent)]' : 'bg-[var(--text-muted)]'
+        }`}
+        aria-hidden
+      />
+      <span className="font-mono uppercase tracking-wider">Coding</span>
+    </button>
+  )
+}
+
 function PermissionsDropdown() {
   const mode = useUiStore((s) => s.permissionsMode)
   const setMode = useUiStore((s) => s.setPermissionsMode)
@@ -894,6 +937,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           />
 
           <PermissionsDropdown />
+
+          <CodingModeToggle />
 
           <div className="flex-1" />
 

@@ -1,5 +1,6 @@
 import { useAgentStore } from '@/stores/agent-store'
 import { useChatStore } from '@/stores/chat-store'
+import { useSettingsStore } from '@/stores/settings-store'
 import type { AgentRunPhase } from '@/lib/types'
 
 const ROLE_ORDER: Array<'planner' | 'coder' | 'reviewer'> = ['planner', 'coder', 'reviewer']
@@ -19,7 +20,7 @@ const PHASE_LABEL: Record<AgentRunPhase, string> = {
   error: 'Stopped'
 }
 
-function RunPhasePill({ phase }: { phase: AgentRunPhase }) {
+function RunPhasePill({ phase, codingMode }: { phase: AgentRunPhase; codingMode: boolean }) {
   const label = PHASE_LABEL[phase]
   const isError = phase === 'error'
   const isDone = phase === 'done'
@@ -36,6 +37,19 @@ function RunPhasePill({ phase }: { phase: AgentRunPhase }) {
     >
       <span className={`inline-block h-2 w-2 rounded-full ${dotClass}`} aria-hidden />
       <span className="font-mono uppercase tracking-wider text-[var(--text-muted)]">Lamprey</span>
+      {codingMode && (
+        <>
+          <span
+            className="font-mono uppercase tracking-wider text-[var(--accent)]"
+            title="Agentic coding mode is on"
+          >
+            Coding
+          </span>
+          <span className="text-[var(--text-muted)]" aria-hidden>
+            ·
+          </span>
+        </>
+      )}
       <span className="text-[var(--text-secondary)]">{label}</span>
     </div>
   )
@@ -45,6 +59,7 @@ export function AgentRunBanner() {
   const mode = useAgentStore((s) => s.mode)
   const activeRun = useAgentStore((s) => s.activeRun)
   const runPhase = useChatStore((s) => s.runPhase)
+  const codingMode = useSettingsStore((s) => s.settings.agenticCodingMode)
 
   // Multi-agent mode renders the role pipeline (planner / coder /
   // reviewer fan-out). Unreachable until the agent store sets `mode` to
@@ -90,7 +105,7 @@ export function AgentRunBanner() {
   // store nulls runPhase on terminal phases, so this branch unmounts itself
   // when the model finishes.
   if (runPhase && runPhase !== 'done' && runPhase !== 'error') {
-    return <RunPhasePill phase={runPhase} />
+    return <RunPhasePill phase={runPhase} codingMode={codingMode} />
   }
 
   return null

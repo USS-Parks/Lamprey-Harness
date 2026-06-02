@@ -102,9 +102,10 @@ suites now execute and pass.
 - **Plan + goal state is in-memory only** — `plan-goal-store.ts` keeps per-conversation
   `planSteps`/`goals` in process maps; a restart wipes them. Maps cleanly onto two
   small SQLite tables (same migration path as the resolved permissions-store gap).
-- **`npm test` is not yet wired into CI** — the suite is a local + release gate
-  and runs clean, but no workflow executes it. Adding a test job (it needs the
-  Electron binary, so not `--ignore-scripts`) is the first carry-forward.
+- **`npm test` is not yet wired into CI** — *resolved in follow-up:* a `test` job
+  in `.github/workflows/ci.yml` now runs the full Vitest suite on every PR + push
+  (installs deps `--ignore-scripts` and fetches just the Electron binary, since
+  the suite runs under Node and does not load the native better-sqlite3 DB).
 - **Renderer-side bundle smoke** — `smoke:bundle` covers only the main bundle; the
   renderer bundle has no equivalent headless load check.
 - **`askUser` permission path** is not unit-tested — it needs a BrowserWindow

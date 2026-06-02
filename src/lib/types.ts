@@ -156,6 +156,8 @@ export interface WindowBounds {
   height: number
 }
 
+export type AgenticCodingComposerMode = 'auto' | 'always' | 'never'
+
 export interface AppSettings {
   theme: 'dark'
   themePreset: ThemePresetId
@@ -172,7 +174,20 @@ export interface AppSettings {
   windowBounds?: WindowBounds
   agentMode: AgentMode
   agentRoster: AgentRoster
+  // End-to-end agentic coding mode (Prompt 14). When `agenticCodingMode` is
+  // on, every turn uses the coding contract role, auto-activates the listed
+  // skill ids, and runs the final-response composer per the composer mode.
+  // Off by default so existing chats are unchanged.
+  agenticCodingMode: boolean
+  agenticCodingSkills: string[]
+  agenticCodingComposer: AgenticCodingComposerMode
 }
+
+export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = [
+  'codex-plan',
+  'codex-context',
+  'codex-verify'
+]
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   temperature: 1,

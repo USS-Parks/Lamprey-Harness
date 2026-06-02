@@ -5,6 +5,7 @@ import { AppearanceSettings } from './AppearanceSettings'
 import { ModelSettings } from './ModelSettings'
 import { ApiKeySettings } from './ApiKeySettings'
 import { AgentSettings } from './AgentSettings'
+import { AgenticCodingSettings } from './AgenticCodingSettings'
 import { HooksSettings } from './HooksSettings'
 import { AutomationsSettings } from './AutomationsSettings'
 import { WebToolsSettings } from './WebToolsSettings'
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'general', label: 'General' },
   { id: 'models', label: 'Models' },
   { id: 'agents', label: 'Agents' },
+  { id: 'agenticCoding', label: 'Coding Mode' },
   { id: 'api', label: 'API Keys' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'mcp', label: 'MCP Servers' },
@@ -76,6 +78,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'general' && <GeneralSettings />}
             {activeTab === 'models' && <ModelSettings />}
             {activeTab === 'agents' && <AgentSettings />}
+            {activeTab === 'agenticCoding' && <AgenticCodingSettings />}
             {activeTab === 'api' && <ApiKeySettings />}
             {activeTab === 'appearance' && <AppearanceSettings />}
             {activeTab === 'mcp' && <McpSettings />}

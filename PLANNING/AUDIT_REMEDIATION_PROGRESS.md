@@ -24,7 +24,7 @@ _None yet — populate as prompts land._
 | # | Title | Findings | Status |
 |---|-------|----------|--------|
 | 1 | Hygiene & quick wins | DOC-4, STRUCT-1/2, DEP-1/2/3, CI-3 | Done |
-| 2 | Documentation refresh | DOC-1/2/3/5/6, SEC-4 | Pending |
+| 2 | Documentation refresh | DOC-1/2/3/5/6, SEC-4 | Done |
 | 3 | CI: run smokes on PRs | CI-1 | Pending |
 | 4 | Streaming & connection bugs | BUG-1, BUG-2 | Pending |
 | 5 | Test foundation (jsdom + stores/services) | TEST-1, TEST-2 | Pending |
@@ -45,6 +45,28 @@ _None yet — populate as prompts land._
 - `npm run typecheck` — **no-op** (DOC-4; fixed in Prompt 1).
 
 ## Prompt entries
+
+## Prompt 2 — Documentation refresh — Done (2026-06-02)
+
+Docs only; no behavior change. Closes DOC-1/2/3/5/6 and the SEC-4 doc note.
+
+### Files
+- `README.md` — download + quick-start links → `/releases/latest` (no published releases exist; the version-pinned `v0.1.24` asset URLs were dead); roadmap "Built and shipped" 0.1.24 → 0.1.26 (DOC-1).
+- `CLAUDE.md` — rewrote "Current State"; "three providers" → four incl. keychain list; artifact-sandbox untrusted-but-contained note; fixed the stale `runMultiAgent()` pointer (DOC-2/3, SEC-4).
+- `CONTRIBUTING.md` — dropped the "DeepSeek-only" won't-merge line; generalized the services description (DOC-5).
+- `SKILLS.md` — 64K figure → per-model ranges (DOC-6).
+- `electron/ipc/settings.ts:82` — comment adds openrouter (DOC-3).
+
+### Verification
+- `npm run typecheck` — pass. `npm run lint` — 0 errors. `npm test` — 340 tests / 25 files. Smokes not required (only a comment touched in the bundle).
+
+### Acceptance
+- ✅ No `0.1.24` strings remain in user-facing docs (historical DEVLOG entries excepted).
+- ✅ Docs consistently say four providers; no "DeepSeek-only" claim.
+- ✅ Download links resolve to the live Releases page rather than dead version-pinned URLs.
+
+### Note (deviation from the literal prompt)
+The plan said "bump 0.1.24 → 0.1.26 strings/links". Because **no GitHub releases/tags exist**, hard-coded version asset URLs would be broken at any version (and the next planned cut is 0.1.27, not 0.1.26). Download links were therefore repointed at `/releases/latest` instead of a version-pinned URL — more robust and never goes stale.
 
 ## Prompt 1 — Hygiene & quick wins — Done (2026-06-02)
 

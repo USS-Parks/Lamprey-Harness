@@ -1,5 +1,19 @@
 # Lamprey Harness Dev Log
 
+## Audit remediation Prompt 2 — Documentation refresh (2026-06-02)
+
+Docs only; no behavior change. Closes REPO_AUDIT DOC-1/2/3/5/6 and the SEC-4 doc note.
+
+- **DOC-1** — the README claimed v0.1.24 with hard-coded `releases/download/v0.1.24/…` asset links. There are **no git tags / published releases at all**, so those links were already dead. Rather than bump them to a `v0.1.26` release that also won't exist (next cut is 0.1.27, per the owner), the download + quick-start links now point at the robust `/releases/latest` page, and the dead version-pinned URLs + fabricated file sizes are gone. The "Built and shipped" roadmap header is bumped 0.1.24 → 0.1.26 (the committed code version).
+- **DOC-2** — rewrote CLAUDE.md "Current State" (it claimed Prompt 21 / multi-provider revision were "awaiting push" — all long since shipped). Now reflects the merged build + Codex parity sprint, the real 0.1.26 code version with no published release, and points at the audit remediation docs.
+- **DOC-3** — CLAUDE.md "three providers" → four (deepseek/google/dashscope/openrouter), incl. the keychain provider list; `settings.ts:82` comment adds openrouter.
+- **DOC-5** — CONTRIBUTING: dropped the false "v0.1 is DeepSeek-only on purpose" won't-merge line; generalized the `electron/services/` description from "DeepSeek client" to "provider registry + multi-provider client".
+- **DOC-6** — SKILLS: replaced the stale "64K context window" figure with per-model ranges (Gemma ~131K, Qwen/OpenRouter ~262K, DeepSeek V4 up to 1M).
+- **SEC-4 (doc)** — CLAUDE.md artifact-sandbox line now states artifact content is treated as untrusted-but-contained (sandboxed view, `connect-src 'none'`, no node integration, no egress).
+- Also corrected a stale CLAUDE.md pointer: `chat.ts runMultiAgent()` (doesn't exist) → `runChatRound()` tool loop + `executeMultiAgentRun()` for sub-agents.
+
+**Verification.** `npm run typecheck` — pass. `npm run lint` — 0 errors. `npm test` — 340 tests / 25 files. No bundle-affecting change (only a comment in `settings.ts`), so smokes were not required.
+
 ## Audit remediation Prompt 1 — Hygiene & quick wins (2026-06-02)
 
 First prompt of `PLANNING/AUDIT_REMEDIATION_PLAN.md`. Low-risk cleanups closing REPO_AUDIT DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3.

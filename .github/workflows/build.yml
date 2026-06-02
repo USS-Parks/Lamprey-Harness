@@ -6,6 +6,12 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# Cancel superseded runs on the same ref. Distinct tags are distinct refs, so a
+# release build is never cancelled by a push to a different tag/branch.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows:
     runs-on: windows-latest

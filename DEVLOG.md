@@ -1,5 +1,17 @@
 # Lamprey Harness Dev Log
 
+## Audit remediation Prompt 1 — Hygiene & quick wins (2026-06-02)
+
+First prompt of `PLANNING/AUDIT_REMEDIATION_PLAN.md`. Low-risk cleanups closing REPO_AUDIT DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3.
+
+- **DOC-4** — `package.json` `typecheck` was `tsc --noEmit`, a no-op (root tsconfig has `files:[]`). Changed to `tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json` (chained the two real configs rather than `tsc -b`, which would emit build output to `./out`). It immediately earned its keep — caught a latent duplicate-import in `settings.ts` that the no-op never would have.
+- **STRUCT-2** — deleted the legacy `electron/services/deepseek.ts` shim and routed `settings.ts`'s three calls directly to `resetProviderClient('deepseek')` / `validateProviderKey('deepseek')` from `providers/registry` (merging into its existing registry import). Confirmed `settings.ts` was the only importer.
+- **STRUCT-1** — deleted the orphaned `MCPStatusBar.tsx` and `ModelSwitcher.tsx` (no importers) and their now-empty `mcp/` and `model/` folders.
+- **DEP-1/2/3** — removed the unused `@playwright/test`; swapped deprecated `electron-rebuild` → `@electron/rebuild@^3.7.2` (bin is still `electron-rebuild`, `-f`/`-w` flags unchanged, so `postinstall` is untouched); pinned the eslint toolchain (`eslint`, `@eslint/js`, `@typescript-eslint/*`, `eslint-plugin-import-x`, `eslint-plugin-react-hooks`) to exact versions. Lock regenerated; `npm ci --dry-run` clean.
+- **CI-3** — added a `concurrency` group to `build.yml` (per-ref, so distinct release tags don't cancel each other).
+
+**Verification.** `npm run typecheck` (now real) — pass. `npm run lint` — 0 errors. `npm test` — 340 tests / 25 files. `npm run build` + `smoke:bundle` + `smoke:renderer` — PASS.
+
 ## Plans & Goals settings panel — inspect / clear persisted state (2026-06-02)
 
 Final deferred item from the parity sprint: a settings UI over the plan + goal persistence that landed earlier. Modeled on `PermissionsSettings` (the inspect/clear side of a write-through store).

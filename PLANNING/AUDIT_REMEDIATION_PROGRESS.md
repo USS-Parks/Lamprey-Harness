@@ -26,7 +26,7 @@ _None yet — populate as prompts land._
 | 1 | Hygiene & quick wins | DOC-4, STRUCT-1/2, DEP-1/2/3, CI-3 | Done |
 | 2 | Documentation refresh | DOC-1/2/3/5/6, SEC-4 | Done |
 | 3 | CI: run smokes on PRs | CI-1 | Done |
-| 4 | Streaming & connection bugs | BUG-1, BUG-2 | Pending |
+| 4 | Streaming & connection bugs | BUG-1, BUG-2 | Done |
 | 5 | Test foundation (jsdom + stores/services) | TEST-1, TEST-2 | Pending |
 | 6 | Renderer privilege hardening | SEC-1, SEC-7 | Pending |
 | 7 | Main-process correctness | BUG-3, BUG-5, QUAL-2, QUAL-3 | Pending |
@@ -45,6 +45,22 @@ _None yet — populate as prompts land._
 - `npm run typecheck` — **no-op** (DOC-4; fixed in Prompt 1).
 
 ## Prompt entries
+
+## Prompt 4 — Streaming & connection bugs — Done (2026-06-02)
+
+Fixes the two High findings with regression tests.
+
+### Files
+- `electron/services/providers/registry.ts` — `chatStream` resets `fullContent` + `toolCallsAccumulator` at the top of each retry iteration (BUG-1).
+- `electron/services/mcp-manager.ts` — `ServerState.restarting` flag + single `scheduleRestart()` method + `state.transport !== transport` identity guard in `onerror`/`onclose` (BUG-2).
+- `electron/services/providers/registry.test.ts` *(new)*, `electron/services/mcp-manager.test.ts` *(new)* — regression tests.
+
+### Verification
+- `npm run typecheck` — pass. `npm run lint` — 0 errors. `npm test` — 346 tests / 27 files (was 340 / 25; +6). `npm run build` + `smoke:bundle` + `smoke:renderer` — PASS.
+
+### Acceptance
+- ✅ A retried stream yields un-duplicated content and tool-call args.
+- ✅ A crash that fires error+close reconnects exactly once; stale-transport events are ignored.
 
 ## Prompt 3 — Run bundle smokes on PRs — Done (2026-06-02)
 

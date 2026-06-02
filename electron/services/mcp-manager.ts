@@ -37,6 +37,9 @@ interface ServerState {
   transport: SSEClientTransport | StdioClientTransport | null
   tools: McpTool[]
   restartCount: number
+  // True while a crash-triggered reconnect is in flight, so the paired
+  // transport error/close events don't each schedule their own restart.
+  restarting: boolean
 }
 
 const MAX_RESTARTS = 3
@@ -112,6 +115,7 @@ class McpManager {
         status: 'disconnected',
         client: null,
         transport: null,
+        restarting: false,
         tools: [],
         restartCount: 0
       })
@@ -161,7 +165,8 @@ class McpManager {
       client: null,
       transport: null,
       tools: [],
-      restartCount: 0
+      restartCount: 0,
+      restarting: false
     })
 
     if (config.enabled) {
@@ -409,34 +414,52 @@ class McpManager {
     const client = new Client({ name: 'lamprey', version: '1.0.0' })
 
     transport.onerror = (err) => {
+      // Ignore events from a superseded transport (a stale old transport can
+      // emit a late error/close after a reconnect already swapped it out).
+      if (state.transport !== transport) return
       console.error(`[mcp] stdio error for ${state.config.id}:`, err.message)
       if (state.status === 'connected') {
         state.status = 'error'
         state.error = err.message
         this.emitStatus(state.config.id, 'error', err.message)
-
-        if (state.restartCount < MAX_RESTARTS) {
-          state.restartCount++
-          console.log(`[mcp] Restarting ${state.config.id} (attempt ${state.restartCount}/${MAX_RESTARTS})`)
-          this.cleanupServer(state).then(() => this.connectServer(state.config.id))
-        }
+        this.scheduleRestart(state)
       }
     }
 
     transport.onclose = () => {
+      if (state.transport !== transport) return
       if (state.status === 'connected') {
         state.status = 'disconnected'
         this.emitStatus(state.config.id, 'disconnected')
-
-        if (state.restartCount < MAX_RESTARTS) {
-          state.restartCount++
-          console.log(`[mcp] Restarting ${state.config.id} after close (attempt ${state.restartCount}/${MAX_RESTARTS})`)
-          this.connectServer(state.config.id).catch(() => {})
-        }
+        this.scheduleRestart(state)
       }
     }
 
     await this.connectWithRetry(state, client, transport)
+  }
+
+  /**
+   * Schedule a single crash-triggered reconnect. The `restarting` flag is the
+   * one source of reconnect truth: the first of the paired transport
+   * error/close events to fire sets it and runs cleanup → connect; the second
+   * (and any stale-transport event) short-circuits. Cleared once the reconnect
+   * settles, whether it succeeded or threw.
+   */
+  private scheduleRestart(state: ServerState): void {
+    if (state.restarting || state.restartCount >= MAX_RESTARTS) return
+    state.restarting = true
+    state.restartCount++
+    console.log(
+      `[mcp] Restarting ${state.config.id} (attempt ${state.restartCount}/${MAX_RESTARTS})`
+    )
+    this.cleanupServer(state)
+      .then(() => this.connectServer(state.config.id))
+      .catch((err: any) =>
+        console.error(`[mcp] restart of ${state.config.id} failed:`, err?.message ?? err)
+      )
+      .finally(() => {
+        state.restarting = false
+      })
   }
 
   private async connectWithRetry(

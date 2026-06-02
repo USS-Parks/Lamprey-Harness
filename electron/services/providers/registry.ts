@@ -541,12 +541,16 @@ export async function chatStream(
   const client = getClientForProvider(desc.provider)
   const usableTools = desc.supportsTools && tools && tools.length > 0 ? tools : undefined
 
-  let fullContent = ''
-  const toolCallsAccumulator: Map<number, ToolCallAccumulator> = new Map()
   let retries = 0
   const maxRetries = 3
 
   while (retries <= maxRetries) {
+    // Reset per-attempt accumulators at the top of each iteration. A retry after
+    // a mid-stream failure must start clean — otherwise the new stream appends
+    // onto the partial content and partial tool-call argument strings left by the
+    // failed attempt, producing duplicated text and malformed tool calls.
+    let fullContent = ''
+    const toolCallsAccumulator: Map<number, ToolCallAccumulator> = new Map()
     try {
       const stream = await client.chat.completions.create(
         {

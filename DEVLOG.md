@@ -1,5 +1,18 @@
 # Lamprey Harness Dev Log
 
+## Audit remediation Prompt 4 — Streaming & connection bugs (2026-06-02)
+
+Fixes the two **High** findings, BUG-1 and BUG-2, with regression tests.
+
+- **BUG-1** (`providers/registry.ts` `chatStream`): `fullContent` and `toolCallsAccumulator` were declared *outside* the `while (retries <= maxRetries)` loop, so a mid-stream failure that did `retries++; continue` made the retried stream **append** onto the failed attempt's partial text and partial tool-call argument strings — duplicated content and malformed tool calls. Moved both declarations to the top of each loop iteration so every attempt starts clean. The `[cancelled]` early-returns now correctly reflect only the current attempt.
+- **BUG-2** (`mcp-manager.ts` stdio transport): a crash fires `onerror` *and* `onclose`; both independently incremented `restartCount` and called `connectServer`. The `=== 'connected'` guard blocks the same-transport double, but a **late close from the old transport** (emitted during `cleanupServer`'s `transport.close()`, or after a successful reconnect — `cleanupServer` nulls `state.transport` but doesn't detach the old closure) could reconnect on top of a healthy new connection. Added a per-server `restarting` flag and a single `scheduleRestart()` method as the one source of reconnect truth, plus a `state.transport !== transport` identity guard in both handlers so stale-transport events are ignored.
+
+### Tests
+- `providers/registry.test.ts` *(new)* — mocks the OpenAI client (class) + keychain; a first stream that emits a delta then throws, then a successful retry: asserts `onDone` content is only the retry's (`'final answer'`, not `'partial final answer'`) and tool-call args don't concatenate (`'{"x":1}'`, not `'{"par{"x":1}'`); plus a one-shot success.
+- `mcp-manager.test.ts` *(new)* — drives `scheduleRestart` directly (electron mocked, `connectServer`/`cleanupServer` spied): paired error+close → `connectServer` called once; no restart past `MAX_RESTARTS`; a fresh restart allowed after the previous settles.
+
+**Verification.** `npm run typecheck` — pass. `npm run lint` — 0 errors. `npm test` — **346 tests / 27 files** (was 340 / 25; +6 in the two new suites). `npm run build` + `smoke:bundle` + `smoke:renderer` — PASS.
+
 ## Audit remediation Prompt 3 — Run bundle smokes on PRs (2026-06-02)
 
 Closes REPO_AUDIT CI-1. Added a `smoke` job to `.github/workflows/ci.yml` (PR + push + workflow_dispatch) that runs `npx electron-vite build` then `npm run smoke:bundle` + `npm run smoke:renderer`. Previously the smokes only ran in `build.yml` (main/tags), so the TDZ/bundler-regression class they exist to catch (the v0.1.25 launch crash) was invisible on PRs — exactly the gap CI-1 flagged. Every later remediation PR is now smoke-guarded pre-merge.

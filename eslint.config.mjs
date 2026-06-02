@@ -46,6 +46,10 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       // Catches import cycles SonarQube/Codacy would otherwise flag.
       'import-x/no-cycle': ['error', { maxDepth: Infinity }],
+      // Pinned explicitly (not just inherited from js.configs.recommended) so
+      // error chaining stays enforced even if the recommended set changes:
+      // a re-thrown error must carry the original via `cause`.
+      'preserve-caught-error': 'error',
       // The two classic hooks rules the source already writes disable
       // directives against. (react-hooks v7 also ships the React Compiler
       // ruleset, which we deliberately do not enable here.)
@@ -61,7 +65,8 @@ export default [
     languageOptions: { globals: { ...globals.node } },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'preserve-caught-error': 'error'
     }
   }
 ]

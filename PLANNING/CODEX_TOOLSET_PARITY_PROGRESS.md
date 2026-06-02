@@ -16,7 +16,7 @@ These bite across sessions; track and resolve when work resumes.
 - **Provider settings panels were initially orphaned.** `WebToolsSettings`, `CurrentInfoSettings`, `ImageGenSettings` are now imported and rendered from `SettingsDialog.tsx`. Verified in code; visual smoke not yet recorded.
 - **Node REPL packaging path** depends on an `electron-builder` `extraResources` entry copying `resources/mcp` into the packaged app. The dev path is reached via `__dirname/../../resources/mcp/node-repl/server.js`; the production path is `process.resourcesPath/mcp/node-repl/server.js`. A static check that the resource file exists and the builder mapping is present landed in `electron/services/mcp-defaults.test.ts`. End-to-end smoke from a packaged build is still recommended before any release.
 - **Apply-patch executor parser/executor tests are in tree** at `electron/services/apply-patch-tool.test.ts` and pass locally (`npx vitest run`).
-- **Permission-policy tests** for the sticky per-tool and per-risk decision paths are in tree at `electron/services/permissions-store.test.ts` and pass locally. The `askUser` path (BrowserWindow round-trip) is not exercised — it requires an Electron host.
+- **Permission-policy tests** for the sticky per-tool and per-risk decision paths are in tree at `electron/services/permissions-store.test.ts` and pass locally. The `askUser` path (BrowserWindow round-trip) is now covered too — `electron/services/permissions-store-askuser.test.ts` (2026-06-02) mocks a fake window via `vi.hoisted` and drives the renderer reply through `respond()`, exercising no-window deny, modal dispatch (incl. legacy event), once/always/conversation answers + persistence, the policy short-circuit on re-request, the 30s auto-deny timeout, and `cancelPending`.
 - **Module naming was cleaned up** in the cleanup pass. The old `tools-sessionNN/index.ts` directories were renamed to product-named files (`apply-patch-tool-pack.ts`, `native-dev-tool-pack.ts`, `browser-tool-pack.ts`, `web-tool-pack.ts`, `current-info-tool-pack.ts`, `image-generation-tool-pack.ts`, `node-repl-default-server.ts`). Imports in `tool-registry.ts` were updated. Source comments that read like diary entries ("Phase N", "Session NN", "Self-registering", "anchor export") were removed.
 
 ---
@@ -110,8 +110,11 @@ suites now execute and pass.
   the suite runs under Node and does not load the native better-sqlite3 DB).
 - **Renderer-side bundle smoke** — `smoke:bundle` covers only the main bundle; the
   renderer bundle has no equivalent headless load check.
-- **`askUser` permission path** is not unit-tested — it needs a BrowserWindow
-  round-trip (Electron host).
+- **`askUser` permission path** — *resolved in follow-up:* covered by
+  `permissions-store-askuser.test.ts`, which mocks the BrowserWindow round-trip
+  with `vi.hoisted` (no Electron host needed) and drives the renderer reply via
+  `respond()` — modal dispatch, once/always/conversation persistence, timeout,
+  and cancellation.
 - **`requiresApproval: false` review** — image generation and any plugin-driven
   file writes should be re-audited next sprint to confirm none bypass gating that
   ought to be gated.

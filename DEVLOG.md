@@ -1,5 +1,13 @@
 # Lamprey Harness Dev Log
 
+## askUser permission round-trip tests (2026-06-02)
+
+Closes the next carry-forward gap: the `askUser` path in `permissions-store.ts` — the BrowserWindow approval round-trip — had no coverage because the sibling `permissions-store.test.ts` stubs `getAllWindows()` to `[]` (every case there resolves via a sticky policy, so the modal path is never reached).
+
+**New file `permissions-store-askuser.test.ts`.** Uses `vi.hoisted` to share a mutable window list + a sent-event log between the `electron` mock and the test body, so a fake window with a spying `webContents.send` can be installed — no Electron host required. The renderer's reply is driven through `permissionsService.respond()`. 12 tests cover: no-window → `deny`/`no-window` with nothing sent; modal dispatch of `tools:approvalRequired` (+ the legacy `mcp:confirmationRequired` event) carrying the request; "just this once" allow/deny → `modal` source with no persisted policy; "always" allow → persists a global tool policy and reports `policy:<id>` as the source; "conversation" scope without an id → no persist, with an id → a conversation-scoped policy; the persisted policy short-circuiting a second request without re-prompting; the 30s auto-deny timeout (fake timers); a late reply after timeout being a harmless no-op; `cancelPending` resolving as a one-time deny; and `respond` for an unknown callId being a no-op.
+
+**Verification.** `tsc` (node + web) pass; ESLint 0 errors; Vitest **332 tests / 25 files** (was 320/24, +12 in the new file).
+
 ## Plan + goal state persistence (2026-06-02)
 
 Closes the top carry-forward gap from the Regression Pass: plan steps and goals were in-memory only and wiped on restart. They now persist to SQLite, following the same write-through + memory-fallback pattern Prompt 7 used for permission policies.

@@ -14,9 +14,9 @@ These bite across sessions; track and resolve when work resumes.
 
 - **Permission persistence is in-memory only.** `permissions-store.ts` stores sticky `conversation`/`always` decisions in maps that reset on app launch. Settings UI to inspect/clear them is not wired. Source comment now labels this as a known gap rather than a "future policy".
 - **Provider settings panels were initially orphaned.** `WebToolsSettings`, `CurrentInfoSettings`, `ImageGenSettings` are now imported and rendered from `SettingsDialog.tsx`. Verified in code; visual smoke not yet recorded.
-- **Local test command blocks on Windows with EPERM** when spawning the vitest runner from this user's setup. Tests themselves pass when run from a shell that the harness does not gate. The progress doc cannot claim a green run that did not happen.
-- **Node REPL packaging path** depends on an `electron-builder` `extraResources` entry copying `resources/mcp` into the packaged app. The dev path is reached via `__dirname/../../resources/mcp/node-repl/server.js`; the production path is `process.resourcesPath/mcp/node-repl/server.js`. A small unit/integration check that the resolver returns a real file in both modes is still missing.
-- **Apply-patch executor parser/executor tests are in tree** at `electron/services/apply-patch-tool.test.ts`. They were added alongside the cleanup pass. They share the EPERM caveat above.
+- **Node REPL packaging path** depends on an `electron-builder` `extraResources` entry copying `resources/mcp` into the packaged app. The dev path is reached via `__dirname/../../resources/mcp/node-repl/server.js`; the production path is `process.resourcesPath/mcp/node-repl/server.js`. A static check that the resource file exists and the builder mapping is present landed in `electron/services/mcp-defaults.test.ts`. End-to-end smoke from a packaged build is still recommended before any release.
+- **Apply-patch executor parser/executor tests are in tree** at `electron/services/apply-patch-tool.test.ts` and pass locally (`npx vitest run`).
+- **Permission-policy tests** for the sticky per-tool and per-risk decision paths are in tree at `electron/services/permissions-store.test.ts` and pass locally. The `askUser` path (BrowserWindow round-trip) is not exercised — it requires an Electron host.
 - **Module naming was cleaned up** in the cleanup pass. The old `tools-sessionNN/index.ts` directories were renamed to product-named files (`apply-patch-tool-pack.ts`, `native-dev-tool-pack.ts`, `browser-tool-pack.ts`, `web-tool-pack.ts`, `current-info-tool-pack.ts`, `image-generation-tool-pack.ts`, `node-repl-default-server.ts`). Imports in `tool-registry.ts` were updated. Source comments that read like diary entries ("Phase N", "Session NN", "Self-registering", "anchor export") were removed.
 
 ---
@@ -39,12 +39,12 @@ Bundles a Node REPL MCP server inside the app and registers it idempotently at s
 - `tsc --noEmit -p tsconfig.node.json` — pass.
 - `tsc --noEmit -p tsconfig.web.json` — pass.
 - `node --check resources/mcp/node-repl/server.js` — pass.
+- `electron/services/mcp-defaults.test.ts` — pass. Confirms `resources/mcp/node-repl/server.js` and a `type:module` `package.json` are in tree and the `extraResources` mapping in `electron-builder.yml` is present.
 - MCP handshake / tools/list / state-persistence checks were performed manually during the original implementation pass; not yet captured in an automated test.
 
 ### Gaps
 
-- Production packaging path (`process.resourcesPath/mcp/node-repl/server.js`) requires an `electron-builder` `extraResources` entry. Confirm in `electron-builder.yml` before shipping a build.
-- No automated check for the dev/prod path resolver.
+- End-to-end smoke from a packaged build (i.e. that the runtime resolver finds the file under `process.resourcesPath` after `electron-builder`) is still recommended before any release.
 
 ---
 
@@ -99,7 +99,7 @@ Five tools — `web_search`, `web_open`, `web_find`, `image_search`, `time_looku
 ### Verification
 
 - tsc on both configs — pass.
-- The 26-test suite (10 new + 16 existing) was reported to pass during the original implementation. Re-runs from this user's setup hit a Windows EPERM when spawning vitest; the suite has not been re-verified in this cleanup pass.
+- `npx vitest run` — passes locally (post-cleanup the full suite is 69/69, 5 files).
 
 ---
 
@@ -159,7 +159,8 @@ PowerShell on Windows, bash elsewhere. Permission-gated; workspace boundary enfo
 
 ### Verification
 
-- Original tsc + vitest run passed (16/16). Re-run from this user's setup hits Windows EPERM (carry-forward gap).
+- tsc on both configs — pass.
+- `npx vitest run` — passes locally (16/16 in `shell-tool.test.ts`).
 
 ---
 

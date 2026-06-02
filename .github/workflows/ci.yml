@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Lint + typecheck need only JS deps and @types — not the native
+      # better-sqlite3 rebuild or the Electron binary download — so skip the
+      # install scripts to keep this job fast.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Type check (main)
+        run: npx tsc --noEmit -p tsconfig.node.json
+
+      - name: Type check (renderer)
+        run: npx tsc --noEmit -p tsconfig.web.json
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Vitest runs under Node and imports `electron`, whose main export throws
+      # unless the binary is present — so install deps without scripts (fast,
+      # no native rebuild) and then fetch just the Electron binary. The
+      # better-sqlite3 native rebuild is intentionally skipped: the suite does
+      # not load the real native DB, and rebuilding it for Electron's ABI would
+      # make it unloadable under the Node-based test runner.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
+
+      - name: Unit + integration tests
+        run: npm test

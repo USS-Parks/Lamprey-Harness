@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import { useMemoryStore } from '@/stores/memory-store'
+import { toast } from '@/stores/toast-store'
 import type { MemoryEntry } from '@/lib/types'
 
 const UNDO_MS = 3000
@@ -12,7 +13,6 @@ export function MemoryPanel() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [undo, setUndo] = useState<{ entry: MemoryEntry; expiresAt: number } | null>(null)
-  const [importError, setImportError] = useState<string | null>(null)
   const undoTimerRef = useRef<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -72,7 +72,6 @@ export function MemoryPanel() {
 
   const handleImportClick = () => {
     setMenuOpen(false)
-    setImportError(null)
     fileInputRef.current?.click()
   }
 
@@ -83,7 +82,7 @@ export function MemoryPanel() {
       const text = await file.text()
       await importMemories(text)
     } catch (err) {
-      setImportError((err as Error).message)
+      toast.error(`Import failed: ${(err as Error).message}`)
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
@@ -165,12 +164,6 @@ export function MemoryPanel() {
         className="hidden"
         onChange={handleImportFile}
       />
-
-      {importError && (
-        <div className="mx-1 mt-1 rounded border border-[var(--error)] bg-[var(--error)]/10 px-2 py-1 text-[12px] text-[var(--error)]">
-          Import failed: {importError}
-        </div>
-      )}
 
       {memories.length === 0 && !adding ? (
         <p className="px-2 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">

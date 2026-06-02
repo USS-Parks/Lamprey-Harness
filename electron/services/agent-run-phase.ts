@@ -23,7 +23,7 @@ export type AgentRunPhase =
 // Tool ids that classify as verification rather than acting — typecheck,
 // test, lint runs and the like. These surface as "Checking result" instead
 // of "Editing" in the run-phase UI.
-const VERIFICATION_TOOLS = new Set<string>(['verify_workspace'])
+const VERIFICATION_TOOLS = new Set<string>(['verify_workspace', 'frontend_qa'])
 
 // Risks that indicate the model is modifying state, not gathering context.
 const ACTING_RISKS = new Set<ToolRisk>(['write', 'destructive', 'secret'])

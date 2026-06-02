@@ -8,12 +8,13 @@ import {
   type ImageVariationArgs
 } from './image-tools'
 
-// requiresApproval is false. KNOWN GAP: there is no per-call gate beyond the
-// presence of a configured provider + key. The handler returns
-// `Error: No image generation provider configured` when no key is present,
-// so an unconfigured install fails informatively instead of dispatching.
-// A network policy gate on the `network` risk would generalize this; see
-// PLANNING/CODEX_TOOLSET_PARITY_PROGRESS.md "Known gaps".
+// requiresApproval is false, but these tools DO gate: each carries the
+// `network` risk, and the dispatcher (see descriptorNeedsApproval) routes any
+// tool with a network/destructive/secret risk through the approval service.
+// So an image call prompts for approval (or matches a persisted `network`
+// policy) before it runs. The handler additionally returns
+// `Error: No image generation provider configured` when no key is present, so
+// an unconfigured install fails informatively instead of dispatching.
 const SIZE_ENUM = ['1024x1024', '1024x1536', '1536x1024', 'auto'] as const
 const QUALITY_ENUM = ['low', 'medium', 'high', 'auto'] as const
 

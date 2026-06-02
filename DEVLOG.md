@@ -1,5 +1,17 @@
 # Lamprey Harness Dev Log
 
+## Tool-gating audit (selfApproves fix) + renderer bundle smoke (2026-06-02)
+
+Closes the last two regression-pass carry-forwards.
+
+**`requiresApproval: false` audit.** The dispatch gate is `requiresApproval || risk ∈ {network, destructive, secret}` (`chat.ts`). Audited every `requiresApproval: false` tool against it. Conclusions: image-generation tools carry `network` so they already gate (their "KNOWN GAP — no per-call gate" comment was stale; corrected); all MCP tools get at least `['network']` so they gate; there are no `providerKind: 'plugin'` tools at all, so the "ungated plugin file-write" concern is moot; the read/write-only locals (`update_plan`, `create_goal`, `update_goal`, `memory_add`) are intentionally ungated.
+
+One real bug: `request_permissions` declared `risks: ['secret']` with `requiresApproval: false`, intending to avoid a double-prompt (its handler IS the approval call). But the risk-based gate ignored that intent — the dispatcher gated it on `secret` *and then* the handler prompted again, and a global "deny secret" policy would have locked the user out of ever requesting a permission. Fix: a metadata-driven `selfApproves` descriptor flag (kept off the hard-coded-id path, per the registry's design). Extracted the gate into `descriptorNeedsApproval(descriptor)` in `permissions-store.ts` (`selfApproves` short-circuits to "no gate"); `chat.ts` now calls it; `request_permissions` sets `selfApproves: true` and keeps `secret` only for the UI escalation badge. Added 5 unit tests for the predicate (missing descriptor, requiresApproval, each gating risk, read/write-only, and the self-approve override).
+
+**Renderer bundle smoke (`scripts/smoke-renderer.cjs`, `npm run smoke:renderer`).** The main smoke can `require()` the CommonJS main bundle; the renderer is a browser bundle (React 19 + Shiki + Mermaid + workers + dynamic imports) that would be fragile to execute under jsdom. So this is an artifact-integrity smoke: it parses `out/renderer/index.html`, resolves every referenced asset to a real non-empty file, and checks the entry chunk is non-trivially sized and mounts a React root (`createRoot`) — the "white screen" failure class. Wired into both `build.yml` jobs after the build, and added to the CONTRIBUTING gate list. Verified it fails on a missing asset and passes on a real build.
+
+**Verification.** `tsc` (node + web) pass; ESLint 0 errors; Vitest **337 tests / 25 files** (+5); `electron-vite build` + `smoke:bundle` + `smoke:renderer` all PASS.
+
 ## askUser permission round-trip tests (2026-06-02)
 
 Closes the next carry-forward gap: the `askUser` path in `permissions-store.ts` — the BrowserWindow approval round-trip — had no coverage because the sibling `permissions-store.test.ts` stubs `getAllWindows()` to `[]` (every case there resolves via a sticky policy, so the modal path is never reached).

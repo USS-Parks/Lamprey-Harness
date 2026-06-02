@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import type { ToolRisk } from './tool-registry'
+import type { LampreyToolDescriptor, ToolRisk } from './tool-registry'
 import {
   clearPoliciesForConversation,
   deletePolicy,
@@ -67,6 +67,23 @@ export const GATING_RISKS: ReadonlySet<ToolRisk> = new Set([
 /** True if a descriptor with these risks should pass through requestApproval. */
 export function shouldGateOnRisks(risks: ToolRisk[]): boolean {
   return risks.some((r) => GATING_RISKS.has(r))
+}
+
+/**
+ * Authoritative dispatch-time predicate: should this tool call be routed
+ * through the approval service? A tool gates when it declares
+ * `requiresApproval` or carries a gating risk — UNLESS it self-approves
+ * (its handler is the gate; see `LampreyToolDescriptor.selfApproves`).
+ * Centralized here so the rule has one definition shared by chat.ts and tests.
+ */
+export function descriptorNeedsApproval(
+  descriptor:
+    | Pick<LampreyToolDescriptor, 'requiresApproval' | 'risks' | 'selfApproves'>
+    | undefined
+): boolean {
+  if (!descriptor) return false
+  if (descriptor.selfApproves) return false
+  return descriptor.requiresApproval || shouldGateOnRisks(descriptor.risks)
 }
 
 class PermissionsService {

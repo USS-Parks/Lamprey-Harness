@@ -314,6 +314,9 @@ export interface LampreyToolDescriptor {
   requiresApproval: boolean
   enabled: boolean
   parallelizable?: boolean
+  /** Tool self-gates (its handler is the approval call); never routed through
+   * the dispatch-time approval modal. Only `request_permissions` sets this. */
+  selfApproves?: boolean
 }
 
 export type LampreyToolCallStatus =

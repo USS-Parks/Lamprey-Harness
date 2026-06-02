@@ -12,6 +12,7 @@ vi.mock('electron', () => ({
 
 import {
   GATING_RISKS,
+  descriptorNeedsApproval,
   permissionsService,
   shouldGateOnRisks,
   type ToolApprovalRequest
@@ -20,6 +21,7 @@ import {
   __forceMemoryFallback,
   __resetPolicyStore
 } from './permission-policies-store'
+import type { ToolRisk } from './tool-registry'
 
 beforeEach(() => {
   // Wipe the in-memory fallback so each test starts clean and force the
@@ -71,6 +73,44 @@ describe('shouldGateOnRisks', () => {
 
   it('returns false for an empty risk list', () => {
     expect(shouldGateOnRisks([])).toBe(false)
+  })
+})
+
+describe('descriptorNeedsApproval — dispatch-time gate', () => {
+  const desc = (over: {
+    requiresApproval?: boolean
+    risks?: ToolRisk[]
+    selfApproves?: boolean
+  } = {}) => ({ requiresApproval: false, risks: [] as ToolRisk[], ...over })
+
+  it('returns false for a missing descriptor', () => {
+    expect(descriptorNeedsApproval(undefined)).toBe(false)
+  })
+
+  it('gates when requiresApproval is true', () => {
+    expect(descriptorNeedsApproval(desc({ requiresApproval: true }))).toBe(true)
+  })
+
+  it('gates on a network / destructive / secret risk even when requiresApproval is false', () => {
+    expect(descriptorNeedsApproval(desc({ risks: ['network'] }))).toBe(true)
+    expect(descriptorNeedsApproval(desc({ risks: ['destructive'] }))).toBe(true)
+    expect(descriptorNeedsApproval(desc({ risks: ['secret'] }))).toBe(true)
+  })
+
+  it('does NOT gate read/write-only tools', () => {
+    expect(descriptorNeedsApproval(desc({ risks: ['read'] }))).toBe(false)
+    expect(descriptorNeedsApproval(desc({ risks: ['write'] }))).toBe(false)
+    expect(descriptorNeedsApproval(desc({ risks: ['read', 'write'] }))).toBe(false)
+  })
+
+  it('never gates a self-approving tool, even with a gating risk or requiresApproval', () => {
+    // This is the request_permissions case: its handler is the approval call,
+    // so the dispatcher must not double-prompt — and a global "deny secret"
+    // must not be able to lock it out.
+    expect(descriptorNeedsApproval(desc({ risks: ['secret'], selfApproves: true }))).toBe(false)
+    expect(
+      descriptorNeedsApproval(desc({ requiresApproval: true, selfApproves: true }))
+    ).toBe(false)
   })
 })
 

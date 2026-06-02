@@ -57,7 +57,7 @@ Revised prompt roster (changes in bold):
 | **7** | **Persistent Permission Policies** *(new)* | Done |
 | **8** | **Production Bundle Smoke CI** *(new — see spec below)* | Done |
 | 9 | Verification Loop (was 8) | Done |
-| 10 | Frontend Browser QA (was 9) | Pending |
+| 10 | Frontend Browser QA (was 9) | Done |
 | 11 | **Parallel Tool Reads And Single-Model Sub-Agents** (was 10; renamed + widened — see spec below) | Pending |
 | 12 | Final Response Composer (was 11) | Pending |
 | 13 | Core Codex Skills (was 12) | Pending |
@@ -406,6 +406,28 @@ Adds a conservative native verification harness so post-edit checks are a first-
 - ✅ Custom command input is restricted to exact inferred commands.
 - ✅ Any failed command makes the tool-call audit status `error`; passed or skipped checks return `done` with explicit report status.
 - ✅ Verification phase is surfaced through the existing run-phase UI path.
+
+## Prompt 10 — Frontend Browser QA — Done (2026-06-02)
+
+Adds a single composed browser QA tool so frontend verification is no longer only prompt text plus several manual browser calls. The harness still does not auto-detect or auto-start dev servers; the model must provide the URL the user supplied or confirmed.
+
+### Files
+
+- `electron/services/frontend-qa-tool.ts` *(new)* — pure executor and report builder. Requires `url`, opens it through a supplied browser adapter, reads current tab metadata, body text, DOM element count, captures a screenshot, checks optional `expected_text` snippets and CSS `selectors`, and returns a JSON report with `passed` / `failed` / `needs_review`.
+- `electron/services/frontend-qa-tool-pack.ts` *(new)* — registers native `frontend_qa`, reusing the existing in-app browser executors (`browser_open`, `browser_screenshot`, `browser_get_current_tab`, `browser_evaluate_readonly`) rather than adding a second browser automation path.
+- `electron/services/tool-packs.ts` — loads the frontend QA pack.
+- `electron/services/agent-run-phase.ts` — routes `frontend_qa` to the `verifying` phase so the run-phase pill says Lamprey is checking the result, not merely gathering context.
+- `electron/services/system-prompt-builder.ts` — verification and frontend role text now tell the model to call `frontend_qa` when a dev-server URL is available, with `browser_open` / `browser_screenshot` left for targeted follow-up.
+- `electron/services/frontend-qa-tool.test.ts` *(new)* — covers required URL validation, check trimming/capping, passing text+selector assertions, missing expected text, missing selectors, navigation failure, and `needs_review` when a page loads without explicit assertions.
+- `electron/services/agent-run-phase.test.ts` — pins the `frontend_qa` -> `verifying` mapping.
+
+### Acceptance
+
+- Frontend QA is a first-class audited tool call rather than an ad hoc sequence.
+- The tool requires an explicit URL and does not imply dev-server discovery or startup.
+- A screenshot path is returned when capture succeeds.
+- Missing requested UI text or selectors marks the tool result `error`.
+- Pages that load but have no assertions or weak render signals return `needs_review` instead of a false pass.
 
 ## Startup crash hotfix — tool-pack bootstrap split — Done (2026-06-01)
 

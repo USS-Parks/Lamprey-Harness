@@ -93,7 +93,7 @@ export function registerMcpHandlers(): void {
 
         server.on('error', (err) => {
           clearTimeout(timeout)
-          reject(new Error(`Failed to start OAuth server: ${err.message}`))
+          reject(new Error(`Failed to start OAuth server: ${err.message}`, { cause: err }))
         })
       })
 

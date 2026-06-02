@@ -146,7 +146,6 @@ export function BranchPickerPopover({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Search branches"
-            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             className="flex-1 bg-transparent text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
@@ -195,7 +194,6 @@ export function BranchPickerPopover({
               }
             }}
             placeholder="branch-name"
-            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             className="flex-1 rounded-md border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
           />

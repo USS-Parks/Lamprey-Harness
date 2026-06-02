@@ -12,7 +12,7 @@ and don't fight the project's documented architecture.
 | 2 | Skill descriptions repeated in `SKILLS.md` | ⚠️ Low priority | `SKILLS.md` (191 lines) is a user-facing catalog; overlap with per-skill frontmatter is expected. A future generator could derive it from frontmatter, but not worth restructuring now. |
 | 3 | Large docs (`DEVLOG.md`) deter review | ⚠️ Cosmetic | `DEVLOG.md` (~117 KB) is an append-only build journal, intended to be long. Moving it under `logs/` is churn that breaks inbound links. Leave as-is. |
 | 4 | `MemoryPanel.tsx` binds errors to local state | ✅ Valid — confirmed outlier | Centralized `toast` store exists and 26 components use it; `MemoryPanel` was the exception. See deep dive. **Fixed.** |
-| 5 | Add static analysis (SonarQube/Codacy) | ✅ Partly valid | External SaaS is overkill, but the existing ESLint setup has real gaps and is very likely broken. See deep dive. |
+| 5 | Add static analysis (SonarQube/Codacy) | ✅ Partly valid | External SaaS is overkill, but the ESLint setup was broken (ESLint 10 + legacy config). Migrated to flat config + cycle detection. See deep dive. **Fixed.** |
 
 Bottom line: concerns 1–3 are largely false positives that conflict with the
 documented architecture. Concerns 4 and 5 are the real findings.
@@ -32,40 +32,72 @@ The codebase has a centralized notification system:
 `toast.error(\`Import failed: ${(err as Error).message}\`)`, matching the rest of
 the app. Net ~8 lines removed.
 
-### Adjacent silent-failure smell (not yet addressed)
+### Adjacent silent-failure smell (FIXED)
 
-`memory-store.ts` swallows most IPC failures silently — `addMemory` returns
-`null` on failure, and `updateMemory` / `restoreMemory` / `clearAll` return on
-`!result.success` with no user feedback. `MemoryPanel.handleExport` also bails
-quietly if `exportMemories()` returns null. Import was the only operation that
-surfaced errors. A higher-value follow-up is routing all of these failures
-through `toast.error`, not just import.
+`memory-store.ts` previously swallowed most IPC failures silently — `addMemory`
+returned `null` on failure, and `loadMemories` / `updateMemory` / `deleteMemory`
+/ `restoreMemory` / `clearAll` / `exportMemories` all returned on
+`!result.success` with no user feedback (import was the only operation that
+surfaced errors). Every one of these now routes its failure through
+`toast.error`. `clearAll` additionally restores the prior list on failure
+(it optimistically clears state before the IPC call), and `importMemories`
+throws on IPC failure so the caller's existing catch reports it through the same
+toast path as parse/validation errors.
 
-## Deep dive 2 — Static analysis config (recommendation only)
+## Deep dive 2 — Static analysis config (IMPLEMENTED)
 
-SaaS (SonarQube/Codacy) is unnecessary; the local linting has concrete problems.
+SaaS (SonarQube/Codacy) is unnecessary; the local linting had concrete problems,
+now fixed. Confirmed empirically: under ESLint 10.4.1, `npm run lint` failed with
+*"ESLint couldn't find an eslint.config.(js|mjs|cjs) file"* — linting was
+completely dead.
 
-**A. The ESLint config is very likely non-functional.** `package.json` pins
-`eslint: ^10.4.1`, but the only config is the legacy `.eslintrc.cjs` (no
-`eslint.config.js`). ESLint 10 removed eslintrc (legacy) support — it is
-flat-config only — so `npm run lint` most likely errors out / finds no config.
-**Fix:** migrate `.eslintrc.cjs` → flat `eslint.config.js`. Highest-value lint
-change; linting may currently be silently dead.
+**What changed:**
 
-**B. No circular-dependency or unused-export detection.** Current config
-(`eslint:recommended` + `@typescript-eslint/recommended`) can't do it. Add
-`eslint-plugin-import` and enable `import/no-cycle` and
-`import/no-unused-modules` — the no-SaaS equivalent of the SonarQube checks.
+- **A. Flat-config migration.** Replaced `.eslintrc.cjs` (which ESLint 10 ignores)
+  with `eslint.config.mjs`, mirroring the old ruleset. Also fixed the `lint`
+  script: `eslint . --ext .ts,.tsx` → `eslint .` (flat config removed `--ext`).
+- **B. Circular-dependency detection.** Added `eslint-plugin-import-x`
+  (the actively-maintained fork; the original `eslint-plugin-import` caps its
+  peer at ESLint 9 and won't install against ESLint 10) with
+  `import-x/no-cycle: error`, plus `eslint-import-resolver-typescript` so the
+  `@/` alias and `.ts` extensions resolve.
+- **D. `no-explicit-any`** bumped from `off` → `warn` (surfaces 200 pre-existing
+  sites; non-blocking, stops new `any`).
+- **React hooks linting.** The source already wrote
+  `// eslint-disable-next-line react-hooks/exhaustive-deps` directives against a
+  plugin that was never installed. Added `eslint-plugin-react-hooks@7` and
+  enabled the two classic rules (`rules-of-hooks`, `exhaustive-deps`); the v7
+  React-Compiler ruleset is deliberately left off.
+- **`jsx-a11y` directives.** `eslint-plugin-jsx-a11y` caps its peer at ESLint 9,
+  so installing it would break CI's `npm ci`. Since the 2 inline
+  `jsx-a11y/no-autofocus` directives referenced a plugin that was never present
+  (always a no-op), they were removed instead.
+- **Vendor bundles ignored.** `resources/vendor/**` (minified mermaid/babel) is
+  now in `ignores` — the legacy `--ext .ts,.tsx` never reached them, but a flat
+  config that lints `.js` would otherwise report ~12.5k noise errors there.
 
-**C. No type-aware linting.** `.eslintrc.cjs` has no `parserOptions.project`, so
-rules like `no-floating-promises` are off — notable in a codebase full of
-`await window.api.*` calls and fire-and-forget handlers. Wire
-`parserOptions.project` to the existing `tsconfig.node.json`/`tsconfig.web.json`.
+**Verification:** `npm run lint` runs; `npm ci --dry-run` resolves with no peer
+conflicts (CI-safe); both `tsc` projects pass.
 
-**D. `no-explicit-any` is globally `off`** (`.eslintrc.cjs:23`). Defensible given
-the IPC `{success,data}` casting pattern, but at least `warn` would stop new
-`any` from creeping in.
+**Not done — deferred (C):** type-aware linting (`parserOptions.project` +
+`no-floating-promises`). It roughly doubles lint time and would surface a large
+new error set; worth a dedicated pass.
 
-Suggested no-SaaS upgrade path (priority order): (1) flat-config migration to
-unbreak lint, (2) add `eslint-plugin-import` with `no-cycle`, (3) enable
-type-aware linting + `no-floating-promises`.
+### Pre-existing findings newly surfaced by the now-working linter
+
+These are **not** introduced by this change — they are latent issues the broken
+linter could never report. Left for a separate cleanup (19 errors):
+
+- `react-hooks/rules-of-hooks` — `src/components/settings/ModelSettings.tsx:494`.
+  A click handler named `usePreset` trips the hook-naming rule. **Most worth
+  attention:** rename to `applyPreset` (it is not a hook) to remove the
+  misleading name and the error.
+- `preserve-caught-error` (7) — `image-gen-providers.ts` (×5),
+  `native-aux-tools.ts`, `resources/mcp/node-repl/server.js`: re-thrown errors
+  drop the original via `cause`. Mechanical: add `{ cause: err }`.
+- `@typescript-eslint/no-unused-expressions` (3) — `MarkdownRenderer.tsx:39`,
+  `ApiKeyModal.tsx:60`, `ApiKeySettings.tsx:77`: `cond ? a() : b()` /
+  `a ?? b` used as statements. Convert to `if/else`.
+- `no-useless-assignment` (3), `no-useless-escape` (4 in `smoke-bundle.cjs`),
+  `@typescript-eslint/no-require-imports` (1, a lazy `require('fs')` in
+  `pty-manager.ts`) — trivial.

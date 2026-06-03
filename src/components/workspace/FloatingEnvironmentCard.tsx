@@ -8,14 +8,22 @@ import { toast } from '@/stores/toast-store'
 import { WorkModePopover } from './WorkModePopover'
 import { BranchPickerPopover } from './BranchPickerPopover'
 
-// Card dimensions. The card is a floating overlay — it sits inside the
-// chat workspace surround at top:8, right:8, NOT in a reserved layout
-// column. It lives in the empty margin beside the centered chat content
+// Card dimensions. The card is a true floating overlay anchored to the
+// viewport (position: fixed), NOT to the chat surround — so when the
+// right panel expands the card stays put and retreats rightward as it
+// fades, instead of being dragged leftward by the surround shrinking.
+// It sits in the empty margin beside the centered chat content
 // (max-w-4xl) and is hidden when that margin can't fit it.
 export const ENV_CARD_WIDTH = 180
-export const ENV_CARD_TOP_OFFSET = 8
-export const ENV_CARD_RIGHT_OFFSET = 8
+// From viewport top: clears the 36px (h-9) titlebar with a 20px gap.
+export const ENV_CARD_TOP_OFFSET = 56
+// From viewport right: rail is 32px wide; we sit 8px to its left.
+export const ENV_CARD_RIGHT_OFFSET = 40
 export const ENV_CARD_TRANSITION_MS = 220
+// How far the card translates rightward during exit / starts left of
+// during entry. Larger value = more visible "retreating toward the
+// rail" motion. Was 12 — bumped to 20 for clearer handoff.
+const ENV_CARD_TRANSLATE_PX = 20
 
 type CardState = 'hidden' | 'entering' | 'visible' | 'exiting'
 
@@ -322,7 +330,13 @@ export function FloatingEnvironmentCard({
       }
     : {
         opacity: settled ? 1 : 0,
-        transform: settled ? 'translateX(0) scale(1)' : 'translateX(12px) scale(0.98)',
+        // Retreats rightward on exit (toward where the rail / expanding
+        // right panel sits) and slides in from the right on entry. The
+        // viewport-fixed positioning means the chat surround shrinking
+        // can't drag the card leftward — it stays put and fades.
+        transform: settled
+          ? 'translateX(0) scale(1)'
+          : `translateX(${ENV_CARD_TRANSLATE_PX}px) scale(0.98)`,
         transformOrigin: 'top right',
         transition: `opacity ${duration}ms ${easing}, transform ${duration}ms ${easing}`
       }
@@ -331,7 +345,7 @@ export function FloatingEnvironmentCard({
     <>
       <div
         ref={containerRef}
-        className="pointer-events-auto absolute rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-1.5 shadow-xl"
+        className="pointer-events-auto fixed z-40 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-1.5 shadow-xl"
         style={{
           top: ENV_CARD_TOP_OFFSET,
           right: ENV_CARD_RIGHT_OFFSET,

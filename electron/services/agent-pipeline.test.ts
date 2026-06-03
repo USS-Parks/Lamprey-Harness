@@ -28,6 +28,7 @@ vi.mock('./conversation-store', () => ({
 }))
 
 import {
+  resolveAgentDispatch,
   runAgentPipeline,
   validateRoster,
   type AgentRoster,
@@ -424,6 +425,86 @@ describe('runAgentPipeline — failure paths', () => {
     expect(status.some((s) => s.role === 'planner' && s.state === 'done')).toBe(true)
     expect(errors[0]).toMatch(/aborted/i)
     expect(done).toEqual([])
+  })
+})
+
+describe('resolveAgentDispatch — chat:send dispatch decision', () => {
+  // Pinning the decision tree the chat:send IPC handler runs every turn.
+  // Tests cover the cases that previously needed an Electron-host smoke
+  // test to exercise: single-mode pass-through, multi-mode happy path,
+  // and every fallback-to-single reason.
+
+  it('returns single when settings JSON is missing', () => {
+    expect(resolveAgentDispatch(null)).toEqual({ kind: 'single' })
+  })
+
+  it('returns single when agentMode is "single"', () => {
+    const result = resolveAgentDispatch({
+      agentMode: 'single',
+      agentRoster: validRoster
+    })
+    expect(result).toEqual({ kind: 'single' })
+  })
+
+  it('returns single when agentMode is missing or unknown', () => {
+    expect(resolveAgentDispatch({}).kind).toBe('single')
+    expect(resolveAgentDispatch({ agentMode: 'unknown' }).kind).toBe('single')
+    expect(resolveAgentDispatch({ agentMode: 42 }).kind).toBe('single')
+  })
+
+  it('returns multi with the validated roster on the happy path', () => {
+    const result = resolveAgentDispatch({
+      agentMode: 'multi',
+      agentRoster: validRoster
+    })
+    expect(result.kind).toBe('multi')
+    if (result.kind === 'multi') {
+      expect(result.roster).toEqual({ planner, coder, reviewer })
+    }
+  })
+
+  it('falls back to single (with reason) when agentMode=multi but roster is missing', () => {
+    const result = resolveAgentDispatch({ agentMode: 'multi' })
+    expect(result.kind).toBe('single')
+    if (result.kind === 'single') {
+      expect(result.reason).toBeDefined()
+      expect(result.reason!.toLowerCase()).toContain('missing')
+    }
+  })
+
+  it('falls back to single (with reason) when a roster role uses an unknown model id', () => {
+    const result = resolveAgentDispatch({
+      agentMode: 'multi',
+      agentRoster: { ...validRoster, coder: 'totally-fake-id' }
+    })
+    expect(result.kind).toBe('single')
+    if (result.kind === 'single') {
+      expect(result.reason).toContain('coder')
+      expect(result.reason).toContain('totally-fake-id')
+    }
+  })
+
+  it('falls back to single (with reason) when a roster role is the wrong type', () => {
+    const result = resolveAgentDispatch({
+      agentMode: 'multi',
+      agentRoster: { ...validRoster, planner: 42 }
+    })
+    expect(result.kind).toBe('single')
+    if (result.kind === 'single') {
+      expect(result.reason).toContain('planner')
+    }
+  })
+
+  it('SINGLE-mode dispatch carries no roster — proves the chat:send branch will skip the pipeline (no agent:status will be emitted)', () => {
+    // The chat:send handler does:
+    //     if (dispatch.kind === 'multi') runAgentPipeline(...)
+    //     else runChatRound(...)   ← single path, never emits agent:status
+    // This test pins the discriminant so a future refactor that adds a
+    // 'pipeline-lite' kind has to update the chat:send switch too.
+    const single = resolveAgentDispatch({ agentMode: 'single', agentRoster: validRoster })
+    expect(single.kind).toBe('single')
+    // @ts-expect-error — single decisions never carry a roster
+    expect(single.roster).toBeUndefined()
   })
 })
 

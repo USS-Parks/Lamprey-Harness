@@ -6,7 +6,7 @@ import { chatOnce, chatStream, resolveModel } from '../services/providers/regist
 import * as convStore from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
-import { runAgentPipeline, validateRoster } from '../services/agent-pipeline'
+import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -258,30 +258,36 @@ export function registerChatHandlers(): void {
       const workspacePath = activeWorkspace
 
       // Prompt 11: agentMode dispatch. The single-mode path below is
-      // byte-for-byte unchanged from pre-Prompt-11. Multi mode reads the
-      // configured roster from settings, validates every model id against
-      // the catalog (we do an explicit lookup here rather than relying on
-      // resolveModel's silent default — that's Prompt 7's QUAL-3 fix),
-      // and routes through `runAgentPipeline`. A bad roster falls through
-      // to single mode so the user isn't left without a reply.
-      const settingsAgentMode =
-        (settingsRaw && (settingsRaw as { agentMode?: unknown }).agentMode) === 'multi'
-          ? 'multi'
-          : 'single'
-      const rosterCandidate = (settingsRaw as { agentRoster?: unknown } | null)?.agentRoster
-      const rosterValidation = validateRoster(rosterCandidate)
-      const useMultiAgent =
-        settingsAgentMode === 'multi' &&
-        rosterValidation.ok &&
-        rosterValidation.value !== undefined
+      // byte-for-byte unchanged from pre-Prompt-11. Multi mode routes
+      // through `runAgentPipeline` with the validated roster. A bad
+      // roster falls back to single mode so the user isn't left without
+      // a reply. The whole decision tree lives in `resolveAgentDispatch`
+      // so the chat:send wiring is testable in isolation.
+      const dispatch = resolveAgentDispatch(settingsRaw)
       void requestedAgentMode
 
-      if (useMultiAgent && rosterValidation.value) {
-        // The Coder sees the same system prompt + tools the single-mode
-        // turn would have built. apiMessages already carries the conv
-        // history rebuilt above; runAgentPipeline appends the latest user
-        // message with the plan inlined so the Coder gets both signals
-        // in one place.
+      if (dispatch.kind === 'multi') {
+        // P11 review-P1: the Coder must execute with ITS OWN model's
+        // identity, system-prompt override, and modelConfig params —
+        // not the request model's. The outer `systemPrompt` and
+        // `modelParams` were derived from `model` (the active model the
+        // user selected for the conversation), which is the Coder model
+        // ONLY when single-mode would have been used. In multi mode we
+        // build a Coder-specific system prompt with contractRole='coding'
+        // (always, regardless of `agenticCodingMode` — the pipeline IS
+        // the coding-mode wrapper at this layer) and a Coder-specific
+        // params block.
+        const coderRoster = dispatch.roster
+        const { params: coderModelParams, systemPromptOverride: coderSystemOverride } =
+          loadModelConfig(settingsRaw, coderRoster.coder)
+        const coderSystemPrompt = buildSystemPrompt(
+          skillContents,
+          memoryBlock,
+          coderSystemOverride,
+          agentsMd,
+          coderRoster.coder,
+          'coding'
+        )
         const priorWithoutLatestUser = apiMessages.filter(
           (m, idx) => idx !== 0 // drop the system entry; pipeline owns it
         )
@@ -300,9 +306,9 @@ export function registerChatHandlers(): void {
 
         await runAgentPipeline({
           conversationId,
-          roster: rosterValidation.value,
+          roster: coderRoster,
           userContent: content,
-          systemPrompt,
+          systemPrompt: coderSystemPrompt,
           priorMessages: priorTrimmed,
           tools: tools.length > 0 ? tools : undefined,
           workspacePath,
@@ -323,19 +329,19 @@ export function registerChatHandlers(): void {
               workspacePath,
               coderSignal,
               0,
-              modelParams,
+              coderModelParams,
               agentic.composer,
               /* suppressDoneEvent */ true
             )
         })
       } else {
-        if (settingsAgentMode === 'multi' && !rosterValidation.ok) {
+        if (dispatch.reason) {
           // Surface why the pipeline was bypassed; do NOT block the user's
           // reply. Falling through to single mode keeps the harness
           // useful while the roster is being corrected.
           console.warn(
             '[chat] agentMode=multi but roster invalid; falling back to single mode:',
-            rosterValidation.error
+            dispatch.reason
           )
         }
         await runChatRound(

@@ -49,54 +49,73 @@ export function useChat(): void {
     const matchesActive = (e: { conversationId?: string }) =>
       e?.conversationId === useChatStore.getState().activeConversationId
 
-    window.api.chat.onChunk((e) => {
-      if (!matchesActive(e)) return
-      queueChunk(e.content)
-    })
+    // Each subscription returns a scoped unsubscribe. We collect and call them
+    // on cleanup rather than removeAllListeners()-ing the chat:* channels, which
+    // would also tear down App.tsx's chat:error toast listener on the same channel.
+    const unsubs: Array<() => void> = []
 
-    window.api.chat.onDone((e) => {
-      if (!matchesActive(e as { conversationId?: string })) return
-      flushNow()
-      useChatStore.getState().finishStream(e.message as any)
-      useAgentStore.getState().clearRun()
-    })
-
-    window.api.chat.onError((e) => {
-      if (!matchesActive(e)) return
-      flushNow()
-      useChatStore.getState().streamError(e.error)
-      useAgentStore.getState().clearRun()
-    })
-
-    window.api.chat.onToolCall((e) => {
-      if (!matchesActive(e as { conversationId?: string })) return
-      useChatStore.getState().addToolCall(e as any)
-    })
-
-    window.api.chat.onToolCallResult((e) => {
-      if (!matchesActive(e as { conversationId?: string })) return
-      useChatStore.getState().updateToolCall(e as any)
-    })
-
-    const onPhase = (window.api.chat as { onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => void }).onPhase
-    if (onPhase) {
-      onPhase((e) => {
+    unsubs.push(
+      window.api.chat.onChunk((e) => {
         if (!matchesActive(e)) return
-        const phase = e.phase as AgentRunPhase
-        // Terminal phases retire the pill; transient phases drive it.
-        if (phase === 'done' || phase === 'error') {
-          useChatStore.getState().setRunPhase(null)
-        } else {
-          useChatStore.getState().setRunPhase(phase)
-        }
+        queueChunk(e.content)
       })
+    )
+
+    unsubs.push(
+      window.api.chat.onDone((e) => {
+        if (!matchesActive(e as { conversationId?: string })) return
+        flushNow()
+        useChatStore.getState().finishStream(e.message as any)
+        useAgentStore.getState().clearRun()
+      })
+    )
+
+    unsubs.push(
+      window.api.chat.onError((e) => {
+        if (!matchesActive(e)) return
+        flushNow()
+        useChatStore.getState().streamError(e.error)
+        useAgentStore.getState().clearRun()
+      })
+    )
+
+    unsubs.push(
+      window.api.chat.onToolCall((e) => {
+        if (!matchesActive(e as { conversationId?: string })) return
+        useChatStore.getState().addToolCall(e as any)
+      })
+    )
+
+    unsubs.push(
+      window.api.chat.onToolCallResult((e) => {
+        if (!matchesActive(e as { conversationId?: string })) return
+        useChatStore.getState().updateToolCall(e as any)
+      })
+    )
+
+    const onPhase = (window.api.chat as { onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => () => void }).onPhase
+    if (onPhase) {
+      unsubs.push(
+        onPhase((e) => {
+          if (!matchesActive(e)) return
+          const phase = e.phase as AgentRunPhase
+          // Terminal phases retire the pill; transient phases drive it.
+          if (phase === 'done' || phase === 'error') {
+            useChatStore.getState().setRunPhase(null)
+          } else {
+            useChatStore.getState().setRunPhase(phase)
+          }
+        })
+      )
     }
 
     const onAgentStatus = window.api.chat.onAgentStatus
     if (onAgentStatus) {
-      onAgentStatus((e: unknown) => {
-        useAgentStore.getState().recordStatus(e as AgentStatusEvent)
-      })
+      unsubs.push(
+        onAgentStatus((e: unknown) => {
+          useAgentStore.getState().recordStatus(e as AgentStatusEvent)
+        })
+      )
     }
 
     // Plan checklist live updates. The `plan:updated` event is broadcast
@@ -113,7 +132,7 @@ export function useChat(): void {
 
     return () => {
       if (rafHandle !== null) cancelAnimationFrame(rafHandle)
-      window.api?.chat.offAll()
+      for (const u of unsubs) u()
       planUnsub?.()
     }
   }, [])

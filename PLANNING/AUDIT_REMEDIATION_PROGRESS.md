@@ -30,7 +30,7 @@ _None yet — populate as prompts land._
 | 5 | Test foundation (jsdom + stores/services) | TEST-1, TEST-2 | Done |
 | 6 | Renderer privilege hardening | SEC-1, SEC-7 | Done |
 | 7 | Main-process correctness | BUG-3, BUG-5, QUAL-2, QUAL-3 | Done |
-| 8 | Renderer + IPC-contract correctness | BUG-4, BUG-6 | Pending |
+| 8 | Renderer + IPC-contract correctness | BUG-4, BUG-6 | Done |
 | 9 | Model-input security | SEC-2, SEC-5, SEC-6, SEC-8 | Pending |
 | 10 | Secrets & OAuth hardening | SEC-3, SEC-9, SEC-10 | Pending |
 | 11 | `agentMode` rewire (Planner→Coder→Reviewer) | QUAL-1, (opt) QUAL-4 | Pending |
@@ -45,6 +45,25 @@ _None yet — populate as prompts land._
 - `npm run typecheck` — **no-op** (DOC-4; fixed in Prompt 1).
 
 ## Prompt entries
+
+## Prompt 8 — Renderer + IPC-contract correctness — Done (2026-06-02)
+
+Closes BUG-4, BUG-6.
+
+### Files
+- `src/components/tools/panels/SideChatPanel.tsx` — `streamBufRef` + effect deps `[convId]` (BUG-4).
+- `electron/preload.ts` — shared `ipcOn` returning scoped unsubscribers for all `chat.on*` + `app.onError/onWarning`; removed `chat.offAll` (BUG-6).
+- `src/hooks/useChat.ts` — collects + calls scoped unsubs instead of `offAll`.
+- `src/App.tsx` — captures + cleans up its 3 listeners.
+- `src/lib/ipc-client.ts` — dropped the dead `offAll` re-export.
+- `electron/preload.test.ts` *(new)*, `src/components/tools/panels/SideChatPanel.test.tsx` *(new)*.
+
+### Verification
+- `npm run typecheck` — pass (contract type-enforced). `npm run lint` — 0 errors. `npm test` — 394 tests / 36 files (+6). Build + both smokes — PASS.
+
+### Acceptance
+- ✅ SideChat subscribes once per conversation, not per chunk.
+- ✅ `on*` error helpers return scoped unsubscribers; no `removeAllListeners` on shared channels.
 
 ## Prompt 7 — Main-process correctness — Done (2026-06-02)
 

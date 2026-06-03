@@ -138,15 +138,18 @@ function App(): React.ReactElement {
 
   useEffect(() => {
     if (!window.api) return
-    window.api.chat.onError((e: { conversationId: string; error: string }) => {
-      toast.error(e.error || 'Chat error')
-    })
-    window.api.app.onError((e: { message: string }) => {
-      toast.error(e.message)
-    })
-    window.api.app.onWarning((e: { message: string }) => {
-      toast.warning(e.message)
-    })
+    const unsubs = [
+      window.api.chat.onError((e: { conversationId: string; error: string }) => {
+        toast.error(e.error || 'Chat error')
+      }),
+      window.api.app.onError((e: { message: string }) => {
+        toast.error(e.message)
+      }),
+      window.api.app.onWarning((e: { message: string }) => {
+        toast.warning(e.message)
+      })
+    ]
+    return () => unsubs.forEach((u) => u())
   }, [])
 
   useEffect(() => {

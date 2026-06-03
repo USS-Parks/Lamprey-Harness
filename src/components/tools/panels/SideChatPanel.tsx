@@ -17,6 +17,10 @@ export function SideChatPanel() {
   const [error, setError] = useState<string | null>(null)
   const activeModel = useModelStore((s) => s.activeModel)
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Mirror of streamBuf for reading the latest value inside the subscribe
+  // callbacks without putting streamBuf in the effect deps (which would tear
+  // down and re-create the IPC subscription on every streamed chunk).
+  const streamBufRef = useRef('')
 
   // Initialize: load or create the side conversation. We persist its ID in
   // localStorage so reopening the panel keeps history.
@@ -60,23 +64,26 @@ export function SideChatPanel() {
     if (!convId || !window.api?.chat?.subscribe) return
     const unsub = window.api.chat.subscribe(convId, {
       onChunk: (e) => {
+        streamBufRef.current += e.content
         setStreamBuf((b) => b + e.content)
       },
       onDone: (e) => {
         const msg = e.message as any
-        const content = typeof msg?.content === 'string' ? msg.content : streamBuf
+        const content = typeof msg?.content === 'string' ? msg.content : streamBufRef.current
         setMessages((cur) => [...cur, { role: 'assistant', content }])
+        streamBufRef.current = ''
         setStreamBuf('')
         setStreaming(false)
       },
       onError: (e) => {
         setError(e.error)
+        streamBufRef.current = ''
         setStreamBuf('')
         setStreaming(false)
       }
     })
     return unsub
-  }, [convId, streamBuf])
+  }, [convId])
 
   // Auto-scroll on new content.
   useEffect(() => {

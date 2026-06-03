@@ -1,5 +1,22 @@
 # Lamprey Harness Dev Log
 
+## Audit remediation Prompt 8 — Renderer + IPC-contract correctness (2026-06-02)
+
+Fixes BUG-4 and BUG-6 (the latter changes a preload IPC contract, hence its own prompt).
+
+- **BUG-4** (`SideChatPanel.tsx`): the `chat.subscribe` effect listed `streamBuf` in its deps, so the IPC subscription was torn down and re-created on **every streamed chunk**, and `onDone` read a stale `streamBuf` capture. Added a `streamBufRef` updated alongside `setStreamBuf`; the effect now depends only on `[convId]` and `onDone` reads `streamBufRef.current`.
+- **BUG-6** (preload contract + `App.tsx` + `useChat`): the chat/app `on*` helpers returned nothing, and cleanup went through `chat.offAll()` which did `removeAllListeners('chat:error', …)` — tearing down App.tsx's chat-error toast listener (a *shared* channel) whenever `useChat` remounted, while App.tsx's own listeners were never cleaned up at all. Now:
+  - A shared `ipcOn(channel, cb)` preload helper wires a listener and returns a **scoped** unsubscribe (removes exactly that handler). All `chat.on*` and `app.onError/onWarning` use it; the `removeAllListeners`-based `chat.offAll` is removed.
+  - `useChat` collects every subscription's unsubscribe and calls them on cleanup (no more `offAll`).
+  - `App.tsx` captures its three unsubscribers and returns a cleanup.
+  - Removed the now-dead `offAll` re-export from the orphaned `src/lib/ipc-client.ts` (nothing imports that module; the `api.offAll()` in BrowserPanel is a different namespace and unaffected).
+
+### Tests
+- `electron/preload.test.ts` *(new)* — captures the exposed `api` via a mocked `contextBridge`; asserts `chat.onError`/`onChunk` register a listener and return an unsubscribe that calls `removeListener` with the **same** handler (never `removeAllListeners`), that `chat.offAll` is gone, and that `app.onError/onWarning` return unsubscribers.
+- `src/components/tools/panels/SideChatPanel.test.tsx` *(new, jsdom)* — drives the panel through init, fires multiple chunks, and asserts `subscribe` was called exactly once (no per-chunk re-subscribe); `onDone` with no string content renders the ref-accumulated buffer.
+
+**Verification.** `npm run typecheck` — pass (the contract change is type-enforced across all callers). `npm run lint` — 0 errors. `npm test` — **394 tests / 36 files** (was 388 / 34; +6). `npm run build` + `smoke:bundle` + `smoke:renderer` — PASS.
+
 ## Audit remediation Prompt 7 — Main-process correctness (2026-06-02)
 
 Fixes BUG-3, BUG-5, QUAL-2, QUAL-3.

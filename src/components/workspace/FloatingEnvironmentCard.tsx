@@ -14,7 +14,12 @@ import { BranchPickerPopover } from './BranchPickerPopover'
 // fades, instead of being dragged leftward by the surround shrinking.
 // It sits in the empty margin beside the centered chat content
 // (max-w-4xl) and is hidden when that margin can't fit it.
-export const ENV_CARD_WIDTH = 180
+//
+// Width sized so a 5-digit additions/deletions value
+// (e.g. "+12345 -67890") fits in the Changes row trailing slot with
+// comfortable breathing room around the label — matches the Codex
+// reference proportions.
+export const ENV_CARD_WIDTH = 280
 // From viewport top: clears the 36px (h-9) titlebar with a 20px gap.
 export const ENV_CARD_TOP_OFFSET = 56
 // From viewport right: rail is 32px wide; we sit 8px to its left.
@@ -223,7 +228,7 @@ function CardRow({
       }}
       disabled={disabled}
       title={title}
-      className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors ${
+      className={`flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-[13px] transition-colors ${
         disabled
           ? 'cursor-not-allowed text-[var(--text-muted)] opacity-60'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
@@ -345,7 +350,7 @@ export function FloatingEnvironmentCard({
     <>
       <div
         ref={containerRef}
-        className="pointer-events-auto fixed z-40 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-1.5 shadow-xl"
+        className="pointer-events-auto fixed z-40 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-2 shadow-xl"
         style={{
           top: ENV_CARD_TOP_OFFSET,
           right: ENV_CARD_RIGHT_OFFSET,
@@ -358,7 +363,7 @@ export function FloatingEnvironmentCard({
         aria-hidden={interactive ? undefined : true}
       >
         {/* Header */}
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <div className="flex items-center gap-2 px-2.5 py-2">
           <button
             type="button"
             onClick={() => setHeaderCollapsed((v) => !v)}
@@ -442,17 +447,17 @@ export function FloatingEnvironmentCard({
               disabled={commitDisabled || committing}
             />
 
-            <div className="my-1.5 border-t border-[var(--border)]" aria-hidden />
+            <div className="my-2 border-t border-[var(--border)]" aria-hidden />
 
-            <div className="px-2 pb-1 pt-0.5 text-[12px] font-medium text-[var(--text-secondary)]">
+            <div className="px-2.5 pb-1 pt-1 text-[12px] font-medium text-[var(--text-secondary)]">
               Sources
             </div>
             {sources.length === 0 ? (
-              <div className="px-2 pb-1.5 text-[12px] text-[var(--text-muted)]">
+              <div className="px-2.5 pb-2 text-[12px] text-[var(--text-muted)]">
                 No sources yet
               </div>
             ) : (
-              <div className="max-h-[200px] overflow-y-auto pb-1">
+              <div className="max-h-[200px] overflow-y-auto pb-1.5">
                 {(['files', 'skills', 'memory', 'mcp'] as const).map((groupKey) => {
                   const group = groups[groupKey]
                   if (group.length === 0) return null
@@ -464,13 +469,13 @@ export function FloatingEnvironmentCard({
                   }
                   return (
                     <div key={groupKey}>
-                      <div className="px-2 pb-0.5 pt-1 text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
+                      <div className="px-2.5 pb-0.5 pt-1.5 text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
                         {labels[groupKey]}
                       </div>
                       {group.map((item) => (
                         <div
                           key={item.id}
-                          className="group flex items-center gap-2 px-2 py-1 text-[12px] text-[var(--text-secondary)]"
+                          className="group flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] text-[var(--text-secondary)]"
                         >
                           <span className="min-w-0 flex-1 truncate">{item.title}</span>
                           {item.subtitle && (

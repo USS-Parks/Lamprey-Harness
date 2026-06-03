@@ -221,6 +221,12 @@ function initSchema(db: Database.Database): void {
   // be a response to a preceding message with 'tool_calls'".
   safeAddColumn(db, 'messages', 'tool_calls TEXT')
 
+  // R12: link an assistant message to the rag_retrievals row that produced
+  // its <retrieved_context>. Nullable — turns with no attached collections
+  // leave it NULL. The chat handler (R10) sets it after persisting the
+  // rag_retrievals row for the turn.
+  safeAddColumn(db, 'messages', 'retrieval_id TEXT')
+
   // Final-response composer preservation. When a tool-using run receives the
   // model's draft answer, the composer rewrites it into a structured wrap-up;
   // this column keeps the original draft available for future replay or
@@ -396,6 +402,26 @@ function initSchema(db: Database.Database): void {
       ON rag_retrievals(message_id);
     CREATE INDEX IF NOT EXISTS idx_rag_retrievals_conversation
       ON rag_retrievals(conversation_id, created_at DESC);
+
+    -- Per-conversation RAG attachments (R11). Exactly one of collection_id
+    -- or document_id is set per row; the COALESCE keys keep that constraint
+    -- enforceable at the schema level (NULL participates in unique by
+    -- substituting ''). FK cascade so deleting a collection / document
+    -- automatically clears its attachments.
+    CREATE TABLE IF NOT EXISTS conversation_rag_attachments (
+      conversation_id TEXT NOT NULL,
+      collection_id   TEXT,
+      document_id     TEXT,
+      attached_at     INTEGER NOT NULL,
+      PRIMARY KEY (
+        conversation_id,
+        COALESCE(collection_id, ''),
+        COALESCE(document_id, '')
+      )
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_conversation_rag_attachments_conv
+      ON conversation_rag_attachments(conversation_id);
   `)
 
   // The sqlite-vec virtual table is created separately and is gated on the

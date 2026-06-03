@@ -56,10 +56,20 @@ describe('rag IPC handler registration', () => {
     expect(ipcRegistered.has('rag:embedder:embed')).toBe(false)
   })
 
-  it('does NOT register R5+ handlers yet (document / query / attachments)', () => {
-    expect(ipcRegistered.has('rag:document:list')).toBe(false)
-    expect(ipcRegistered.has('rag:query:run')).toBe(false)
-    expect(ipcRegistered.has('rag:attachments:list')).toBe(false)
+  it('registers the R5 document surface', () => {
+    expect(ipcRegistered.has('rag:document:list')).toBe(true)
+    expect(ipcRegistered.has('rag:document:ingest')).toBe(true)
+    expect(ipcRegistered.has('rag:document:reingest')).toBe(true)
+    expect(ipcRegistered.has('rag:document:delete')).toBe(true)
+    expect(ipcRegistered.has('rag:document:cancel')).toBe(true)
+  })
+
+  it('registers the R7 query + R11 attachment + R12 chunk surfaces', () => {
+    expect(ipcRegistered.has('rag:query:run')).toBe(true)
+    expect(ipcRegistered.has('rag:attachments:list')).toBe(true)
+    expect(ipcRegistered.has('rag:attachments:add')).toBe(true)
+    expect(ipcRegistered.has('rag:attachments:remove')).toBe(true)
+    expect(ipcRegistered.has('rag:chunk:get')).toBe(true)
   })
 })
 

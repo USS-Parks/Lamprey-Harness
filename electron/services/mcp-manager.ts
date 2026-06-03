@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'fs'
 import { join } from 'path'
 import * as keychain from './keychain'
 
@@ -79,7 +79,7 @@ function getDefaultConfigs(): McpServerConfig[] {
   ]
 }
 
-function loadConfigs(): McpServerConfig[] {
+export function loadConfigs(): McpServerConfig[] {
   const configPath = getConfigPath()
   if (!existsSync(configPath)) {
     const defaults = getDefaultConfigs()
@@ -87,8 +87,23 @@ function loadConfigs(): McpServerConfig[] {
     return defaults
   }
   try {
-    return JSON.parse(readFileSync(configPath, 'utf-8'))
-  } catch {
+    const parsed = JSON.parse(readFileSync(configPath, 'utf-8'))
+    if (!Array.isArray(parsed) || !parsed.every((c) => c && typeof c.id === 'string')) {
+      throw new Error('mcp-servers.json is not an array of server configs')
+    }
+    return parsed as McpServerConfig[]
+  } catch (err) {
+    // Back up the corrupt/invalid file before regenerating defaults, so a user's
+    // hand edits aren't silently destroyed (and can be recovered/diffed).
+    try {
+      const backup = `${configPath}.bak-${Date.now()}`
+      copyFileSync(configPath, backup)
+      console.error(
+        `[mcp] mcp-servers.json invalid (${(err as Error).message}); backed up to ${backup} and regenerated defaults`
+      )
+    } catch (backupErr: any) {
+      console.error('[mcp] failed to back up corrupt mcp-servers.json:', backupErr?.message ?? backupErr)
+    }
     const defaults = getDefaultConfigs()
     writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8')
     return defaults
@@ -98,6 +113,15 @@ function loadConfigs(): McpServerConfig[] {
 function saveConfigs(configs: McpServerConfig[]): void {
   writeFileSync(getConfigPath(), JSON.stringify(configs, null, 2), 'utf-8')
 }
+
+// MCP tool results return a content array of typed parts; we only surface the
+// text parts. Narrow instead of casting each access to `any`.
+interface McpContentPart {
+  type: string
+  text?: string
+}
+const isMcpText = (c: McpContentPart): c is McpContentPart & { text: string } =>
+  c.type === 'text' && typeof c.text === 'string'
 
 class McpManager {
   private servers = new Map<string, ServerState>()
@@ -278,18 +302,13 @@ class McpManager {
 
     if (result.isError) {
       const errorText = Array.isArray(result.content)
-        ? result.content
-            .filter((c: any) => c.type === 'text')
-            .map((c: any) => c.text)
-            .join('\n')
+        ? (result.content as McpContentPart[]).filter(isMcpText).map((c) => c.text).join('\n')
         : String(result.content)
       throw new Error(errorText || 'Tool call failed')
     }
 
     if (Array.isArray(result.content)) {
-      const texts = result.content
-        .filter((c: any) => c.type === 'text')
-        .map((c: any) => c.text)
+      const texts = (result.content as McpContentPart[]).filter(isMcpText).map((c) => c.text)
       return texts.length === 1 ? texts[0] : texts.join('\n')
     }
 

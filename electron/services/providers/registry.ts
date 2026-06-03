@@ -57,6 +57,10 @@ export interface ModelDescriptor {
   isReasoner?: boolean
   tier: 'pro' | 'flash' | 'open' | 'coder' | 'reasoner'
   description: string
+  /** Set when the id was not in MODEL_CATALOG and we fell back to a generic
+   * DeepSeek-compatible descriptor. Lets callers flag a possible misroute
+   * (e.g. a custom Qwen/Gemma id pasted by the user). */
+  isFallback?: boolean
 }
 
 // Each `apiModelId` is sent verbatim in the `model` field of the request to
@@ -294,10 +298,21 @@ function getClientForProvider(provider: ProviderId): OpenAI {
   return client
 }
 
+const warnedUnknownModels = new Set<string>()
+
 export function resolveModel(modelId: string): ModelDescriptor {
   const found = MODEL_CATALOG.find((m) => m.id === modelId)
   if (found) return found
-  // Unknown model id — assume DeepSeek, OpenAI-compatible.
+  // Unknown model id — fall back to a generic DeepSeek-compatible descriptor
+  // (supports user custom models), but surface it: a custom Qwen/Gemma id would
+  // otherwise be silently misrouted to the DeepSeek provider with a 64K window.
+  if (!warnedUnknownModels.has(modelId)) {
+    warnedUnknownModels.add(modelId)
+    console.warn(
+      `[registry] unknown model id "${modelId}" — assuming a DeepSeek-compatible endpoint (64K context). ` +
+        `Add it to MODEL_CATALOG if it belongs to another provider.`
+    )
+  }
   return {
     id: modelId,
     name: modelId,
@@ -307,7 +322,8 @@ export function resolveModel(modelId: string): ModelDescriptor {
     supportsTools: true,
     supportsVision: false,
     tier: 'pro',
-    description: 'Custom model.'
+    description: 'Custom model.',
+    isFallback: true
   }
 }
 

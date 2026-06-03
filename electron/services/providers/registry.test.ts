@@ -13,7 +13,7 @@ vi.mock('openai', () => ({
 }))
 vi.mock('../keychain', () => ({ getKey: () => 'test-key' }))
 
-import { chatStream, resetProviderClients } from './registry'
+import { chatStream, resetProviderClients, resolveModel } from './registry'
 
 beforeEach(() => {
   h.create.mockReset()
@@ -101,5 +101,26 @@ describe('chatStream retry resets per-attempt accumulators (BUG-1)', () => {
     await chatStream(messages, MODEL, undefined, { onChunk: vi.fn(), onDone, onError: vi.fn() })
     expect(h.create).toHaveBeenCalledTimes(1)
     expect(onDone.mock.calls[0][0]).toBe('final answer')
+  })
+})
+
+describe('resolveModel (QUAL-3 — surface unknown ids)', () => {
+  it('returns the catalog entry for a known id without a fallback flag', () => {
+    const m = resolveModel('deepseek-v4-pro')
+    expect(m.id).toBe('deepseek-v4-pro')
+    expect(m.isFallback).toBeUndefined()
+  })
+
+  it('flags an unknown id as a fallback and warns, instead of silently defaulting', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const m = resolveModel('totally-made-up-model-xyz')
+    expect(m.isFallback).toBe(true)
+    expect(m.provider).toBe('deepseek')
+    expect(m.contextWindow).toBe(65536)
+    expect(warn).toHaveBeenCalledOnce()
+    // Deduped: a second resolution of the same id does not re-warn.
+    resolveModel('totally-made-up-model-xyz')
+    expect(warn).toHaveBeenCalledOnce()
+    warn.mockRestore()
   })
 })

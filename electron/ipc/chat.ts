@@ -356,7 +356,7 @@ async function runChatRound(
               emitPhase(conversationId, 'summarizing')
               try {
                 const summary = summarizeRun(
-                  messages as any,
+                  messages,
                   getPlanSnapshot(conversationId),
                   toolRegistry.getCallsForConversation(conversationId, 50),
                   fullContent
@@ -405,11 +405,12 @@ async function runChatRound(
             toolCalls: persistedToolCalls
           })
 
-          messages.push({
+          const assistantTurn: ChatCompletionMessageParam = {
             role: 'assistant',
             content: fullContent || null,
             tool_calls: persistedToolCalls
-          } as any)
+          }
+          messages.push(assistantTurn)
 
           // Group the model's tool_calls into execution windows: contiguous
           // spans of parallelizable calls run via Promise.all; non-parallel
@@ -449,11 +450,12 @@ async function runChatRound(
               content: r.result,
               toolCallId: r.callId
             })
-            messages.push({
+            const toolTurn: ChatCompletionMessageParam = {
               role: 'tool',
               content: r.result,
               tool_call_id: r.callId
-            } as any)
+            }
+            messages.push(toolTurn)
           }
 
           try {

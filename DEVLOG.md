@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## Audit remediation Prompt 7 — Main-process correctness (2026-06-02)
+
+Fixes BUG-3, BUG-5, QUAL-2, QUAL-3.
+
+- **BUG-3** (`hooks-runner.ts`): hook processes were spawned with `stdio: ['ignore','pipe','pipe']` but nothing ever drained stdout/stderr — a hook writing >~64KB would block forever on a full pipe buffer (zombie + leaked handles). Hooks are fire-and-forget (only the exit code is logged), so changed to `stdio: 'ignore'`.
+- **BUG-5** (`mcp-manager.ts` `loadConfigs`): a corrupt/hand-edited `mcp-servers.json` was silently overwritten with defaults. Now it validates the parsed value is an array of `{id,...}`, and on any parse/validation failure **backs the file up** (`mcp-servers.json.bak-<ts>` via `copyFileSync`) and logs before regenerating — the user's edits are recoverable instead of lost.
+- **QUAL-2** (typed the `any` seams behind the documented orphan-tool-reply 400s): `chat.ts` — the assistant turn (`tool_calls`) and tool turn pushes are now typed `ChatCompletionMessageParam` (the shapes already matched; the `as any` was masking nothing), and `summarizeRun(messages)` drops its cast (`ChatCompletionMessageParam` is structurally a `RunSummaryMessage`). `mcp-manager.ts` — the tool-result content filter/map uses a typed `isMcpText` guard instead of `(c: any) => c.text`. Net: −6 `no-explicit-any` warnings.
+- **QUAL-3** (`registry.ts` `resolveModel`): an unknown model id silently became a DeepSeek-provider, 64K-window descriptor — so a custom Qwen/Gemma id pasted by the user was misrouted. The fallback stays (it intentionally supports user custom models), but now it warns once per unknown id and tags the descriptor `isFallback: true` so callers can flag the possible misroute.
+
+### Tests
+- `registry.test.ts` — `resolveModel`: known id has no fallback flag; unknown id → `isFallback`, deepseek/64K, a single (deduped) warning.
+- `mcp-config.test.ts` *(new)* — `loadConfigs`: valid array passes through (no backup); corrupt JSON and non-array/id-less values are backed up + defaults regenerated; missing file writes defaults without a backup.
+- BUG-3 and the chat.ts QUAL-2 changes are covered by the typecheck + the existing suite (a real >64KB-hook spawn test would need a live process + the hooks DB; the fix is a one-line stdio change).
+
+**Verification.** `npm run typecheck` — pass. `npm run lint` — 0 errors (205 warnings, down from 211). `npm test` — **388 tests / 34 files** (was 382 / 33; +6). `npm run build` + `smoke:bundle` + `smoke:renderer` — PASS.
+
 ## Audit remediation Prompt 6 — Renderer privilege hardening (2026-06-02)
 
 Fixes the High finding SEC-1 plus SEC-7.

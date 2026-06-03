@@ -29,7 +29,7 @@ _None yet — populate as prompts land._
 | 4 | Streaming & connection bugs | BUG-1, BUG-2 | Done |
 | 5 | Test foundation (jsdom + stores/services) | TEST-1, TEST-2 | Done |
 | 6 | Renderer privilege hardening | SEC-1, SEC-7 | Done |
-| 7 | Main-process correctness | BUG-3, BUG-5, QUAL-2, QUAL-3 | Pending |
+| 7 | Main-process correctness | BUG-3, BUG-5, QUAL-2, QUAL-3 | Done |
 | 8 | Renderer + IPC-contract correctness | BUG-4, BUG-6 | Pending |
 | 9 | Model-input security | SEC-2, SEC-5, SEC-6, SEC-8 | Pending |
 | 10 | Secrets & OAuth hardening | SEC-3, SEC-9, SEC-10 | Pending |
@@ -45,6 +45,24 @@ _None yet — populate as prompts land._
 - `npm run typecheck` — **no-op** (DOC-4; fixed in Prompt 1).
 
 ## Prompt entries
+
+## Prompt 7 — Main-process correctness — Done (2026-06-02)
+
+Closes BUG-3, BUG-5, QUAL-2, QUAL-3.
+
+### Files
+- `electron/services/hooks-runner.ts` — `stdio: 'ignore'` (BUG-3).
+- `electron/services/mcp-manager.ts` — `loadConfigs` validates + backs up corrupt config before regenerating (BUG-5); typed `isMcpText` guard replaces `(c: any)` (QUAL-2).
+- `electron/ipc/chat.ts` — typed the assistant/tool message pushes + `summarizeRun(messages)`, removing 3 `as any` (QUAL-2).
+- `electron/services/providers/registry.ts` — `resolveModel` warns + flags unknown ids `isFallback` (QUAL-3).
+- `registry.test.ts` (+2), `mcp-config.test.ts` *(new, +4)*.
+
+### Verification
+- `npm run typecheck` — pass. `npm run lint` — 0 errors (205 warnings, −6 from the any removals). `npm test` — 388 tests / 34 files (+6). Build + both smokes — PASS.
+
+### Acceptance
+- ✅ A noisy hook no longer hangs; corrupt MCP config is backed up, not silently lost.
+- ✅ The OpenAI/MCP `any` seams are typed; unknown model ids warn + flag instead of misrouting silently.
 
 ## Prompt 6 — Renderer privilege hardening — Done (2026-06-02)
 

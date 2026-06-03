@@ -42,7 +42,10 @@ export function fireHooks(event: HookEvent, ctx: HookContext = {}): void {
         env,
         cwd: ctx.cwd || process.cwd(),
         windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe']
+        // Fire-and-forget: only the exit code is consumed. Piping stdout/stderr
+        // without draining them lets a hook that writes >~64KB block forever on a
+        // full pipe buffer, so discard both streams.
+        stdio: 'ignore'
       })
       proc.on('error', (err) => {
         console.error(`[hook ${event}:${hook.label}] error:`, err.message)

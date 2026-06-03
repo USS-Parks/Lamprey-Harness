@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
+import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 // Image Generation provider settings panel.
 //
@@ -164,6 +165,9 @@ export function ImageGenSettings() {
     if (!bridge) return
     const trimmed = keyDraft.trim()
     if (!trimmed) return
+    // SEC-10: bridge.setProvider with an apiKey persists to the keychain.
+    const consent = await ensurePlaintextConsentIfNeeded()
+    if (!consent) return
     setBusy(true)
     setTestResult(null)
     try {

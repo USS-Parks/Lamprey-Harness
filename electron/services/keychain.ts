@@ -1,9 +1,64 @@
 import { safeStorage } from 'electron'
 import { app } from 'electron'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { chmodSync, existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
-const getKeysPath = () => join(app.getPath('userData'), 'keys.json')
+// Local credential store. Keys live in JSON at userData/keys.json, each value
+// either base64-encoded electron safeStorage ciphertext or a `plain:`-prefixed
+// fallback when safeStorage is unavailable (Linux without libsecret).
+//
+// SEC-10: the plaintext fallback is gated on EXPLICIT consent — either a
+// per-call `{ allowPlaintext: true }` flag or a session-level consent flag
+// the renderer flips after surfacing a confirm dialog. `setKey` THROWS
+// `PlaintextConsentRequiredError` when encryption is off and neither
+// signal is present, so an IPC handler that quietly calls setKey can't
+// silently land a plaintext key. The error is surfaced back through the
+// IPC as a clean reason string the renderer can show.
+//
+// Background paths (e.g. mcp-manager OAuth token refresh) get implicit
+// consent via the `getKey` re-grant below: if a `plain:` row already exists
+// on disk it means the user consented to plaintext at some earlier point
+// on this device, so the session-consent flag flips on the first such read
+// and subsequent in-session writes succeed without re-prompting.
+
+const getKeysPath = (): string => join(app.getPath('userData'), 'keys.json')
+
+// File mode for the on-disk keystore. 0o600 = read/write owner only.
+// On Windows the POSIX mode bit is best-effort; the OS-level ACL still
+// inherits from the userData directory, which is per-user. The chmod call
+// is a no-op on Windows but does not throw.
+const KEYS_FILE_MODE = 0o600
+
+// Session-scoped consent. Reset on app restart. The renderer must flip
+// this through `grantPlaintextConsent()` after surfacing a confirm dialog
+// to the user; `getKey` flips it implicitly when an existing `plain:` row
+// is observed on disk (the user must have consented at some prior point
+// for that row to exist).
+let sessionPlaintextConsent = false
+
+export class PlaintextConsentRequiredError extends Error {
+  readonly provider: string
+  constructor(provider: string) {
+    super(
+      `Refusing to write '${provider}' key as plaintext: encryption is ` +
+        'unavailable on this system and the caller has not recorded ' +
+        'explicit plaintext-storage consent. Surface a confirm dialog and ' +
+        'call settings.grantPlaintextConsent() first.'
+    )
+    this.name = 'PlaintextConsentRequiredError'
+    this.provider = provider
+  }
+}
+
+export interface SetKeyOptions {
+  /**
+   * When safeStorage is unavailable, allow writing this single key as
+   * `plain:`. The caller is responsible for having obtained explicit
+   * user consent (typically via `window.confirm`). Has no effect when
+   * encryption IS available — the key is still encrypted.
+   */
+  allowPlaintext?: boolean
+}
 
 function readKeys(): Record<string, string> {
   const keysPath = getKeysPath()
@@ -16,21 +71,63 @@ function readKeys(): Record<string, string> {
 }
 
 function writeKeys(keys: Record<string, string>): void {
-  writeFileSync(getKeysPath(), JSON.stringify(keys, null, 2), 'utf-8')
+  const path = getKeysPath()
+  // SEC-3: persist with 0o600. `writeFileSync` only honors `mode` on FILE
+  // CREATION; existing files keep their old mode. For the upgrade path
+  // (older builds wrote with the default 0o644) we chmod opportunistically
+  // after the write so subsequent reads come from a hardened file.
+  writeFileSync(path, JSON.stringify(keys, null, 2), {
+    encoding: 'utf-8',
+    mode: KEYS_FILE_MODE
+  })
+  try {
+    chmodSync(path, KEYS_FILE_MODE)
+  } catch {
+    // Windows can reject chmod for ACL-controlled paths; the mode bit is
+    // advisory there. We've already done what we can.
+  }
 }
 
 export function isEncryptionAvailable(): boolean {
   return safeStorage.isEncryptionAvailable()
 }
 
-export function setKey(provider: string, key: string): void {
+/**
+ * Record that the user has explicitly consented to plaintext-on-disk
+ * storage for this session. The flag survives until the app restarts;
+ * subsequent `setKey` calls succeed without `allowPlaintext`.
+ *
+ * The renderer must call this only AFTER surfacing a `window.confirm`
+ * dialog the user has accepted.
+ */
+export function grantPlaintextConsent(): void {
+  sessionPlaintextConsent = true
+}
+
+/** Whether this session has plaintext-storage consent recorded. */
+export function hasPlaintextConsent(): boolean {
+  return sessionPlaintextConsent
+}
+
+/** Test-only: clear the session consent flag between cases. */
+export function __resetPlaintextConsentForTest(): void {
+  sessionPlaintextConsent = false
+}
+
+export function setKey(provider: string, key: string, opts: SetKeyOptions = {}): void {
   const keys = readKeys()
   if (safeStorage.isEncryptionAvailable()) {
     const encrypted = safeStorage.encryptString(key)
     keys[provider] = encrypted.toString('base64')
-  } else {
-    console.warn('[keychain] safeStorage unavailable — storing key as plaintext')
+  } else if (opts.allowPlaintext || sessionPlaintextConsent) {
+    // The renderer is expected to have confirmed plaintext storage before
+    // reaching this code path (either via the per-call flag or via the
+    // session-consent IPC). The warning log remains as a backstop for
+    // callers that bypass that flow.
+    console.warn('[keychain] safeStorage unavailable — storing key as plaintext (consent recorded)')
     keys[provider] = `plain:${key}`
+  } else {
+    throw new PlaintextConsentRequiredError(provider)
   }
   writeKeys(keys)
 }
@@ -41,6 +138,13 @@ export function getKey(provider: string): string | null {
   if (!stored) return null
 
   if (stored.startsWith('plain:')) {
+    // Implicit consent re-grant: an existing `plain:` row could only have
+    // been written if the user previously consented (the `setKey` gate
+    // rejects unauthorized plaintext writes). Treating that as session
+    // consent lets background callers — most importantly the mcp-manager
+    // OAuth token refresh — re-save refreshed tokens without forcing the
+    // user to re-confirm at every relaunch.
+    sessionPlaintextConsent = true
     return stored.slice(6)
   }
 
@@ -68,3 +172,8 @@ export function hasKey(provider: string): boolean {
   const keys = readKeys()
   return provider in keys
 }
+
+// Test-only: re-export the file-mode constant so the test suite can assert
+// the value without re-deriving it. The mode is documented in the source
+// comment above; this export is the contract.
+export const __KEYS_FILE_MODE_FOR_TEST = KEYS_FILE_MODE

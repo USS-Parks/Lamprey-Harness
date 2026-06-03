@@ -1,5 +1,57 @@
 # Lamprey Harness Dev Log
 
+## Workspace UI — Environment Card Refactor + Theme Refresh (2026-06-02, v0.1.30 → v0.1.38)
+
+A multi-iteration UI pass landing on main as a single merge. Two distinct work streams.
+
+### Theme refresh (v0.1.29)
+
+`THEME_PRESETS` in `src/styles/theme-presets.ts` re-shuffled to fix dark-mode collisions. Magma / Violet / Inferno read as the same purple-pink palette in the picker — dropped Violet and Inferno, replaced with:
+- **Lamprey Mint** — deep forest backgrounds, kelly-green accent `#4cbb17`, mint-tinted text.
+- **Lamprey Earth** — warm dark browns, beige text, mahogany accent `#8b3a1a`.
+
+Also added **Lamprey Drab** (olive backgrounds, khaki text, mocha accent `#a67c52`, mustard warning `#d4a017`, olive success `#7a8f2a`) so the picker grows to 8 themes. **Lamprey Blue** is now the system default (`DEFAULT_PRESET_ID = 'arcgis-blue'`). `getPreset()` hardened with a two-stage fallback: unknown saved preset id → `DEFAULT_PRESET_ID` → `THEME_PRESETS[0]`, so existing users with `themePreset: 'arcgis-violet'` or `'arcgis-inferno'` fall back cleanly to Blue.
+
+Renderer-side type `ThemePresetId` updated; `electron/ipc/settings.ts` default switched.
+
+### Welcome H1
+
+`src/components/chat/WelcomeScreen.tsx` H1 simplified from `"Lamprey MAI"` to `"Lamprey"`. H2 unchanged.
+
+### Environment card — six-iteration refactor (v0.1.30 → v0.1.38)
+
+The pre-refactor card used `position: fixed; right: 48px; width: 360px` with no collision check — it overlapped the chat-column at narrower workspaces. The refactor landed across eight tagged builds as the design intent clarified; the final shape:
+
+**Component: `src/components/workspace/FloatingEnvironmentCard.tsx`**
+
+A four-phase state machine (`hidden | entering | visible | exiting`) keeps the card mounted while it animates out, then unmounts. A double-RAF on entry commits the `entering` styles (opacity 0, translated 20px right, scale 0.98) before flipping to `visible` so the CSS transition has a "from" frame. The exit timer matches the transition duration so unmount lines up with the end of the fade.
+
+220ms `cubic-bezier(0.2, 0.8, 0.2, 1)` on opacity + transform. `prefers-reduced-motion` swaps in an 80ms opacity-only fade. Focus is blurred and popovers are dismissed when state enters `exiting`, so screen readers and keyboard users aren't trapped in a region about to disappear.
+
+`position: fixed` at viewport coords — not anchored to the chat surround. When the right panel expands, the chat surround shrinks instantly to make room; an absolute-positioned card would be dragged left by that. Fixed means the card stays put and retreats rightward as it fades, while the right panel mounts at full width underneath. The handoff reads as the panel emerging into view as the card floats away — instead of the card being shoved aside.
+
+`width` is a prop (no longer a constant). The parent computes `envCardWidth = rightPanelWidth - 32` (rail width) and passes the same number to both the card (its rendered width) and `ChatView`'s `rightInset`. The chat content area is therefore identical whether the card is showing or the right panel is expanded — toggling no longer shifts the input pill or any message bubble.
+
+Row spacing follows the Codex reference: `gap-3 px-2.5 py-2` on rows, `p-2` on the outer card, `my-2` divider above Sources. The default 388px width (matching the default `rightPanelWidth = 420`) accommodates 5-digit `+12345 -67890` additions/deletions values without crowding.
+
+**Wiring: `src/App.tsx`**
+
+A `ResizeObserver` on the chat workspace column tracks `chatWorkspaceWidth` and re-runs when `needsApiKey` resolves out of `null` (early bug — the effect originally ran on first commit while the loading screen was up, before the ref div was in the DOM, and never re-ran when the main app mounted, leaving width stuck at 0 and the card permanently hidden). Visibility gate is now a simple "does the leftover chat content area have at least 480px to host the dialogue" check after the card slot is subtracted — the old overlap-tolerance arithmetic is gone now that the chat re-centers out of the card's footprint.
+
+The card is rendered at top level (alongside `QuickOpenPalette` / `ToastContainer`) since it's a viewport-fixed overlay, not a chat-layout child.
+
+**Re-center: `src/components/chat/ChatView.tsx`**
+
+When the card is visible, `ChatView` applies `paddingRight: envCardWidth` to the chat-column outer div — *inside* the rounded border, on the same `bg-primary` surface — so messages, welcome content, and the input pill re-center within the remaining area without exposing a bg-secondary "gutter" between chat and card (the previous layout-based attempt did expose one, and read as a compartmentalized third column; that's the failure mode this version is built to avoid). Padding transitions over the same 220ms `cubic-bezier(0.2, 0.8, 0.2, 1)` as the card's opacity/transform, so a single coordinated motion plays on collapse/expand. The horizontal rule above the input pill was also dropped for visual continuity.
+
+**New shared hook: `src/hooks/usePrefersReducedMotion.ts`**
+
+Extracted from a local copy in `Sidebar.tsx` so both the card and ChatView can use the same source. `Sidebar.tsx`'s local copy was left intentionally in place to avoid touching files a parallel session was editing — can be refactored later.
+
+### Verification
+
+`tsc --noEmit -p tsconfig.web.json` + `-p tsconfig.node.json` clean on the merged tree. Eight build artifacts shipped to `dist/` along the way (`Lamprey-0.1.30-x64.{exe,zip}` through `Lamprey-0.1.38-x64.{exe,zip}`); the v0.1.38 build is the current installer. Vitest run on the env card branch before merge: 498 passed, 2 skipped, 0 failures. No regression in the existing 592-test suite from Data Spine Prompt 5 — env card work didn't touch the main process surface.
+
 ## Data Spine Prompt 5 — Event Timeline Read APIs + UI (2026-06-02)
 
 Surfaces the spine inside Lamprey. Renderer-callable IPC for `list / get / timeline`, a read-only Activity Timeline view scoped to recent / conversation / project / workspace / chat-run, and a strict producer/consumer split: there is no `events:record` channel and there will not be one — the renderer cannot write into the audit log.

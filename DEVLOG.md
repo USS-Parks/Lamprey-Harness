@@ -1,5 +1,23 @@
 # Lamprey Harness Dev Log
 
+## Audit-remediation Prompt 11 (review followup) — Coder identity, status filtering, dispatch tests (v0.1.28, 2026-06-02)
+
+Three review findings against the original Prompt 11 commit (`4aa64bd`) closed in one followup PR. Same scope (QUAL-1); deeper correctness.
+
+**P1 — multi-mode Coder used the active model's prompt/config.** `chat.ts` built `systemPrompt` + `modelParams` from the request `model` and only added `contractRole: 'coding'` when `agenticCodingMode` was on. The pipeline then ran the Coder with `roster.coder`, so the Coder streamed under one model's identity head + temperature/topP/maxTokens while the actual provider call routed to a different model. Worse: when the user had not flipped on `agenticCodingMode`, the Coder ran without the `coding` contract fragment that Prompt 11 mandated.
+
+Fix: inside the multi-dispatch branch, run a second `loadModelConfig(settingsRaw, roster.coder)` + `buildSystemPrompt(skillContents, memoryBlock, coderSystemOverride, agentsMd, roster.coder, 'coding')` and pass those into the pipeline as `systemPrompt` + the closure-captured `coderModelParams`. The `'coding'` contract fragment is unconditional in multi mode — the pipeline IS the coding-mode wrapper at this layer. Single-mode dispatch is byte-for-byte unchanged.
+
+**P2 — `agent:status` events were not filtered by active conversation.** `useChat.ts` `onAgentStatus` called `useAgentStore.recordStatus` unconditionally, while every other chat event used `matchesActive(e)`. Since `agent-store` keeps a single global `activeRun` (no per-conversation index), a side-chat pipeline would pollute the main `AgentRunBanner`. Fix: gate the handler on `matchesActive(event)` first.
+
+**Test gaps.** New `resolveAgentDispatch(settingsRaw)` extracted from chat:send so the dispatch decision tree is testable in isolation. Returns `{ kind: 'single' }`, `{ kind: 'single', reason }` (multi+invalid roster → fallback), or `{ kind: 'multi', roster }`. Chat:send is now a single switch on `dispatch.kind`. 7 new test cases in `agent-pipeline.test.ts` cover the matrix: null settings, agentMode=single, missing/unknown agentMode, multi+happy-path, multi+missing roster, multi+unknown id, multi+wrong type. The "single dispatch carries no roster" case pins the discriminant so a future enum widening has to update the chat:send switch too — that's the structural guarantee that single mode never emits `agent:status`.
+
+New `src/stores/agent-store.test.ts` (14 cases) covers the renderer-side state pinning: initial mode/roster, recordStatus appends-new vs updates-existing, output preservation when a later event omits it, multi-role arrival order, per-role model captured from the event, error states recorded without dropping the entry, clearRun empties activeRun without touching mode/roster, setMode/setRole isolation, hydrate replace, hydrate partial-merge.
+
+**Deferred.** `AgentRunBanner.test.tsx` still requires jsdom + Testing Library, which is the scope of Prompt 5 (Test Foundation). Recorded as a carry-forward to land with P5.
+
+**Verification.** `npx tsc --noEmit -p tsconfig.node.json` and `-p tsconfig.web.json` both clean. `npx vitest run` — 32 files / 465 tests pass + 2 skipped (up from Prompt 11's 31/444 by +1 file + 21 tests). `npx electron-vite build` clean. `npm run smoke:bundle` PASS. The dist artifacts for `0.1.27` (built before this review remediation landed) contain the P1 + P2 bugs and were never pushed — they're discarded and replaced with `0.1.28` after this commit lands.
+
 ## Plans & Goals settings panel — inspect / clear persisted state (2026-06-02)
 
 Final deferred item from the parity sprint: a settings UI over the plan + goal persistence that landed earlier. Modeled on `PermissionsSettings` (the inspect/clear side of a write-through store).

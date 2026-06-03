@@ -45,6 +45,33 @@ export interface ValidationResult<T> {
   error?: string
 }
 
+// Discriminated decision returned by `resolveAgentDispatch`. The chat:send
+// handler switches on `kind`: `single` runs the pre-Prompt-11 path
+// unchanged; `multi` invokes `runAgentPipeline` with the validated roster.
+// When mode is 'multi' but the roster is missing or invalid, we degrade
+// to single mode with a `reason` so the chat handler can warn-log it
+// — falling back keeps the user from being left without a reply while
+// they correct the roster in Settings.
+export type AgentDispatchDecision =
+  | { kind: 'single'; reason?: string }
+  | { kind: 'multi'; roster: AgentRoster }
+
+export function resolveAgentDispatch(
+  settingsRaw: Record<string, unknown> | null
+): AgentDispatchDecision {
+  if (!settingsRaw) return { kind: 'single' }
+  const agentMode = settingsRaw.agentMode
+  if (agentMode !== 'multi') return { kind: 'single' }
+  const validation = validateRoster(settingsRaw.agentRoster)
+  if (!validation.ok || !validation.value) {
+    return {
+      kind: 'single',
+      reason: validation.error ?? 'roster validation failed'
+    }
+  }
+  return { kind: 'multi', roster: validation.value }
+}
+
 // Conservative roster validator. We don't fall through `resolveModel`
 // (which silently defaults unknown ids — that's Prompt 7's QUAL-3 fix);
 // we look up the catalog directly here so an unknown id is rejected

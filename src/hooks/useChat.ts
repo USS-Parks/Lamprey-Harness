@@ -104,7 +104,13 @@ export function useChat(): void {
     const onAgentStatus = window.api.chat.onAgentStatus
     if (onAgentStatus) {
       onAgentStatus((e: unknown) => {
-        useAgentStore.getState().recordStatus(e as AgentStatusEvent)
+        const event = e as AgentStatusEvent
+        // P11 review-P2: filter by active conversation, same as every
+        // other chat event. agent-store keeps a single global `activeRun`
+        // (no per-conversation indexing), so a side-chat pipeline's
+        // status events would otherwise pollute the visible AgentRunBanner.
+        if (!matchesActive(event)) return
+        useAgentStore.getState().recordStatus(event)
       })
     }
 

@@ -74,7 +74,7 @@ export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
         )}
       </div>
 
-      <div className="flex justify-center border-t border-[var(--border)] bg-[var(--bg-primary)] pt-3 pb-4">
+      <div className="flex justify-center bg-[var(--bg-primary)] pt-3 pb-4">
         <div className={CHAT_COLUMN_CLASS}>
           <PlanChecklist />
           <AgentRunBanner />

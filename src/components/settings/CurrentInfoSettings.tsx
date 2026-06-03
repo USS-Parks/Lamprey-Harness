@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
+import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 // Current-information provider settings panel. Lets the user pick the
 // finance/weather provider and (where required) store the API key in the
@@ -87,10 +88,16 @@ export function CurrentInfoSettings() {
   const saveFinance = async () => {
     const api = getApi()
     if (!api) return
+    const trimmed = financeKey.trim()
+    // SEC-10: only consent-gate when a real key is being persisted. A
+    // provider switch without a key payload doesn't touch the keychain.
+    if (trimmed) {
+      const consent = await ensurePlaintextConsentIfNeeded()
+      if (!consent) return
+    }
     setBusy('finance')
     setTestResult((r) => ({ ...r, finance: null }))
     try {
-      const trimmed = financeKey.trim()
       const res = await api.setProvider('finance', financeProvider, {
         apiKey: trimmed ? trimmed : undefined
       })
@@ -110,10 +117,16 @@ export function CurrentInfoSettings() {
   const saveWeather = async () => {
     const api = getApi()
     if (!api) return
+    const trimmed = weatherKey.trim()
+    // SEC-10: same per-key gate as finance — provider switches without a
+    // key payload don't reach the keychain.
+    if (trimmed) {
+      const consent = await ensurePlaintextConsentIfNeeded()
+      if (!consent) return
+    }
     setBusy('weather')
     setTestResult((r) => ({ ...r, weather: null }))
     try {
-      const trimmed = weatherKey.trim()
       const res = await api.setProvider('weather', weatherProvider, {
         apiKey: trimmed ? trimmed : undefined
       })

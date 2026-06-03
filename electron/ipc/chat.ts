@@ -6,6 +6,7 @@ import { chatOnce, chatStream, resolveModel } from '../services/providers/regist
 import * as convStore from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
+import { runAgentPipeline, validateRoster } from '../services/agent-pipeline'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -251,26 +252,104 @@ export function registerChatHandlers(): void {
       const abortController = new AbortController()
       activeAbortControllers.set(conversationId, abortController)
 
-      // Single-model only. The previous multi-agent pipeline was removed
-      // because the user explicitly does not want concurrent multi-model output.
-      void requestedAgentMode
-
       // Workspace pinned at the start of the round so the in-flight tool
       // loop sees one consistent cwd even if the user retargets the folder
       // chip mid-stream.
       const workspacePath = activeWorkspace
 
-      await runChatRound(
-        conversationId,
-        model,
-        apiMessages,
-        tools.length > 0 ? tools : undefined,
-        workspacePath,
-        abortController.signal,
-        0,
-        modelParams,
-        agentic.composer
-      )
+      // Prompt 11: agentMode dispatch. The single-mode path below is
+      // byte-for-byte unchanged from pre-Prompt-11. Multi mode reads the
+      // configured roster from settings, validates every model id against
+      // the catalog (we do an explicit lookup here rather than relying on
+      // resolveModel's silent default — that's Prompt 7's QUAL-3 fix),
+      // and routes through `runAgentPipeline`. A bad roster falls through
+      // to single mode so the user isn't left without a reply.
+      const settingsAgentMode =
+        (settingsRaw && (settingsRaw as { agentMode?: unknown }).agentMode) === 'multi'
+          ? 'multi'
+          : 'single'
+      const rosterCandidate = (settingsRaw as { agentRoster?: unknown } | null)?.agentRoster
+      const rosterValidation = validateRoster(rosterCandidate)
+      const useMultiAgent =
+        settingsAgentMode === 'multi' &&
+        rosterValidation.ok &&
+        rosterValidation.value !== undefined
+      void requestedAgentMode
+
+      if (useMultiAgent && rosterValidation.value) {
+        // The Coder sees the same system prompt + tools the single-mode
+        // turn would have built. apiMessages already carries the conv
+        // history rebuilt above; runAgentPipeline appends the latest user
+        // message with the plan inlined so the Coder gets both signals
+        // in one place.
+        const priorWithoutLatestUser = apiMessages.filter(
+          (m, idx) => idx !== 0 // drop the system entry; pipeline owns it
+        )
+        // Drop the most recent user turn from the prior list — pipeline
+        // injects its own rewritten user message that carries the plan.
+        // The latest user is whatever we just saved; locate by trailing
+        // role==='user'.
+        const lastUserIdx = priorWithoutLatestUser
+          .map((m, i) => (m.role === 'user' ? i : -1))
+          .filter((i) => i >= 0)
+          .pop()
+        const priorTrimmed =
+          lastUserIdx === undefined
+            ? priorWithoutLatestUser
+            : priorWithoutLatestUser.slice(0, lastUserIdx)
+
+        await runAgentPipeline({
+          conversationId,
+          roster: rosterValidation.value,
+          userContent: content,
+          systemPrompt,
+          priorMessages: priorTrimmed,
+          tools: tools.length > 0 ? tools : undefined,
+          workspacePath,
+          signal: abortController.signal,
+          subAgentRunner: async (subMessages, modelId, subSignal) => {
+            // chatOnce takes (messages, modelId, signal); sub-agents are
+            // one-shot reasoning calls — per-model temperature/topP from
+            // modelConfig doesn't apply here.
+            const text = await chatOnce(subMessages, modelId, subSignal)
+            return typeof text === 'string' ? text : String(text)
+          },
+          coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) =>
+            runChatRound(
+              conversationId,
+              coderModel,
+              messages,
+              coderTools,
+              workspacePath,
+              coderSignal,
+              0,
+              modelParams,
+              agentic.composer,
+              /* suppressDoneEvent */ true
+            )
+        })
+      } else {
+        if (settingsAgentMode === 'multi' && !rosterValidation.ok) {
+          // Surface why the pipeline was bypassed; do NOT block the user's
+          // reply. Falling through to single mode keeps the harness
+          // useful while the roster is being corrected.
+          console.warn(
+            '[chat] agentMode=multi but roster invalid; falling back to single mode:',
+            rosterValidation.error
+          )
+        }
+        await runChatRound(
+          conversationId,
+          model,
+          apiMessages,
+          tools.length > 0 ? tools : undefined,
+          workspacePath,
+          abortController.signal,
+          0,
+          modelParams,
+          agentic.composer
+        )
+      }
 
       activeAbortControllers.delete(conversationId)
       return { success: true, data: { conversationId } }
@@ -316,7 +395,21 @@ export function registerChatHandlers(): void {
   // routes through permissionsService.
 }
 
-async function runChatRound(
+// Prompt 11: agent-pipeline mode needs to capture the Coder's final
+// assistant message AND defer the chat:done emit until after the Reviewer
+// stage has been queued (so the renderer doesn't clear the pipeline-banner
+// in the gap between Coder-done and Reviewer-running). When
+// `suppressDoneEvent` is true:
+//   * runChatRound persists the assistant message as usual,
+//   * BUT it does NOT emit `chat:phase = done` or `chat:done`,
+//   * AND it resolves with the persisted message so the caller can emit
+//     those events itself at the right moment.
+// Single-mode callers pass `false` (the default) and ignore the return
+// value; the byte-for-byte behaviour of the pre-Prompt-11 path is
+// preserved.
+export type RunChatRoundResult = { message: unknown } | null
+
+export async function runChatRound(
   conversationId: string,
   model: string,
   messages: ChatCompletionMessageParam[],
@@ -325,21 +418,22 @@ async function runChatRound(
   signal: AbortSignal,
   round: number,
   params?: ModelParams,
-  composerMode: AgenticComposerMode = 'auto'
-): Promise<void> {
+  composerMode: AgenticComposerMode = 'auto',
+  suppressDoneEvent: boolean = false
+): Promise<RunChatRoundResult> {
   if (round >= MAX_TOOL_ROUNDS) {
     emitPhase(conversationId, 'error')
     emitChatEvent('chat:error', {
       conversationId,
       error: 'Maximum tool call rounds reached'
     })
-    return
+    return null
   }
 
   const descriptor = resolveModel(model)
   const effectiveTools = descriptor.supportsTools ? tools : undefined
 
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<RunChatRoundResult>((resolve, reject) => {
     chatStream(
       messages,
       model,
@@ -383,10 +477,12 @@ async function runChatRound(
               model,
               draft
             })
-            emitPhase(conversationId, 'done')
-            emitChatEvent('chat:done', { conversationId, message: assistantMsg })
-            fireHooks('agentStop', { conversationId })
-            resolve()
+            if (!suppressDoneEvent) {
+              emitPhase(conversationId, 'done')
+              emitChatEvent('chat:done', { conversationId, message: assistantMsg })
+              fireHooks('agentStop', { conversationId })
+            }
+            resolve({ message: assistantMsg })
             return
           }
 
@@ -457,7 +553,7 @@ async function runChatRound(
           }
 
           try {
-            await runChatRound(
+            const next = await runChatRound(
               conversationId,
               model,
               messages,
@@ -466,9 +562,10 @@ async function runChatRound(
               signal,
               round + 1,
               params,
-              composerMode
+              composerMode,
+              suppressDoneEvent
             )
-            resolve()
+            resolve(next)
           } catch (err) {
             reject(err)
           }

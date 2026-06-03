@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
 import type { ProviderInfo } from '@/lib/types'
+import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 interface ProviderEntry extends ProviderInfo {
   hasKey: boolean
@@ -36,6 +37,11 @@ export function ApiKeySettings() {
   const handleSave = async (providerId: string) => {
     const trimmed = (drafts[providerId] || '').trim()
     if (!trimmed) return
+    // SEC-10: shared consent gate. Confirms once per session when
+    // encryption is off and records consent on the main side so other
+    // settings panels + background paths inherit the decision.
+    const consent = await ensurePlaintextConsentIfNeeded()
+    if (!consent) return
     setBusy(providerId)
     setTestStatus((s) => ({ ...s, [providerId]: null }))
     try {

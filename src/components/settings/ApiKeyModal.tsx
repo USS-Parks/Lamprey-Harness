@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ProviderInfo } from '@/lib/types'
+import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 interface ApiKeyModalProps {
   onComplete: () => void
@@ -18,25 +19,37 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
   const [key, setKey] = useState('')
   const [testing, setTesting] = useState(false)
   const [error, setError] = useState('')
+  // SEC-10: when safeStorage is unavailable the key persists as plaintext.
+  // null = still checking; false = MUST confirm before save.
+  const [encrypted, setEncrypted] = useState<boolean | null>(null)
 
   useEffect(() => {
     void (async () => {
-      const result = await window.api.settings.listProviderKeys()
-      if (result.success) {
-        const list = result.data as ProviderEntry[]
-        setProviders(list)
-        if (defaultProvider && list.some((p) => p.id === defaultProvider)) {
+      const [list, enc] = await Promise.all([
+        window.api.settings.listProviderKeys(),
+        window.api.settings.isEncryptionAvailable()
+      ])
+      if (list.success) {
+        const items = list.data as ProviderEntry[]
+        setProviders(items)
+        if (defaultProvider && items.some((p) => p.id === defaultProvider)) {
           setSelected(defaultProvider)
-          return
+        } else {
+          const firstMissing = items.find((p) => !p.hasKey)
+          if (firstMissing) setSelected(firstMissing.id)
         }
-        const firstMissing = list.find((p) => !p.hasKey)
-        if (firstMissing) setSelected(firstMissing.id)
       }
+      setEncrypted(enc.success ? Boolean(enc.data) : false)
     })()
   }, [defaultProvider])
 
   const handleSubmit = async () => {
     if (!key.trim()) return
+    // SEC-10: shared consent gate. Confirms once per session when encryption
+    // is unavailable and records consent in the main process so background
+    // callers (mcp-manager token refresh, etc.) inherit the decision.
+    const ok = await ensurePlaintextConsentIfNeeded()
+    if (!ok) return
     setTesting(true)
     setError('')
 
@@ -97,6 +110,19 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           its models.
         </p>
 
+        {encrypted === false && (
+          <div
+            role="alert"
+            className="mt-3 rounded border border-[var(--warning)]/40 bg-[var(--warning)]/10 p-2 text-[12px] leading-relaxed text-[var(--warning)]"
+          >
+            <strong className="font-mono uppercase tracking-wider">Plaintext storage</strong>
+            <span className="ml-2 text-[var(--text-secondary)]">
+              Encryption is unavailable on this system. The key will be stored as plaintext in
+              userData/keys.json. You will be asked to confirm before saving.
+            </span>
+          </div>
+        )}
+
         <label className="mt-4 block">
           <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">Provider</span>
           <select
@@ -147,8 +173,9 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         </button>
 
         <p className="mt-3 text-[12px] text-[var(--text-muted)]">
-          Keys are encrypted with OS-level storage (Electron safeStorage) and never leave this
-          device except to call the provider's own API.
+          {encrypted === false
+            ? 'Keys are written to a 0600-mode file in your userData directory. Without OS-level encryption available, they are stored as plaintext. They never leave this device except to call the provider\'s own API.'
+            : 'Keys are encrypted with OS-level storage (Electron safeStorage) and never leave this device except to call the provider\'s own API.'}
         </p>
       </div>
     </div>

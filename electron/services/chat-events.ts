@@ -75,6 +75,25 @@ export interface MemoryAddedPayload {
   sourceConversationId?: string
 }
 
+// Prompt 11: agent pipeline status. One emit per stage transition during a
+// multi-agent run (planner / coder / reviewer). The renderer's agent-store
+// records these into `activeRun`; AgentRunBanner renders them.
+//
+// Single-mode chat does NOT emit on this channel — agent:status is the
+// exclusive signal that the model is being driven by the Planner→Coder→
+// Reviewer pipeline rather than the single-pass loop. Treat the absence of
+// agent:status events as proof that pipeline orchestration did not run.
+export type AgentPipelineRole = 'planner' | 'coder' | 'reviewer' | 'coworker'
+export type AgentPipelineState = 'running' | 'done' | 'error'
+
+export interface AgentStatusPayload {
+  conversationId: string
+  role: AgentPipelineRole
+  model: string
+  state: AgentPipelineState
+  output?: string
+}
+
 export interface ChatEventMap {
   'chat:chunk': ChatChunkPayload
   'chat:done': ChatDonePayload
@@ -84,6 +103,7 @@ export interface ChatEventMap {
   'chat:tool-call-result': ChatToolCallResultPayload
   'plan:updated': PlanUpdatedPayload
   'memory:added': MemoryAddedPayload
+  'agent:status': AgentStatusPayload
 }
 
 export type ChatEventName = keyof ChatEventMap

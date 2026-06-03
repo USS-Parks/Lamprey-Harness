@@ -112,13 +112,29 @@ function showOnly(tabId: string | null): void {
   if (tabId) applyBoundsToActive()
 }
 
+// SEC-8: the in-app browser is for web content; allowing `file:` lets the
+// model navigate to arbitrary on-disk files (and read them via the page
+// surface). Drop `file:` from the model-reachable scheme allow-list. The
+// renderer's "open in file explorer" affordance goes through a separate
+// IPC path (`files:openInExplorer`) which shells out to the OS rather than
+// loading into a tab here.
 function isHttpish(url: string): boolean {
-  return /^https?:\/\//i.test(url) || url.startsWith('about:') || url.startsWith('file:')
+  return /^https?:\/\//i.test(url) || url.startsWith('about:')
 }
+
+// Schemes that should never reach `loadURL` regardless of how they arrived.
+// `coerceUrl` already falls back to a Google search query for unrecognised
+// schemes, but we'd rather emit an explicit redirect than search the string.
+const FORBIDDEN_SCHEMES = /^(file|javascript|data|view-source|chrome|chrome-extension):/i
 
 export function coerceUrl(input: string): string {
   const trimmed = input.trim()
   if (!trimmed) return 'about:blank'
+  if (FORBIDDEN_SCHEMES.test(trimmed)) {
+    // Don't search the literal `file:///etc/passwd`; just send the user
+    // somewhere safe. The friendly fallback is the home page.
+    return 'about:blank'
+  }
   if (isHttpish(trimmed)) return trimmed
   // Looks like a domain (has a dot, no spaces) → assume https
   if (/^[^\s]+\.[^\s]+$/.test(trimmed) && !trimmed.includes(' ')) {

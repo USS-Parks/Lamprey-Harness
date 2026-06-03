@@ -1,5 +1,6 @@
 import { getKey, hasKey } from './keychain'
 import { readSettings } from './settings-helper'
+import { safeFetch } from './url-safety'
 
 // Web search adapter framework. All adapters implement the same minimal
 // interface so the executor in web-tools.ts and the settings UI stay
@@ -10,6 +11,11 @@ import { readSettings } from './settings-helper'
 //
 // Keychain provider naming convention: `web_search:<provider>`. The keychain
 // is keyed by arbitrary strings (see electron/services/keychain.ts).
+//
+// SEC-2: every adapter call goes through `safeFetch` so loopback/RFC1918/
+// link-local destinations are refused even when the user-configured SearXNG
+// endpoint is internal, and 3xx redirects (e.g. a SerpAPI/Brave server
+// hop) are re-validated rather than blindly followed.
 
 export interface WebSearchResult {
   title: string
@@ -78,7 +84,11 @@ async function fetchWithTimeout(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    return await fetch(url, { ...rest, signal: controller.signal })
+    // SEC-2: safeFetch validates the URL and every redirect target through
+    // assertPublicUrl before issuing the request. SearXNG endpoints pointing
+    // at loopback / RFC1918, and SaaS adapters that redirect into an
+    // internal IP, are both refused with a clean UnsafeUrlError.
+    return await safeFetch(url, { ...rest, signal: controller.signal })
   } finally {
     clearTimeout(timer)
   }

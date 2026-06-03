@@ -3,12 +3,17 @@ import {
   type WebSearchOpts,
   type ImageSearchOpts
 } from './web-search-adapters'
+import { safeFetch, UnsafeUrlError } from './url-safety'
 
 // Web/current-information tool executors. Pure - no electron imports. The
 // registry wiring lives in web-tool-pack.ts. Permission gating is
 // descriptor-driven; the network-touching tools carry the `network` risk and
 // `requiresApproval: false` (read-only), so they run without a modal -
 // matching the Codex/Claude default for web search.
+//
+// Network reads go through `safeFetch` so the model cannot reach loopback,
+// link-local (incl. the 169.254.169.254 cloud metadata service), RFC1918,
+// ULAs, or the unspecified address — directly or via a 3xx redirect.
 
 const NO_PROVIDER_MSG =
   'Error: No web search provider configured. Use Settings → Web Tools.'
@@ -130,8 +135,10 @@ async function fetchPageBytes(url: string): Promise<{ html: string }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   try {
-    const res = await fetch(url, {
-      redirect: 'follow',
+    // safeFetch validates the initial URL + every redirect target against
+    // assertPublicUrl; SSRF attempts surface as UnsafeUrlError, which we
+    // propagate to executeWebOpen's catch as a clean error string.
+    const res = await safeFetch(url, {
       headers: {
         'User-Agent': 'Lamprey/1.0 (+web_open)',
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'

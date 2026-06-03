@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { useMcpStore } from '@/stores/mcp-store'
 import { toast } from '@/stores/toast-store'
+import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 export function McpSettings() {
   const servers = useMcpStore((s) => s.servers)
@@ -14,6 +15,10 @@ export function McpSettings() {
 
   const handleSaveCredentials = async () => {
     if (!clientId.trim() || !clientSecret.trim()) return
+    // SEC-10: client_id + client_secret are persisted to the keychain;
+    // require explicit consent if encryption isn't available.
+    const consent = await ensurePlaintextConsentIfNeeded()
+    if (!consent) return
     const result = await window.api.settings.saveGoogleCredentials(
       clientId.trim(),
       clientSecret.trim()
@@ -28,6 +33,15 @@ export function McpSettings() {
   }
 
   const handleGoogleOAuth = async () => {
+    // SEC-10: the OAuth flow persists access + refresh + expiry tokens
+    // through the keychain. Confirm plaintext consent BEFORE opening the
+    // browser so the user can't sit through Google's consent screen only
+    // for the post-callback persistence to throw.
+    const consent = await ensurePlaintextConsentIfNeeded()
+    if (!consent) {
+      toast.error('Google connect cancelled — plaintext storage not authorised.')
+      return
+    }
     setOauthLoading(true)
     setOauthStatus(null)
     try {

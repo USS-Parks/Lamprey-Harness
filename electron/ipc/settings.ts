@@ -192,4 +192,25 @@ export function registerSettingsHandlers(): void {
       return { success: false, error: err.message }
     }
   })
+
+  // SEC-10: record explicit user consent to plaintext storage for this
+  // session. The renderer calls this after surfacing a `window.confirm`
+  // dialog the user accepted; subsequent setKey calls (across every IPC
+  // handler that persists a credential) succeed without re-prompting.
+  ipcMain.handle('settings:grantPlaintextConsent', async () => {
+    try {
+      keychain.grantPlaintextConsent()
+      return { success: true, data: null }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('settings:hasPlaintextConsent', async () => {
+    try {
+      return { success: true, data: keychain.hasPlaintextConsent() }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
 }

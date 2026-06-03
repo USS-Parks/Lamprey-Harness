@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  _clearPageCacheForTest,
   executeTimeLookup,
   executeWebFind,
+  executeWebOpen,
   stripHtmlToText
 } from './web-tools'
 
@@ -71,6 +73,48 @@ describe('executeWebFind argument validation', () => {
 
   it('rejects missing text', async () => {
     const out = await executeWebFind({ url: 'https://example.com', text: '' })
+    expect(out.startsWith('Error:')).toBe(true)
+  })
+})
+
+describe('executeWebOpen — SSRF gate (integration)', () => {
+  // url-safety.test.ts covers the assertPublicUrl / safeFetch matrix in
+  // isolation. These cases just confirm the gate is actually wired through
+  // executeWebOpen → fetchPageBytes → safeFetch, so a future refactor that
+  // bypasses safeFetch trips a test.
+
+  it('refuses a loopback literal before any network call', async () => {
+    _clearPageCacheForTest()
+    const out = await executeWebOpen({ url: 'http://127.0.0.1/admin' })
+    expect(out.startsWith('Error: web_open failed')).toBe(true)
+    expect(out).toContain('127.0.0.1')
+    expect(out.toLowerCase()).toContain('refused')
+  })
+
+  it('refuses the 169.254.169.254 cloud metadata address explicitly', async () => {
+    _clearPageCacheForTest()
+    const out = await executeWebOpen({
+      url: 'http://169.254.169.254/latest/meta-data/'
+    })
+    expect(out.startsWith('Error: web_open failed')).toBe(true)
+    expect(out).toContain('169.254.169.254')
+  })
+
+  it('refuses RFC1918 literals', async () => {
+    _clearPageCacheForTest()
+    const out = await executeWebOpen({ url: 'http://10.0.0.1/' })
+    expect(out.toLowerCase()).toContain('refused')
+  })
+
+  it('refuses IPv6 loopback in bracketed form', async () => {
+    _clearPageCacheForTest()
+    const out = await executeWebOpen({ url: 'http://[::1]/' })
+    expect(out.toLowerCase()).toContain('refused')
+  })
+
+  it('keeps refusing non-http(s) schemes with the existing message', async () => {
+    _clearPageCacheForTest()
+    const out = await executeWebOpen({ url: 'file:///etc/passwd' })
     expect(out.startsWith('Error:')).toBe(true)
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
+import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 // Web-tools settings panel.
 //
@@ -126,6 +127,10 @@ export function WebToolsSettings() {
     if (!api) return
     const draft = drafts[id].trim()
     if (!draft) return
+    // SEC-10: the key is persisted to the keychain via the main process;
+    // gate on the shared plaintext-consent prompt when encryption is off.
+    const consent = await ensurePlaintextConsentIfNeeded()
+    if (!consent) return
     setBusy(id)
     setTestStatus(null)
     try {

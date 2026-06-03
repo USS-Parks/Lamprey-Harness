@@ -45,7 +45,13 @@ const TYPE_LABELS: Record<EventType, string> = {
   'rag.collection.deleted': 'Collection removed',
   'rag.model.download.started': 'Embedder downloading',
   'rag.model.download.completed': 'Embedder ready',
-  'rag.model.download.failed': 'Embedder download failed'
+  'rag.model.download.failed': 'Embedder download failed',
+  'rag.ingest.started': 'Ingest started',
+  'rag.ingest.completed': 'Ingest completed',
+  'rag.ingest.failed': 'Ingest failed',
+  'rag.query.completed': 'Retrieval ran',
+  'rag.query.failed': 'Retrieval failed',
+  'rag.rerank.completed': 'Reranked'
 }
 
 export function eventTypeLabel(type: EventType): string {
@@ -142,6 +148,31 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
       const name = typeof p.name === 'string' ? p.name : undefined
       const embedderId = typeof p.embedderId === 'string' ? p.embedderId : undefined
       s = name ?? embedderId ?? null
+      break
+    }
+    case 'rag.ingest.started':
+    case 'rag.ingest.completed':
+    case 'rag.ingest.failed': {
+      const displayName =
+        typeof p.displayName === 'string' ? p.displayName : undefined
+      const chunkCount = typeof p.chunkCount === 'number' ? p.chunkCount : undefined
+      s =
+        displayName && chunkCount !== undefined
+          ? `${displayName} (${chunkCount} chunks)`
+          : displayName ?? null
+      break
+    }
+    case 'rag.query.completed':
+    case 'rag.query.failed':
+    case 'rag.rerank.completed': {
+      const preview =
+        typeof p.queryPreview === 'string' ? p.queryPreview : undefined
+      const fusedCount =
+        typeof p.fusedCount === 'number' ? p.fusedCount : undefined
+      s =
+        preview && fusedCount !== undefined
+          ? `${preview} → ${fusedCount}`
+          : preview ?? null
       break
     }
     case 'chat.cancelled':

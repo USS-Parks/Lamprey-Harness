@@ -540,6 +540,12 @@ export type EventType =
   | 'rag.model.download.started'
   | 'rag.model.download.completed'
   | 'rag.model.download.failed'
+  | 'rag.ingest.started'
+  | 'rag.ingest.completed'
+  | 'rag.ingest.failed'
+  | 'rag.query.completed'
+  | 'rag.query.failed'
+  | 'rag.rerank.completed'
 
 export interface EventRecord {
   id: string
@@ -680,4 +686,22 @@ export interface IngestProgressEvent {
   progress: number
   chunkCount?: number
   error?: string
+}
+
+export interface RagAttachment {
+  conversationId: string
+  collectionId?: string
+  documentId?: string
+  attachedAt: number
+}
+
+/** Per-message citation source map entry. Persisted on the message row's
+ *  retrieval reference. Built by R10's context-builder. */
+export interface CitationSource {
+  id: number
+  chunkId: string
+  documentId: string
+  displayName: string
+  /** Compact locator string: "lines=X-Y" / "page=N" / "heading=..." */
+  locator: string
 }

@@ -82,7 +82,21 @@ export const EVENT_TYPES = [
   // transformers.js; v1 emits started + completed only.
   'rag.model.download.started',
   'rag.model.download.completed',
-  'rag.model.download.failed'
+  'rag.model.download.failed',
+
+  // RAG ingest pipeline (R5). One pair per file inside an ingest job.
+  // correlationId on the event row is the jobId so the timeline can
+  // reconstruct a multi-file ingest by one id.
+  'rag.ingest.started',
+  'rag.ingest.completed',
+  'rag.ingest.failed',
+
+  // RAG retrieval (R7-R9). One event per top-level query — sub-queries
+  // emitted by multi-query rewrite (R9) are rolled into the parent's
+  // payload, not emitted separately.
+  'rag.query.completed',
+  'rag.query.failed',
+  'rag.rerank.completed'
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

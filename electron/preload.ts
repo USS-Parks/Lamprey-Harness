@@ -568,6 +568,57 @@ const api = {
       catalog: () => ipcRenderer.invoke('rag:embedder:catalog'),
       active: () => ipcRenderer.invoke('rag:embedder:active'),
       setActive: (id: string) => ipcRenderer.invoke('rag:embedder:setActive', id)
+    },
+    // R5 document + ingest surface. `onProgress` returns an unsubscribe
+    // function so effect cleanup (hot reload, tab switch) detaches the
+    // listener without duplicating progress event handling.
+    document: {
+      list: (collectionId: string) =>
+        ipcRenderer.invoke('rag:document:list', collectionId),
+      ingest: (
+        collectionId: string,
+        files: Array<{
+          path?: string
+          text?: string
+          name: string
+          sourceKind?: string
+        }>
+      ) => ipcRenderer.invoke('rag:document:ingest', collectionId, files),
+      reingest: (documentId: string) =>
+        ipcRenderer.invoke('rag:document:reingest', documentId),
+      delete: (documentId: string) =>
+        ipcRenderer.invoke('rag:document:delete', documentId),
+      cancel: (jobId: string) =>
+        ipcRenderer.invoke('rag:document:cancel', jobId),
+      onProgress: (cb: (e: unknown) => void): (() => void) => {
+        const handler = (_: unknown, e: unknown): void => cb(e)
+        ipcRenderer.on('rag:document:progress', handler)
+        return () => ipcRenderer.removeListener('rag:document:progress', handler)
+      }
+    },
+    query: {
+      run: (input: {
+        query: string
+        collectionIds: string[]
+        topN?: number
+      }) => ipcRenderer.invoke('rag:query:run', input)
+    },
+    attachments: {
+      list: (conversationId: string) =>
+        ipcRenderer.invoke('rag:attachments:list', conversationId),
+      add: (input: {
+        conversationId: string
+        collectionId?: string
+        documentId?: string
+      }) => ipcRenderer.invoke('rag:attachments:add', input),
+      remove: (input: {
+        conversationId: string
+        collectionId?: string
+        documentId?: string
+      }) => ipcRenderer.invoke('rag:attachments:remove', input)
+    },
+    chunk: {
+      get: (chunkId: string) => ipcRenderer.invoke('rag:chunk:get', chunkId)
     }
   },
 

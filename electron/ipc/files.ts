@@ -9,6 +9,72 @@ import {
   setActiveWorkspace
 } from '../services/workspace-state'
 
+// ----------------------------------------------------------------------------
+// Pure helpers (exported for unit tests). SEC-6: every spawn that follows a
+// model-reachable codepath uses `shell: false` + argv form; nothing the
+// renderer sends gets concatenated into a shell command line.
+// ----------------------------------------------------------------------------
+
+export function parseProbeOutput(stdout: string): string | null {
+  const first = stdout
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .find((s) => s.length > 0)
+  return first ?? null
+}
+
+export interface VSCodeLaunchPlan {
+  command: string
+  args: string[]
+  options: {
+    detached: true
+    stdio: 'ignore'
+    windowsHide: true
+    shell: false
+  }
+}
+
+export function buildVSCodeLaunchPlan(codePath: string, target: string): VSCodeLaunchPlan {
+  return {
+    command: codePath,
+    args: [target],
+    options: {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      shell: false
+    }
+  }
+}
+
+// argv-form probe. `where` (Windows) and `which` (POSIX) are real binaries —
+// no shell needed. The string `code` is a constant, not user input, so even
+// the probe surface has no model-reachable argument injection.
+async function probeCodeBinary(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const cmd = process.platform === 'win32' ? 'where' : 'which'
+    let out = ''
+    let p: ReturnType<typeof spawn>
+    try {
+      p = spawn(cmd, ['code'], {
+        stdio: ['ignore', 'pipe', 'ignore'],
+        shell: false,
+        windowsHide: true
+      })
+    } catch {
+      return resolve(null)
+    }
+    p.stdout?.on('data', (b: Buffer) => {
+      out += b.toString('utf8')
+    })
+    p.on('error', () => resolve(null))
+    p.on('exit', (code) => {
+      if (code !== 0) return resolve(null)
+      resolve(parseProbeOutput(out))
+    })
+  })
+}
+
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', 'out', '.next', '.cache',
   '.vscode', '.idea', '__pycache__', '.pytest_cache', '.venv', 'venv',
@@ -228,39 +294,24 @@ export function registerFilesHandlers(): void {
   ipcMain.handle('files:openInVSCode', async (_event, args?: { targetPath?: string }) => {
     try {
       const target = args?.targetPath || process.cwd()
-      // Probe `code` first so we can surface a real error to the renderer
-      // rather than firing a detached child that silently fails on ENOENT.
-      // On Windows `code` is a .cmd shim → shell: true is required for both
-      // probe and launch.
-      const probeCmd = process.platform === 'win32' ? 'where code' : 'command -v code'
-      const probe = await new Promise<boolean>((resolve) => {
-        const p = spawn(probeCmd, {
-          shell: true,
-          windowsHide: true,
-          stdio: 'ignore'
-        })
-        p.on('exit', (code) => resolve(code === 0))
-        p.on('error', () => resolve(false))
-      })
-      if (!probe) {
+      const codePath = await probeCodeBinary()
+      if (!codePath) {
         return {
           success: false,
           error:
             "VS Code's `code` CLI was not found on PATH. Install VS Code or add it to PATH (Command Palette → Shell Command: Install 'code' command in PATH)."
         }
       }
-      const child = spawn('code', [target], {
-        detached: true,
-        stdio: 'ignore',
-        shell: true,
-        windowsHide: true
-      })
-      // After the probe succeeded a spawn error here is rare; log it but
-      // don't promise-reject (the IPC already returned). The probe is the
-      // real gate.
+      // SEC-6: no `shell: true`. The target is an argv element so the OS
+      // shell never sees it. On Windows the resolved `code` is typically
+      // `code.cmd`; Node ≥21.7 applies safe per-arg quoting for .cmd
+      // targets automatically (CVE-2024-27980 fix), so this argv form is
+      // safe across the modern Node runtimes Electron 35 carries.
+      const plan = buildVSCodeLaunchPlan(codePath, target)
+      const child = spawn(plan.command, plan.args, plan.options)
       child.on('error', () => {
-        // Could pipe through app:warning here; for v1 the toast already
-        // fires on probe-fail which is the common case.
+        // Spawn errors after a successful probe are rare; the IPC has
+        // already returned. The probe is the real gate.
       })
       child.unref()
       return { success: true, data: { path: target } }

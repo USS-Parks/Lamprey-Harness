@@ -2,6 +2,7 @@ import { ipcMain, shell } from 'electron'
 import { createServer } from 'http'
 import { mcpManager } from '../services/mcp-manager'
 import * as keychain from '../services/keychain'
+import { createOAuthSession, validateOAuthCallback } from '../services/oauth-state'
 
 const REDIRECT_PORT = 9876
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}`
@@ -46,6 +47,11 @@ export function registerMcpHandlers(): void {
         return { success: false, error: 'Google client credentials not configured. Save client_id and client_secret first.' }
       }
 
+      // SEC-9: per-flow CSRF token. Generated here, embedded in the auth
+      // URL, verified in the callback handler. Single-use: a stale or
+      // replayed state is rejected, even when the random value matches.
+      const session = createOAuthSession()
+
       const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
       authUrl.searchParams.set('client_id', clientId)
       authUrl.searchParams.set('redirect_uri', REDIRECT_URI)
@@ -53,6 +59,7 @@ export function registerMcpHandlers(): void {
       authUrl.searchParams.set('scope', SCOPES)
       authUrl.searchParams.set('access_type', 'offline')
       authUrl.searchParams.set('prompt', 'consent')
+      authUrl.searchParams.set('state', session.state)
 
       const code = await new Promise<string>((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -62,29 +69,42 @@ export function registerMcpHandlers(): void {
 
         const server = createServer((req, res) => {
           const url = new URL(req.url!, `http://localhost:${REDIRECT_PORT}`)
-          const authCode = url.searchParams.get('code')
-          const error = url.searchParams.get('error')
+          // SEC-9: full decision tree (denied / missing-code / state-
+          // mismatch / success) lives in `validateOAuthCallback` so it can
+          // be tested without booting the http server. State verification
+          // is single-use; a successful match consumes the session.
+          const outcome = validateOAuthCallback(url, session)
 
-          if (error) {
-            res.writeHead(200, { 'Content-Type': 'text/html' })
+          if (outcome.kind === 'denied') {
+            res.writeHead(outcome.httpStatus, { 'Content-Type': 'text/html' })
             res.end('<html><body><h2>Authorization denied.</h2><p>You can close this tab.</p></body></html>')
             clearTimeout(timeout)
             server.close()
-            reject(new Error(`OAuth denied: ${error}`))
+            reject(new Error(`OAuth denied: ${outcome.reason}`))
             return
           }
 
-          if (authCode) {
-            res.writeHead(200, { 'Content-Type': 'text/html' })
-            res.end('<html><body><h2>Lamprey connected!</h2><p>You can close this tab and return to the app.</p></body></html>')
+          if (outcome.kind === 'state-mismatch') {
+            res.writeHead(outcome.httpStatus, { 'Content-Type': 'text/html' })
+            res.end('<html><body><h2>OAuth state mismatch.</h2><p>Close this tab and start the flow again from Lamprey.</p></body></html>')
             clearTimeout(timeout)
             server.close()
-            resolve(authCode)
+            reject(new Error(outcome.reason))
             return
           }
 
-          res.writeHead(400, { 'Content-Type': 'text/plain' })
-          res.end('Missing authorization code')
+          if (outcome.kind === 'missing-code') {
+            res.writeHead(outcome.httpStatus, { 'Content-Type': 'text/plain' })
+            res.end(outcome.reason)
+            return
+          }
+
+          // outcome.kind === 'success'
+          res.writeHead(200, { 'Content-Type': 'text/html' })
+          res.end('<html><body><h2>Lamprey connected!</h2><p>You can close this tab and return to the app.</p></body></html>')
+          clearTimeout(timeout)
+          server.close()
+          resolve(outcome.code)
         })
 
         server.listen(REDIRECT_PORT, '127.0.0.1', () => {

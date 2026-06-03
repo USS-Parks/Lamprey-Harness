@@ -58,13 +58,22 @@ export function useChat(): void {
       if (!matchesActive(e as { conversationId?: string })) return
       flushNow()
       useChatStore.getState().finishStream(e.message as any)
-      useAgentStore.getState().clearRun()
+      // Prompt 11: in agentMode the Coder's chat:done fires BEFORE the
+      // Reviewer stage emits its `agent:status reviewer:running`. If we
+      // clear unconditionally the AgentRunBanner flickers off + back on.
+      // Only retire the pipeline display when no role is still in flight.
+      const stillRunning = useAgentStore
+        .getState()
+        .activeRun.some((r) => r.state === 'running')
+      if (!stillRunning) useAgentStore.getState().clearRun()
     })
 
     window.api.chat.onError((e) => {
       if (!matchesActive(e)) return
       flushNow()
       useChatStore.getState().streamError(e.error)
+      // Errors always retire the pipeline — there's no recovery path that
+      // keeps a stale "running" pill on screen.
       useAgentStore.getState().clearRun()
     })
 

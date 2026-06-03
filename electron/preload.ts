@@ -106,7 +106,9 @@ const api = {
     saveGoogleCredentials: (clientId: string, clientSecret: string) =>
       ipcRenderer.invoke('settings:saveGoogleCredentials', clientId, clientSecret),
     deleteApiKey: () => ipcRenderer.invoke('settings:deleteApiKey'),
-    isEncryptionAvailable: () => ipcRenderer.invoke('settings:isEncryptionAvailable')
+    isEncryptionAvailable: () => ipcRenderer.invoke('settings:isEncryptionAvailable'),
+    grantPlaintextConsent: () => ipcRenderer.invoke('settings:grantPlaintextConsent'),
+    hasPlaintextConsent: () => ipcRenderer.invoke('settings:hasPlaintextConsent')
   },
 
   model: {

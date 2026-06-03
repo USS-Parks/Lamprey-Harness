@@ -278,7 +278,7 @@ function App(): React.ReactElement {
           <SecurityBanner />
           <UpdateBanner />
           <div className="flex flex-1 overflow-hidden bg-[var(--bg-secondary)] p-2">
-            <ChatView />
+            <ChatView rightInset={shouldShowEnvCard ? ENV_CARD_WIDTH : 0} />
           </div>
         </div>
 

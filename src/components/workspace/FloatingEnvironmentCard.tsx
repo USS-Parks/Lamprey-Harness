@@ -8,10 +8,11 @@ import { toast } from '@/stores/toast-store'
 import { WorkModePopover } from './WorkModePopover'
 import { BranchPickerPopover } from './BranchPickerPopover'
 
-// Stable dimensions exported so App.tsx can reserve matching gutter space
-// and decide whether there's enough room to render the card at all.
-export const ENV_CARD_WIDTH = 360
-export const ENV_CARD_GAP = 16
+// Card dimensions. The card is a floating overlay — it sits inside the
+// chat workspace surround at top:8, right:8, NOT in a reserved layout
+// column. It lives in the empty margin beside the centered chat content
+// (max-w-4xl) and is hidden when that margin can't fit it.
+export const ENV_CARD_WIDTH = 180
 export const ENV_CARD_TOP_OFFSET = 8
 export const ENV_CARD_RIGHT_OFFSET = 8
 export const ENV_CARD_TRANSITION_MS = 220

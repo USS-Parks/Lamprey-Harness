@@ -20,7 +20,7 @@ export function WelcomeScreen() {
           />
         </span>
         <h1 className="font-mono text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-          Lamprey MAI
+          Lamprey
         </h1>
         <h2 className="mt-3 text-sm font-normal text-[var(--text-secondary)]">
           Let's get to work

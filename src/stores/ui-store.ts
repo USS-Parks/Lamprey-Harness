@@ -119,6 +119,7 @@ export type SettingsTabId =
   | 'permissions'
   | 'planGoal'
   | 'hooks'
+  | 'skills'
   | 'automations'
 
 interface UiState {
@@ -283,8 +284,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   toggleQuickOpen: () => set((s) => ({ quickOpenVisible: !s.quickOpenVisible })),
   openWorkflowPalette: () => set({ workflowPaletteVisible: true }),
   closeWorkflowPalette: () => set({ workflowPaletteVisible: false }),
-  toggleWorkflowPalette: () =>
-    set((s) => ({ workflowPaletteVisible: !s.workflowPaletteVisible })),
+  toggleWorkflowPalette: () => set((s) => ({ workflowPaletteVisible: !s.workflowPaletteVisible })),
   openWorktreeModal: () => set({ worktreeModalOpen: true }),
   closeWorktreeModal: () => set({ worktreeModalOpen: false }),
   togglePlanMode: () => set((s) => ({ planMode: !s.planMode })),

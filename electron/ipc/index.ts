@@ -37,6 +37,8 @@ import { registerWorkflowsHandlers } from './workflows'
 import { registerMonitorHandlers } from './monitor'
 import { registerAsyncEventHandlers } from './async-events'
 import { registerLoopsHandlers } from './loops'
+import { registerNotificationsHandlers } from './notifications'
+import { registerSessionsMessagingHandlers } from './sessions-messaging'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -73,4 +75,6 @@ export function registerAllIpcHandlers(): void {
   registerMonitorHandlers()
   registerAsyncEventHandlers()
   registerLoopsHandlers()
+  registerNotificationsHandlers()
+  registerSessionsMessagingHandlers()
 }

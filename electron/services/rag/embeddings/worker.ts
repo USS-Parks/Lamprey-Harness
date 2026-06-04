@@ -59,7 +59,11 @@ async function ensurePipeline(modelRef: string): Promise<PipelineFn> {
   pipelineP = (async () => {
     // transformers.js ships its own types; types align so no override
     // needed. We narrow to the two named exports we actually use.
-    const { pipeline, env } = (await import('@xenova/transformers')) as unknown as {
+    // (DEP-security: migrated from the deprecated @xenova/transformers to its
+    // maintained successor @huggingface/transformers — same pipeline + env API,
+    // same Xenova/* ONNX models, but a modern onnxruntime-web that drops the
+    // vulnerable onnx-proto → protobufjs chain.)
+    const { pipeline, env } = (await import('@huggingface/transformers')) as unknown as {
       pipeline: (
         task: string,
         modelRef: string

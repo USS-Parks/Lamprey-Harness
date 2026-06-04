@@ -1,5 +1,39 @@
 # Lamprey Harness Dev Log
 
+## [Audit Remediation — Dependency security] @xenova→@huggingface transformers + Electron pin note — 2026-06-04
+
+A new finding from the fresh full-repo audit (not in the original
+`REPO_AUDIT.md` roster): `npm audit` reported 10 vulnerabilities. This pass
+drove it to **1**, all in the build/runtime supply chain rather than first-party
+code.
+
+- **Build chain (closed by Prompt 1):** swapping `electron-rebuild` →
+  `@electron/rebuild` removed the `node-gyp → make-fetch-happen → cacache → tar`
+  HIGH chain (5 vulns). 10 → 5.
+- **Runtime CRITICAL (this pass):** migrated the RAG embedder from the
+  deprecated `@xenova/transformers@2` to its maintained successor
+  `@huggingface/transformers@4`. The old package pinned `onnxruntime-web@1.14`,
+  which dragged in `onnx-proto → protobufjs` (the CRITICAL). The successor uses
+  `onnxruntime-web@1.26` and drops `onnx-proto`/`protobufjs` entirely. Same
+  `pipeline('feature-extraction', …)` + `env.cacheDir` API, same `Xenova/*`
+  ONNX models, and `onnxruntime-node` was already present in the tree under
+  `@xenova` (so the native-backend story is unchanged — not a new ABI risk).
+  Only two references existed: `worker.ts` import + the `package.json` dep.
+  5 → 1.
+- **Remaining 1 HIGH = the deliberate Electron pin** (`^35.7.5`, blocked on
+  better-sqlite3 V8 13 support). Documented as tracked security debt in
+  `CLAUDE.md` with an explicit revisit trigger.
+
+Verify: tsc node ✓ · tsc web ✓ · vitest 1313 pass + 11 skip ✓ · build ✓ ·
+smoke:bundle ✓ · smoke:renderer ✓. **Headless-validation caveat:** the actual
+model-inference path (network model download + ONNX execution in the worker) is
+gated behind the project's existing `describe.skipIf(!runNet)` network test and
+cannot run in this sandbox — the migration is validated through install/tsc/
+build/smoke + the non-network suite, matching the project's own CI bar. A real-
+app RAG ingest smoke is the remaining manual check.
+
+---
+
 ## [Audit Remediation — Prompt 8] Renderer + IPC-contract correctness — 2026-06-04
 
 Closes BUG-4, BUG-6.

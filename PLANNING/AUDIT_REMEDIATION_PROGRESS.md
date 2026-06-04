@@ -15,11 +15,33 @@ Factual changelog for the work described in [AUDIT_REMEDIATION_PLAN.md](AUDIT_RE
 - **`multi_agent_run` (mid-turn, parallel, tool-less, `MultiAgentRunCard`) and `agentMode` (turn-level, sequential, tool-enabled Coder, `AgentRunBanner`) are orthogonal.** Both stay. Prompt 11 documents the distinction at the top of `agent-pipeline.ts`.
 - **Universal gate** is `npx tsc --noEmit -p tsconfig.node.json` + `-p tsconfig.web.json` + `npm run lint` + `npm test`. Bundle-touching prompts additionally run `npm run smoke:bundle` and `npm run smoke:renderer`. Docs-only and CI-only prompts skip the bundle smokes; each prompt's `Verification:` block in the plan calls out which apply.
 
+## Sprint 2 complete — audit remediation prompts 1–8 + dependency security (2026-06-04)
+
+A fresh full-repo audit re-verified every Prompt 1–8 finding against the live
+tree (the carry-forward notes below were stale) and closed them all, plus a new
+dependency-security pass. All ten prompts (1–12) are now **Done**. Final gate at
+sprint close: tsc node ✓ · tsc web ✓ · `npm run lint` 0 errors / 381 warnings ✓
+· vitest **105 files / 1313 pass + 11 skip** ✓ · smoke:bundle ✓ · smoke:renderer
+✓ · `npm audit` **10 → 1** (the 1 remaining = the deliberate Electron pin).
+Coverage 25.4 / 22.4 / 20.5 / 26.2 % (floors 13 / 12 / 9 / 14). Commit range on
+`claude/repo-audit-repair-qRr3i`: `22813d5` (P1) … (dep-security).
+
+Notable deviations, each documented in its DEVLOG entry: **QUAL-3** keeps
+`resolveModel`'s fallback (throwing would break user custom models) and instead
+warns + adds `isKnownModel`; **SEC-7** found the main-renderer CSP already
+existed (meta tag) so it hardened additively rather than risking a `script-src`
+change; **DEP-security** migrated `@xenova→@huggingface` transformers to clear
+the CRITICAL `protobufjs` chain.
+
 ## Known gaps (carry forward)
 
-- **`npm run lint` is broken at the repo level.** ESLint 10 flat-config migration pending. Predates Prompt 9 and is the audit's DEP-3 family — closes when Prompt 1 lands.
-- **`npm run smoke:renderer` script does not exist yet.** Referenced in the plan's universal gate but never landed; the renderer-side bundle smoke is a carry-forward from the Codex sprint's known gaps. Prompts that change only main-process code can verify via `smoke:bundle` alone; prompts touching the renderer bundle should mention this gap explicitly in their DEVLOG entry.
-- **DNS rebinding gap in `safeFetch`.** Resolved IPs at `assertPublicUrl` are not pinned for the subsequent fetch; a hostile resolver could return a public IP at pre-check time and a private IP at fetch time. v1 closes the direct-literal SSRF case; closing the rebind gap requires resolving once and fetching against the locked-in address with an explicit Host header.
+- ~~`npm run lint` is broken at the repo level.~~ **Resolved.** Flat-config + the
+  pinned eslint trio (DEP-3) landed; `npm run lint` runs clean (0 errors).
+- ~~`npm run smoke:renderer` script does not exist yet.~~ **Resolved.** It exists
+  and is part of the universal gate + the new PR smoke CI job (Prompt 3).
+- **DNS rebinding gap in `safeFetch`.** Resolved IPs at `assertPublicUrl` are not pinned for the subsequent fetch; a hostile resolver could return a public IP at pre-check time and a private IP at fetch time. v1 closes the direct-literal SSRF case; closing the rebind gap requires resolving once and fetching against the locked-in address with an explicit Host header. (Still open — out of scope for this sprint.)
+- **Electron security pin.** `npm audit` shows one HIGH for `electron` (`^35.7.5`, blocked on better-sqlite3 V8 13). Tracked in `CLAUDE.md` with a revisit trigger.
+- **RAG embedding runtime smoke.** The `@huggingface/transformers` migration is validated through install/tsc/build/smoke + the non-network suite; the actual model-download + inference path is network-gated (`skipIf(!runNet)`) and needs a manual real-app ingest smoke.
 
 ## Done — Prompt 12 — CI: macOS smoke + coverage baseline (2026-06-02)
 

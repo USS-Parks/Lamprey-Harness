@@ -317,6 +317,52 @@ const api = {
     }
   },
 
+  // Track 1 / B1+B3 — workflow runner control. `runInline` accepts a
+  // raw script body; `run` fires a named workflow from disk. Progress
+  // events arrive over `workflow:progress`.
+  workflows: {
+    list: () => ipcRenderer.invoke('workflows:list'),
+    runInline: (input: {
+      script: string
+      args?: unknown
+      budgetTotal?: number | null
+      concurrencyCap?: number
+      timeoutMs?: number
+    }) => ipcRenderer.invoke('workflows:runInline', input),
+    run: (input: { name: string; args?: unknown }) =>
+      ipcRenderer.invoke('workflows:run', input),
+    stop: (runId: string) => ipcRenderer.invoke('workflows:stop', runId),
+    onProgress: (listener: (event: unknown) => void): (() => void) => {
+      const wrapped = (_e: unknown, event: unknown): void => listener(event)
+      ipcRenderer.on('workflow:progress', wrapped)
+      return () => ipcRenderer.removeListener('workflow:progress', wrapped)
+    }
+  },
+
+  // Track 1 / A2 — background subagent task tracking. `onNotify` fires
+  // when a background fork completes; E6 (this branch) layers the
+  // async-event-bridge on top so the next user turn sees a synthetic
+  // <task-notifications> block.
+  tasks: {
+    list: (filter?: {
+      status?: 'running' | 'done' | 'error' | 'aborted' | Array<'running' | 'done' | 'error' | 'aborted'>
+      parentConvId?: string | null
+      parentRunId?: string | null
+      background?: boolean
+      limit?: number
+    }) => ipcRenderer.invoke('tasks:list', filter),
+    get: (id: string) => ipcRenderer.invoke('tasks:get', id),
+    output: (id: string) => ipcRenderer.invoke('tasks:output', id),
+    stop: (id: string) => ipcRenderer.invoke('tasks:stop', id),
+    update: (id: string, patch: { label?: string }) =>
+      ipcRenderer.invoke('tasks:update', id, patch),
+    onNotify: (listener: (event: unknown) => void): (() => void) => {
+      const wrapped = (_e: unknown, event: unknown): void => listener(event)
+      ipcRenderer.on('agent:run:notify', wrapped)
+      return () => ipcRenderer.removeListener('agent:run:notify', wrapped)
+    }
+  },
+
   hooks: {
     list: () => ipcRenderer.invoke('hooks:list'),
     create: (input: {

@@ -2485,6 +2485,23 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 
 **Commit:** pending
 
+## [Integration - Prompt H4] Hook editor + skill manager polish - 2026-06-04
+
+**Files changed:** `electron/preload.ts`, `src/components/settings/HooksSettings.tsx`, `src/components/settings/HookTemplatesGallery.tsx`, `src/components/settings/HookTestRunner.tsx`, `src/components/settings/SkillsManager.tsx`, `src/components/settings/SettingsDialog.tsx`, `src/stores/ui-store.ts`
+
+**Verify gate:**
+- tsc node OK
+- tsc web OK
+- smoke-renderer OK against existing `out/` bundle
+- smoke-bundle OK against existing `out/` bundle
+- blocked: `npx vitest run` failed at config load with `spawn EPERM`; escalation was requested and rejected by the app usage limiter.
+- blocked: `npm run build` failed at config load with `spawn EPERM`; not retried with escalation because the same escalation path is currently unavailable.
+- user-verification-needed: launch Electron, open Settings > Hooks, apply each template and confirm a hook is created, run sample payloads and confirm logs/blocking errors appear inline, open Settings > Skills, import a valid markdown skill URL, confirm frontmatter validation/dry-run output, then edit a skill file on disk and confirm hot-reload status increments.
+
+**Notes:** H4 implementation is in place but the prompt remains unchecked until the full vitest/build gate can be run. Hooks now have one-click templates, a timeout slider, and a sample-payload test runner with inline sandbox errors. Settings now has a Skills tab with hot-reload status, URL import, frontmatter validation, prompt dry-run preview, enable/disable, save, and delete.
+
+**Commit:** not committed - verification blocked
+
 ## [Integration — Prompt H2] Workflow command palette + author UX — 2026-06-04
 
 **Files changed:** `electron/ipc/workflows.ts`, `electron/preload.ts`, `electron/services/workflow-library.ts`, `electron/services/workflow-library.test.ts`, `src/App.tsx`, `src/components/workflows/WorkflowPalette.tsx`, `src/components/workflows/WorkflowEditor.tsx`, `src/components/workflows/MetaScaffolder.tsx`, `src/components/workflows/DryRunPanel.tsx`, `src/stores/workflows-store.ts`, `src/stores/ui-store.ts`, `src/hooks/useKeyboardShortcuts.ts`, `PLANNING/LAMPREY_PARITY_PLAN.md`

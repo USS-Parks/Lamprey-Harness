@@ -128,6 +128,30 @@ export interface ChatCompressedPayload {
   reductionPct: number
 }
 
+/** Track 2 / E6 — async event bridge toast. The durable row lives in
+ *  async_events; this live event is just a user-visible nudge that the
+ *  model will see the same item on the next turn. */
+export interface AsyncEventReceivedPayload {
+  id: string
+  conversationId: string
+  kind: string
+  title: string
+  message: string
+  createdAt: number
+}
+
+/** Track 2 / E4 — spawned task chip. Fires when a source conversation
+ *  creates a child task conversation. */
+export interface TaskSpawnedPayload {
+  taskId: string
+  sourceConversationId: string
+  conversationId: string
+  title: string
+  tldr: string | null
+  worktreePath: string | null
+  branch: string | null
+}
+
 export interface ChatEventMap {
   'chat:chunk': ChatChunkPayload
   'chat:done': ChatDonePayload
@@ -139,6 +163,8 @@ export interface ChatEventMap {
   'plan:mode-changed': PlanModeChangedPayload
   'chat:chapter-marked': ChapterMarkedPayload
   'chat:compressed': ChatCompressedPayload
+  'async-event:received': AsyncEventReceivedPayload
+  'tasks:spawned': TaskSpawnedPayload
   'memory:added': MemoryAddedPayload
   'agent:status': AgentStatusPayload
 }

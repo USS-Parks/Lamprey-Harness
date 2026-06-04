@@ -311,6 +311,26 @@ function initSchema(db: Database.Database): void {
   // compressed messages and inserts the summary in their place.
   safeAddColumn(db, 'messages', 'compressed_into TEXT')
 
+  // Track 2 / E6 — async events that should be visible to the model on
+  // the owning conversation's next turn. Producers enqueue rows when
+  // background work completes; chat.ts drains pending rows exactly once
+  // into a <task-notifications> block during prompt assembly.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS async_events (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      delivered_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_async_events_pending
+      ON async_events(conversation_id, delivered_at, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_async_events_kind
+      ON async_events(kind, created_at DESC);
+  `)
+
   // Parent call id — set on synthetic rows spawned from another tool (e.g.
   // sub-agent calls under `multi_agent_run`). Null for top-level
   // model-initiated calls. Lets the audit log answer "which fanout was this

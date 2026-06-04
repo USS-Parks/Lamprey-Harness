@@ -21,6 +21,10 @@ import {
   compressOldestMessages,
   getEffectiveMessages
 } from '../services/context-compressor'
+import {
+  buildTaskNotificationsBlock,
+  drainAsyncEventsForPrompt
+} from '../services/async-event-bridge'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
 import { readAgentsMd } from '../services/agents-md-loader'
@@ -221,6 +225,9 @@ export function registerChatHandlers(): void {
       // hidden, summary inserted in their place) for the OpenAI API.
       const promptHistory = getEffectiveMessages(conversationId)
       const memoryBlock = memStore.buildMemoryBlock()
+      const taskNotificationsBlock = buildTaskNotificationsBlock(
+        drainAsyncEventsForPrompt(conversationId)
+      )
 
       const settingsRaw = readSettingsJson()
       const agentic = loadAgenticCodingConfig(settingsRaw)
@@ -259,7 +266,8 @@ export function registerChatHandlers(): void {
         // When mode is on, layer the coding role fragment on top of the base
         // contract. When off, leave contractRole undefined so existing turn
         // shapes match pre-Prompt-14.
-        agentic.mode ? 'coding' : undefined
+        agentic.mode ? 'coding' : undefined,
+        taskNotificationsBlock
       )
 
       // Tools come from the unified registry — natives (memory_add today) plus
@@ -314,7 +322,8 @@ export function registerChatHandlers(): void {
           coderSystemOverride,
           agentsMd,
           coderRoster.coder,
-          'coding'
+          'coding',
+          taskNotificationsBlock
         )
         const priorWithoutLatestUser = apiMessages.filter(
           (m, idx) => idx !== 0 // drop the system entry; pipeline owns it

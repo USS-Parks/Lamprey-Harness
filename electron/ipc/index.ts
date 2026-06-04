@@ -34,6 +34,7 @@ import { registerSlashHandlers } from './slash'
 import { registerChaptersHandlers } from './chapters'
 import { registerTasksHandlers } from './tasks'
 import { registerWorkflowsHandlers } from './workflows'
+import { registerAsyncEventHandlers } from './async-events'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -67,4 +68,5 @@ export function registerAllIpcHandlers(): void {
   registerChaptersHandlers()
   registerTasksHandlers()
   registerWorkflowsHandlers()
+  registerAsyncEventHandlers()
 }

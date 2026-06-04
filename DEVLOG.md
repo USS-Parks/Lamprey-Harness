@@ -1,5 +1,45 @@
 # Lamprey Harness Dev Log
 
+## [Audit Remediation — Prompt 7] Main-process correctness — 2026-06-04
+
+Closes BUG-3, BUG-5, QUAL-2; QUAL-3 closed with a documented deviation.
+
+- **BUG-3** (`hooks-runner.ts`) — the fire-and-forget shell-hook path spawned
+  with `stdio: ['ignore','pipe','pipe']` but never read the pipes; a hook
+  emitting >~64 KB fills the buffer and the child hangs forever. Now
+  `stdio: 'ignore'`. Extracted `buildShellHookSpawnOptions(env, cwd)` (pure,
+  exported) so the option shape is unit-testable.
+- **BUG-5** (`mcp-manager.ts`) — a corrupt `mcp-servers.json` was silently
+  overwritten by an empty `catch {}`, losing the user's servers. Now: log the
+  parse error with the path, rename the corrupt file to a timestamped
+  `.bak-<ms>` sidecar (never delete), and validate the parsed *shape*
+  (`isValidConfigShape`: an array of entries each with a string `id` and an
+  `sse`/`stdio` transport) — a valid-JSON-but-wrong-shape file gets the same
+  backup-and-regenerate treatment.
+- **QUAL-2** (`chat.ts`) — dropped the three `as any` casts (the `summarizeRun`
+  call + the assistant and tool message pushes). `persistedToolCalls` already
+  matches OpenAI's tool-call shape and `ChatCompletionMessageParam[]` is
+  structurally assignable to `summarizeRun`'s `RunSummaryMessage[]`, so the
+  casts only hid that. Lint `no-explicit-any` warnings: 384 → 381.
+- **QUAL-3** (`registry.ts`) — **deviation from the plan, by design.** The plan
+  said make `resolveModel` *throw* on unknown ids. But the unknown-id fallback
+  is load-bearing: user-defined "custom models" (settings.json `customModels`,
+  surfaced via `model:list`) are not in `MODEL_CATALOG` and reach chat
+  exclusively through this fallback — throwing would break that feature, and
+  `resolveModel` (provider layer) can't tell a custom id from a typo. Instead:
+  the fallback now `console.warn`s (so a silent typo→DeepSeek misroute is
+  observable), and a new exported `isKnownModel(id)` lets strict callers (e.g.
+  agent-roster validation, which already does a direct catalog lookup) reject
+  unknowns without breaking custom models.
+
+Tests: hooks-runner (+1 spawn-option shape), mcp-manager (+4 isValidConfigShape),
+registry (+3 isKnownModel / resolveModel-fallback-warns).
+
+Verify: tsc node ✓ · tsc web ✓ · lint 0 errors / 381 warnings (−3) ✓ ·
+vitest 1309 pass + 11 skip (+8) ✓ · smoke:bundle ✓ · smoke:renderer ✓.
+
+---
+
 ## [Audit Remediation — Prompt 6] Renderer privilege hardening — 2026-06-04
 
 Closes SEC-1, SEC-7.

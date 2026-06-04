@@ -169,16 +169,22 @@ function buildShellEnv(event: HookEvent, ctx: HookContext): NodeJS.ProcessEnv {
 // `language` column (migrated to 'shell' via database.ts). New rows from
 // the UI are always 'js' and run through `runJsHook`. Never blocks; logs
 // go to stderr.
+// BUG-3: this path is fire-and-forget — nothing ever reads the child's
+// stdout/stderr. With `stdio: ['ignore','pipe','pipe']` an unread pipe fills
+// at ~64 KB and the child blocks on its next write forever (a hung zombie).
+// `stdio: 'ignore'` routes the child's output to the OS null sink so it can
+// never back-pressure. Exported pure for unit testing.
+export function buildShellHookSpawnOptions(
+  env: NodeJS.ProcessEnv,
+  cwd: string
+): { shell: true; env: NodeJS.ProcessEnv; cwd: string; windowsHide: true; stdio: 'ignore' } {
+  return { shell: true, env, cwd, windowsHide: true, stdio: 'ignore' }
+}
+
 function runShellHook(hook: Hook, event: HookEvent, ctx: HookContext): void {
   try {
     const env = buildShellEnv(event, ctx)
-    const proc = spawn(hook.command, {
-      shell: true,
-      env,
-      cwd: ctx.cwd || process.cwd(),
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
+    const proc = spawn(hook.command, buildShellHookSpawnOptions(env, ctx.cwd || process.cwd()))
     proc.on('error', (err) => {
       console.error(`[hook ${event}:${hook.label}] error:`, err.message)
     })

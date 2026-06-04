@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, renameSync } from 'fs'
 import { join } from 'path'
 import * as keychain from './keychain'
 
@@ -81,20 +81,61 @@ function getDefaultConfigs(): McpServerConfig[] {
   ]
 }
 
+// BUG-5: the loaded config must be an array of server entries each carrying a
+// string id and a known transport. Anything else (a JSON object, a number, an
+// array of junk) is treated as corrupt rather than trusted. Exported pure for
+// unit tests.
+export function isValidConfigShape(parsed: unknown): parsed is McpServerConfig[] {
+  if (!Array.isArray(parsed)) return false
+  return parsed.every(
+    (c) =>
+      !!c &&
+      typeof c === 'object' &&
+      typeof (c as McpServerConfig).id === 'string' &&
+      ((c as McpServerConfig).transport === 'sse' || (c as McpServerConfig).transport === 'stdio')
+  )
+}
+
+function writeDefaults(configPath: string): McpServerConfig[] {
+  const defaults = getDefaultConfigs()
+  writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8')
+  return defaults
+}
+
+// BUG-5: never silently delete the user's config. Rename the corrupt file to a
+// timestamped `.bak-<ms>` sidecar so it can be recovered/inspected, then let
+// the caller regenerate defaults.
+function backupCorruptConfig(configPath: string): void {
+  try {
+    const backup = `${configPath}.bak-${Date.now()}`
+    renameSync(configPath, backup)
+    console.warn(`[mcp] corrupt mcp-servers.json preserved at ${backup}`)
+  } catch (err) {
+    console.error('[mcp] failed to back up corrupt mcp-servers.json:', (err as Error).message)
+  }
+}
+
 function loadConfigs(): McpServerConfig[] {
   const configPath = getConfigPath()
   if (!existsSync(configPath)) {
-    const defaults = getDefaultConfigs()
-    writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8')
-    return defaults
+    return writeDefaults(configPath)
   }
+  let parsed: unknown
   try {
-    return JSON.parse(readFileSync(configPath, 'utf-8'))
-  } catch {
-    const defaults = getDefaultConfigs()
-    writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8')
-    return defaults
+    parsed = JSON.parse(readFileSync(configPath, 'utf-8'))
+  } catch (err) {
+    console.error(`[mcp] mcp-servers.json failed to parse (${configPath}):`, (err as Error).message)
+    backupCorruptConfig(configPath)
+    return writeDefaults(configPath)
   }
+  if (!isValidConfigShape(parsed)) {
+    console.error(
+      `[mcp] mcp-servers.json has an unexpected shape (${configPath}); backing up and regenerating defaults`
+    )
+    backupCorruptConfig(configPath)
+    return writeDefaults(configPath)
+  }
+  return parsed
 }
 
 function saveConfigs(configs: McpServerConfig[]): void {

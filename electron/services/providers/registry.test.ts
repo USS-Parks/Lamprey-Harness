@@ -15,7 +15,7 @@ vi.mock('openai', () => ({
 // getClientForProvider throws without a key; give it one.
 vi.mock('../keychain', () => ({ getKey: () => 'test-key' }))
 
-import { chatStream, resetProviderClients } from './registry'
+import { chatStream, isKnownModel, resetProviderClients, resolveModel } from './registry'
 
 function contentChunk(text: string) {
   return { choices: [{ delta: { content: text } }] }
@@ -77,5 +77,30 @@ describe('chatStream retry — BUG-1 (per-attempt accumulators)', () => {
     })
     expect(mockCreate).toHaveBeenCalledTimes(1)
     expect(onDone).toHaveBeenCalledWith('all good', undefined)
+  })
+})
+
+describe('resolveModel / isKnownModel — QUAL-3', () => {
+  it('isKnownModel is true for a catalog id, false for an unknown id', () => {
+    expect(isKnownModel('deepseek-v4-pro')).toBe(true)
+    expect(isKnownModel('totally-made-up-model')).toBe(false)
+  })
+
+  it('resolveModel returns the catalog descriptor for a known id', () => {
+    const d = resolveModel('deepseek-v4-pro')
+    expect(d.id).toBe('deepseek-v4-pro')
+    expect(d.provider).toBe('deepseek')
+  })
+
+  it('resolveModel still returns a fallback descriptor for an unknown id (custom-model support) and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const d = resolveModel('my-custom-endpoint')
+    // Does NOT throw — custom models depend on this fallback path.
+    expect(d.id).toBe('my-custom-endpoint')
+    expect(d.apiModelId).toBe('my-custom-endpoint')
+    expect(d.provider).toBe('deepseek')
+    // But the silent-typo risk is now observable.
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
 })

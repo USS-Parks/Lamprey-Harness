@@ -313,10 +313,28 @@ function getClientForProvider(provider: ProviderId): OpenAI {
   return client
 }
 
+// QUAL-3: is `modelId` a built-in catalog model? Strict callers (e.g. agent
+// roster validation) use this to reject unknown ids up front instead of
+// trusting resolveModel's permissive fallback.
+export function isKnownModel(modelId: string): boolean {
+  return MODEL_CATALOG.some((m) => m.id === modelId)
+}
+
 export function resolveModel(modelId: string): ModelDescriptor {
   const found = MODEL_CATALOG.find((m) => m.id === modelId)
   if (found) return found
-  // Unknown model id — assume DeepSeek, OpenAI-compatible.
+  // QUAL-3: unknown id. We do NOT throw here — user-defined "custom models"
+  // (settings.json `customModels`, surfaced via model:list) are not in
+  // MODEL_CATALOG and reach chat exclusively through this fallback, so a
+  // throw would break that feature. But a *typo* is indistinguishable from a
+  // custom id at this layer, and silently routing it to DeepSeek/64K masks the
+  // mistake — so we log it. Callers that must reject unknowns should gate on
+  // `isKnownModel` first.
+  console.warn(
+    `[providers] resolveModel: unknown model id "${modelId}" — using a generic ` +
+      `DeepSeek-compatible descriptor (64K, tools). If this is not a configured ` +
+      `custom model, it is likely a typo and will route to DeepSeek.`
+  )
   return {
     id: modelId,
     name: modelId,

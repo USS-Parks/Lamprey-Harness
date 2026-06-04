@@ -12,7 +12,7 @@ vi.mock('./keychain', () => ({
   deleteKey: vi.fn()
 }))
 
-import { mcpManager } from './mcp-manager'
+import { mcpManager, isValidConfigShape } from './mcp-manager'
 
 // MAX_RESTARTS is a module-private constant (= 3). Mirror it here.
 const MAX_RESTARTS = 3
@@ -103,5 +103,32 @@ describe('scheduleStdioRestart — BUG-2 (single reconnect on crash)', () => {
     mgr.scheduleStdioRestart(state)
     await flush()
     expect(connectSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('isValidConfigShape — BUG-5 (corrupt-config detection)', () => {
+  it('accepts a well-formed array of server configs', () => {
+    expect(
+      isValidConfigShape([
+        { id: 'a', name: 'A', transport: 'sse', url: 'https://x/sse', auth: 'none', enabled: true },
+        { id: 'b', name: 'B', transport: 'stdio', command: 'node', auth: 'none', enabled: false }
+      ])
+    ).toBe(true)
+  })
+
+  it('accepts an empty array', () => {
+    expect(isValidConfigShape([])).toBe(true)
+  })
+
+  it('rejects a non-array (e.g. an object) — would have been trusted before', () => {
+    expect(isValidConfigShape({ servers: [] })).toBe(false)
+    expect(isValidConfigShape(null)).toBe(false)
+    expect(isValidConfigShape('nope')).toBe(false)
+  })
+
+  it('rejects an array whose entries lack id or a known transport', () => {
+    expect(isValidConfigShape([{ name: 'no id', transport: 'stdio' }])).toBe(false)
+    expect(isValidConfigShape([{ id: 'x', transport: 'carrier-pigeon' }])).toBe(false)
+    expect(isValidConfigShape(['just a string'])).toBe(false)
   })
 })

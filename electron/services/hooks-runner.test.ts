@@ -251,3 +251,16 @@ describe('hooks-runner / fireHooks (uses mocked listHooksForEvent)', () => {
     expect(r.logs).toHaveLength(0)
   })
 })
+
+describe('buildShellHookSpawnOptions — BUG-3 (no pipe-buffer hang)', () => {
+  it('uses stdio:"ignore" so an undrained child cannot back-pressure', async () => {
+    const { buildShellHookSpawnOptions } = await import('./hooks-runner')
+    const opts = buildShellHookSpawnOptions({ FOO: 'bar' }, '/tmp/proj')
+    // The fix: NOT ['ignore','pipe','pipe'] (which fills + hangs >64KB).
+    expect(opts.stdio).toBe('ignore')
+    expect(opts.shell).toBe(true)
+    expect(opts.windowsHide).toBe(true)
+    expect(opts.cwd).toBe('/tmp/proj')
+    expect(opts.env.FOO).toBe('bar')
+  })
+})

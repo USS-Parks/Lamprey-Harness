@@ -33,6 +33,7 @@ import { beforeEach } from 'vitest'
 
 beforeEach(() => __resetLiveHandlesForTests())
 import { BUILT_IN_SUBAGENT_TYPES, type SubagentTypeDef } from './subagent-types'
+import type { WorktreeManager, FinalizeResult, WorktreeContext } from './worktree-runner'
 
 // -- Helpers --------------------------------------------------------------
 
@@ -537,5 +538,176 @@ describe('forkAgent — A2 background lifecycle (store + notify + live-handle)',
     const result = await handle.promise
     expect(result.output).toBe('ok')
     // No assertions beyond "didn't throw" — the absence of fixtures is the test.
+  })
+})
+
+// -- forkAgent — A3: worktree isolation ----------------------------------
+
+function makeStubWorktreeManager(
+  finalize: (ctx: WorktreeContext) => FinalizeResult = (ctx) => ({
+    keep: false,
+    hasChanges: false,
+    path: ctx.path,
+    branch: ctx.branch,
+    removed: true
+  })
+): { manager: WorktreeManager; createCalls: string[]; finalizeCalls: WorktreeContext[] } {
+  const createCalls: string[] = []
+  const finalizeCalls: WorktreeContext[] = []
+  const manager: WorktreeManager = {
+    create: async (runId) => {
+      createCalls.push(runId)
+      return { path: `/wt/${runId}`, branch: `lamprey-agent/${runId}` }
+    },
+    finalize: async (ctx) => {
+      finalizeCalls.push(ctx)
+      return finalize(ctx)
+    }
+  }
+  return { manager, createCalls, finalizeCalls }
+}
+
+describe('forkAgent — A3 worktree isolation', () => {
+  it('passes worktreePath into the runner when isolation is set', async () => {
+    let seenWtPath: string | undefined
+    const runner: ForkAgentRunner = async (input) => {
+      seenWtPath = input.worktreePath
+      return 'ok'
+    }
+    const { manager, createCalls } = makeStubWorktreeManager()
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', isolation: 'worktree' },
+      makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })
+    )
+    await handle.promise
+    expect(createCalls).toEqual([handle.runId])
+    expect(seenWtPath).toBe(`/wt/${handle.runId}`)
+  })
+
+  it('calls finalize after the runner resolves', async () => {
+    const runner: ForkAgentRunner = async () => 'ok'
+    const { manager, finalizeCalls } = makeStubWorktreeManager()
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', isolation: 'worktree' },
+      makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })
+    )
+    await handle.promise
+    expect(finalizeCalls).toHaveLength(1)
+    expect(finalizeCalls[0]).toEqual({
+      path: `/wt/${handle.runId}`,
+      branch: `lamprey-agent/${handle.runId}`
+    })
+  })
+
+  it('"no-op agent" (finalize.keep=false) → finishRun gets no worktreePath', async () => {
+    const { store, finishes } = makeMemStore()
+    const runner: ForkAgentRunner = async () => 'ok'
+    const { manager } = makeStubWorktreeManager()
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', isolation: 'worktree' },
+      makeDeps({
+        runner,
+        loadType: builtinResolver(),
+        worktreeManager: manager,
+        agentRunStore: store
+      })
+    )
+    await handle.promise
+    expect(finishes).toHaveLength(1)
+    expect((finishes[0] as { worktreePath: string | null }).worktreePath).toBeNull()
+  })
+
+  it('"file-touching agent" (finalize.keep=true) → finishRun records the path', async () => {
+    const { store, finishes } = makeMemStore()
+    const runner: ForkAgentRunner = async () => 'wrote src/foo.ts'
+    const { manager } = makeStubWorktreeManager((ctx) => ({
+      keep: true,
+      hasChanges: true,
+      path: ctx.path,
+      branch: ctx.branch,
+      removed: false
+    }))
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'general', isolation: 'worktree' },
+      makeDeps({
+        runner,
+        loadType: builtinResolver(),
+        worktreeManager: manager,
+        agentRunStore: store
+      })
+    )
+    await handle.promise
+    expect((finishes[0] as { worktreePath: string }).worktreePath).toBe(`/wt/${handle.runId}`)
+  })
+
+  it('three parallel forks with isolation produce three disjoint worktree paths', async () => {
+    const runner: ForkAgentRunner = async () => 'ok'
+    const { manager, createCalls } = makeStubWorktreeManager()
+    const handles = [
+      forkAgent({ prompt: '1', agentType: 'Explore', isolation: 'worktree' }, makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })),
+      forkAgent({ prompt: '2', agentType: 'Explore', isolation: 'worktree' }, makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })),
+      forkAgent({ prompt: '3', agentType: 'Explore', isolation: 'worktree' }, makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager }))
+    ]
+    await Promise.all(handles.map((h) => h.promise))
+    expect(new Set(createCalls).size).toBe(3)
+    // RunIds are unique → paths are unique.
+    const handleIds = handles.map((h) => h.runId)
+    expect(new Set(handleIds).size).toBe(3)
+  })
+
+  it('finalize runs after runner failure too (and preserves changes if any)', async () => {
+    const { store, finishes } = makeMemStore()
+    const runner: ForkAgentRunner = async () => {
+      throw new Error('boom')
+    }
+    const { manager, finalizeCalls } = makeStubWorktreeManager((ctx) => ({
+      keep: true,
+      hasChanges: true,
+      path: ctx.path,
+      branch: ctx.branch,
+      removed: false
+    }))
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', isolation: 'worktree' },
+      makeDeps({
+        runner,
+        loadType: builtinResolver(),
+        worktreeManager: manager,
+        agentRunStore: store
+      })
+    )
+    await expect(handle.promise).rejects.toThrow('boom')
+    expect(finalizeCalls).toHaveLength(1)
+    expect((finishes[0] as { status: string; worktreePath: string }).status).toBe('error')
+    // Worktree had changes — preserve and stamp.
+    expect((finishes[0] as { worktreePath: string }).worktreePath).toBe(`/wt/${handle.runId}`)
+  })
+
+  it('rejects with config error when isolation is set but no worktreeManager is injected', async () => {
+    const { store, finishes } = makeMemStore()
+    const runner: ForkAgentRunner = async () => 'never'
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', isolation: 'worktree' },
+      makeDeps({ runner, loadType: builtinResolver(), agentRunStore: store })
+    )
+    await expect(handle.promise).rejects.toThrow(/worktreeManager/)
+    // Error path still writes to the store.
+    expect((finishes[0] as { status: string }).status).toBe('error')
+  })
+
+  it('skips worktree wiring entirely when isolation is not set', async () => {
+    const runner: ForkAgentRunner = async (input) => {
+      // worktreePath should be undefined for plain forks.
+      expect(input.worktreePath).toBeUndefined()
+      return 'ok'
+    }
+    const { manager, createCalls, finalizeCalls } = makeStubWorktreeManager()
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore' /* no isolation */ },
+      makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })
+    )
+    await handle.promise
+    expect(createCalls).toEqual([])
+    expect(finalizeCalls).toEqual([])
   })
 })

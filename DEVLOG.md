@@ -1,5 +1,30 @@
 # Lamprey Harness Dev Log
 
+## [Track 1 — Prompt A3] Worktree-isolated subagent runs — 2026-06-03
+
+**Files changed:**
+- `electron/services/worktree-runner.ts` (new) — `createAgentWorktreeManager({baseCwd, workspacesRoot, baseRef?, runGit?})` factory returning a `WorktreeManager` with `create(runId)` + `finalize(ctx)`. Branch grammar is conservative `lamprey-agent/<safe-runId>` so it passes every `isValidRefName` check in the codebase; path is `<workspacesRoot>/<safe-runId>`; both invariants are exported as pure helpers (`branchNameForRun`, `worktreePathForRun`, `hasUncommittedChanges`) so tests verify them without spawning git. `finalize` runs `git status --porcelain` against the worktree — empty stdout → `git worktree remove --force` + `git branch -D` and report `keep:false, removed:true`; non-empty → preserve and report `keep:true, hasChanges:true`. Failure modes are graceful: status-failure falls back to keep + warning; remove-failure keeps the wt + warns; branch-delete failure reports removed:true with a warning (worktree IS gone — just leaks the branch).
+- `electron/services/subagent-runner.ts` — extended `ForkAgentDeps` with `worktreeManager?: WorktreeManager`. When `opts.isolation === 'worktree'`: (1) creates the wt INSIDE the main try so creation failure routes through standard `finishRun(error)`/`notify(error)` and never leaves a stuck-running row; (2) passes `worktreePath` to the runner via `runnerInput.worktreePath` so shell/edit tools scope to it; (3) calls `finalize(ctx)` on BOTH the success and failure paths; (4) stamps `worktreePath` onto the `finishRun` only when `finalize.keep === true`. When `opts.isolation` is unset, the manager is never touched and `runnerInput.worktreePath` stays undefined.
+- `electron/services/worktree-runner.test.ts` (new) — 13 tests over the pure helpers and the manager: `branchNameForRun` namespacing + dangerous-char strip, `hasUncommittedChanges` whitespace tolerance, `create` argv shape + error propagation + 3-parallel disjointness, `finalize` clean-tree removal, non-empty preservation, status-failure fallback, branch-delete-failure warning, remove-failure preservation, and constructor validation (missing baseCwd, non-absolute workspacesRoot).
+- `electron/services/subagent-runner.test.ts` — added "A3 worktree isolation" describe block (8 tests): runner receives `worktreePath`; finalize is called after runner; no-op agent (`finalize.keep=false`) → finishRun's `worktreePath` is null; file-touching agent (`finalize.keep=true`) → finishRun stamps the path; 3 parallel forks produce 3 disjoint paths; finalize runs after runner failure too AND preserves changes; config error when `isolation` is set but no manager is injected (still writes status:'error' to the store); plain (non-isolation) fork doesn't touch the manager.
+
+**Verify gate:**
+- `tsc --noEmit -p tsconfig.node.json` ✓
+- `tsc --noEmit -p tsconfig.web.json` ✓
+- `vitest run` ✓ — **912 passed, 5 skipped** (was 889 after A2 → +23 net, 0 regressions)
+- Verify-gate bullets covered:
+  - 3 parallel forks with `isolation` → 3 disjoint worktrees ✓ (worktree-runner.test "three parallel create() calls produce three disjoint worktree paths" + subagent-runner.test "three parallel forks with isolation produce three disjoint worktree paths")
+  - no-op agent → auto-cleaned ✓ (subagent-runner.test "no-op agent (finalize.keep=false) → finishRun gets no worktreePath")
+  - file-touching agent → path surfaces in `agent_runs` ✓ (subagent-runner.test "file-touching agent (finalize.keep=true) → finishRun records the path"). **Plan-wording note:** the plan says "path surfaces in `agent_runs.result_text`" but the structured column is `worktree_path`; I stamp the path there because (a) it's the dedicated column, (b) corrupting `result_text` with a synthetic suffix would mangle the agent's clean output. Either interpretation is satisfied: the path is queryable from the row.
+- **user-verification-needed**: real `git worktree add` against the Lamprey repo from a running Electron build. The runGit shim is exercised in unit tests; the real spawn path is exercised at runtime. Worktrees land in `userData/worktrees/<runId>` by production wiring (which Track 2's chat dispatcher will provide when it injects deps).
+
+**Notes:**
+- The `worktreeManager` is DI'd, not module-global, so multi-agent-run-tool's internal forks never get worktrees (they pass no manager). Production chat dispatcher wires the manager once per session with `baseCwd: workspacePath, workspacesRoot: app.getPath('userData') + '/worktrees'`.
+- Worktree creation lives INSIDE the main try after I caught a real bug mid-implementation: my first cut had it outside, which meant a failed `git worktree add` would leave the `agent_runs` row stuck in `'running'` forever (no `finishRun(error)`, no `notify(error)`). Moving it inside the try made the failure route through the standard error path.
+- A1's `runnerInput.worktreePath` field — accepted but unused in A1 — is now populated.
+
+**Commit:** see `git log --grep "A3 worktree-isolated"`.
+
 ## [Track 1 — Prompt A2] Background agents + async notifications — 2026-06-03
 
 **Files changed:**

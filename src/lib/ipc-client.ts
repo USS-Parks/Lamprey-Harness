@@ -262,6 +262,21 @@ export const loops = {
   onFired: (cb: (event: unknown) => void): (() => void) => api.loops.onFired(cb)
 }
 
+export const notifications = {
+  push: (input: { title: string; body: string; deepLink?: string | null }): Promise<IpcResponse<unknown>> =>
+    api.notifications.push(input),
+  onClicked: (cb: (event: unknown) => void): (() => void) => api.notifications.onClicked(cb)
+}
+
+export const sessionsMessaging = {
+  sendMessage: (input: {
+    targetSessionId: string
+    body: string
+    fromSessionId?: string | null
+  }): Promise<IpcResponse<unknown>> => api.sessionsMessaging.sendMessage(input),
+  onIncoming: (cb: (event: unknown) => void): (() => void) => api.sessionsMessaging.onIncoming(cb)
+}
+
 export const artifact = {
   render: (type: ArtifactType, content: string): Promise<IpcResponse<void>> =>
     api.artifact.render(type, content),

@@ -739,6 +739,27 @@ All 8 prompts (A1 → A2 → A3 → B1 → B2 → B3 → B4 → B5) committed on
 
 **Commit:** see git log on `codex-t3-final-four`.
 
+## [Track 3 — Prompt G4] Push notifications + cross-session messaging — 2026-06-03
+
+**Files changed:**
+- `electron/services/notifications-service.ts` (new) — wraps Electron `Notification`, no-ops gracefully when unsupported, and emits a renderer click event carrying `deepLink`.
+- `electron/ipc/notifications.ts` (new), `electron/preload.ts`, `src/lib/ipc-client.ts`, `src/App.tsx` — added `notifications:push` plus click handling for `conversation:<id>` / `lamprey://conversation/<id>` deep links.
+- `electron/services/cross-session-messaging.ts` (new) — lists active sessions and sends messages by enqueuing Track 2 `async_events` rows with kind `sessions:incoming-message`.
+- `electron/ipc/sessions-messaging.ts` (new), `electron/ipc/index.ts`, `electron/preload.ts`, `src/lib/ipc-client.ts`, `src/App.tsx` — added `sessions:list-active`, `sessions-messaging:sendMessage`, and an incoming-message toast.
+- `electron/services/notifications-tool-pack.ts` (new), `electron/services/tool-packs.ts` — registered `push_notification` and `send_to_session`.
+- `electron/services/cross-session-messaging.test.ts` (new) — verifies active-session listing and async-event enqueue integration.
+- `PLANNING/LAMPREY_PARITY_PLAN.md` — marked G4 complete.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `electron/services/cross-session-messaging.test.ts electron/services/async-event-bridge.test.ts` ✓ (5 tests)
+- manual smoke: user-verification-needed: OS notification click/deep-link behavior needs the Electron shell running with desktop notifications enabled
+
+**Notes:** Cross-session delivery now uses the real Track 2 async-event bridge on main; no duplicate task-notification drain path is carried.
+
+**Commit:** see git log on `codex-t3-final-four`.
+
 ## [Track 3 — Prompt F4] Monitor primitive + background shell — 2026-06-03
 
 **Files changed:**

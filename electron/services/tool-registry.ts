@@ -19,6 +19,11 @@ import {
   type ShellArgs
 } from './shell-tool'
 import type { AuditStatus } from './tool-result-status'
+import {
+  computeToolTags,
+  parseSelectQuery,
+  searchDescriptors as searchDescriptorsByQuery
+} from './tool-search'
 
 // Types are duplicated between main and renderer the same way mcp-manager.ts
 // keeps its own McpTool/McpServerConfig — the two tsconfig roots can't reach
@@ -61,7 +66,45 @@ export interface LampreyToolDescriptor {
    * badge; this flag only suppresses the dispatch-time modal.
    */
   selfApproves?: boolean
+  /**
+   * Derived tag list computed from `providerKind`, `risks`, `requiresApproval`,
+   * `parallelizable`, and `lazy`. Used by `tools:search` for keyword ranking
+   * and by the renderer for filter chips. See `tool-search.ts` for the
+   * taxonomy. Always populated on the registry's output (`getDescriptors`,
+   * `getStubs`, `getById`) — registration sites may omit it via
+   * `LampreyToolRegistration`.
+   */
+  tags: string[]
+  /**
+   * True when the input schema is sourced from an external provider (MCP
+   * server, future plugin host) rather than statically defined in code.
+   * The schema is still embedded on this descriptor in main; `lazy` is a
+   * hint that `tools:list` may omit the schema from its IPC payload and
+   * clients should call `tools:resolve` / `tools:search` to get the full
+   * `inputSchema`. Native tools default to `false`; MCP tools default to
+   * `true`.
+   */
+  lazy: boolean
 }
+
+/**
+ * Stub shape returned by `tools:list`. Identical to `LampreyToolDescriptor`
+ * minus `inputSchema`. The renderer holds stubs by default and pulls full
+ * descriptors via `tools:resolve(names[])` or `tools:search({ query })` —
+ * a 100-tool MCP catalog shrinks its IPC payload from ~50KB to ~5KB this way.
+ */
+export type LampreyToolStub = Omit<LampreyToolDescriptor, 'inputSchema'>
+
+/**
+ * Registration input shape. `tags` and `lazy` are optional here so existing
+ * registration sites do not need to repeat the derived fields; the registry
+ * normalizes them on insert. Every other field stays required as before.
+ */
+export type LampreyToolRegistration =
+  Omit<LampreyToolDescriptor, 'tags' | 'lazy'> & {
+    tags?: string[]
+    lazy?: boolean
+  }
 
 /**
  * Returns true when a tool call may run concurrently with other tool calls
@@ -198,12 +241,31 @@ class ToolRegistry {
   private natives = new Map<string, LampreyToolDescriptor>()
   private nativeHandlers = new Map<string, NativeToolHandler>()
 
-  registerNative(descriptor: LampreyToolDescriptor, handler?: NativeToolHandler): void {
-    if (descriptor.providerKind !== 'native') {
+  registerNative(
+    input: LampreyToolRegistration,
+    handler?: NativeToolHandler
+  ): void {
+    if (input.providerKind !== 'native') {
       throw new Error(
-        `registerNative: refusing to register descriptor with providerKind="${descriptor.providerKind}"`
+        `registerNative: refusing to register descriptor with providerKind="${input.providerKind}"`
       )
     }
+    // Normalize derived fields (tags, lazy) at insert time so reads never
+    // need to recompute them. Native tools default to lazy: false — their
+    // schemas are inlined at registration. Callers can override either
+    // field explicitly (e.g. a native tool that wraps a deferred remote
+    // catalogue can set lazy: true).
+    const lazy = input.lazy ?? false
+    const tags =
+      input.tags ??
+      computeToolTags({
+        providerKind: input.providerKind,
+        risks: input.risks,
+        requiresApproval: input.requiresApproval,
+        parallelizable: input.parallelizable,
+        lazy
+      })
+    const descriptor: LampreyToolDescriptor = { ...input, tags, lazy }
     this.natives.set(descriptor.id, descriptor)
     if (handler) this.nativeHandlers.set(descriptor.id, handler)
   }
@@ -225,6 +287,11 @@ class ToolRegistry {
   /**
    * Currently visible descriptors, in stable order:
    *   natives (insertion order) → MCP (server id, then tool name).
+   *
+   * Each descriptor carries the full `inputSchema`. For the renderer-facing
+   * stub list (no schemas), see `getStubs()`. Chat dispatch always uses
+   * `getDescriptors()` / `getOpenAITools()` so the model still receives
+   * every tool's schema.
    */
   getDescriptors(): LampreyToolDescriptor[] {
     const list: LampreyToolDescriptor[] = []
@@ -242,6 +309,14 @@ class ToolRegistry {
         const risks: ToolRisk[] = isDestructive
           ? ['destructive', 'write', 'network']
           : ['network']
+        const lazy = true
+        const tags = computeToolTags({
+          providerKind: 'mcp',
+          risks,
+          requiresApproval: isDestructive,
+          parallelizable: false,
+          lazy
+        })
         list.push({
           id,
           name: id,
@@ -253,12 +328,62 @@ class ToolRegistry {
             (tool.inputSchema as unknown) || { type: 'object', properties: {} },
           risks,
           requiresApproval: isDestructive,
-          enabled: true
+          enabled: true,
+          tags,
+          lazy
         })
       }
     }
 
     return list
+  }
+
+  /**
+   * Renderer-facing stub list. Identical to `getDescriptors()` minus the
+   * `inputSchema` field. Backs `tools:list`. Use `resolveByName()` or
+   * `search()` to expand stubs to full descriptors.
+   */
+  getStubs(): LampreyToolStub[] {
+    return this.getDescriptors().map((d) => {
+      // Strip inputSchema cleanly so renderer-side JSON.stringify doesn't
+      // accidentally include `undefined` properties.
+      const {
+        inputSchema: _omit,
+        ...stub
+      } = d
+      void _omit
+      return stub
+    })
+  }
+
+  /**
+   * Resolve one or more tool names to their full descriptors. Names that
+   * don't match are silently dropped — the renderer should compare the
+   * returned list against its request to detect missing tools. Order
+   * follows the input.
+   */
+  resolveByName(names: string[]): LampreyToolDescriptor[] {
+    if (!Array.isArray(names) || names.length === 0) return []
+    const all = this.getDescriptors()
+    const byName = new Map(all.map((d) => [d.name, d]))
+    const out: LampreyToolDescriptor[] = []
+    for (const n of names) {
+      const d = byName.get(n)
+      if (d) out.push(d)
+    }
+    return out
+  }
+
+  /**
+   * Two-mode search backing `tools:search`. `select:<names>` returns the
+   * named tools in order (alias for `resolveByName`). Anything else is
+   * keyword-scored across name / tags / description with weights 3 / 2 / 1.
+   * See `tool-search.ts` for the scoring details.
+   */
+  search(query: string, maxResults = 10): LampreyToolDescriptor[] {
+    const select = parseSelectQuery(query)
+    if (select) return this.resolveByName(select)
+    return searchDescriptorsByQuery(this.getDescriptors(), query, maxResults)
   }
 
   getById(id: string): LampreyToolDescriptor | undefined {

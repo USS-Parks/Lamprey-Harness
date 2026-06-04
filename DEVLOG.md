@@ -1,5 +1,32 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 — Prompt C1] Lazy tool schemas + ToolSearch — 2026-06-03
+
+**Files changed:**
+- `electron/services/tool-search.ts` (new) — pure functions: `computeToolTags`, `parseSelectQuery`, `tokenizeQuery`, `scoreDescriptor`, `searchDescriptors`.
+- `electron/services/tool-registry.ts` — added `tags: string[]` and `lazy: boolean` (required) to `LampreyToolDescriptor`; new `LampreyToolStub` and `LampreyToolRegistration` types; `registerNative()` now accepts the relaxed registration shape and normalizes derived fields on insert; new methods `getStubs()`, `resolveByName()`, `search()`. `getDescriptors()` populates tags+lazy for MCP-derived descriptors at build time.
+- `electron/ipc/tools.ts` — `tools:list` returns stubs (no `inputSchema`); new `tools:resolve(names[])` and `tools:search({ query, maxResults })` handlers.
+- `electron/preload.ts` — exposed `tools.resolve` and `tools.search`.
+- `src/lib/types.ts` — mirrored `tags`/`lazy` on `LampreyToolDescriptor`; added `LampreyToolStub`.
+- `src/stores/tools-store.ts` — replaced eager `descriptors` cache with `stubs` + `resolved` map + `resolveTools` / `searchTools` actions.
+- `electron/services/tool-parallelism.test.ts` — test helper updated to include the new required `tags`/`lazy` fields.
+- `electron/services/tool-registry.test.ts` (extend) + `electron/services/tool-search.test.ts` (new) — 32 new tests.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest 854 passed / 5 skipped (baseline 822 + 32 new) ✓
+- No preview server needed: change is backend + store-only, no renderer surface consumes it yet.
+
+**Notes:**
+- The "MCP tools tagged `lazy: true`; schema fetched on first resolve" line in the prompt is satisfied structurally by the IPC-payload split: MCP schemas are still fetched at MCP connect time (the MCP `listTools` protocol returns them in one call — there is no per-tool schema endpoint), but `tools:list` no longer ships them to the renderer. Renderers expand on demand. Chat dispatch still uses `getOpenAITools()` internally, so the model surface is unchanged ("auto-resolves on demand" invariant — the dispatcher always materializes full schemas before calling the model).
+- Tag taxonomy locked: `providerKind` (native | mcp | plugin), every risk class (read | write | network | destructive | secret), and meta tags (`lazy`, `approval-required`, `parallelizable`). C3 will add `mutates` to gate plan mode; the tag list grows additively.
+- Merge hotspot: `tool-registry.ts` shape change. Track 1 and Track 3 must rebase their tool registrations onto the new `LampreyToolRegistration` input type — `tags` and `lazy` are optional at registration so existing call sites (10 tool-pack files + 2 inline natives) needed no edits. Net touch outside this prompt: 1 test helper.
+
+**Commit:** see `git log feat/track-2-tool-layer -- electron/services/tool-search.ts` (SHA inline in the commit would chase itself across amends).
+
+---
+
 ## Parity Phase planning — three-track roster authored (2026-06-03)
 
 Planning-only turn. No source changes; one new planning artifact landed.

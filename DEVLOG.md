@@ -1,5 +1,35 @@
 # Lamprey Harness Dev Log
 
+## [Release v0.2.1 Published] — 2026-06-04
+
+First publish on the 0.2.x line. Cuts the v0.2.1 tag at `main` HEAD
+(`2c26682` — the Fluidity Phase merge + CI lint-silence commits), uploads
+fresh Windows artifacts, marks it the Latest release, and bumps every
+download reference in `README.md` so the public-facing project page no
+longer advertises the now-deleted v0.1.38 draft.
+
+**Artifacts (built via `npm run build:win`):**
+- `Lamprey-0.2.1-x64.exe` — 233 MB (244,284,649 B), NSIS installer
+- `Lamprey-0.2.1-x64.zip` — 302 MB (316,462,166 B), portable bundle
+- `Lamprey-0.2.1-x64.exe.blockmap` — 248 KB, electron-updater delta map
+
+**Release ops:**
+- Published the existing v0.2.1 draft (`gh release edit v0.2.1 --draft=false --latest`); GitHub created the `v0.2.1` tag at `2c26682`.
+- Deleted three stale draft releases + their tags (`v0.1.23`, `v0.1.24`, `v0.1.38`) and pruned locally.
+- README updated: download section header (v0.1.38 → v0.2.1), both artifact rows in the download table (sizes corrected 178→233 MB, 226→302 MB), quick-start step 1 link, and the roadmap "Built and shipped" header. Historical "(v0.1.26)" subheading inside the roadmap stays — it records when that sprint shipped.
+
+**Commits / refs:**
+- `2c26682` — `fix(ci): silence lint warnings` (release tag points here)
+- `89250f8` — `docs(readme): bump download + roadmap references to v0.2.1` (current `main` HEAD)
+
+**Verify:**
+- electron-builder build ✓ (NSIS + ZIP both produced)
+- Release public URL returns `draft=false`, `prerelease=false`, `name="Lamprey v0.2.1 — Parity + Fluidity Complete"`, `tag_name=v0.2.1`
+- Raw `README.md` fetched from `origin/main` via API shows v0.2.1 in all five updated spots
+- 5 releases remain on origin (`v0.2.1` Latest + `v0.1.22`, `v0.1.14`, `v0.1.12`, `v0.1.9`); local tags pruned to match
+
+---
+
 ## [Fluidity Phase Complete] — 2026-06-04
 
 **Prompts completed:** J1 ESC + ↑ history, J2 Shift+Tab mode cycle, J3 @file

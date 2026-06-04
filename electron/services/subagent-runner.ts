@@ -59,6 +59,41 @@ export interface ParentToolView {
   listTools(): string[]
 }
 
+export interface AgentRunStoreLike {
+  insertRun(args: {
+    id: string
+    parentConvId?: string | null
+    parentRunId?: string | null
+    agentType: string
+    label: string
+    startedAt: number
+    background?: boolean
+    worktreePath?: string | null
+  }): void
+  finishRun(args: {
+    id: string
+    status: 'done' | 'error' | 'aborted'
+    finishedAt: number
+    resultText?: string | null
+    error?: string | null
+    worktreePath?: string | null
+  }): void
+}
+
+export interface AgentRunNotifyEvent {
+  runId: string
+  agentType: string
+  label: string
+  parentConvId?: string | null
+  parentRunId?: string | null
+  status: 'running' | 'done' | 'error' | 'aborted'
+  startedAt: number
+  finishedAt?: number
+  resultText?: string | null
+  error?: string | null
+  background?: boolean
+}
+
 export interface ForkAgentDeps {
   runner: ForkAgentRunner
   defaultModel: string
@@ -70,6 +105,10 @@ export interface ForkAgentDeps {
   genId?: () => string
   /** Test seam — defaults to () => Date.now(). */
   clock?: () => number
+  /** A2: persistence layer for agent_runs. Optional — tests skip it. */
+  agentRunStore?: AgentRunStoreLike
+  /** A2: emitted on every run start + finish for renderer subscribers. */
+  notify?: (event: AgentRunNotifyEvent) => void
 }
 
 export interface ForkAgentOptions {
@@ -87,7 +126,9 @@ export interface ForkAgentOptions {
   outputFormat?: string
   /** For nested forks, identifies the originating run. */
   parentRunId?: string
-  /** A2 wires runInBackground; A1 accepts and ignores. */
+  /** Conversation that spawned this fork. Stamped onto the agent_runs row. */
+  parentConvId?: string | null
+  /** A2: when true, the agent_runs row is flagged background so UIs can filter. */
   runInBackground?: boolean
   /** A3 wires isolation; A1 accepts and ignores. */
   isolation?: IsolationMode
@@ -320,6 +361,29 @@ export function validateAgainstSchema(value: unknown, schema: JsonSchemaLike): v
 }
 
 // ---------------------------------------------------------------------------
+// In-memory live-handle registry (A2)
+// ---------------------------------------------------------------------------
+//
+// Used by the tasks:* IPC handlers so the renderer can `tasks:stop(runId)`
+// against an in-flight fork without needing a per-conversation handle map.
+// Entries are removed on settle (success, error, or abort) via promise.finally.
+
+const liveHandles = new Map<string, ForkAgentHandle>()
+
+export function getLiveHandle(runId: string): ForkAgentHandle | undefined {
+  return liveHandles.get(runId)
+}
+
+export function listLiveHandleIds(): string[] {
+  return [...liveHandles.keys()]
+}
+
+// Test seam — tests reset the registry between cases.
+export function __resetLiveHandlesForTests(): void {
+  liveHandles.clear()
+}
+
+// ---------------------------------------------------------------------------
 // Public API — forkAgent
 // ---------------------------------------------------------------------------
 
@@ -389,6 +453,43 @@ export function forkAgent<T = string | Record<string, unknown>>(
     SUBAGENT_MAX_TIMEOUT_MS
   )
 
+  const label = opts.label ?? opts.agentType
+
+  // A2: persist + notify "running" before the runner is called so any
+  // observer (UI poll, tasks:list, agent:run:notify subscriber) sees the row
+  // as soon as forkAgent returns.
+  if (deps.agentRunStore) {
+    try {
+      deps.agentRunStore.insertRun({
+        id: runId,
+        parentConvId: opts.parentConvId ?? null,
+        parentRunId: opts.parentRunId ?? null,
+        agentType: opts.agentType,
+        label,
+        startedAt,
+        background: !!opts.runInBackground
+      })
+    } catch (err) {
+      console.error('[subagent-runner] insertRun failed (continuing):', err)
+    }
+  }
+  if (deps.notify) {
+    try {
+      deps.notify({
+        runId,
+        agentType: opts.agentType,
+        label,
+        parentConvId: opts.parentConvId ?? null,
+        parentRunId: opts.parentRunId ?? null,
+        status: 'running',
+        startedAt,
+        background: !!opts.runInBackground
+      })
+    } catch (err) {
+      console.error('[subagent-runner] notify(running) threw (continuing):', err)
+    }
+  }
+
   const promise: Promise<ForkAgentResult<T>> = (async () => {
     let timedOut = false
     const timer = setTimeout(() => {
@@ -430,27 +531,104 @@ export function forkAgent<T = string | Record<string, unknown>>(
         output = raw
       }
       const elapsedMs = Math.max(0, clock() - startedAt)
+      const finishedAt = clock()
+      // A2: persist + notify "done".
+      if (deps.agentRunStore) {
+        try {
+          deps.agentRunStore.finishRun({
+            id: runId,
+            status: 'done',
+            finishedAt,
+            resultText: raw
+          })
+        } catch (err) {
+          console.error('[subagent-runner] finishRun(done) failed (continuing):', err)
+        }
+      }
+      if (deps.notify) {
+        try {
+          deps.notify({
+            runId,
+            agentType: opts.agentType,
+            label,
+            parentConvId: opts.parentConvId ?? null,
+            parentRunId: opts.parentRunId ?? null,
+            status: 'done',
+            startedAt,
+            finishedAt,
+            resultText: raw,
+            background: !!opts.runInBackground
+          })
+        } catch (err) {
+          console.error('[subagent-runner] notify(done) threw (continuing):', err)
+        }
+      }
       return {
         runId,
         agentType: opts.agentType,
-        label: opts.label ?? opts.agentType,
+        label,
         output: output as T,
         rawOutput: raw,
         elapsedMs,
         tokensUsedEstimate: approxTokens(raw)
       }
     } catch (err) {
+      let finalErr: Error
       if (controller.signal.aborted && !(err instanceof SubagentSchemaError)) {
-        throw new SubagentAbortError(timedOut ? `timed out after ${timeoutMs} ms` : undefined)
+        finalErr = new SubagentAbortError(
+          timedOut ? `timed out after ${timeoutMs} ms` : undefined
+        )
+      } else {
+        finalErr = err as Error
       }
-      throw err
+      const finishedAt = clock()
+      const status: 'error' | 'aborted' = finalErr instanceof SubagentAbortError ? 'aborted' : 'error'
+      const errorMessage = finalErr instanceof Error ? finalErr.message : String(finalErr)
+      if (deps.agentRunStore) {
+        try {
+          deps.agentRunStore.finishRun({
+            id: runId,
+            status,
+            finishedAt,
+            error: errorMessage
+          })
+        } catch (storeErr) {
+          console.error('[subagent-runner] finishRun(failed) failed (continuing):', storeErr)
+        }
+      }
+      if (deps.notify) {
+        try {
+          deps.notify({
+            runId,
+            agentType: opts.agentType,
+            label,
+            parentConvId: opts.parentConvId ?? null,
+            parentRunId: opts.parentRunId ?? null,
+            status,
+            startedAt,
+            finishedAt,
+            error: errorMessage,
+            background: !!opts.runInBackground
+          })
+        } catch (notifyErr) {
+          console.error('[subagent-runner] notify(failed) threw (continuing):', notifyErr)
+        }
+      }
+      throw finalErr
     } finally {
       clearTimeout(timer)
       if (opts.signal) opts.signal.removeEventListener('abort', onParentAbort)
     }
   })()
 
-  return { runId, abort, promise }
+  const handle: ForkAgentHandle<T> = { runId, abort, promise }
+  // A2: register so tasks:stop(runId) can find the live handle. Deregister on
+  // settle regardless of outcome — the DB row carries final state forward.
+  liveHandles.set(runId, handle as ForkAgentHandle)
+  promise
+    .then(() => liveHandles.delete(runId))
+    .catch(() => liveHandles.delete(runId))
+  return handle
 }
 
 // Re-export the built-in registry so callers can inspect the defaults without

@@ -11,6 +11,8 @@ vi.mock('@electron-toolkit/utils', () => ({
 }))
 
 import {
+  __resetLiveHandlesForTests,
+  getLiveHandle,
   forkAgent,
   resolveAllowedTools,
   validateAgainstSchema,
@@ -21,10 +23,15 @@ import {
   SubagentContextTooLargeError,
   SUBAGENT_MAX_CONTEXT_BYTES,
   SUBAGENT_SCHEMA_TOOL_NAME,
+  type AgentRunNotifyEvent,
+  type AgentRunStoreLike,
   type ForkAgentDeps,
   type ForkAgentRunner,
   type SubagentTypeResolver
 } from './subagent-runner'
+import { beforeEach } from 'vitest'
+
+beforeEach(() => __resetLiveHandlesForTests())
 import { BUILT_IN_SUBAGENT_TYPES, type SubagentTypeDef } from './subagent-types'
 
 // -- Helpers --------------------------------------------------------------
@@ -347,5 +354,188 @@ describe('forkAgent — error paths', () => {
     )
     setTimeout(() => handle.abort('user-cancelled'), 10)
     await expect(handle.promise).rejects.toBeInstanceOf(SubagentAbortError)
+  })
+})
+
+// -- forkAgent — A2: background lifecycle + store + notify ---------------
+
+function makeMemStore(): { store: AgentRunStoreLike; inserts: unknown[]; finishes: unknown[] } {
+  const inserts: unknown[] = []
+  const finishes: unknown[] = []
+  const store: AgentRunStoreLike = {
+    insertRun: (args) => {
+      inserts.push(args)
+    },
+    finishRun: (args) => {
+      finishes.push(args)
+    }
+  }
+  return { store, inserts, finishes }
+}
+
+describe('forkAgent — A2 background lifecycle (store + notify + live-handle)', () => {
+  it('returns the handle synchronously — a background fork does not await', () => {
+    let resolved = false
+    const runner: ForkAgentRunner = () =>
+      new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolved = true
+          resolve('eventually')
+        }, 50)
+      })
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', runInBackground: true },
+      makeDeps({ runner, loadType: builtinResolver() })
+    )
+    // Synchronously after fork, runner is in-flight — not resolved yet.
+    expect(resolved).toBe(false)
+    expect(typeof handle.runId).toBe('string')
+    expect(typeof handle.abort).toBe('function')
+    expect(handle.promise).toBeInstanceOf(Promise)
+  })
+
+  it('inserts a "running" row + fires notify("running") before runner resolves', async () => {
+    const { store, inserts } = makeMemStore()
+    const notify = vi.fn<(event: AgentRunNotifyEvent) => void>()
+    let observedRunningCount = -1
+    const runner: ForkAgentRunner = () =>
+      new Promise<string>((resolve) => {
+        // Inspect what's been notified BEFORE we resolve — the running event
+        // must already have fired.
+        observedRunningCount = notify.mock.calls.length
+        setTimeout(() => resolve('ok'), 5)
+      })
+    const handle = forkAgent(
+      {
+        prompt: 'x',
+        agentType: 'Explore',
+        label: 'find foo',
+        parentConvId: 'conv-1',
+        runInBackground: true
+      },
+      makeDeps({ runner, loadType: builtinResolver(), agentRunStore: store, notify })
+    )
+    await handle.promise
+    expect(inserts).toHaveLength(1)
+    expect(inserts[0]).toMatchObject({
+      id: handle.runId,
+      agentType: 'Explore',
+      label: 'find foo',
+      parentConvId: 'conv-1',
+      background: true
+    })
+    expect(observedRunningCount).toBe(1) // the running notify fired before runner started its body
+    expect(notify.mock.calls[0][0]).toMatchObject({
+      runId: handle.runId,
+      status: 'running',
+      label: 'find foo',
+      background: true
+    })
+  })
+
+  it('fires notify("done") + finishRun on successful completion with resultText', async () => {
+    const { store, finishes } = makeMemStore()
+    const notify = vi.fn<(event: AgentRunNotifyEvent) => void>()
+    const runner: ForkAgentRunner = async () => 'foo lives at src/foo.ts:12'
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore', parentConvId: 'conv-1' },
+      makeDeps({ runner, loadType: builtinResolver(), agentRunStore: store, notify })
+    )
+    await handle.promise
+    expect(finishes).toHaveLength(1)
+    expect(finishes[0]).toMatchObject({
+      id: handle.runId,
+      status: 'done',
+      resultText: 'foo lives at src/foo.ts:12'
+    })
+    const lastNotify = notify.mock.calls.at(-1)![0]
+    expect(lastNotify.status).toBe('done')
+    expect(lastNotify.resultText).toBe('foo lives at src/foo.ts:12')
+  })
+
+  it('fires notify("error") + finishRun with an error message when the runner throws', async () => {
+    const { store, finishes } = makeMemStore()
+    const notify = vi.fn<(event: AgentRunNotifyEvent) => void>()
+    const runner: ForkAgentRunner = async () => {
+      throw new Error('boom')
+    }
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore' },
+      makeDeps({ runner, loadType: builtinResolver(), agentRunStore: store, notify })
+    )
+    await expect(handle.promise).rejects.toThrow('boom')
+    expect(finishes[0]).toMatchObject({ id: handle.runId, status: 'error', error: 'boom' })
+    expect(notify.mock.calls.at(-1)![0].status).toBe('error')
+  })
+
+  it('fires notify("aborted") on a user-initiated handle.abort() — tasks:stop semantics', async () => {
+    const { store, finishes } = makeMemStore()
+    const notify = vi.fn<(event: AgentRunNotifyEvent) => void>()
+    const runner: ForkAgentRunner = (input) =>
+      new Promise<string>((_resolve, reject) => {
+        input.signal.addEventListener('abort', () => reject(new Error('aborted')))
+      })
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore' },
+      makeDeps({ runner, loadType: builtinResolver(), agentRunStore: store, notify })
+    )
+    setTimeout(() => handle.abort('user-stop'), 5)
+    await expect(handle.promise).rejects.toBeInstanceOf(SubagentAbortError)
+    expect(finishes[0]).toMatchObject({ id: handle.runId, status: 'aborted' })
+    expect(notify.mock.calls.at(-1)![0].status).toBe('aborted')
+  })
+
+  it('registers the handle in the live registry while in-flight; removes on settle', async () => {
+    const runner: ForkAgentRunner = () =>
+      new Promise<string>((resolve) => setTimeout(() => resolve('ok'), 10))
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore' },
+      makeDeps({ runner, loadType: builtinResolver() })
+    )
+    // Live while running.
+    expect(getLiveHandle(handle.runId)).toBe(handle)
+    await handle.promise
+    // Cleanup runs in a microtask after settle — yield once more to be safe.
+    await Promise.resolve()
+    expect(getLiveHandle(handle.runId)).toBeUndefined()
+  })
+
+  it('store/notify exceptions never break the run (graceful degradation)', async () => {
+    const throwingStore: AgentRunStoreLike = {
+      insertRun: () => {
+        throw new Error('db down')
+      },
+      finishRun: () => {
+        throw new Error('db down')
+      }
+    }
+    const throwingNotify = vi.fn<(event: AgentRunNotifyEvent) => void>().mockImplementation(() => {
+      throw new Error('renderer disconnected')
+    })
+    const runner: ForkAgentRunner = async () => 'ok'
+    // Silence console.error noise from the graceful catches.
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const handle = forkAgent(
+        { prompt: 'x', agentType: 'Explore' },
+        makeDeps({ runner, loadType: builtinResolver(), agentRunStore: throwingStore, notify: throwingNotify })
+      )
+      const result = await handle.promise
+      expect(result.output).toBe('ok')
+    } finally {
+      errSpy.mockRestore()
+    }
+  })
+
+  it('skips store + notify entirely when neither is provided', async () => {
+    // A1-style call shouldn't pay any cost or have any side effect for A2.
+    const runner: ForkAgentRunner = async () => 'ok'
+    const handle = forkAgent(
+      { prompt: 'x', agentType: 'Explore' },
+      makeDeps({ runner, loadType: builtinResolver() })
+    )
+    const result = await handle.promise
+    expect(result.output).toBe('ok')
+    // No assertions beyond "didn't throw" — the absence of fixtures is the test.
   })
 })

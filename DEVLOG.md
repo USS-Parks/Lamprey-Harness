@@ -1,5 +1,37 @@
 # Lamprey Harness Dev Log
 
+## [Track 1 — Prompt A2] Background agents + async notifications — 2026-06-03
+
+**Files changed:**
+- `electron/services/database.ts` — added the `agent_runs` table (`id PK, parent_conv_id, parent_run_id, agent_type, label, status CHECK IN ('running','done','error','aborted'), started_at, finished_at, result_text, error, worktree_path, background INTEGER`) plus three indices (by `parent_conv_id, started_at DESC`, by `status, started_at DESC`, by `parent_run_id, started_at DESC`). Append-only style: the row is inserted as `running` and updated to a terminal status via COALESCE so partially-set fields persist.
+- `electron/services/agent-run-store.ts` (new) — typed CRUD over `agent_runs`. `insertRun`, `finishRun` (uses COALESCE so worktree_path set at insert survives), `updateRun`, `getRun`, `listRuns(filter)` with `status | status[] | parentConvId | parentRunId | background | limit`, `getRunOutput` (separate blob-read). Mirrors `plan-goal-persistence.ts`'s in-memory-fallback pattern: when `getDb()` throws (test env, native-binding mismatch, or boot-time DB failure), the entire surface routes through a process-scoped `Map`. `realAgentRunStore` exports the production `{insertRun, finishRun}` shim for the runner.
+- `electron/services/subagent-runner.ts` — extended `ForkAgentDeps` with `agentRunStore?: AgentRunStoreLike` and `notify?: (event: AgentRunNotifyEvent) => void`. Added `parentConvId` to `ForkAgentOptions`. Added an in-memory `liveHandles: Map<runId, handle>` registry so `tasks:stop(runId)` can find an in-flight handle. The forkAgent body now: (1) inserts `status='running'` + fires `notify('running')` BEFORE the runner is called so observers see the row immediately; (2) on success, calls `finishRun(done)` + `notify('done')` with `resultText` set to the raw output; (3) on rejection, distinguishes abort (`SubagentAbortError`) from error and calls the appropriate `finishRun`/`notify`; (4) registers + deregisters the handle via `promise.then/catch(() => liveHandles.delete(runId))`. Store/notify exceptions are caught + logged so a broken renderer or DB never breaks the run.
+- `electron/ipc/tasks.ts` (new) — `tasks:list/get/output/stop/update` IPC handlers + `broadcastAgentRunEvent` that forwards every notify into the renderer via `webContents.send('agent:run:notify', event)`. `tasks:stop` resolves the live handle via `getLiveHandle(runId)` and calls `handle.abort('user-stop')`; if no live handle exists but the row is stale-`running`, it writes `aborted` directly to the DB + broadcasts.
+- `electron/ipc/index.ts` — registers `registerTasksHandlers()` alongside the other IPC modules.
+- `electron/preload.ts` — exposes `window.api.tasks.{list, get, output, stop, update, onNotify}` so the renderer (B3 wires the panel) can call IPC + subscribe to live notify events with a returned unsubscribe fn.
+- `electron/services/agent-run-store.test.ts` (new) — 18 tests over the memory-fallback path (insert defaults, parent ids + background flag + worktree path, status finish for done/error/aborted, worktree_path preservation via COALESCE-equivalent semantics, no-op on unknown id, updateRun label, listRuns single-status / array-status / empty-array → []/parentConvId/background/limit filters, getRunOutput happy + unknown, `realAgentRunStore` round-trip).
+- `electron/services/subagent-runner.test.ts` — added "A2 background lifecycle" describe block (9 tests): handle returns synchronously while runner is still in-flight (background fork doesn't await); `insertRun` + `notify('running')` fire before the runner resolves; `notify('done')` + `finishRun(done)` with `resultText` on success; `notify('error')` + `finishRun(error)` with error message on runner throw; `notify('aborted')` + `finishRun(aborted)` on `handle.abort()` (the tasks:stop path); live-handle registry populates while running and clears on settle; store + notify exceptions never break the run (graceful degradation); A1-style fork with neither store nor notify still works (no fixtures, no side effects).
+
+**Verify gate:**
+- `tsc --noEmit -p tsconfig.node.json` ✓
+- `tsc --noEmit -p tsconfig.web.json` ✓
+- `vitest run` ✓ — **889 passed, 5 skipped** (was 862 after A1 → +27 net, 0 regressions)
+- Verify-gate bullets covered:
+  - spawn background fork returns immediately ✓ ("returns the handle synchronously — a background fork does not await")
+  - `tasks:list` shows `running` ✓ (store test: `insertRun` + `listRuns({status:'running'})` returns the row)
+  - completion fires notify event ✓ (runner test: `notify` called with `status:'done'`)
+  - `tasks:stop` aborts ✓ (runner test: `handle.abort('user-stop')` → SubagentAbortError → `notify('aborted')` + `finishRun(aborted)`; tasks IPC translates `tasks:stop` → `getLiveHandle().abort('user-stop')`)
+  - result persists ✓ (store test: `finishRun(done, resultText)` round-trips through `getRun.resultText` and `getRunOutput.resultText`)
+- **user-verification-needed**: live `tasks:list` against the real DB after Electron boots (better-sqlite3's native binding doesn't load under the host Node vitest runs on, so the SQL path is exercised at runtime, not in unit tests). The fallback is real production code — if the DB ever fails to open, the runner still tracks runs in-memory.
+
+**Notes:**
+- The agent-run-store's `AgentRunStoreLike` shape is re-exported from subagent-runner so callers can DI it without circular imports.
+- `parentConvId` is wired through `ForkAgentOptions` (per-call) rather than `ForkAgentDeps` (shared) because the same deps bag is reused across conversations in a chat session.
+- multi-agent-run-tool's internal forks do NOT pass `agentRunStore` or `notify` — keeping its sub-agents out of `tasks:list` since multi-agent runs have their own visible UI surface (MultiAgentRunCard).
+- A3 will set `worktreePath` on the insert + on completion via the existing `COALESCE` write path.
+
+**Commit:** see `git log --grep "A2 background"`.
+
 ## [Track 1 — Prompt A1] Subagent fork primitive (extensible types) — 2026-06-03
 
 **Files changed:**

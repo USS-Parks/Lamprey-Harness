@@ -53,20 +53,20 @@ toolRegistry.registerNative(
   },
   async (args, ctx) => {
     try {
-      // The subagent needs a model id to call. ToolExecutionContext doesn't
-      // currently carry the parent's modelId (the chat loop would need to
-      // populate it). Fall back to the most common default; the user can
-      // override via Settings → Subagent model in a later iteration.
-      const modelId =
-        typeof (ctx as Record<string, unknown>).currentModelId === 'string'
-          ? ((ctx as Record<string, unknown>).currentModelId as string)
-          : 'deepseek-v4-flash'
+      // Inherit the parent's model by default. ctx.model is set by the chat
+      // handler from the active conversation's modelId. Without it, fall back
+      // to the small/fast DeepSeek tier — the subagent is a research loop,
+      // not the final answerer, so a cheaper model is the right default when
+      // the parent hasn't supplied one.
+      const modelId = ctx.model ?? 'deepseek-v4-flash'
       const result = await runExplore(args as unknown as ExploreArgs, {
         modelId,
         workspacePath: ctx.workspacePath,
-        conversationId: ctx.conversationId,
-        signal: undefined
-      } as Parameters<typeof runExplore>[1])
+        correlationId: ctx.correlationId,
+        // Thread the parent's abort signal — if the user cancels the parent
+        // turn, the subagent's in-flight chatStream and tool loop both abort.
+        signal: ctx.signal
+      })
       const meta = `\n\n[explore: ${result.steps} step${result.steps === 1 ? '' : 's'}, ${result.toolCalls} tool call${result.toolCalls === 1 ? '' : 's'}, ${result.durationMs}ms${result.hitMaxSteps ? ', hit max_steps cap' : ''}]`
       return { result: result.answer + meta, status: 'done' }
     } catch (err) {

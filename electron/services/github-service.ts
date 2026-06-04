@@ -1162,6 +1162,179 @@ export async function resolveReviewThread(threadId: string): Promise<{ resolved:
   return { resolved: Boolean(data.resolveReviewThread?.thread?.isResolved) }
 }
 
+// ---------------------------------------------------------------------------
+// F3 — Issues + PR status checks
+// ---------------------------------------------------------------------------
+
+export interface GitHubIssue {
+  number: number
+  title: string
+  state: 'open' | 'closed'
+  body: string | null
+  htmlUrl: string
+  user: { login: string; avatarUrl: string | null }
+  labels: Array<{ name: string; color: string }>
+  createdAt: string
+  updatedAt: string
+}
+
+interface RawIssue {
+  number: number
+  title: string
+  state: 'open' | 'closed'
+  body: string | null
+  html_url: string
+  user: { login: string; avatar_url: string | null }
+  labels: Array<{ name: string; color: string }>
+  created_at: string
+  updated_at: string
+  pull_request?: unknown
+}
+
+function parseIssue(raw: RawIssue): GitHubIssue {
+  return {
+    number: raw.number,
+    title: raw.title,
+    state: raw.state,
+    body: raw.body,
+    htmlUrl: raw.html_url,
+    user: { login: raw.user?.login ?? '', avatarUrl: raw.user?.avatar_url ?? null },
+    labels: (raw.labels ?? []).map((l) => ({ name: l.name, color: l.color })),
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at
+  }
+}
+
+export async function listIssues(
+  owner: string,
+  repo: string,
+  opts: { state?: 'open' | 'closed' | 'all'; per_page?: number; labels?: string } = {}
+): Promise<GitHubIssue[]> {
+  if (!isValidSlug(owner) || !isValidSlug(repo)) throw new Error('Invalid repo')
+  const state = opts.state ?? 'open'
+  const per = Math.min(100, Math.max(1, opts.per_page ?? 30))
+  const params = new URLSearchParams({
+    state,
+    per_page: String(per),
+    sort: 'updated',
+    direction: 'desc'
+  })
+  if (opts.labels) params.set('labels', opts.labels)
+  const raw = await githubRequest<RawIssue[]>(
+    `/repos/${owner}/${repo}/issues?${params.toString()}`,
+    {},
+    provider()
+  )
+  // The /issues endpoint returns PRs too (they're a subclass of issues on
+  // the GitHub data model). Filter them out so the panel matches user
+  // intuition; PRs already have their own list endpoint.
+  return raw.filter((r) => !r.pull_request).map(parseIssue)
+}
+
+export interface PullRequestStatusCheck {
+  context: string
+  state: 'pending' | 'success' | 'failure' | 'error' | 'neutral' | 'skipped' | 'cancelled' | 'timed_out' | 'action_required'
+  description: string | null
+  targetUrl: string | null
+  source: 'commit-status' | 'check-run'
+}
+
+export interface PullRequestStatusSummary {
+  sha: string
+  overall: 'success' | 'pending' | 'failure' | 'neutral'
+  checks: PullRequestStatusCheck[]
+}
+
+/**
+ * Combine the legacy commit-status API (POST-based, used by Travis-era CI)
+ * and the modern check-runs API (used by GitHub Actions + most others)
+ * into a single rollup. The overall status takes a worst-of of all
+ * non-skipped checks: any failure/error → failure, else any pending →
+ * pending, else success. Empty result rolls up to 'neutral'.
+ */
+export async function getPullRequestStatus(
+  owner: string,
+  repo: string,
+  number: number
+): Promise<PullRequestStatusSummary> {
+  if (!isValidSlug(owner) || !isValidSlug(repo)) throw new Error('Invalid repo')
+  if (!Number.isInteger(number) || number <= 0) throw new Error('Invalid PR number')
+  const pr = await getPullRequest(owner, repo, number)
+  const sha = pr.head.sha
+  if (!sha) {
+    return { sha: '', overall: 'neutral', checks: [] }
+  }
+
+  const [commitStatus, checkRuns] = await Promise.all([
+    githubRequest<{
+      state: string
+      statuses: Array<{
+        context: string
+        state: string
+        description: string | null
+        target_url: string | null
+      }>
+    }>(`/repos/${owner}/${repo}/commits/${sha}/status`, {}, provider()).catch(() => null),
+    githubRequest<{
+      check_runs: Array<{
+        name: string
+        status: string
+        conclusion: string | null
+        details_url: string | null
+        output?: { summary?: string | null }
+      }>
+    }>(`/repos/${owner}/${repo}/commits/${sha}/check-runs`, {}, provider()).catch(() => null)
+  ])
+
+  const checks: PullRequestStatusCheck[] = []
+  if (commitStatus?.statuses) {
+    for (const s of commitStatus.statuses) {
+      checks.push({
+        context: s.context,
+        state: (s.state as PullRequestStatusCheck['state']) ?? 'pending',
+        description: s.description,
+        targetUrl: s.target_url,
+        source: 'commit-status'
+      })
+    }
+  }
+  if (checkRuns?.check_runs) {
+    for (const c of checkRuns.check_runs) {
+      const state: PullRequestStatusCheck['state'] =
+        c.status === 'completed'
+          ? ((c.conclusion ?? 'neutral') as PullRequestStatusCheck['state'])
+          : 'pending'
+      checks.push({
+        context: c.name,
+        state,
+        description: c.output?.summary ?? null,
+        targetUrl: c.details_url,
+        source: 'check-run'
+      })
+    }
+  }
+
+  let overall: PullRequestStatusSummary['overall'] = 'neutral'
+  let sawPending = false
+  let sawFailure = false
+  let sawSuccess = false
+  for (const c of checks) {
+    if (c.state === 'skipped' || c.state === 'neutral' || c.state === 'cancelled') continue
+    if (c.state === 'failure' || c.state === 'error' || c.state === 'timed_out' || c.state === 'action_required') {
+      sawFailure = true
+    } else if (c.state === 'pending') {
+      sawPending = true
+    } else if (c.state === 'success') {
+      sawSuccess = true
+    }
+  }
+  if (sawFailure) overall = 'failure'
+  else if (sawPending) overall = 'pending'
+  else if (sawSuccess) overall = 'success'
+
+  return { sha, overall, checks }
+}
+
 export async function unresolveReviewThread(threadId: string): Promise<{ resolved: boolean }> {
   if (!threadId || typeof threadId !== 'string') throw new Error('threadId is required')
   const data = await graphqlRequest<{

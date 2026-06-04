@@ -494,6 +494,32 @@ export function registerGitHubHandlers(): void {
     }
   )
 
+  // F3 — issues + status checks.
+  ipcMain.handle(
+    'github:listIssues',
+    async (
+      _e,
+      args: { owner: string; repo: string; state?: 'open' | 'closed' | 'all'; per_page?: number; labels?: string }
+    ) => {
+      try {
+        return envelope(await github.listIssues(args.owner, args.repo, args))
+      } catch (err: any) {
+        return failure(err?.message ?? 'List issues failed')
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'github:getPullRequestStatus',
+    async (_e, args: { owner: string; repo: string; number: number }) => {
+      try {
+        return envelope(await github.getPullRequestStatus(args.owner, args.repo, args.number))
+      } catch (err: any) {
+        return failure(err?.message ?? 'Get PR status failed')
+      }
+    }
+  )
+
   // -------------------------------------------------------------------------
   // Push (token-authenticated where possible)
   // -------------------------------------------------------------------------

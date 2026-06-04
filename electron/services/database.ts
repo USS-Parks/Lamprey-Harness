@@ -238,6 +238,14 @@ function initSchema(db: Database.Database): void {
   // was not gated (no requiresApproval, no gating risks).
   safeAddColumn(db, 'tool_calls', 'approval_source TEXT')
 
+  // Track 2 / C2 — `hooks` rows can now hold either JavaScript bodies executed
+  // in a `vm` sandbox (the new default) or legacy shell commands run via
+  // child_process. Existing rows predate the column and were always shell, so
+  // the migration default is 'shell'; new rows from the UI explicitly set
+  // 'js'. `timeout_ms` caps the vm sandbox; ignored for shell hooks.
+  safeAddColumn(db, 'hooks', "language TEXT NOT NULL DEFAULT 'shell'")
+  safeAddColumn(db, 'hooks', 'timeout_ms INTEGER NOT NULL DEFAULT 5000')
+
   // Parent call id — set on synthetic rows spawned from another tool (e.g.
   // sub-agent calls under `multi_agent_run`). Null for top-level
   // model-initiated calls. Lets the audit log answer "which fanout was this

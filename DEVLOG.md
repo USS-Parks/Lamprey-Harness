@@ -1,5 +1,40 @@
 # Lamprey Harness Dev Log
 
+## [Fluidity — Prompt J10] path:line autolinking — 2026-06-04
+
+Bare `path/file.ext` and `path/file.ext:42` references in assistant
+prose now render as clickable spans that fire a `file:open` CustomEvent
+(host wires this to `requestOpenFile` so the file panel jumps to the
+right location). Falls back to `files.openInVSCode` if no host listener
+claims it.
+
+Detector lives in a pure helper (`path-autolink.ts`) — exhaustive
+positive/negative cases ensure URLs, version triples, `.md.bak`-style
+extended dots, and `lamprey.io`-style domain names are excluded.
+MarkdownRenderer wires the helper into the `p`, `li`, `td`, `th`,
+`strong`, `em`, and `blockquote` overrides; inline `<code>` and fenced
+`<pre>` paths bypass it so file refs inside code blocks stay verbatim.
+
+**Files changed:**
+- `src/lib/path-autolink.ts` (new) — regex + segment splitter
+- `src/lib/path-autolink.test.ts` (new) — 13 cases (positive, negative, segmentation)
+- `src/components/artifacts/MarkdownRenderer.tsx` — autolink transformer + FileRefSpan + prose component overrides
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1260 passed / 16 skipped — +13 J10 tests)
+- user-verification-needed: in Electron, render a message containing `look at src/App.tsx:42 for the fix` → `src/App.tsx:42` appears underlined-dotted; click → file panel opens at line 42; references inside ```ts ... ``` stay verbatim; URLs in prose don't autolink as files.
+
+**Notes:** Extension set: ts/tsx/js/jsx/mjs/cjs/md/mdx/json/yaml/yml/toml/
+css/scss/html/sh/py/rs/go/java/rb/sql. `.io` / `.com` / `.exe` etc.
+are intentionally excluded. Style is a dotted underline rather than the
+loud link colour, per the J10 spec's "avoid full link colour" note.
+
+**Commit:** pending
+
+---
+
 ## [Fluidity — Prompt J9] Notification consolidation — 2026-06-04
 
 Async background events (chat:onAsyncEvent — turn-completed, wake-up

@@ -1,3 +1,5 @@
+/* global agent, args, log, memory, phase */
+
 export const meta = {
   name: 'consolidate-memory',
   description:

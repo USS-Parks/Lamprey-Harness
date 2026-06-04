@@ -249,6 +249,30 @@ function App(): React.ReactElement {
   }, [])
 
   useEffect(() => {
+    if (!window.api?.notifications?.onClicked) return
+    const unsubscribe = window.api.notifications.onClicked((e: unknown) => {
+      const event = e as { deepLink?: unknown }
+      const deepLink = typeof event.deepLink === 'string' ? event.deepLink : ''
+      const match = deepLink.match(/^(?:conversation:|lamprey:\/\/conversation\/)(.+)$/)
+      const conversationId = match?.[1]
+      if (conversationId) void useChatStore.getState().selectConversation(conversationId)
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    if (!window.api?.sessionsMessaging?.onIncoming) return
+    const unsubscribe = window.api.sessionsMessaging.onIncoming((e: unknown) => {
+      const event = e as { targetSessionId?: string }
+      const chat = useChatStore.getState()
+      if (event.targetSessionId && chat.activeConversationId === event.targetSessionId) {
+        toast.info('Incoming session message queued for the next turn')
+      }
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
     const init = async () => {
       if (!window.api) {
         setNeedsApiKey(true)

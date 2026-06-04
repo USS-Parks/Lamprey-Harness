@@ -82,7 +82,8 @@ const api = {
     setPinned: (id: string, pinned: boolean) =>
       ipcRenderer.invoke('sessions:setPinned', id, pinned),
     search: (query: string, limit?: number) =>
-      ipcRenderer.invoke('sessions:search', query, limit)
+      ipcRenderer.invoke('sessions:search', query, limit),
+    listActive: (limit?: number) => ipcRenderer.invoke('sessions:list-active', limit)
   },
 
   conversation: {
@@ -493,6 +494,26 @@ const api = {
       const handler = (_: unknown, event: unknown): void => cb(event)
       ipcRenderer.on('loop:wakeup:fired', handler)
       return () => ipcRenderer.removeListener('loop:wakeup:fired', handler)
+    }
+  },
+
+  notifications: {
+    push: (input: { title: string; body: string; deepLink?: string | null }) =>
+      ipcRenderer.invoke('notifications:push', input),
+    onClicked: (cb: (event: unknown) => void): (() => void) => {
+      const handler = (_: unknown, event: unknown): void => cb(event)
+      ipcRenderer.on('notifications:clicked', handler)
+      return () => ipcRenderer.removeListener('notifications:clicked', handler)
+    }
+  },
+
+  sessionsMessaging: {
+    sendMessage: (input: { targetSessionId: string; body: string; fromSessionId?: string | null }) =>
+      ipcRenderer.invoke('sessions-messaging:sendMessage', input),
+    onIncoming: (cb: (event: unknown) => void): (() => void) => {
+      const handler = (_: unknown, event: unknown): void => cb(event)
+      ipcRenderer.on('sessions:incoming-message', handler)
+      return () => ipcRenderer.removeListener('sessions:incoming-message', handler)
     }
   },
 

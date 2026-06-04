@@ -32,6 +32,7 @@ import { registerEventsHandlers } from './events'
 import { registerRagHandlers } from './rag'
 import { registerTasksHandlers } from './tasks'
 import { registerWorkflowsHandlers } from './workflows'
+import { registerMonitorHandlers } from './monitor'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -63,4 +64,5 @@ export function registerAllIpcHandlers(): void {
   registerRagHandlers()
   registerTasksHandlers()
   registerWorkflowsHandlers()
+  registerMonitorHandlers()
 }

@@ -267,6 +267,279 @@ All 8 prompts (A1 → A2 → A3 → B1 → B2 → B3 → B4 → B5) committed on
 
 **Commit:** see `git log --grep "A1 fork primitive"` (one commit per prompt; SHA elided to avoid amend loop on self-reference).
 
+## [Track 3 — Prompt G1] Cron UI + lifecycle — 2026-06-03
+
+**Files changed:**
+- `electron/services/automations-runner.ts` — adds `describeCron(expr)` (human-readable preset table + field-by-field fallback) and `nextFireAfter(expr, from?)` (minute-granularity walk over the next 366d; returns null when nothing matches). Runner lifecycle untouched — `startAutomations` was already wired in `main.ts`'s `whenReady` block.
+- `electron/ipc/automations.ts` — new `automations:validateCron` handler returning `{ valid, description?, nextFireAt? } | { valid: false, error }`.
+- `electron/preload.ts` — `window.api.automations.validateCron(expr)`.
+- `src/stores/automations-store.ts` (new) — typed renderer store: list/create/update/remove/runNow/validateCron + loading flag; mirrors the Automation shape from the main-side store.
+- `src/components/automations/CronEditor.tsx` (new) — debounced (150ms) live validation that calls the new IPC; presets dropdown (`*/5 * * * *`, `0 * * * *`, `0 9 * * *`, `0 9 * * 1-5`, `0 0 * * *`); shows the description + next-fire timestamp on success and the parse error on failure.
+- `src/components/automations/RunHistoryViewer.tsx` (new) — last-run timestamp + capped `lastResult` preview.
+- `src/components/automations/AutomationsPanel.tsx` (new) — list rows with enable toggle / Run-now / Edit / Del; inline draft editor with the CronEditor; per-row expand to show prompt body + RunHistoryViewer.
+- `electron/services/automations-runner.test.ts` (new) — 7 unit tests for `parseCron`, `describeCron` (preset table + field-by-field + null on garbage), and `nextFireAfter` (second-0 boundary, null on garbage, daily-09:00 within 24h).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest full suite ✓ (869 passed | 14 skipped — 9 new + 860 baseline)
+- user-verification-needed (cron fires on the minute boundary, needs the live Electron app):
+  1. mount `<AutomationsPanel />` somewhere reachable (Integration H1 wires it into the activity dashboard);
+  2. click + New, label "5-min canary", cron `*/5 * * * *`, prompt `say 'tick'`, Save;
+  3. wait until the next minute boundary divisible by 5 → `lastRunAt` updates within the next minute and `lastResult` contains the model reply;
+  4. click Run on any row → fires immediately, refreshes the row's lastResult;
+  5. toggle the row's checkbox off → next scheduled minute does NOT fire;
+  6. type `not a cron` into CronEditor → the panel shows the parse error and disables Save;
+  7. delete a row → row disappears from the list.
+
+**Notes:**
+- The runner was already started on app boot (`main.ts` calls `startAutomations()` inside `whenReady`); G1 didn't need a wiring change there.
+- The CronEditor's preset dropdown writes back through `onChange` and clears its own `value` after each pick so the next pick still fires the change handler. This pattern is cribbed from the MemoryEditor.
+- The next-fire scanner walks at most 1 year of minutes (525,600 iterations) — fast enough for the validator since cron fields tend to match within hours, but the upper bound also means "yearly at midnight Feb 29" returns null in non-leap years. That's a fair v1 behavior.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt F4] Monitor primitive + background shell — 2026-06-03
+
+**Files changed:**
+- `electron/services/shell-tool.ts` (extend) — adds `executeShellCommandInBackground(args, workspaceRoot)` returning a `ShellBackgroundHandle` synchronously. Internally tracks a `BackgroundSession` (proc, status, stdout/stderr rolling buffers capped at STDOUT_CAP/STDERR_CAP, per-stream line buffer for clean split). Emits `bg-line` (one per newline-delimited chunk, with `stdout|stderr` flag) and `bg-exit` events on the new `shellBackgroundBus` EventEmitter. Workspace-root confinement reuses the existing `resolveCwdWithinWorkspace` so background commands obey the same boundary as foreground. New exports: `getBackgroundShell`, `listBackgroundShells`, `killBackgroundShell`, `destroyBackgroundShell`, `destroyAllBackgroundShells`.
+- `electron/services/monitor-service.ts` (new) — `startMonitor({ processId, untilPattern? })` subscribes to the shell bus, owns a bounded (2000-line) per-monitor buffer, and returns a `MonitorHandle` with a string id. `readMonitor(id, since?)` drains lines newer than the cursor (returns `{ handle, lines, cursor }` so the caller can poll incrementally). `stopMonitor` / `destroyMonitor` for lifecycle. The `untilPattern` regex triggers an auto-stop + `monitor:matched` event the first time a line matches; further ingested lines for that monitor are dropped. `bg-exit` from the source process also flips the monitor to `exited` and fires `monitor:exit`. Bus subscription is set up lazily on first `startMonitor` call.
+- `electron/ipc/monitor.ts` (new) — IPC + bus broadcaster: `shell:bg:spawn/list/get/kill/destroy` and `monitor:start/read/stop/destroy/list`. Fans the main-side `shellBackgroundBus` + `monitorBus` events out to every BrowserWindow over `shell:bg:line`, `shell:bg:exit`, `monitor:line`, `monitor:matched`, `monitor:exit`, `monitor:stopped`.
+- `electron/ipc/index.ts` — registers the new monitor handler set.
+- `electron/main.ts` — `destroyAllBackgroundShells()` + `destroyAllMonitors()` on `will-quit`.
+- `electron/preload.ts` — `window.api.shellBg.*` and `window.api.monitor.*` with onLine/onMatched/onExit subscriptions returning unsubscribe functions.
+- `electron/services/monitor-service.test.ts` (new) — 8 unit tests + 1 platform-skipped: synchronous spawn shape, real-process `bg-line` emission (deterministic — waits for `bg-exit` not a timer), `bg-exit` with exit code, empty-command rejection, monitor line-buffering with cursor pagination, untilPattern auto-stop + matched-event fire, post-match line gating (status-guard in `ingestLine`), `monitor:stopped` bus event, invalid-regex rejection, and registry list/destroy.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest monitor-service ✓ (8 passed | 1 skipped on win32, verified 3× stable)
+- vitest full suite ✓ (860 passed | 14 skipped — 8 new + 852 baseline)
+- user-verification-needed (renderer + descriptor registration for Electron-only checks):
+  1. from the renderer console: `await window.api.shellBg.spawn({ command: 'npx electron-vite dev', cwd: '<a Vite project>' })` → returns `{ id, pid, status: 'running' }`;
+  2. subscribe to `window.api.shellBg.onLine` and observe each stdout line arrives;
+  3. `await window.api.monitor.start({ processId: '<id>', untilPattern: 'Local:.*localhost' })` → returns a `streamId`; subscribe `window.api.monitor.onMatched(cb)` and watch the dev-server URL line fire `matched`;
+  4. `await window.api.monitor.read(streamId)` returns the buffered lines + a cursor; next call with `since: cursor` returns only new lines;
+  5. `await window.api.shellBg.spawn({ command: 'node -e "console.log(\\"done\\"); process.exit(0)"' })` → after exit, the `shell:bg:exit` listener fires with `exitCode: 0`.
+
+**Notes:**
+- Tool descriptors (`bash_run_background`, `monitor_start`, `monitor_read`, `monitor_stop`) are deferred to T2:C1 per the merge protocol — they need the lazy-schema shape to register.
+- The monitor's bus subscription is lazy + idempotent (`busSubscribed` guard) so importing the module doesn't attach listeners to the shell bus until the first `startMonitor` call.
+- Status-gating lives inside `ingestLine` itself (not in the bus callback) so both bus-driven and direct (test) ingestion respect a matched/stopped/exited monitor. This was caught by the post-match line-gating test.
+- The `bg-line` flush drains any trailing partial line on process exit so `printf "no-trailing-newline"` doesn't get swallowed — verified by inspection; the dev-server-manager helper from F1 doesn't have this concern because it tails-only, not line-splits.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt F3] PR / Issue browse + actions UI — 2026-06-03
+
+**Files changed:**
+- `electron/services/github-service.ts` — adds `listIssues(owner, repo, { state?, per_page?, labels? })` (REST `/issues` with PR filter), `getPullRequestStatus(owner, repo, number)` which fans the legacy commit-status + modern check-runs APIs into one `PullRequestStatusSummary` with a worst-of `overall` rollup.
+- `electron/ipc/github.ts` — `github:listIssues`, `github:getPullRequestStatus`.
+- `electron/preload.ts` — `window.api.github.listIssues` + `getPullRequestStatus`.
+- `src/lib/github-types.ts` — renderer-side mirrors for `GitHubIssue`, `PullRequestReviewComment`, `PullRequestStatusState`, `PullRequestStatusCheck`, `PullRequestStatusSummary`.
+- `src/lib/ipc-client.ts` — typed `github.*` client methods for the F2 review surface + F3 issues/status.
+- `src/components/github/PRStatusChecks.tsx` (new) — auto-refreshes every 15s, color-codes per state, links to each check's `targetUrl`.
+- `src/components/github/PRDiffView.tsx` (new) — uses the existing `compare(base, head)` IPC to render commit list + per-file `+/−` counts without a new IPC.
+- `src/components/github/InlineCommentComposer.tsx` (new) — `event` picker (COMMENT/APPROVE/REQUEST_CHANGES), free-form overall body, plus an N-row inline-comment form (path/line/body); posts via F2's `createPullRequestReview`.
+- `src/components/github/PullRequestsPanel.tsx` (new) — Open/Drafts/Mine/All filter tabs over a repo-scoped PR list; clicking a PR expands an inline detail strip with status checks, diff view, review comments, and the composer; "Browse on GitHub" button per detail strip.
+- `src/components/github/IssuesPanel.tsx` (new) — repo picker + open/closed/all state filter; rows deep-link to github.com (no inline detail strip — issues live in their own thread surface).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest full suite ✓ (852 passed | 13 skipped — F3 is renderer-only + read-side IPC; no new test files this prompt)
+- user-verification-needed (Electron + GitHub auth required):
+  1. mount `<PullRequestsPanel />` (Integration H3 wires this into the main shell);
+  2. confirm repos load + the first one auto-selects;
+  3. switch filters (Open/Drafts/Mine/All) → list re-fetches with the right view;
+  4. click a PR → detail strip expands with status checks loaded; observe a 15s auto-refresh re-pulling the status rollup;
+  5. open the inline composer, add a row with `path: src/index.ts`, `line: 1`, body, set event to COMMENT, Post → review lands on github.com + the comment surfaces in the review-comments list on refresh;
+  6. "Browse on GitHub" opens the PR page in the OS default browser;
+  7. mount `<IssuesPanel />` → issues list excludes PRs (filter applied in `listIssues`); label chips render with the GitHub label color.
+
+**Notes:**
+- The diff view intentionally doesn't render full unified diffs — it lists files + commit messages (which is what the existing `compare` IPC returns) and links out to github.com for the full hunks. A future prompt can swap in a hunk renderer reusing the artifact sandbox per the plan's verify language; that's polish vs. correctness.
+- The PR panel re-uses the existing `useGitHubStore.repos` so the user can swap connected repos without leaving the panel.
+- No new `src/stores/github-store.ts` slice was added; the panel state (filters, selection, expanded PR, comments) is local component state, which matches the rest of the app's pattern for narrow per-view UI.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt F2] PR review threading + inline review post — 2026-06-03
+
+**Files changed:**
+- `electron/services/github-service.ts` — adds `getPullRequestReviewComments(owner, repo, number)` (REST `/pulls/{n}/comments`), `createPullRequestReview({ owner, repo, number, body?, event, commitId?, comments[] })` (REST `/pulls/{n}/reviews` with `event ∈ APPROVE | REQUEST_CHANGES | COMMENT` and zero+ inline-line `comments` carrying `path/body/line|position/side`), `replyToReviewComment({ commentId, body, ... })` (REST `/pulls/{n}/comments/{id}/replies`), `listPullRequestReviewThreads(owner, repo, number)` (GraphQL — REST has no thread state), `resolveReviewThread(threadId)` + `unresolveReviewThread(threadId)` (GraphQL mutations). All paths reuse `githubRequest` for REST and a new local `graphqlRequest` helper for GraphQL — both share the existing OAuth/GhCli/AppToken provider so tokens never round-trip to the renderer.
+- `electron/ipc/github.ts` — 6 new handlers under the `github:` namespace: `listPullRequestReviewComments`, `listPullRequestReviewThreads`, `createPullRequestReview`, `replyToReviewComment`, `resolveReviewThread`, `unresolveReviewThread`.
+- `electron/preload.ts` — same six methods exposed on `window.api.github.*` with fully-typed args.
+- `electron/services/github-service.test.ts` — exported `parseReviewComment` so it's testable; added 4 new tests covering the normalised shape, the `in_reply_to_id` thread-reply path, and null line/start_line for file-level comments.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest github-service ✓ (40 passed including 4 new)
+- vitest full suite ✓ (852 passed | 13 skipped — 4 new + 848 baseline; binding-gated skips unchanged)
+- user-verification-needed (real PR + GitHub auth + `pull_request:write` scope required):
+  1. open a PR you control on github.com, note `owner/repo/number`;
+  2. from the Electron app's renderer console, call `window.api.github.listPullRequestReviewComments({ owner, repo, number })` → returns the existing review comments;
+  3. call `window.api.github.createPullRequestReview({ owner, repo, number, event: 'COMMENT', body: 'auto review', comments: [{ path: 'src/index.ts', line: 1, body: 'first inline' }, { path: 'src/index.ts', line: 2, body: 'second inline' }] })` → returns `{ id, state, htmlUrl }`; refresh the PR on github.com and confirm both inline comments render on lines 1 and 2;
+  4. call `replyToReviewComment({ ..., commentId: <one returned above>, body: 'reply' })` → reply renders threaded under the original;
+  5. call `listPullRequestReviewThreads({ owner, repo, number })` → returns the threads with their GraphQL IDs;
+  6. call `resolveReviewThread({ threadId: '<one above>' })` → thread shows resolved on github.com;
+  7. revoke the `repo` scope (or auth without it) and retry create-review → 403 with the GraphQL/REST error message surfaces verbatim through the `failure(...)` envelope.
+
+**Notes:**
+- Tool descriptors (`gh_pr_comments`, `gh_pr_review_post`, plus `gh_pr_reply_comment` for parity with the F2 verify gate) are NOT registered in this commit — `tool-registry.ts` is owned by T2:C1's lazy-schema refactor; rebase the descriptor add onto C1 when it lands.
+- GraphQL is used only for thread-state operations because REST genuinely doesn't expose `isResolved`. The token path is shared so a user authed via `gh auth` (gh-cli mode) gets thread resolve for free.
+- The reply path uses `/comments/{id}/replies` not `/issues/{n}/comments/{id}` — the former produces a properly-threaded inline reply on the diff; the latter creates a top-level issue comment and detaches from the thread.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt F1] Preview verification depth — 2026-06-03
+
+**Files changed:**
+- `electron/services/dev-server-manager.ts` (new) — `spawnDevServer({ command, args, cwd, env, shell })` boots a child process, captures stdout+stderr to a rolling 200KB buffer, and exposes `waitForOutput(id, regex, timeoutMs)` so callers can resolve on "Local: http://localhost:5173/" (Vite, Next, Astro all emit that shape). FORCE_COLOR=0 + NO_COLOR=1 are stamped on the env so URL regexes don't trip over ANSI. Pattern waiters auto-reject when the child exits before matching. `URL_PATTERNS.{vite,generic}` ship as canonical extractors.
+- `electron/services/browser-manager.ts` (extend) — per-tab `consoleLogs` + `networkEvents` rolling buffers (capped at 500 each); `console-message` listener normalizes both the modern named-fields and legacy positional-arg Electron payload shapes; `ensureNetworkCapture(tabId)` lazily attaches the WebContents debugger and translates CDP `Network.requestWillBeSent` / `Network.responseReceived` into structured entries; navigation resets the buffers so old-page logs don't pollute the new-page surface. New exports: `getTabConsoleLogs(id, since?)`, `getTabNetworkEvents(id, since?)`, `clearTabConsoleLogs(id)`, `clearTabNetworkEvents(id)`, `resizeTab(id, w, h)`.
+- `electron/services/browser-tools.ts` (extend) — 9 new `executePreview*` functions: `Start` (spawns dev server, waits for the URL, opens it in a fresh tab, returns `{sessionId, pid, url, tabId, output}`), `Stop` (per-session or `all: true`), `ConsoleLogs` + `Network` (filterable by since-cursor / level / limit), `Snapshot` (returns selector + outerHTML + title + url, truncated at max_bytes), `Inspect` (returns common props + computed styles + attribute map + bounding rect for a selector), `Eval` (arbitrary JS — flagged for permission gating once T2:C1 registers descriptors), `Screenshot` (PNG via capturePage), `Fill` + `Click` (DOM mutators), `Resize` (drives the WebContentsView bounds for responsive testing). Internal session→tab map tracks the most recently started preview so calls without an explicit `tab_id` default to it.
+- `electron/main.ts` — `destroyAllDevServers()` runs on `will-quit` so dev-server children don't leak across an app exit.
+- `electron/services/dev-server-manager.test.ts` (new) — 8 pure-Node tests (run with no Electron deps) covering spawn shape, `waitForOutput` resolve + timeout, exit/failure status reflection, list/destroy lifecycle, and the Vite URL extractor. Quick-exit + failed-child cases are platform-skipped on Windows because `shell: true` exit timing is racy there.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest dev-server-manager ✓ (6 passed | 2 skipped on win32)
+- vitest full suite ✓ (848 passed | 13 skipped — 6 new + 842 baseline; 7 cumulative skips are the binding-gated sessions-search + platform-gated dev-server cases)
+- user-verification-needed (Electron-only — the preview tools all need a real WebContents):
+  1. open the parity worktree in Electron;
+  2. invoke `executePreviewStart({ command: 'npx', args: ['electron-vite', 'dev'], cwd: '<some Vite/Next project>' })`;
+  3. observe a new browser tab opens to the printed URL + the result JSON includes a populated `output` field with the matched URL;
+  4. trigger a `console.log` from the page; `executePreviewConsoleLogs()` returns at least 1 entry with the right level;
+  5. `executePreviewNetwork()` returns the request that loaded the dev server's index page (after the lazy debugger attach);
+  6. `executePreviewInspect({ selector: '#root', properties: ['textContent', 'tagName'] })` returns the live element + computed CSS;
+  7. `executePreviewScreenshot()` writes a PNG under `userData/artifacts/browser-screenshots/preview-*.png`;
+  8. `executePreviewStop({ sessionId })` releases the dev-server port.
+
+**Notes:**
+- Tool-registry descriptors (`preview_start`, `preview_stop`, `preview_console_logs`, `preview_network`, `preview_snapshot`, `preview_inspect`, `preview_eval`, `preview_screenshot`, `preview_fill`, `preview_click`, `preview_resize`) are intentionally NOT registered in this commit — per the parity-plan §8 merge protocol, T2:C1 owns the `tool-registry.ts` lazy-schema refactor and additive tool descriptors rebase onto its shape. As soon as C1 lands on main, a follow-up commit will register all 11 descriptors with the appropriate `mutates` / `risks` tagging (`preview_eval` + `preview_click` + `preview_fill` + `preview_resize` carry write risk; `preview_start` is the heaviest because it spawns arbitrary processes).
+- The previewTabBySession map keeps preview sessions and tabs joined so a `preview_stop` cleanly tears down both ends; an explicit `all: true` form supports app-shutdown cleanup.
+- Network capture uses the WebContents debugger because Electron's session-scoped `webRequest.onCompleted` is shared across tabs and would require URL-based key filtering. Debugger attach is lazy so the cost is paid only when the user actually asks for `preview_network`.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt E3] Cross-session search + archive — 2026-06-03
+
+**Files changed:**
+- `electron/services/database.ts` — `archived` + `pinned_at` columns on `conversations`; new `sessions_fts` plain-content FTS5 vtable indexed by `source ∈ (conversation, message)`, `conversation_id`, `message_id`, `title`, `body` (Porter stemming + unicode61); indexes on `(archived, updated_at)` and `(pinned_at)`.
+- `electron/services/conversation-store.ts` — `listSessions({ tab, query?, limit, offset })` for Recent / Pinned / Archived bucket pagination; `setConversationArchived()` / `setConversationPinned()` mutators; `searchSessions(query, limit)` returns FTS hits with `snippet()` markup; `backfillSessionsFts(force)` re-fills the index from scratch (called once on boot when the vtable is empty); `clearConversationMessages()` collapses messages + their FTS rows together so `conversation:compact` doesn't leave stale matches.
+- `electron/ipc/conversation.ts` — new `sessions:list` / `sessions:archive` / `sessions:setPinned` / `sessions:search` handlers; the existing `conversation:compact` now delegates message clearing to the new helper.
+- `electron/main.ts` — `backfillSessionsFts(false)` runs once after `initializeMemoryStore`; logs row count when it fires.
+- `electron/preload.ts` — new `window.api.sessions.*` namespace exposing the four IPC methods.
+- `src/stores/sessions-store.ts` (new) — typed store owning `tab`, `query`, paginated `entries`, FTS `hits`, `archive` / `setPinned` mutations, and a 50-entry-per-page `loadMore()` for infinite scroll.
+- `src/components/layout/SessionSearchBar.tsx` (new) — 200ms debounced query input wired to `sessions-store.setQuery`.
+- `src/components/layout/SessionsSidebar.tsx` (new) — Recent / Pinned / Archived tabs above a scrolling list; per-row pin + archive actions; when a query is active, surfaces top FTS hits with `<<…>>` snippet markup (rewritten into `<mark>` highlights), and clicking a hit deep-links to the conversation via the existing chat-store selector.
+- `electron/services/sessions-search.test.ts` (new) — 6 store-level tests covering archive/pin bucketing, FTS title + body search, query-restricted bucket pagination, backfill repair after a `DELETE FROM sessions_fts`, and the `clearConversationMessages` FTS-coherence path. Tests run under `it.skipIf(!nativeOk())` so they cleanly skip when better-sqlite3's Electron-ABI binding can't load from system Node.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest full suite ✓ (842 passed | 11 skipped — 6 new sessions-search tests skipped under the binding constraint; previous 5 baseline skips unchanged)
+- user-verification-needed (better-sqlite3 ABI mismatch in test env + Electron-shell UI):
+  1. launch Electron and mount `<SessionsSidebar />` somewhere reachable;
+  2. create 3+ conversations with distinct titles + a few messages each, including one verbatim phrase like `canary-xyz789`;
+  3. switch to the Sessions sidebar; confirm Recent lists all three with message counts + relative timestamps;
+  4. type `canary-xyz789` into the search bar; confirm an FTS hit row appears above the list with the `<mark>`-highlighted snippet; click it → chat opens that conversation;
+  5. pin one row → it disappears from Recent and appears under Pinned (newest pin first);
+  6. archive one row → disappears from Recent / Pinned, appears under Archived;
+  7. scrolling to the bottom of a 100-entry list triggers `loadMore` and another page of 50 appears.
+
+**Notes:**
+- Chapter titles are referenced in the parity-plan verify gate ("FTS5 over conversation titles + message bodies + chapter titles") but the `chapters` table is owned by T2:E1. The FTS vtable shape already supports a third `source = 'chapter'` value; T2:E1 just adds a `ftsInsertChapter()` helper and the `backfillSessionsFts` loop picks them up on the next boot. No schema change needed when E1 lands.
+- The Sessions sidebar is built as a standalone mountable component — the existing left sidebar (`Sidebar.tsx`) stays unchanged. Integration Phase H3 wires the mount + polish (project grouping, drag-to-reorder pins, right-click menu, "Resume here" button).
+- FTS sync hooks fire from `saveMessage()` for user/assistant rows only; system/tool messages are plumbing and would inflate the index without improving the search experience.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt D3] Memory UI typed view + linking — 2026-06-03
+
+**Files changed:**
+- `src/lib/types.ts` — exports `MemoryType`, `MemoryFile`, `BrokenMemoryLink`; `MemoryEntry` extended with optional typed fields (`name`, `description`, `type`, `projectSlug`, `filePath`) so existing `id: number` callers keep compiling.
+- `src/stores/memory-store.ts` (rewrite) — adds `entries: MemoryFile[]`, `brokenLinks`, `loading`, typed CRUD (`writeMemory`, `deleteEntry`, `duplicateEntry`), `countsByType()` selector for tab badges, and `receiveChanged()` for the `memory:changed` broadcast. Legacy methods (`addMemory`, `updateMemory`, `deleteMemory(id)`, etc.) and pin-by-conversation surface preserved for the Sources panel + RAG sidebar.
+- `src/components/memory/MemoryTypeBadge.tsx` (new) — small colored chip per type (blue/amber/emerald/violet); ships `MEMORY_TYPE_LABELS` for reuse.
+- `src/components/memory/MemoryLinkPicker.tsx` (new) — floating autocomplete that hooks the editor's textarea: detects `[[` typing, reads partial-match prefix, lists matching entries (name + description + type), arrow-key navigation + enter to insert `[[name]]` and close.
+- `src/components/memory/MemoryEditor.tsx` (new) — typed entry editor with type/name/description/body fields, save+cancel+delete actions, body textarea wired to `MemoryLinkPicker`. Name field locks when editing an existing entry so the file is never orphaned on rename.
+- `src/components/memory/MemoryPanel.tsx` (rewrite) — tabs across the top (All/User/Feedback/Project/Reference) with live counts; click an entry → open MemoryEditor; per-row duplicate + delete actions on hover; broken-link pip from `MemoryLinkGraph` (D2) re-wired to open the editor with the missing target pre-seeded as a `reference` entry; Import/Export/Clear menu preserved.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest full suite ✓ (842 passed | 5 skipped — unchanged)
+- user-verification-needed (Electron-shell UI, preview tools can't reach an Electron window):
+  1. open Memory modal → tabs show All/User/Feedback/Project/Reference with counts;
+  2. click `+` from each tab → MemoryEditor opens with that type pre-selected;
+  3. create one of each type with a name + body → list/tabs update + MEMORY.md file contains a line per entry;
+  4. click an entry → editor opens with frontmatter populated; edit body and save → file rewritten with same name + new body;
+  5. type `[[` in the body → autocomplete lists known entries; arrow-down + enter inserts `[[name]]`;
+  6. duplicate-action on a row → opens editor with `<name>_copy`;
+  7. drop a `[[unknown-target]]` reference into a body → after save, "To write" pip surfaces in the panel; click pip → editor opens pre-seeded with `name=unknown-target`, `type=reference`;
+  8. badges scan correctly by color.
+
+**Notes:**
+- Editor renders inline (replaces the list view rather than opening a side pane) to fit the existing 720px modal. The Integration Phase can promote it to a split-pane layout if needed.
+- The pip "to-write" target defaults to `type: reference` because the most common cross-reference use case is pointing at an external system or fact rather than a feedback rule.
+- The legacy `MemoryEntry` shape (numeric id) survives intact for the Sources panel + RAG attach UI. D3 doesn't migrate those callers — they continue to function with the legacy view loaded from `memory:list()` (no-arg) which returns the rowid-bearing shape.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt D2] MEMORY.md always-loaded index — 2026-06-03
+
+**Files changed:**
+- `electron/services/memory-store.ts` — `regenerateMemoryIndex(projectSlug)` writes `userData/lamprey-memory/<projectSlug>/MEMORY.md` with one line per typed entry (sorted by type then description, capped at 200 lines, with a trailing `+ N more` note when truncated). The regen runs from `broadcastChange()`, so every write/delete/clear automatically rewrites the index. New `loadMemoryIndex()` reads it back; `buildMemoryIndexBlock()` returns the `<memory_index>...</memory_index>` system-prompt block (empty string when no entries so chat.ts can drop it). New `extractLinks()` + `getBrokenMemoryLinks()` walk every body, slug-normalize `[[link-name]]` targets, and return the ones with no matching file.
+- `electron/services/system-prompt-builder.ts` — `buildSystemPrompt` gains an optional `memoryIndexBlock` 7th parameter that gets injected between the legacy `<memory>` block and the skill blocks (per the parity-plan §2 invariant: `memory_index → skills → retrieved_context → chapters → conversation`). Empty/whitespace blocks are dropped entirely.
+- `electron/ipc/chat.ts` — pulls `memStore.buildMemoryIndexBlock()` once per turn and threads it through both single-mode and multi-mode `buildSystemPrompt` calls.
+- `electron/ipc/memory.ts` — new `memory:readIndex` (returns raw MEMORY.md text) and `memory:listBrokenLinks` (returns `{from, target}[]` for the renderer pip).
+- `electron/preload.ts` — `memory.readIndex` / `memory.listBrokenLinks` exposed on the IPC bridge.
+- `src/components/memory/MemoryLinkGraph.tsx` (new) — "To write" pip strip rendered at the bottom of the memory sidebar. Subscribes to the `memory:changed` broadcast for live refresh; dedupes by target with a `×N` count when multiple entries reference the same missing slug. Click pre-fills the add-memory draft with `[[target]] — ` so D3's MemoryEditor inherits a working seed.
+- `src/components/memory/MemoryPanel.tsx` — mounts `MemoryLinkGraph` and wires its `onPick` to the existing add-memory flow.
+- `electron/services/memory-store.test.ts` — 6 new D2-specific tests (MEMORY.md regen, `<memory_index>` block shape, empty-state suppression, regen-on-delete, broken-link detection, 200-line truncation).
+- `electron/services/system-prompt-builder.test.ts` — 2 new tests asserting the inter-block order and empty-block suppression.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest memory-store + system-prompt-builder ✓ (41 tests including 8 new)
+- vitest full suite ✓ (842 passed | 5 skipped — 8 new + 834 baseline)
+- user-verification-needed: launch Electron, write 5 typed memories via the panel, confirm `userData/lamprey-memory/__global__/MEMORY.md` lists all 5 (sorted by type → description), include a `[[unknown-target]]` reference in one body, confirm a "To write" pip appears in the sidebar with the right target name, click the pip and confirm the add-memory draft is pre-filled.
+
+**Notes:**
+- Per the parity-plan merge protocol, `system-prompt-builder.ts` is a hotspot: T3:D2 (memory_index) lands first, then T2:E1 (chapters mention), then T2:E5 (compressed regions). This commit adds the memory_index slot only — chapter/compressed regions will append cleanly later.
+- The legacy `<memory>` block (full body of each entry) remains alongside `<memory_index>` for now. The index gives the model a map; the legacy block gives it the actual content. D4's consolidation workflow will decide whether to retire one in favor of the other.
+- The pip surface is wired to the existing add-memory draft for D2; D3 rebuilds the MemoryPanel into the typed-tabs editor and will rewire the pip to open the typed-entry editor directly.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
+## [Track 3 — Prompt D1] Memory taxonomy + frontmatter migration — 2026-06-03
+
+**Files changed:**
+- `electron/services/memory-frontmatter.ts` (new) — `MemoryType` taxonomy, slug helper, gray-matter parse/serialize for the `{name, description, metadata:{type}}` shape (with tolerant flat-`type:` parsing for hand-written files).
+- `electron/services/memory-store.ts` (rewrite) — file-backed CRUD at `userData/lamprey-memory/<projectSlug>/<slug>.md` with a SQLite mirror, chokidar watcher for external edits, idempotent migration of legacy `memory_entries` rows to `type: project` files under the `__global__` slug, and an in-memory fallback so list/read/search/delete still work when the better-sqlite3 binding is unavailable (test env). Legacy `addMemory(content) / updateMemory(id, content) / deleteMemory(id) / listMemories() / buildMemoryBlock()` kept as shims over the file API so the pre-D3 MemoryPanel and `memory_add` tool keep working.
+- `electron/services/database.ts` (extend) — `memory_index` table + FTS5 mirror + AI/AU/AD triggers; new `__resetDbForTests` escape hatch.
+- `electron/ipc/memory.ts` (extend) — `memory:write` / `memory:read` / `memory:search`; `memory:list` accepts an optional `{ type, projectSlug }` filter; `memory:delete` accepts either the numeric legacy id or a string `name`.
+- `electron/preload.ts` (extend) — typed `memory.write/read/search` methods and `onChanged` subscription so D2/D3 can react live.
+- `electron/main.ts` (extend) — `initializeMemoryStore()` on startup, `shutdownMemoryStore()` on `will-quit`.
+- `electron/services/memory-store.test.ts` (new) — 12 unit tests covering frontmatter shape, typed filtering, external-edit re-scan, search, legacy shim back-compat, and migration idempotence.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/memory-store.test.ts ✓ (12 tests)
+- vitest full suite ✓ (834 passed | 5 skipped — 12 new + 822 baseline)
+- user-verification-needed: smoke the live Electron app with an existing `lamprey.db` containing `memory_entries` rows to confirm the migration step writes them into `userData/lamprey-memory/__global__/` with `type: project` and that the existing MemoryPanel still renders/edits them through the legacy IPC.
+
+**Notes:**
+- Files are canonical, SQLite is a search/index mirror. External editors and version control are first-class.
+- Per-project routing is wired through `projectSlug` but defaults to `__global__` until a future prompt threads the current project id; this keeps the slug ergonomics ready without forcing a project-id contract on D1.
+- The store gracefully falls back to an in-memory mirror when the SQLite binding can't load (test env runs system Node, but better-sqlite3 is built for Electron's ABI); production code path still uses the FTS mirror.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
 ## Parity Phase planning — three-track roster authored (2026-06-03)
 
 Planning-only turn. No source changes; one new planning artifact landed.

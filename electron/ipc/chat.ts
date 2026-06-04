@@ -183,7 +183,7 @@ export function registerChatHandlers(): void {
 
       emitPhase(conversationId, 'understanding')
 
-      fireHooks('promptSubmit', { conversationId, promptBody: content })
+      void fireHooks('promptSubmit', { conversationId, promptBody: content })
 
       const allMessages = convStore.getMessages(conversationId)
       const memoryBlock = memStore.buildMemoryBlock()
@@ -551,7 +551,7 @@ export async function runChatRound(
             if (!suppressDoneEvent) {
               emitPhase(conversationId, 'done')
               emitChatEvent('chat:done', { conversationId, message: assistantMsg })
-              fireHooks('agentStop', { conversationId })
+              void fireHooks('agentStop', { conversationId })
             }
             resolve({ message: assistantMsg })
             return
@@ -762,44 +762,75 @@ async function resolveSingleToolCall(
   if (approvalDecision === 'deny') {
     result = 'Action denied by user.'
     explicitStatus = 'denied'
-  } else if (toolName === 'memory_add' && typeof args.content === 'string') {
-    const entry = memStore.addMemory(args.content, conversationId)
-    emitChatEvent('memory:added', entry)
-    result = 'Saved to memory.'
-  } else if (toolRegistry.hasHandler(toolName)) {
-    const dispatched = await dispatchNativeTool(() =>
-      toolRegistry.executeNative(toolName, args, {
-        conversationId,
-        workspacePath,
-        model,
-        signal,
-        callId: tc.id,
-        correlationId
-      })
-    )
-    result = dispatched.result
-    explicitStatus = dispatched.status
-    if (toolName === 'update_plan' && dispatched.status === 'done') {
-      try {
-        const snapshot = JSON.parse(result)
-        emitChatEvent('plan:updated', { conversationId, snapshot })
-      } catch {
-        // Snapshot shape drifted — renderer refetches on the next
-        // conversation switch.
-      }
-    }
-  } else if (toolName.includes('__')) {
-    const [serverId, ...nameParts] = toolName.split('__')
-    const mcpToolName = nameParts.join('__')
-    try {
-      const mcpResult = await mcpManager.callTool(serverId, mcpToolName, args)
-      result = typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult)
-    } catch (err: any) {
-      result = `Error: ${err.message}`
-    }
   } else {
-    result = `Unknown tool: ${toolName}`
+    // Track 2 / C2 — preToolUse hooks run after approval but before dispatch.
+    // A throwing preToolUse hook BLOCKS the call: its message reaches the
+    // model as the synthetic tool result and the audit row records 'denied'
+    // with approvalSource left at the approval gate's value (the hook is
+    // its own provenance). Hook errors are also surfaced as logs for the
+    // UI's recent-runs view.
+    const preHook = await fireHooks('preToolUse', {
+      conversationId,
+      toolName,
+      args,
+      cwd: workspacePath
+    })
+    if (preHook.blocked) {
+      result = `Blocked by hook: ${preHook.blockReason ?? 'preToolUse refused'}`
+      explicitStatus = 'denied'
+    } else if (toolName === 'memory_add' && typeof args.content === 'string') {
+      const entry = memStore.addMemory(args.content, conversationId)
+      emitChatEvent('memory:added', entry)
+      result = 'Saved to memory.'
+    } else if (toolRegistry.hasHandler(toolName)) {
+      const dispatched = await dispatchNativeTool(() =>
+        toolRegistry.executeNative(toolName, args, {
+          conversationId,
+          workspacePath,
+          model,
+          signal,
+          callId: tc.id,
+          correlationId
+        })
+      )
+      result = dispatched.result
+      explicitStatus = dispatched.status
+      if (toolName === 'update_plan' && dispatched.status === 'done') {
+        try {
+          const snapshot = JSON.parse(result)
+          emitChatEvent('plan:updated', { conversationId, snapshot })
+        } catch {
+          // Snapshot shape drifted — renderer refetches on the next
+          // conversation switch.
+        }
+      }
+    } else if (toolName.includes('__')) {
+      const [serverId, ...nameParts] = toolName.split('__')
+      const mcpToolName = nameParts.join('__')
+      try {
+        const mcpResult = await mcpManager.callTool(serverId, mcpToolName, args)
+        result = typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult)
+      } catch (err: any) {
+        result = `Error: ${err.message}`
+      }
+    } else {
+      result = `Unknown tool: ${toolName}`
+    }
   }
+
+  // Track 2 / C2 — postToolUse fires after the handler completes (whether
+  // it succeeded, failed, or was denied by approval/hook). Hooks here can
+  // log every invocation but never block — we are past the dispatch point.
+  // Awaited so the synchronous JS sandbox completes before the next call
+  // in the same window starts.
+  if (result === undefined) result = ''
+  await fireHooks('postToolUse', {
+    conversationId,
+    toolName,
+    args,
+    result,
+    cwd: workspacePath
+  })
 
   const duration = Date.now() - startTime
   const finishedAt = startTime + duration

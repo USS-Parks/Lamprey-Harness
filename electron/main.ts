@@ -428,7 +428,7 @@ app.whenReady().then(() => {
   }
 
   try {
-    fireHooks('sessionStart')
+    void fireHooks('sessionStart')
     startAutomations()
   } catch (err) {
     console.error('[main] hooks/automations init error:', (err as Error).message)

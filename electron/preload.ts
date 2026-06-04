@@ -253,13 +253,39 @@ const api = {
 
   hooks: {
     list: () => ipcRenderer.invoke('hooks:list'),
-    create: (input: { event: string; label: string; command: string }) =>
-      ipcRenderer.invoke('hooks:create', input),
+    create: (input: {
+      event: string
+      label: string
+      command: string
+      language?: 'js' | 'shell'
+      timeoutMs?: number
+    }) => ipcRenderer.invoke('hooks:create', input),
     update: (
       id: string,
-      patch: Partial<{ event: string; label: string; command: string; enabled: boolean }>
+      patch: Partial<{
+        event: string
+        label: string
+        command: string
+        enabled: boolean
+        language: 'js' | 'shell'
+        timeoutMs: number
+      }>
     ) => ipcRenderer.invoke('hooks:update', id, patch),
-    delete: (id: string) => ipcRenderer.invoke('hooks:delete', id)
+    delete: (id: string) => ipcRenderer.invoke('hooks:delete', id),
+    // Track 2 / C2 — test-run an unsaved hook body against a sample context.
+    test: (payload: {
+      code: string
+      event: string
+      context?: {
+        conversationId?: string
+        toolName?: string
+        args?: Record<string, unknown>
+        result?: string
+        promptBody?: string
+        cwd?: string
+      }
+      timeoutMs?: number
+    }) => ipcRenderer.invoke('hooks:test', payload)
   },
 
   automations: {

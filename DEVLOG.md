@@ -1,5 +1,43 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 — Prompt C2] Hooks wired into dispatch + Hooks UI — 2026-06-03
+
+**Files changed:**
+- `electron/services/database.ts` — migration: `safeAddColumn(hooks, language TEXT NOT NULL DEFAULT 'shell')` + `timeout_ms INTEGER NOT NULL DEFAULT 5000`. Existing rows preserve their shell semantics; new rows from the UI explicitly set `language='js'`.
+- `electron/services/hooks-store.ts` — added `language: 'js' | 'shell'` + `timeoutMs` to `Hook`; `getHook(id)` getter; `createHook` / `updateHook` thread the new fields. `DEFAULT_HOOK_TIMEOUT_MS = 5000` exported.
+- `electron/services/hooks-runner.ts` (rewritten) — new `vm`-sandboxed JS path with bindings (`event`, `conversationId`, `toolName`, `args` deep-clone, `result`, `promptBody`, `cwd`, `log(...)`, `console.{log,error,warn}`, `Date`, `JSON`, `Math`). `preToolUse` blocks dispatch when a hook throws — message reaches the model as the synthetic tool result. Legacy shell-language path preserved for pre-migration rows. New `testHook({ code, event, context, timeoutMs })` for the UI test-run button.
+- `electron/ipc/hooks.ts` — `hooks:create` / `hooks:update` accept `language` + `timeoutMs`. New `hooks:test` IPC.
+- `electron/ipc/chat.ts` — `resolveSingleToolCall` now wraps the dispatch branch with `await fireHooks('preToolUse', ...)`; if blocked, returns `'Blocked by hook: <reason>'` with status `'denied'`. Post-call: `await fireHooks('postToolUse', { ..., result })` before recording the audit row. Existing `promptSubmit` / `agentStop` call sites switched to `void fireHooks(...)` for the async signature.
+- `electron/main.ts` — `void fireHooks('sessionStart')`.
+- `electron/preload.ts` — added `hooks.test` binding; `hooks.create` / `hooks.update` accept the new fields.
+- `src/stores/hooks-store.ts` (new) — renderer hooks store. Load + create + update + remove + test. `lastTest` slot holds the most recent test run for the editor pane.
+- `src/components/settings/HooksSettings.tsx` (rewrite) — per-event tab strip with count badges, master/detail list + editor, code textarea, language badge (legacy 'shell' marked deprecated and read-only-runtime), timeout field, enable toggle, Save / Test / Delete buttons, inline test-output panel (BLOCKED / OK chip + thrown message + log lines).
+- `electron/services/hooks-runner.test.ts` (new) — 14 tests covering sandbox bindings, preToolUse blocking, args-clone isolation, timeout, multi-hook ordering, disabled-hooks-skipped, postToolUse no-block. `listHooksForEvent` is mocked at the module boundary so the runner is exercised without booting better-sqlite3 / Electron.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest 868 passed / 5 skipped (854 baseline → +14 from `hooks-runner.test.ts`) ✓
+- Manual smoke — **user-verification-needed**: the HooksSettings panel needs window.api.hooks (Electron IPC + better-sqlite3) so the preview server cannot exercise create/test/delete. Steps for the user:
+  1. Launch Electron (`ELECTRON_EXEC_PATH=... npx electron-vite dev`).
+  2. Open Settings → Hooks. Confirm 5-event tab strip with count badges.
+  3. New hook on `preToolUse` with body `if (toolName === "shell_command") throw "blocked by hook"`; click Test → expect "BLOCKED" chip + thrown line.
+  4. Save and submit a chat turn that invokes `shell_command`. Tool result should read `Blocked by hook: blocked by hook` and the audit row status `'denied'`.
+  5. Disable the hook from the list checkbox → next shell call runs normally.
+  6. Create a `postToolUse` hook with `log(toolName, "→", result.slice(0, 60))`; run any tool; confirm the log line appears in the hook's Test output for a subsequent test-run with sample context (live postToolUse logs route to backend console for now — UI surfacing is H4).
+  7. Delete the hook — list updates, no stale row.
+
+**Notes:**
+- Architectural-invariant compliance (plan §2 item 3): same `vm` sandbox shape as workflows. Track 1 / B1 will eventually extract a shared sandbox helper; until then, both modules (workflow-runner once it lands, hooks-runner now) construct their own `vm.createContext` with the same security posture (no `require`, no `process`, no fs/net, configurable timeout). When B1 lands the hooks-runner can rebase onto the extracted helper without behaviour change.
+- preToolUse multi-hook ordering: the first throw wins (sets `blocked` + `blockReason`); later hooks still run so their `log()` calls are captured. This means an audit-style postcondition hook keeps working even when an earlier hook objected.
+- `args` snapshot uses `structuredClone` (Node 17+) with a JSON-roundtrip fallback. Sandbox mutations cannot leak back into the dispatcher's args object.
+- Legacy `shell` hooks remain executable but cannot be created from the new UI; the editor surfaces a "Legacy shell hook" warning and disables the Test button (shell test would spawn a child process and that's not what the inline editor preview promises).
+- Merge-hotspot coordination: `chat.ts` dispatch hook wires landed before T1:A1 (subagent-fork). T1 must rebase its dispatch additions on top of the new preToolUse / postToolUse fences.
+
+**Commit:** see `git log feat/track-2-tool-layer`.
+
+---
+
 ## [Track 2 — Prompt C1] Lazy tool schemas + ToolSearch — 2026-06-03
 
 **Files changed:**

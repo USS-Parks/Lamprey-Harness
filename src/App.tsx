@@ -30,6 +30,8 @@ import { useMediaQuery, NARROW_VIEWPORT_QUERY } from '@/hooks/useMediaQuery'
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { SecurityBanner } from '@/components/ui/SecurityBanner'
 import { AsyncEventToast } from '@/components/chat/AsyncEventToast'
+import { StatusLine } from '@/components/layout/StatusLine'
+import { AskUserModal } from '@/components/chat/AskUserModal'
 import { useThemedIcon } from '@/lib/themed-icon'
 import artifactsPlaceholderLight from '@assets/Lamprey Code Window Icon.png'
 import artifactsPlaceholderDark from '@assets/Lamprey Code Window Icon Dark View.png'
@@ -440,10 +442,13 @@ function App(): React.ReactElement {
         </>
       )}
 
+      <StatusLine />
+
       <QuickOpenPalette />
       <WorkflowPalette />
       <WorktreeManagerModal />
       <AsyncEventToast />
+      <AskUserModal />
 
       {/* Viewport-fixed floating overlay. Anchored to viewport coords so
           when the right panel expands the card stays put and retreats

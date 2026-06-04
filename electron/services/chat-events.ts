@@ -94,6 +94,14 @@ export interface AgentStatusPayload {
   output?: string
 }
 
+/** Track 2 / C3 — plan-mode toggle event. Fires whenever the per-conversation
+ *  plan_mode_active flag flips via the `enter_plan_mode` / `exit_plan_mode`
+ *  tools or the `plan:enterMode` / `plan:exitMode` IPC channels. */
+export interface PlanModeChangedPayload {
+  conversationId: string
+  active: boolean
+}
+
 export interface ChatEventMap {
   'chat:chunk': ChatChunkPayload
   'chat:done': ChatDonePayload
@@ -102,6 +110,7 @@ export interface ChatEventMap {
   'chat:tool-call': ChatToolCallPayload
   'chat:tool-call-result': ChatToolCallResultPayload
   'plan:updated': PlanUpdatedPayload
+  'plan:mode-changed': PlanModeChangedPayload
   'memory:added': MemoryAddedPayload
   'agent:status': AgentStatusPayload
 }

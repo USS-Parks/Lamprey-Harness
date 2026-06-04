@@ -68,11 +68,11 @@ export interface LampreyToolDescriptor {
   selfApproves?: boolean
   /**
    * Derived tag list computed from `providerKind`, `risks`, `requiresApproval`,
-   * `parallelizable`, and `lazy`. Used by `tools:search` for keyword ranking
-   * and by the renderer for filter chips. See `tool-search.ts` for the
-   * taxonomy. Always populated on the registry's output (`getDescriptors`,
-   * `getStubs`, `getById`) — registration sites may omit it via
-   * `LampreyToolRegistration`.
+   * `parallelizable`, `lazy`, and `mutates`. Used by `tools:search` for
+   * keyword ranking and by the renderer for filter chips. See
+   * `tool-search.ts` for the taxonomy. Always populated on the registry's
+   * output (`getDescriptors`, `getStubs`, `getById`) — registration sites
+   * may omit it via `LampreyToolRegistration`.
    */
   tags: string[]
   /**
@@ -85,6 +85,17 @@ export interface LampreyToolDescriptor {
    * `true`.
    */
   lazy: boolean
+  /**
+   * Track 2 / C3 — true when invoking this tool may mutate the workspace,
+   * external systems, or persistent state. The chat dispatcher refuses
+   * mutating tools when a conversation is in plan mode (the model can
+   * still read freely). Defaults to `risks.includes('write') ||
+   * risks.includes('destructive')` when not set explicitly. The
+   * `enter_plan_mode` / `exit_plan_mode` tools opt out (`mutates: false`)
+   * so the model can always flip the gate; they mutate session state but
+   * not the workspace.
+   */
+  mutates: boolean
 }
 
 /**
@@ -96,15 +107,31 @@ export interface LampreyToolDescriptor {
 export type LampreyToolStub = Omit<LampreyToolDescriptor, 'inputSchema'>
 
 /**
- * Registration input shape. `tags` and `lazy` are optional here so existing
- * registration sites do not need to repeat the derived fields; the registry
- * normalizes them on insert. Every other field stays required as before.
+ * Registration input shape. `tags`, `lazy`, and `mutates` are optional here
+ * so existing registration sites do not need to repeat the derived fields;
+ * the registry normalizes them on insert. Every other field stays required
+ * as before.
  */
 export type LampreyToolRegistration =
-  Omit<LampreyToolDescriptor, 'tags' | 'lazy'> & {
+  Omit<LampreyToolDescriptor, 'tags' | 'lazy' | 'mutates'> & {
     tags?: string[]
     lazy?: boolean
+    mutates?: boolean
   }
+
+/**
+ * Track 2 / C3 — true when invoking the tool may mutate the workspace,
+ * external systems, or persistent state. Honoured by the chat dispatcher's
+ * plan-mode gate. The `mutates` field is the authoritative answer; the
+ * function exists for callers that want to derive intent from an arbitrary
+ * descriptor shape (e.g. tests, future plugin scaffolds).
+ */
+export function isMutatingDescriptor(
+  descriptor: LampreyToolDescriptor | undefined
+): boolean {
+  if (!descriptor) return false
+  return descriptor.mutates === true
+}
 
 /**
  * Returns true when a tool call may run concurrently with other tool calls
@@ -250,12 +277,16 @@ class ToolRegistry {
         `registerNative: refusing to register descriptor with providerKind="${input.providerKind}"`
       )
     }
-    // Normalize derived fields (tags, lazy) at insert time so reads never
-    // need to recompute them. Native tools default to lazy: false — their
-    // schemas are inlined at registration. Callers can override either
-    // field explicitly (e.g. a native tool that wraps a deferred remote
-    // catalogue can set lazy: true).
+    // Normalize derived fields (tags, lazy, mutates) at insert time so
+    // reads never need to recompute them. Native tools default to
+    // lazy: false — their schemas are inlined at registration. `mutates`
+    // defaults to risks-includes-write-or-destructive; callers can
+    // override (e.g. enter_plan_mode mutates session state but not the
+    // workspace, so it ships mutates: false).
     const lazy = input.lazy ?? false
+    const mutates =
+      input.mutates ??
+      input.risks.some((r) => r === 'write' || r === 'destructive')
     const tags =
       input.tags ??
       computeToolTags({
@@ -263,9 +294,10 @@ class ToolRegistry {
         risks: input.risks,
         requiresApproval: input.requiresApproval,
         parallelizable: input.parallelizable,
-        lazy
+        lazy,
+        mutates
       })
-    const descriptor: LampreyToolDescriptor = { ...input, tags, lazy }
+    const descriptor: LampreyToolDescriptor = { ...input, tags, lazy, mutates }
     this.natives.set(descriptor.id, descriptor)
     if (handler) this.nativeHandlers.set(descriptor.id, handler)
   }
@@ -310,12 +342,19 @@ class ToolRegistry {
           ? ['destructive', 'write', 'network']
           : ['network']
         const lazy = true
+        // C3 — MCP tools opt in to plan-mode gating by default when their
+        // risks include write/destructive. Chrome's destructive set
+        // (click/fill/submit/type/press/select_option) thus mutates: true;
+        // every other MCP read tool stays unmuted.
+        const mutates =
+          risks.some((r) => r === 'write' || r === 'destructive')
         const tags = computeToolTags({
           providerKind: 'mcp',
           risks,
           requiresApproval: isDestructive,
           parallelizable: false,
-          lazy
+          lazy,
+          mutates
         })
         list.push({
           id,
@@ -330,7 +369,8 @@ class ToolRegistry {
           requiresApproval: isDestructive,
           enabled: true,
           tags,
-          lazy
+          lazy,
+          mutates
         })
       }
     }
@@ -633,6 +673,51 @@ toolRegistry.registerNative(
     return { result, status: failed ? 'error' : 'done' }
   }
 )
+
+// Track 2 / C3 — plan-mode toggles. These tools flip a per-conversation
+// boolean (conversations.plan_mode_active) that the chat dispatcher
+// consults before approving any mutating tool. Their handlers live inline
+// because they need to emit a `plan:mode-changed` event to the renderer —
+// the same pattern memory_add uses for `memory:added`. Mutates is
+// explicitly false: the flag belongs to session state, not workspace
+// state, and the model must always be able to flip it off.
+toolRegistry.registerNative({
+  id: 'enter_plan_mode',
+  name: 'enter_plan_mode',
+  title: 'Plan mode: enter',
+  description:
+    'Enter plan mode for the current conversation. While plan mode is active, the dispatcher refuses any tool that mutates the workspace, external systems, or persistent state — only read-only tools run. Use this when the user wants you to think and plan before any changes. The model or the user can exit via `exit_plan_mode` or the banner button.',
+  providerKind: 'native',
+  providerId: 'internal',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false
+  },
+  risks: [],
+  requiresApproval: false,
+  enabled: true,
+  mutates: false
+})
+
+toolRegistry.registerNative({
+  id: 'exit_plan_mode',
+  name: 'exit_plan_mode',
+  title: 'Plan mode: exit',
+  description:
+    'Exit plan mode for the current conversation. Mutating tools (apply_patch, shell_command, destructive MCP tools) are once again allowed. Use after agreement is reached on the plan and you are ready to execute.',
+  providerKind: 'native',
+  providerId: 'internal',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false
+  },
+  risks: [],
+  requiresApproval: false,
+  enabled: true,
+  mutates: false
+})
 
 // Tool packs are loaded by electron/services/tool-packs.ts (imported from
 // electron/ipc/index.ts), not from this file. Side-effect imports at the

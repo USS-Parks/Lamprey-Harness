@@ -246,6 +246,13 @@ function initSchema(db: Database.Database): void {
   safeAddColumn(db, 'hooks', "language TEXT NOT NULL DEFAULT 'shell'")
   safeAddColumn(db, 'hooks', 'timeout_ms INTEGER NOT NULL DEFAULT 5000')
 
+  // Track 2 / C3 — per-conversation plan-mode flag. When set, the chat
+  // dispatcher refuses any tool whose descriptor carries `mutates: true`
+  // (the model can still call read-only tools like workspace_context or
+  // any MCP read) until the model or user toggles the flag back off via
+  // the `exit_plan_mode` tool / banner button. Stored as INTEGER 0/1.
+  safeAddColumn(db, 'conversations', 'plan_mode_active INTEGER NOT NULL DEFAULT 0')
+
   // Parent call id — set on synthetic rows spawned from another tool (e.g.
   // sub-agent calls under `multi_agent_run`). Null for top-level
   // model-initiated calls. Lets the audit log answer "which fanout was this

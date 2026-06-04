@@ -38,6 +38,10 @@ export function computeToolTags(
      *  registry passes the explicit boolean; ad-hoc callers (tests, scripts)
      *  can leave it off. */
     lazy?: boolean
+    /** Track 2 / C3 — optional at compute time; emits the 'mutates' meta-tag
+     *  used by the renderer's plan-mode filter and surfaced to the model via
+     *  the OpenAI tools array description. */
+    mutates?: boolean
   }
 ): string[] {
   const tags: string[] = [d.providerKind]
@@ -45,6 +49,7 @@ export function computeToolTags(
   if (d.requiresApproval) tags.push('approval-required')
   if (d.parallelizable === true) tags.push('parallelizable')
   if (d.lazy === true) tags.push('lazy')
+  if (d.mutates === true) tags.push('mutates')
   return tags
 }
 

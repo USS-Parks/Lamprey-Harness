@@ -225,6 +225,26 @@ const api = {
       const handler = (_: unknown, e: { conversationId: string; snapshot: unknown }) => cb(e)
       ipcRenderer.on('plan:updated', handler)
       return () => ipcRenderer.removeListener('plan:updated', handler)
+    },
+    // Track 2 / C3 — plan-mode gate. Banner hydrates via `isModeActive` on
+    // conversation switch; the Exit button calls `exitMode`. Live updates
+    // arrive via `onModeChanged` (the model toggles via the
+    // enter_plan_mode / exit_plan_mode tools mid-turn).
+    isModeActive: (conversationId: string) =>
+      ipcRenderer.invoke('plan:isModeActive', conversationId),
+    enterMode: (conversationId: string) =>
+      ipcRenderer.invoke('plan:enterMode', conversationId),
+    exitMode: (conversationId: string) =>
+      ipcRenderer.invoke('plan:exitMode', conversationId),
+    onModeChanged: (
+      cb: (e: { conversationId: string; active: boolean }) => void
+    ): (() => void) => {
+      const handler = (
+        _: unknown,
+        e: { conversationId: string; active: boolean }
+      ) => cb(e)
+      ipcRenderer.on('plan:mode-changed', handler)
+      return () => ipcRenderer.removeListener('plan:mode-changed', handler)
     }
   },
 

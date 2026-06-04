@@ -11,6 +11,10 @@ import {
 import { boundedJsonPreview, recordEvent } from '../services/event-log'
 import { validateChatSendRequest } from './chat-validation'
 import * as convStore from '../services/conversation-store'
+import {
+  isPlanModeActive,
+  setPlanModeActive
+} from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
@@ -19,7 +23,7 @@ import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
 import { listSkills, getSkillContent } from '../services/skill-loader'
 import { buildApiMessagesFromStoredMessages } from '../services/chat-history'
-import { toolRegistry } from '../services/tool-registry'
+import { toolRegistry, isMutatingDescriptor } from '../services/tool-registry'
 import {
   partitionToolCallWindows,
   type ProviderToolCall
@@ -741,7 +745,17 @@ async function resolveSingleToolCall(
   if (descriptor) {
     emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
   }
-  const needsApproval = descriptorNeedsApproval(descriptor)
+
+  // Track 2 / C3 — plan-mode gate. Block mutating tools without asking
+  // for approval first: there is no point routing through the modal when
+  // the mode already says no, and a global 'deny destructive' policy
+  // shouldn't get to silently allow what plan-mode forbids. The
+  // enter/exit tools opt out of the gate via `mutates: false` on the
+  // descriptor, so the model can always flip the mode back off.
+  const planModeActive = isPlanModeActive(conversationId)
+  const blockedByPlanMode = planModeActive && isMutatingDescriptor(descriptor)
+
+  const needsApproval = !blockedByPlanMode && descriptorNeedsApproval(descriptor)
   const approvalOutcome =
     needsApproval && descriptor
       ? await permissionsService.requestApprovalDetailed({
@@ -757,9 +771,13 @@ async function resolveSingleToolCall(
         })
       : { decision: 'allow' as const, source: 'none' }
   const approvalDecision = approvalOutcome.decision
-  const approvalSource = approvalOutcome.source
+  const approvalSource = blockedByPlanMode ? 'plan-mode' : approvalOutcome.source
 
-  if (approvalDecision === 'deny') {
+  if (blockedByPlanMode) {
+    result =
+      'Blocked: plan mode is active for this conversation. Read-only tools are still available; call `exit_plan_mode` (or have the user click "Exit plan mode" in the banner) to allow mutating tools.'
+    explicitStatus = 'denied'
+  } else if (approvalDecision === 'deny') {
     result = 'Action denied by user.'
     explicitStatus = 'denied'
   } else {
@@ -782,6 +800,17 @@ async function resolveSingleToolCall(
       const entry = memStore.addMemory(args.content, conversationId)
       emitChatEvent('memory:added', entry)
       result = 'Saved to memory.'
+    } else if (toolName === 'enter_plan_mode') {
+      // Track 2 / C3 — inline because the handler emits a renderer event.
+      // Persisted on the conversation row so it survives a restart.
+      setPlanModeActive(conversationId, true)
+      emitChatEvent('plan:mode-changed', { conversationId, active: true })
+      result =
+        'Plan mode is on. Mutating tools (apply_patch, shell_command, destructive MCP) are blocked until exit_plan_mode is called.'
+    } else if (toolName === 'exit_plan_mode') {
+      setPlanModeActive(conversationId, false)
+      emitChatEvent('plan:mode-changed', { conversationId, active: false })
+      result = 'Plan mode is off. Mutating tools are allowed again.'
     } else if (toolRegistry.hasHandler(toolName)) {
       const dispatched = await dispatchNativeTool(() =>
         toolRegistry.executeNative(toolName, args, {

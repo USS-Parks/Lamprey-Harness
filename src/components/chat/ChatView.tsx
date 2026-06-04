@@ -9,6 +9,7 @@ import { WelcomeScreen } from './WelcomeScreen'
 import { TokenTicker } from './TokenTicker'
 import { AgentRunBanner } from './AgentRunBanner'
 import { PlanChecklist } from './PlanChecklist'
+import { PlanModeBanner } from './PlanModeBanner'
 
 // Shared chat column: max-width cap + internal padding. Messages and the
 // input pill both use this so they sit in the same centered column no
@@ -58,6 +59,10 @@ export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
       }}
     >
       <FileDropZone />
+
+      {/* Track 2 / C3 — persistent yellow banner above the conversation
+          when plan mode is active. Self-hides when off. */}
+      <PlanModeBanner conversationId={activeConversationId} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {!activeConversationId ? (

@@ -18,7 +18,8 @@ single moving surface, keyboard-first reflexes, transcript-as-source-of-truth.
 Functional parity (Tracks 1–3 + H1–H6) was already in place; this phase
 closes the remaining "feel" gap. Eleven commits on `feat/fluidity-phase`.
 
-**Commit range:** 525d5f8..<final-J11-sha> (run `git log feat/fluidity-phase` for the full set).
+**Commit range:** 525d5f8..2b2d02d on `feat/fluidity-phase` (J1 → J11, plus
+`24429b9` for the phase seed + 0.2.0 version bump).
 
 ---
 
@@ -50,7 +51,7 @@ global `RIGHT_COLLAPSED_KEY` is mirrored for components that read the
 flag directly, but the per-conv map is the source of truth from this
 prompt onward.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -85,7 +86,7 @@ css/scss/html/sh/py/rs/go/java/rb/sql. `.io` / `.com` / `.exe` etc.
 are intentionally excluded. Style is a dotted underline rather than the
 loud link colour, per the J10 spec's "avoid full link colour" note.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -124,7 +125,7 @@ pill is just its header glyph. The interleave helper is exported as a
 reusable utility even though MessageList ended up using the same bucket
 pattern chapters use (which was already there).
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -164,7 +165,7 @@ behaves identically to no file (both show the new 5-slot defaults).
 size hide the slot — better silence than 0% / NaN%. Branch lookup uses
 the existing `review:branches` IPC; no new channel.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -203,7 +204,7 @@ reaches the chat surface for those — they're tracked in `agent_runs`
 and surfaced via the activity dashboard. AgentRunBanner's existing
 single-agent pill is untouched.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -236,7 +237,7 @@ off-screen on narrow widths.
 single short line that fits the collapsed header. Running/pending stay
 collapsed because the live elapsed already ticks in the header.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -279,7 +280,7 @@ its descriptor is read once. Destructive is the safety floor. The
 `approvedSeen` set lives in a `useRef` on App.tsx; not persisted across
 reload by design (every session starts cold).
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -315,7 +316,7 @@ for the user to write properly inside the editor (memory bodies want
 `Why:` / `How to apply:` structure). Type defaults to `feedback` since
 that's the most common type for the "# remember to …" voice.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -350,7 +351,7 @@ file panel keeps its own cache so the two don't share lifecycle. The
 popover renders absolutely above the input bar (`bottom-full`) so it
 doesn't shift the layout when it opens/closes.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -389,7 +390,7 @@ returns `false` for `enter` when there's no active conv — the local flag
 covers that path. Indicator animation uses an inline `<style>` block to
 avoid touching the Tailwind config for a one-prompt keyframe.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -423,7 +424,7 @@ recalled prompt is what the user typed, not the stored content with the
 inlined ``` attachment block. Caret-on-first-line + no-selection guard
 means ↑/↓ still scroll within a multi-line draft when the user is editing.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -444,7 +445,7 @@ means ↑/↓ still scroll within a multi-line draft when the user is editing.
 
 **Notes:** All Integration Phase rows are marked complete in `PLANNING/LAMPREY_PARITY_PLAN.md`. README now documents the completed parity layer and removes the stale hook-wiring roadmap item. `.tmp-test-user-data/` is ignored because the integration tests generate it under the workspace. Package version is bumped to `0.1.44`.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ---
 
@@ -3043,7 +3044,7 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 
 **Notes:** Made the E3 SessionsSidebar embeddable and reachable from the main sidebar. Sessions are grouped by project, carry last-active/message metadata, support context-menu duplicate/archive/delete, clear unread badges on resume, and persist pinned drag order in localStorage. Added a compact SessionDetailPane footer with Resume/Duplicate/Archive plus workflow-resume affordance for workflow sessions.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ## [Integration - Prompt H4] Hook editor + skill manager polish - 2026-06-04
 
@@ -3060,7 +3061,7 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 
 **Notes:** H4 implementation is in place but the prompt remains unchecked until the full vitest/build gate can be run. Hooks now have one-click templates, a timeout slider, and a sample-payload test runner with inline sandbox errors. Settings now has a Skills tab with hot-reload status, URL import, frontmatter validation, prompt dry-run preview, enable/disable, save, and delete.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ## [Integration - Prompt H5] Plan-mode UX + spawn-task tray + design pass - 2026-06-04
 
@@ -3075,7 +3076,7 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 
 **Notes:** Added `plan:update` IPC so inline plan edits are persisted through the same plan-goal store as the model-facing `update_plan` tool. Replaced the compact checklist with an editable PlanGoalsPanel, upgraded the banner CTA, and changed spawned-task notifications into a persistent tray with batch controls and source-session navigation. H6 is being handled in a parallel session and was not touched here.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ## [Integration — Prompt H2] Workflow command palette + author UX — 2026-06-04
 
@@ -3093,7 +3094,7 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 
 **Notes:** Added `workflows:validate` and `workflows:save` IPC so the authoring UI persists user workflows to `userData/workflows/scripts/` using the existing literal-meta parser. Ctrl+K now opens the workflow palette; file quick-open remains on Ctrl+P and the sidebar Search row still focuses conversation filtering. The editor uses a textarea-backed code surface rather than adding the heavy Monaco dependency in this prompt; validation, scaffolding, registry suggestions, save-as-meta-name, and static dry-run are wired.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`
 
 ## [Integration — Prompt H1] Activity dashboard live agent tree — 2026-06-04
 
@@ -3110,4 +3111,4 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 
 **Notes:** Added a sidebar-mounted operational activity dashboard with normalized chat, workflow, subagent, cron, loop, and hook nodes. The store polls persisted task/loop/automation/hook surfaces and listens to workflow, task, and loop events for live refresh. Workflow child agents are folded under their workflow run while standalone background agents stay top-level. Pin state and collapse state persist in localStorage.
 
-**Commit:** pending
+**Commit:** see git log on `feat/fluidity-phase`

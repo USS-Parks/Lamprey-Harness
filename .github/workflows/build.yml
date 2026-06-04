@@ -6,6 +6,13 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# Cancel superseded runs on the same ref to save CI minutes. Each ref
+# (branch or tag) gets its own group, so release tag builds never cancel
+# one another.
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows:
     runs-on: windows-latest

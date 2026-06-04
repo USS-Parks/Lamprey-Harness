@@ -3,10 +3,10 @@ import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import * as keychain from '../services/keychain'
-import { deepseekClient } from '../services/deepseek'
 import {
   PROVIDERS,
   resetProviderClient,
+  validateProviderKey,
   validateProviderKeyDetailed,
   type ProviderId
 } from '../services/providers/registry'
@@ -144,7 +144,7 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:saveApiKey', async (_event, key) => {
     try {
       keychain.setKey('deepseek', key)
-      deepseekClient.resetClient()
+      resetProviderClient('deepseek')
       return { success: true, data: null }
     } catch (err: any) {
       return { success: false, error: err.message }
@@ -161,7 +161,7 @@ export function registerSettingsHandlers(): void {
 
   ipcMain.handle('settings:testApiKey', async () => {
     try {
-      const valid = await deepseekClient.validateKey()
+      const valid = await validateProviderKey('deepseek')
       return { success: true, data: valid }
     } catch (err: any) {
       return { success: false, error: err.message }
@@ -181,7 +181,7 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:deleteApiKey', async () => {
     try {
       keychain.deleteKey('deepseek')
-      deepseekClient.resetClient()
+      resetProviderClient('deepseek')
       return { success: true, data: null }
     } catch (err: any) {
       return { success: false, error: err.message }

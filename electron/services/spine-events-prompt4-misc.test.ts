@@ -48,9 +48,6 @@ vi.mock('./keychain', () => ({
   grantPlaintextConsent: vi.fn(),
   hasPlaintextConsent: () => true
 }))
-vi.mock('./deepseek', () => ({
-  deepseekClient: { resetClient: vi.fn() }
-}))
 
 import {
   __forceMemoryFallback,

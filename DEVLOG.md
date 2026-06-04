@@ -1,5 +1,38 @@
 # Lamprey Harness Dev Log
 
+## [Audit Remediation — Prompt 1] Hygiene & quick wins — 2026-06-04
+
+Closes DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3 from the
+`AUDIT_REMEDIATION_PLAN.md` backlog (Prompts 1–8 were still open; a fresh
+full-repo audit re-verified each finding against the live tree before acting).
+
+- **STRUCT-2** — deleted the dead `electron/services/deepseek.ts` legacy shim.
+  Its three call sites in `electron/ipc/settings.ts` (`saveApiKey`,
+  `testApiKey`, `deleteApiKey`) now call `resetProviderClient('deepseek')` /
+  `validateProviderKey('deepseek')` from `providers/registry` directly. Two
+  test files that mocked `../services/deepseek` (`settings-sanitizer.test.ts`,
+  `spine-events-prompt4-misc.test.ts`) had the now-dead mock removed.
+- **DOC-4 / STRUCT-1** — deleted dead components `MCPStatusBar.tsx` and
+  `ModelSwitcher.tsx`; their now-empty `src/components/mcp/` and
+  `src/components/model/` dirs are gone. No remaining importers.
+- **DEP-1** — `electron-rebuild` (deprecated) → `@electron/rebuild@^4.0.4`.
+  Same `electron-rebuild` postinstall binary; only the package changed. This
+  also removed the entire vulnerable `node-gyp → make-fetch-happen → cacache →
+  tar` dev chain — `npm audit` dropped from 10 vulns to 5.
+- **DEP-2** — dropped unused `@playwright/test` devDep (no playwright config,
+  zero imports).
+- **DEP-3** — pinned the eslint trio to exact versions (`eslint` 10.4.1,
+  `@typescript-eslint/parser` + `eslint-plugin` 8.60.0).
+- **typecheck** — `tsc --noEmit` → `tsc -b` (root tsconfig has `files:[]`, so
+  the bare form no-op'd; `-b` actually drives the project-reference build).
+- **CI-3** — added a `concurrency` block to `build.yml` keyed by workflow+ref.
+
+Verify: tsc node ✓ · tsc web ✓ · `npm run typecheck` (tsc -b) ✓ · lint 0
+errors / 384 warnings ✓ · vitest 98 files / 1276 pass + 11 skip ✓ ·
+smoke:bundle ✓ · smoke:renderer ✓.
+
+---
+
 ## [Fluidity Phase Complete] — 2026-06-04
 
 **Prompts completed:** J1 ESC + ↑ history, J2 Shift+Tab mode cycle, J3 @file

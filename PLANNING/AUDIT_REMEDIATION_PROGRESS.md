@@ -39,7 +39,7 @@ Closes the highest-severity REPO_AUDIT findings (model-input security, secrets/O
 
 | # | Title | Findings | Status |
 |---|---|---|---|
-| 1 | Hygiene & quick wins | DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3 | Pending |
+| 1 | Hygiene & quick wins | DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3 | **Done** |
 | 2 | Documentation refresh | DOC-1, DOC-2, DOC-3, DOC-5, DOC-6, SEC-4 (doc) | Pending |
 | 3 | CI: run smokes on PRs | CI-1 | **Closed by remote `1c8de6e`** (vitest + smokes on PR via the `ci.yml` workflow that landed concurrently) |
 | 4 | Streaming & connection bugs | BUG-1, BUG-2 | Pending |
@@ -102,7 +102,7 @@ SEC-2, SEC-5, SEC-6, SEC-8 all closed in one PR. New `electron/services/url-safe
 
 | # | Title | Findings | Status |
 |---|---|---|---|
-| 1 | Hygiene & quick wins | DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3 | Pending |
+| 1 | Hygiene & quick wins | DOC-4, STRUCT-1, STRUCT-2, DEP-1, DEP-2, DEP-3, CI-3 | **Done** |
 | 2 | Documentation refresh | DOC-1, DOC-2, DOC-3, DOC-5, DOC-6, SEC-4 (doc) | Pending |
 | 3 | CI: run smokes on PRs | CI-1 | Pending |
 | 4 | Streaming & connection bugs | BUG-1, BUG-2 | Pending |

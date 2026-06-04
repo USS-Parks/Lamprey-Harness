@@ -311,7 +311,8 @@ const api = {
       patch: Partial<{ label: string; cron: string; prompt: string; model: string; enabled: boolean }>
     ) => ipcRenderer.invoke('automations:update', id, patch),
     delete: (id: string) => ipcRenderer.invoke('automations:delete', id),
-    runNow: (id: string) => ipcRenderer.invoke('automations:runNow', id)
+    runNow: (id: string) => ipcRenderer.invoke('automations:runNow', id),
+    validateCron: (expr: string) => ipcRenderer.invoke('automations:validateCron', expr)
   },
 
   worktree: {

@@ -24,6 +24,11 @@ const api = {
       ipcRenderer.on('chat:phase', (_, e) => cb(e)),
     onAgentStatus: (cb: (e: unknown) => void) =>
       ipcRenderer.on('agent:status', (_, e) => cb(e)),
+    onAsyncEvent: (cb: (e: unknown) => void): (() => void) => {
+      const handler = (_: unknown, e: unknown): void => cb(e)
+      ipcRenderer.on('async-event:received', handler)
+      return () => ipcRenderer.removeListener('async-event:received', handler)
+    },
     offAll: () => {
       ;[
         'chat:chunk',
@@ -344,6 +349,14 @@ const api = {
   // async-event-bridge on top so the next user turn sees a synthetic
   // <task-notifications> block.
   tasks: {
+    spawn: (payload: {
+      sourceConversationId: string
+      title: string
+      prompt: string
+      tldr?: string | null
+      cwd?: string | null
+      model?: string | null
+    }) => ipcRenderer.invoke('tasks:spawn', payload),
     list: (filter?: {
       status?: 'running' | 'done' | 'error' | 'aborted' | Array<'running' | 'done' | 'error' | 'aborted'>
       parentConvId?: string | null
@@ -360,6 +373,11 @@ const api = {
       const wrapped = (_e: unknown, event: unknown): void => listener(event)
       ipcRenderer.on('agent:run:notify', wrapped)
       return () => ipcRenderer.removeListener('agent:run:notify', wrapped)
+    },
+    onSpawned: (listener: (event: unknown) => void): (() => void) => {
+      const wrapped = (_e: unknown, event: unknown): void => listener(event)
+      ipcRenderer.on('tasks:spawned', wrapped)
+      return () => ipcRenderer.removeListener('tasks:spawned', wrapped)
     }
   },
 

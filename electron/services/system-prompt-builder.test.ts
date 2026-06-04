@@ -103,6 +103,23 @@ describe('buildSystemPrompt — default base', () => {
     expect(skillIdx).toBeGreaterThan(memoryIdx)
     expect(out).toContain('skill body')
   })
+
+  it('places task notifications after memory and before skills', () => {
+    const out = buildSystemPrompt(
+      [{ name: 'test-skill', content: 'skill body' }],
+      '<memory>fact</memory>',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '<task-notifications>\n- done\n</task-notifications>'
+    )
+    const memoryIdx = out.indexOf('<memory>')
+    const notifyIdx = out.indexOf('<task-notifications>')
+    const skillIdx = out.indexOf('<skill name="test-skill">')
+    expect(notifyIdx).toBeGreaterThan(memoryIdx)
+    expect(skillIdx).toBeGreaterThan(notifyIdx)
+  })
 })
 
 describe('buildSystemPrompt — override path', () => {

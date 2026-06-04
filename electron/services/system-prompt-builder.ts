@@ -199,7 +199,8 @@ export function buildSystemPrompt(
   systemPromptOverride?: string,
   agentsMd?: string,
   modelId?: string,
-  contractRole?: ContractRole
+  contractRole?: ContractRole,
+  taskNotificationsBlock?: string
 ): string {
   // A non-empty override fully replaces the default base (identity + contract).
   // Power users who set a custom prompt are opting out of the contract on
@@ -221,6 +222,10 @@ export function buildSystemPrompt(
 
   if (memoryBlock) {
     parts.push(memoryBlock)
+  }
+
+  if (taskNotificationsBlock && taskNotificationsBlock.trim()) {
+    parts.push(taskNotificationsBlock.trim())
   }
 
   for (const skill of activeSkillContents) {

@@ -1,5 +1,85 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 - COMPLETE] Tool Layer + Continuity track shipped - 2026-06-04
+
+All 9 prompts (C1 -> C2 -> C3 -> C4 -> E1 -> E2 -> E5 -> E6 -> E4) are implemented on `feat/track-2-tool-layer`.
+
+**Shipped prompts:**
+1. C1 lazy tool schemas + ToolSearch (`384909e`)
+2. C2 hooks wired into dispatch + Hooks UI (`47179c2`)
+3. C3 plan-mode state gate (`6eacd1b`)
+4. C4 filesystem-discovered slash-command system + built-ins (`2ae9266`)
+5. E1 session chapters + `mark_chapter` tool (`212a611`)
+6. E2 chapter TOC + Ctrl+G quick-jumper (`84b1cd5`)
+7. E5 auto context compression for chat turns (`59663da`)
+8. E6 async event-to-prompt bridge (this completion batch)
+9. E4 spawn-task primitive (this completion batch)
+
+**Verify gate:**
+- `npx tsc --noEmit -p tsconfig.node.json` ok
+- `npx tsc --noEmit -p tsconfig.web.json` ok
+- `git diff --check` ok
+- `npx vitest run electron/services/async-event-bridge.test.ts electron/services/spawn-task.test.ts electron/services/system-prompt-builder.test.ts` blocked before test load: Vite/esbuild config bundling failed with `spawn EPERM` while starting the shared `node_modules/vite/node_modules/esbuild` helper from the sibling root workspace. No test assertions ran.
+
+**Manual smoke / user-verification-needed:**
+- Spawn a background agent in a conversation; after completion, send another message in that conversation and confirm the model sees a `<task-notifications>` block and the user gets an async-event toast.
+- Invoke `spawn_task` from the model or `tasks:spawn` IPC; confirm a child conversation is created, seeded with the task prompt, linked back to the source conversation, and the source chat shows a dismissible chip that opens the child.
+- Confirm real Git worktree creation succeeds from the active workspace for spawn-task. Unit coverage uses seams; runtime creates worktrees via `git worktree add`.
+
+**Notes:**
+- E6 adds a durable `async_events` queue with one-shot drain semantics and an in-memory fallback for test/native-binding failure paths.
+- E4 shares that queue by enqueueing `tasks:spawn-completed`, so spawned tasks become both visible UI chips and model-visible context on the source conversation's next turn.
+- The completion commit batches E6 and E4 because both prompts share `tasks.ts`, `chat-events.ts`, and `preload.ts` surfaces.
+
+---
+
+## [Track 2 - Prompt E4] Spawn-task primitive - 2026-06-04
+
+**Files changed:**
+- `electron/services/spawn-task.ts` (new) - creates linked child conversations, seeds source/child backlink system messages, writes the child prompt, and optionally creates an isolated worktree from the active workspace.
+- `electron/services/spawn-task-tool-pack.ts` (new) - registers `spawn_task` as a mutating native tool.
+- `electron/ipc/tasks.ts` - adds `tasks:spawn` IPC while preserving Track 1 task lifecycle handlers.
+- `src/components/chat/SpawnTaskChip.tsx` + `SpawnTaskTray.tsx` (new) - dismissible source-chat chip; clicking opens the child conversation.
+- `resources/slash-commands/spawn-task.md` - updated to call the real `spawn_task` tool.
+
+**Verify gate:**
+- tsc node ok
+- tsc web ok
+- `git diff --check` ok
+- vitest blocked before config load by `spawn EPERM` from Vite/esbuild helper startup.
+
+**Notes:**
+- The service has dependency seams for tests and runtime worktree creation uses Track 1's `createAgentWorktreeManager`.
+- Source and child conversations both get system backlink markers so the relationship survives a restart even before Integration H5 polishes the persistent tray.
+
+**Commit:** this commit
+
+---
+
+## [Track 2 - Prompt E6] Async event-to-prompt bridge - 2026-06-04
+
+**Files changed:**
+- `electron/services/async-event-bridge.ts` (new) - durable async-event queue, in-memory fallback, one-shot drain, `<task-notifications>` renderer, and `agent:run:notify` adapter.
+- `electron/ipc/async-events.ts` (new) - internal list/drain diagnostics.
+- `electron/services/database.ts` - adds `async_events(id, conversation_id, kind, payload_json, created_at, delivered_at)`.
+- `electron/ipc/chat.ts` + `system-prompt-builder.ts` - drain pending events during prompt assembly and inject `<task-notifications>`.
+- `electron/ipc/tasks.ts` - enqueues terminal background-agent notifications.
+- `src/components/chat/AsyncEventToast.tsx` - subtle toast for queued async events.
+
+**Verify gate:**
+- tsc node ok
+- tsc web ok
+- `git diff --check` ok
+- vitest blocked before config load by `spawn EPERM` from Vite/esbuild helper startup.
+
+**Notes:**
+- Events drain per conversation and are stamped with `delivered_at` so they are not re-injected.
+- The queue is intentionally generic: Track 3's G4 can enqueue `sessions:incoming-message`, loops can enqueue `loops:wakeup-fired`, and automations can enqueue `automations:run-completed` once those producers carry a conversation id.
+
+**Commit:** this commit
+
+---
+
 ## [Track 2 — Partial completion summary] 7/9 prompts shipped — 2026-06-03
 
 Track 2 ("Tool Layer + Continuity") shipped 7 of its 9 prompts; the

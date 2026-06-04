@@ -1,5 +1,34 @@
 # Lamprey Harness Dev Log
 
+## [Track 3 — Prompt F2] PR review threading + inline review post — 2026-06-03
+
+**Files changed:**
+- `electron/services/github-service.ts` — adds `getPullRequestReviewComments(owner, repo, number)` (REST `/pulls/{n}/comments`), `createPullRequestReview({ owner, repo, number, body?, event, commitId?, comments[] })` (REST `/pulls/{n}/reviews` with `event ∈ APPROVE | REQUEST_CHANGES | COMMENT` and zero+ inline-line `comments` carrying `path/body/line|position/side`), `replyToReviewComment({ commentId, body, ... })` (REST `/pulls/{n}/comments/{id}/replies`), `listPullRequestReviewThreads(owner, repo, number)` (GraphQL — REST has no thread state), `resolveReviewThread(threadId)` + `unresolveReviewThread(threadId)` (GraphQL mutations). All paths reuse `githubRequest` for REST and a new local `graphqlRequest` helper for GraphQL — both share the existing OAuth/GhCli/AppToken provider so tokens never round-trip to the renderer.
+- `electron/ipc/github.ts` — 6 new handlers under the `github:` namespace: `listPullRequestReviewComments`, `listPullRequestReviewThreads`, `createPullRequestReview`, `replyToReviewComment`, `resolveReviewThread`, `unresolveReviewThread`.
+- `electron/preload.ts` — same six methods exposed on `window.api.github.*` with fully-typed args.
+- `electron/services/github-service.test.ts` — exported `parseReviewComment` so it's testable; added 4 new tests covering the normalised shape, the `in_reply_to_id` thread-reply path, and null line/start_line for file-level comments.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest github-service ✓ (40 passed including 4 new)
+- vitest full suite ✓ (852 passed | 13 skipped — 4 new + 848 baseline; binding-gated skips unchanged)
+- user-verification-needed (real PR + GitHub auth + `pull_request:write` scope required):
+  1. open a PR you control on github.com, note `owner/repo/number`;
+  2. from the Electron app's renderer console, call `window.api.github.listPullRequestReviewComments({ owner, repo, number })` → returns the existing review comments;
+  3. call `window.api.github.createPullRequestReview({ owner, repo, number, event: 'COMMENT', body: 'auto review', comments: [{ path: 'src/index.ts', line: 1, body: 'first inline' }, { path: 'src/index.ts', line: 2, body: 'second inline' }] })` → returns `{ id, state, htmlUrl }`; refresh the PR on github.com and confirm both inline comments render on lines 1 and 2;
+  4. call `replyToReviewComment({ ..., commentId: <one returned above>, body: 'reply' })` → reply renders threaded under the original;
+  5. call `listPullRequestReviewThreads({ owner, repo, number })` → returns the threads with their GraphQL IDs;
+  6. call `resolveReviewThread({ threadId: '<one above>' })` → thread shows resolved on github.com;
+  7. revoke the `repo` scope (or auth without it) and retry create-review → 403 with the GraphQL/REST error message surfaces verbatim through the `failure(...)` envelope.
+
+**Notes:**
+- Tool descriptors (`gh_pr_comments`, `gh_pr_review_post`, plus `gh_pr_reply_comment` for parity with the F2 verify gate) are NOT registered in this commit — `tool-registry.ts` is owned by T2:C1's lazy-schema refactor; rebase the descriptor add onto C1 when it lands.
+- GraphQL is used only for thread-state operations because REST genuinely doesn't expose `isResolved`. The token path is shared so a user authed via `gh auth` (gh-cli mode) gets thread resolve for free.
+- The reply path uses `/comments/{id}/replies` not `/issues/{n}/comments/{id}` — the former produces a properly-threaded inline reply on the diff; the latter creates a top-level issue comment and detaches from the thread.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
 ## [Track 3 — Prompt F1] Preview verification depth — 2026-06-03
 
 **Files changed:**

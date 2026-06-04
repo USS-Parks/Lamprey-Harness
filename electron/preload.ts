@@ -553,6 +553,40 @@ const api = {
       ipcRenderer.invoke('github:getPullRequest', args),
     listConversationPullRequests: (args: { conversationId: string }) =>
       ipcRenderer.invoke('github:listConversationPullRequests', args),
+
+    // F2 — PR review threading + inline review post.
+    listPullRequestReviewComments: (args: { owner: string; repo: string; number: number }) =>
+      ipcRenderer.invoke('github:listPullRequestReviewComments', args),
+    listPullRequestReviewThreads: (args: { owner: string; repo: string; number: number }) =>
+      ipcRenderer.invoke('github:listPullRequestReviewThreads', args),
+    createPullRequestReview: (args: {
+      owner: string
+      repo: string
+      number: number
+      body?: string
+      event?: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'
+      commitId?: string
+      comments?: Array<{
+        path: string
+        body: string
+        position?: number
+        line?: number
+        start_line?: number
+        side?: 'LEFT' | 'RIGHT'
+        start_side?: 'LEFT' | 'RIGHT'
+      }>
+    }) => ipcRenderer.invoke('github:createPullRequestReview', args),
+    replyToReviewComment: (args: {
+      owner: string
+      repo: string
+      number: number
+      commentId: number
+      body: string
+    }) => ipcRenderer.invoke('github:replyToReviewComment', args),
+    resolveReviewThread: (args: { threadId: string }) =>
+      ipcRenderer.invoke('github:resolveReviewThread', args),
+    unresolveReviewThread: (args: { threadId: string }) =>
+      ipcRenderer.invoke('github:unresolveReviewThread', args),
     pushBranch: (args: {
       cwd: string
       branch: string

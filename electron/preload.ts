@@ -246,6 +246,25 @@ const api = {
     }
   },
 
+  workflows: {
+    list: () => ipcRenderer.invoke('workflows:list'),
+    runInline: (input: {
+      script: string
+      args?: unknown
+      budgetTotal?: number | null
+      concurrencyCap?: number
+      timeoutMs?: number
+    }) => ipcRenderer.invoke('workflows:runInline', input),
+    run: (input: { name: string; args?: unknown }) =>
+      ipcRenderer.invoke('workflows:run', input),
+    stop: (runId: string) => ipcRenderer.invoke('workflows:stop', runId),
+    onProgress: (listener: (event: unknown) => void): (() => void) => {
+      const wrapped = (_e: unknown, event: unknown): void => listener(event)
+      ipcRenderer.on('workflow:progress', wrapped)
+      return () => ipcRenderer.removeListener('workflow:progress', wrapped)
+    }
+  },
+
   tasks: {
     list: (filter?: {
       status?: 'running' | 'done' | 'error' | 'aborted' | Array<'running' | 'done' | 'error' | 'aborted'>

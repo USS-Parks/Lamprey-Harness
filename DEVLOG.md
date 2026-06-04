@@ -779,7 +779,7 @@ All 8 prompts (A1 → A2 → A3 → B1 → B2 → B3 → B4 → B5) committed on
 
 **Notes:** The duplicate-set unit test verifies the merge/delete behavior directly. `MEMORY.md` regeneration is covered through production wiring to `writeMemoryFile` / `deleteMemoryFile`; the full shell smoke is still needed because the renderer button and WorkflowsPanel are Electron UI surfaces.
 
-**Commit:** `af14030`.
+**Commit:** `ade8398`.
 
 ## [Track 3 completion] Memory + Verification + Scheduling - 2026-06-04
 
@@ -796,7 +796,7 @@ All 13 Track 3 prompts are complete:
 - G2 - `272dd61` / main `b0bdf5f` - self-paced wakeups
 - G3 - `8afb649` / main `0251188` - headless remote run mode
 - G4 - `8b8630c` - push notifications + cross-session messaging
-- D4 - `af14030` - memory consolidation workflow
+- D4 - `ade8398` - memory consolidation workflow
 
 Final verification for the final-four branch: node/web tsc passed for D4; focused workflow tests passed; full `npx vitest run` passed on retry (85 files passed, 2 skipped; 1150 tests passed, 16 skipped). G2/G3/G4 verification details are in their prompt entries above. Remaining manual user-verification-needed items are Electron-shell/runtime smoke checks for delayed wake-ups, headless real-model execution, OS notification click behavior, and the renderer Consolidate button.
 

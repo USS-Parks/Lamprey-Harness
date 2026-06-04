@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Message } from '@/lib/types'
 import type { ToolCallState } from '@/stores/chat-store'
 import { parseReasoning } from '@/lib/reasoning'
@@ -9,6 +9,8 @@ import { ToolUseCard } from './ToolUseCard'
 import { MultiAgentRunCard } from './MultiAgentRunCard'
 import { StreamStatusLine } from './StreamStatusLine'
 import { CHAT_COLUMN_CLASS } from './ChatView'
+import { ChapterDivider } from './ChapterDivider'
+import { useChaptersStore, type Chapter } from '@/stores/chapters-store'
 import thinkingLight from '@assets/Lamprey Thinking Icon.png'
 import thinkingDark from '@assets/Lamprey Thinking Icon Dark View.png'
 
@@ -86,6 +88,25 @@ export function MessageList({
     ? parseReasoning(streamingContent)
     : { reasoning: null as string | null, body: streamingContent, isThinking: false }
 
+  // Track 2 / E2 — chapters are anchored to a timestamp, not directly
+  // to a message id. Build a map from "before message at index i" → list
+  // of chapter rows whose createdAt fits between messages[i-1] and
+  // messages[i]. Late-arriving chapters (after the last message) land
+  // in the "afterAll" bucket and render at the bottom.
+  const chapters = useChaptersStore((s) => s.chapters)
+  const { byBefore, afterAll } = useMemo(() => {
+    const byBefore: Record<number, Chapter[]> = {}
+    const afterAll: Chapter[] = []
+    if (chapters.length === 0) return { byBefore, afterAll }
+    const sorted = [...chapters].sort((a, b) => a.createdAt - b.createdAt)
+    for (const c of sorted) {
+      const idx = messages.findIndex((m) => m.timestamp >= c.createdAt)
+      if (idx === -1) afterAll.push(c)
+      else (byBefore[idx] ??= []).push(c)
+    }
+    return { byBefore, afterAll }
+  }, [chapters, messages])
+
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
       {/* Belt-and-suspenders centering: flex wrapper guarantees horizontal
@@ -93,13 +114,21 @@ export function MessageList({
           parent's flex context. */}
       <div className="flex w-full justify-center">
         <div className={CHAT_COLUMN_CLASS}>
-          {messages.map((msg) =>
-            msg.role === 'system' ? (
-              <SystemMarker key={msg.id} content={msg.content} />
-            ) : (
-              <MessageBubble key={msg.id} message={msg} />
-            )
-          )}
+          {messages.map((msg, i) => (
+            <div key={msg.id} data-message-id={msg.id}>
+              {byBefore[i]?.map((c) => (
+                <ChapterDivider key={c.id} chapter={c} />
+              ))}
+              {msg.role === 'system' ? (
+                <SystemMarker content={msg.content} />
+              ) : (
+                <MessageBubble message={msg} />
+              )}
+            </div>
+          ))}
+          {afterAll.map((c) => (
+            <ChapterDivider key={c.id} chapter={c} />
+          ))}
           {toolCalls.map((tc) =>
             tc.toolName === 'multi_agent_run' ? (
               <MultiAgentRunCard key={tc.callId} toolCall={tc} />

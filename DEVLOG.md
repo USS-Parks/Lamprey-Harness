@@ -1,5 +1,37 @@
 # Lamprey Harness Dev Log
 
+## [Track 3 — Prompt G1] Cron UI + lifecycle — 2026-06-03
+
+**Files changed:**
+- `electron/services/automations-runner.ts` — adds `describeCron(expr)` (human-readable preset table + field-by-field fallback) and `nextFireAfter(expr, from?)` (minute-granularity walk over the next 366d; returns null when nothing matches). Runner lifecycle untouched — `startAutomations` was already wired in `main.ts`'s `whenReady` block.
+- `electron/ipc/automations.ts` — new `automations:validateCron` handler returning `{ valid, description?, nextFireAt? } | { valid: false, error }`.
+- `electron/preload.ts` — `window.api.automations.validateCron(expr)`.
+- `src/stores/automations-store.ts` (new) — typed renderer store: list/create/update/remove/runNow/validateCron + loading flag; mirrors the Automation shape from the main-side store.
+- `src/components/automations/CronEditor.tsx` (new) — debounced (150ms) live validation that calls the new IPC; presets dropdown (`*/5 * * * *`, `0 * * * *`, `0 9 * * *`, `0 9 * * 1-5`, `0 0 * * *`); shows the description + next-fire timestamp on success and the parse error on failure.
+- `src/components/automations/RunHistoryViewer.tsx` (new) — last-run timestamp + capped `lastResult` preview.
+- `src/components/automations/AutomationsPanel.tsx` (new) — list rows with enable toggle / Run-now / Edit / Del; inline draft editor with the CronEditor; per-row expand to show prompt body + RunHistoryViewer.
+- `electron/services/automations-runner.test.ts` (new) — 7 unit tests for `parseCron`, `describeCron` (preset table + field-by-field + null on garbage), and `nextFireAfter` (second-0 boundary, null on garbage, daily-09:00 within 24h).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest full suite ✓ (869 passed | 14 skipped — 9 new + 860 baseline)
+- user-verification-needed (cron fires on the minute boundary, needs the live Electron app):
+  1. mount `<AutomationsPanel />` somewhere reachable (Integration H1 wires it into the activity dashboard);
+  2. click + New, label "5-min canary", cron `*/5 * * * *`, prompt `say 'tick'`, Save;
+  3. wait until the next minute boundary divisible by 5 → `lastRunAt` updates within the next minute and `lastResult` contains the model reply;
+  4. click Run on any row → fires immediately, refreshes the row's lastResult;
+  5. toggle the row's checkbox off → next scheduled minute does NOT fire;
+  6. type `not a cron` into CronEditor → the panel shows the parse error and disables Save;
+  7. delete a row → row disappears from the list.
+
+**Notes:**
+- The runner was already started on app boot (`main.ts` calls `startAutomations()` inside `whenReady`); G1 didn't need a wiring change there.
+- The CronEditor's preset dropdown writes back through `onChange` and clears its own `value` after each pick so the next pick still fires the change handler. This pattern is cribbed from the MemoryEditor.
+- The next-fire scanner walks at most 1 year of minutes (525,600 iterations) — fast enough for the validator since cron fields tend to match within hours, but the upper bound also means "yearly at midnight Feb 29" returns null in non-leap years. That's a fair v1 behavior.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
 ## [Track 3 — Prompt F4] Monitor primitive + background shell — 2026-06-03
 
 **Files changed:**

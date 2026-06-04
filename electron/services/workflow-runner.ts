@@ -169,6 +169,25 @@ export interface WorkflowRunnerDeps {
     write: (input: unknown) => Promise<unknown> | unknown
     delete: (name: string) => Promise<unknown> | unknown
   }
+  /**
+   * H6 — optional ask-user injection. When supplied, the sandbox exposes
+   * `askUser({question, header, options[]})` returning the chosen label (or
+   * null on timeout/cancel). Workflow scripts can branch on user judgment
+   * the same way an agent() schema returns a structured result.
+   */
+  askUser?: (input: {
+    question: string
+    header: string
+    options: Array<{ label: string; description?: string; preview?: string }>
+    multiSelect?: boolean
+    timeoutMs?: number
+  }) => Promise<{
+    kind: 'single' | 'multi' | 'cancelled' | 'timeout'
+    label?: string
+    labels?: string[]
+    header?: string
+    notes?: string
+  }>
   /** Test seam — defaults to randomUUID. */
   genId?: () => string
   /** Test seam — defaults to () => Date.now(). */
@@ -618,6 +637,41 @@ export function runWorkflow(input: WorkflowRunInput, deps: WorkflowRunnerDeps): 
         }
       })
 
+      const askUser = async (input: unknown): Promise<unknown> => {
+        if (!deps.askUser) {
+          throw new Error('askUser(): no ask-user runtime injected (running headless?)')
+        }
+        if (!input || typeof input !== 'object') {
+          throw new TypeError('askUser(input): input must be an object')
+        }
+        const obj = input as Record<string, unknown>
+        const question = typeof obj.question === 'string' ? obj.question : ''
+        const header = typeof obj.header === 'string' ? obj.header : ''
+        const optsRaw = Array.isArray(obj.options) ? obj.options : []
+        const options: Array<{ label: string; description?: string; preview?: string }> = []
+        for (const o of optsRaw) {
+          if (!o || typeof o !== 'object') continue
+          const opt = o as Record<string, unknown>
+          if (typeof opt.label !== 'string' || !opt.label.trim()) continue
+          const entry: { label: string; description?: string; preview?: string } = {
+            label: opt.label.trim()
+          }
+          if (typeof opt.description === 'string') entry.description = opt.description
+          if (typeof opt.preview === 'string') entry.preview = opt.preview
+          options.push(entry)
+        }
+        return deps.askUser({
+          question,
+          header,
+          options,
+          multiSelect: !!obj.multiSelect,
+          timeoutMs:
+            typeof obj.timeoutMs === 'number' && Number.isFinite(obj.timeoutMs)
+              ? obj.timeoutMs
+              : undefined
+        })
+      }
+
       // --- Sandbox build ------------------------------------------------
       const sandbox: Record<string, unknown> = Object.create(null)
       sandbox.agent = agent
@@ -627,6 +681,7 @@ export function runWorkflow(input: WorkflowRunInput, deps: WorkflowRunnerDeps): 
       sandbox.log = log
       sandbox.workflow = workflowApi
       sandbox.memory = memoryApi
+      sandbox.askUser = askUser
       sandbox.args = input.args
       sandbox.budget = budgetApi
       // Standard library subset — JS built-ins the script can use safely.

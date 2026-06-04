@@ -532,6 +532,25 @@ const api = {
     }
   },
 
+  askUser: {
+    respond: (payload: { requestId: string; answer: unknown }) =>
+      ipcRenderer.invoke('ask-user:respond', payload),
+    list: () => ipcRenderer.invoke('ask-user:list'),
+    cancelAll: () => ipcRenderer.invoke('ask-user:cancelAll'),
+    onAwaiting: (cb: (event: unknown) => void): (() => void) => {
+      const handler = (_: unknown, event: unknown): void => cb(event)
+      ipcRenderer.on('ask-user:awaiting', handler)
+      return () => ipcRenderer.removeListener('ask-user:awaiting', handler)
+    }
+  },
+
+  statusline: {
+    get: () => ipcRenderer.invoke('statusline:get'),
+    set: (input: { slots?: string[]; formats?: Record<string, string> }) =>
+      ipcRenderer.invoke('statusline:set', input),
+    availableSlots: () => ipcRenderer.invoke('statusline:availableSlots')
+  },
+
   worktree: {
     list: (args: { cwd?: string }) => ipcRenderer.invoke('worktree:list', args),
     create: (args: { cwd?: string; path: string; branch: string; baseRef?: string }) =>

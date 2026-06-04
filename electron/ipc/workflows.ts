@@ -19,6 +19,7 @@ import {
   validateWorkflowSource
 } from '../services/workflow-library'
 import * as memStore from '../services/memory-store'
+import { getAskUserRuntime } from '../services/ask-user-runtime'
 
 // Track 1 / B1: workflows:* IPC + workflow:progress broadcast wiring.
 //
@@ -84,6 +85,13 @@ function buildDeps(): WorkflowRunnerDeps {
         return memStore.writeMemoryFile(input as Parameters<typeof memStore.writeMemoryFile>[0])
       },
       delete: (name: string) => memStore.deleteMemoryFile(name)
+    },
+    askUser: async (input) => {
+      const runtime = getAskUserRuntime()
+      if (!runtime) {
+        throw new Error('ask-user runtime not initialised — registerAskUserHandlers not called')
+      }
+      return runtime.ask(input)
     }
   }
 }

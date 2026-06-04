@@ -278,6 +278,21 @@ export const sessionsMessaging = {
   onIncoming: (cb: (event: unknown) => void): (() => void) => api.sessionsMessaging.onIncoming(cb)
 }
 
+export const askUser = {
+  respond: (payload: { requestId: string; answer: unknown }): Promise<IpcResponse<unknown>> =>
+    api.askUser.respond(payload),
+  list: (): Promise<IpcResponse<unknown>> => api.askUser.list(),
+  cancelAll: (): Promise<IpcResponse<unknown>> => api.askUser.cancelAll(),
+  onAwaiting: (cb: (event: unknown) => void): (() => void) => api.askUser.onAwaiting(cb)
+}
+
+export const statusline = {
+  get: (): Promise<IpcResponse<unknown>> => api.statusline.get(),
+  set: (input: { slots?: string[]; formats?: Record<string, string> }): Promise<IpcResponse<unknown>> =>
+    api.statusline.set(input),
+  availableSlots: (): Promise<IpcResponse<unknown>> => api.statusline.availableSlots()
+}
+
 export const artifact = {
   render: (type: ArtifactType, content: string): Promise<IpcResponse<void>> =>
     api.artifact.render(type, content),

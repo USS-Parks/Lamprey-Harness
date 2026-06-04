@@ -39,6 +39,8 @@ import { registerAsyncEventHandlers } from './async-events'
 import { registerLoopsHandlers } from './loops'
 import { registerNotificationsHandlers } from './notifications'
 import { registerSessionsMessagingHandlers } from './sessions-messaging'
+import { registerAskUserHandlers } from './ask-user'
+import { registerStatusLineHandlers } from './statusline'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -77,4 +79,6 @@ export function registerAllIpcHandlers(): void {
   registerLoopsHandlers()
   registerNotificationsHandlers()
   registerSessionsMessagingHandlers()
+  registerAskUserHandlers()
+  registerStatusLineHandlers()
 }

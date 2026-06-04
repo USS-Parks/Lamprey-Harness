@@ -1,5 +1,81 @@
 # Lamprey Harness Dev Log
 
+## [Integration — Prompt H6] Status line + AskUserQuestion UI — 2026-06-04
+
+The last Integration-phase prompt: a persistent status bar at the bottom of
+the main window plus a structured "ask the user a question" path that pauses
+a workflow or subagent until the user picks a chip.
+
+**Files changed:**
+- `electron/services/ask-user-runtime.ts` (new) — pure runtime: holds the
+  pending-promise registry, emits an `ask-user:awaiting` event, resolves on
+  `respond(requestId, answer)`, defaults to a 30s timeout (clamped at 10m)
+  resolving with `{kind: 'timeout'}`.
+- `electron/ipc/ask-user.ts` (new) — wires the runtime to the renderer via
+  Electron's BrowserWindow broadcast; exposes `ask-user:respond`,
+  `ask-user:list`, `ask-user:cancelAll`.
+- `electron/services/statusline-config.ts` (new) — loads / saves
+  `userData/statusline.md` (YAML frontmatter `{slots[], formats{}}`); drops
+  unknown slot ids silently so user edits never crash the renderer.
+- `electron/ipc/statusline.ts` (new) — `statusline:get`, `statusline:set`,
+  `statusline:availableSlots`.
+- `electron/services/tool-registry.ts` — registers `ask_user_question`
+  native tool descriptor; handler routes through chat.ts dispatch into the
+  ask-user-runtime singleton.
+- `electron/ipc/chat.ts` — dispatch branch for `ask_user_question`; returns
+  the chosen label, multi-select labels, or a `(timed out)` / `(cancelled
+  by user)` string the model can read.
+- `electron/services/workflow-runner.ts` — sandbox exposes `askUser({...})`
+  routed through `deps.askUser` (the IPC layer injects the runtime); throws
+  if no runtime is wired so headless workflow runs surface the failure.
+- `electron/ipc/workflows.ts` — injects the `askUser` runtime dep alongside
+  the existing memory dep.
+- `electron/ipc/index.ts` — registers both new handler sets.
+- `electron/preload.ts` — exposes `askUser` and `statusline` namespaces.
+- `src/lib/ipc-client.ts` — typed pass-throughs for both.
+- `src/components/layout/StatusLine.tsx` (new) — five-slot bar (model,
+  workflow, wakeups, tokens, rag) reading from existing stores + polling
+  `loops:list` for pending wake-up count; mounted at the bottom of App.tsx
+  flex column.
+- `src/components/chat/AskUserModal.tsx` (new) — chip-style modal with
+  split-pane preview (markdown), keyboard nav (↑/↓ + Enter + Space for
+  multi-select toggle + Escape to cancel), inline notes field. Submits the
+  chosen labels back via `ask-user:respond`.
+- `src/App.tsx` — mounts `<StatusLine />` and `<AskUserModal />`.
+
+**Verify gate:**
+- tsc node ok
+- tsc web ok
+- vitest run: 1168 passed / 16 skipped (+16 new tests: 11 ask-user-runtime,
+  3 statusline-config, 2 workflow-runner askUser sandbox)
+- Manual smoke (user-verification-needed for the Electron-shell-only bits):
+  launch Electron, confirm StatusLine renders at the bottom with the model
+  slot populated; drop a `userData/statusline.md` overriding slot order
+  + format strings, confirm the bar picks up the file on next launch; run
+  a workflow that calls `askUser({question, header, options})`, confirm
+  the modal opens, picking an option resumes the workflow with the right
+  label; let the modal sit for 30s, confirm timeout sentinel reaches the
+  workflow.
+
+**Notes:**
+- The parity-plan example `agent.askUser({...})` is achieved via the
+  top-level sandbox helper `askUser({...})`; the workflow-runner sandbox
+  exposes it next to `agent`, `parallel`, `pipeline`, `phase`, `log`,
+  `workflow`, `memory`, `args`, `budget`.
+- Subagents use `ask_user_question` via the tool descriptor, dispatched
+  through chat.ts — the same path other native tools take. No separate
+  programmatic helper was needed on `subagent-runner.ts`.
+- Statusline customisation is forgiving: empty `slots: []` falls back to
+  DEFAULTS, unknown ids are dropped, duplicates collapsed. Tests cover all
+  three branches.
+- Renderer JSX return-type annotations were dropped to avoid the React 19
+  global-JSX-namespace import requirement; the tsx files now infer return
+  type via the JSX expression.
+
+**Commit:** this commit
+
+---
+
 ## [Integration — Post-merge fixups] H1-H4 merge correctness — 2026-06-04
 
 Three semantic regressions came in with the H1-H4 merge (commit `b585ccb`,

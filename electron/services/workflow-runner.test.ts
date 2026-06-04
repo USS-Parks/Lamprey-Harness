@@ -141,6 +141,56 @@ describe('runWorkflow - memory API', () => {
 })
 
 // ---------------------------------------------------------------------------
+// askUser sandbox helper (H6)
+// ---------------------------------------------------------------------------
+
+describe('runWorkflow - askUser sandbox helper', () => {
+  it('routes askUser({...}) through deps.askUser and returns the answer', async () => {
+    const seen: unknown[] = []
+    const script = `${META}
+      const choice = await askUser({
+        question: 'Which library?',
+        header: 'Library',
+        options: [
+          { label: 'React', description: 'UI runtime' },
+          { label: 'Solid', description: 'fine-grained reactivity' }
+        ]
+      })
+      return choice
+    `
+    const seam = makeSeam(async () => 'never')
+    const result = await runWorkflow(
+      { script },
+      {
+        forkSeam: seam,
+        askUser: async (input) => {
+          seen.push(input)
+          return { kind: 'single', label: 'React', header: 'Library' }
+        }
+      }
+    ).promise
+
+    expect(seen).toHaveLength(1)
+    const askInput = seen[0] as { options: Array<{ label: string }> }
+    expect(askInput.options).toEqual([
+      { label: 'React', description: 'UI runtime' },
+      { label: 'Solid', description: 'fine-grained reactivity' }
+    ])
+    expect(result.output).toEqual({ kind: 'single', label: 'React', header: 'Library' })
+  })
+
+  it('throws if no askUser dep is wired', async () => {
+    const script = `${META}
+      try { await askUser({question: 'q', header: 'h', options: [{label: 'a'}, {label: 'b'}]}); return 'reached' }
+      catch (e) { return 'threw: ' + String(e && e.message) }
+    `
+    const seam = makeSeam(async () => 'never')
+    const result = await runWorkflow({ script }, { forkSeam: seam }).promise
+    expect(String(result.output)).toContain('no ask-user runtime')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // pipeline + parallel semantics (VERIFY GATE bullets)
 // ---------------------------------------------------------------------------
 

@@ -116,6 +116,13 @@ export interface WorkflowRunInput {
    * the test default unless the test wants resume coverage).
    */
   journalDir?: string
+  /**
+   * B4: nesting depth set by the workflow() API when invoking a child.
+   * 0 = top-level invocation (or undefined → treated as 0). A child workflow
+   * fires runWorkflow with `nestingDepth: 1`; the inner workflow() refuses
+   * to nest further.
+   */
+  nestingDepth?: number
 }
 
 export interface WorkflowAgentOptions {
@@ -496,9 +503,51 @@ export function runWorkflow(input: WorkflowRunInput, deps: WorkflowRunnerDeps): 
         )
       }
 
-      // --- API: workflow (named workflow invocation, B1 stub) -----------
-      const workflowApi = async (_nameOrRef: string | { scriptPath: string }, _args?: unknown): Promise<unknown> => {
-        throw new Error('workflow(): nested workflows pending (B-series follow-up)')
+      // --- API: workflow (B4: named workflow invocation) ----------------
+      // The child workflow runs as a separate runWorkflow with its own
+      // runId + budget but shares the parent's progress callback (so its
+      // agents flow into the same UI) and signal (so a parent abort
+      // cancels the child). Nesting depth is 1: a child calling
+      // workflow() throws via the same path.
+      const currentDepth = input.nestingDepth ?? 0
+      const workflowApi = async (
+        nameOrRef: string | { scriptPath: string },
+        childArgs?: unknown
+      ): Promise<unknown> => {
+        if (currentDepth >= 1) {
+          throw new Error('workflow(): nesting is one level only')
+        }
+        if (!deps.loadNamedWorkflow) {
+          throw new Error('workflow(): no library loader injected (set deps.loadNamedWorkflow)')
+        }
+        const name =
+          typeof nameOrRef === 'string'
+            ? nameOrRef
+            : nameOrRef && typeof nameOrRef === 'object' && 'scriptPath' in nameOrRef
+            ? `scriptPath:${nameOrRef.scriptPath}`
+            : ''
+        if (!name) throw new Error('workflow(): name or {scriptPath} required')
+        const source = await deps.loadNamedWorkflow(name)
+        if (!source || typeof source !== 'string') {
+          throw new Error(`workflow(): no script for "${name}"`)
+        }
+        const child = runWorkflow(
+          {
+            script: source,
+            args: childArgs,
+            signal: controller.signal,
+            concurrencyCap,
+            budgetTotal:
+              budgetTotal === null ? null : Math.max(0, budgetTotal - budgetSpent),
+            nestingDepth: currentDepth + 1
+          },
+          deps
+        )
+        const result = await child.promise
+        // Roll the child's budget into the parent.
+        budgetSpent += result.budget.spent
+        runAgentCount += result.agentCount
+        return result.output
       }
 
       // --- Sandbox build ------------------------------------------------

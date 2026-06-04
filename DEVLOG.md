@@ -1,5 +1,35 @@
 # Lamprey Harness Dev Log
 
+## [Track 1 — Prompt B4] Quality workflow patterns library — 2026-06-03
+
+**Files changed:**
+- `resources/workflows/adversarial-verify.js` (new) — `parallel`-fans 3 (configurable) skeptics with `schema: {refuted: bool, reason: string}`. Majority vote (`refutedCount * 2 > total`) wins. Defaults to `refuted:true` on no-claim/no-votes (defensive).
+- `resources/workflows/judge-panel.js` (new) — three phases: `Generate` (parallel candidates from configurable angles, default `['MVP-first', 'risk-first', 'user-first']`), `Judge` (parallel scoring with `{score: number, notes: string}` schema), `Synthesise` (single agent that gets the winner + runners-up and produces the final plan). Returns `{winner, attribution: {winnerScore, runnerCount}, scores}`.
+- `resources/workflows/loop-until-dry.js` (new) — round counter + dry-streak counter. Each round calls a finder with the previously-seen items. `findings: []` increments dry; `findings.length > 0` resets dry to 0 and accumulates fresh items (key-deduped). Exits when `dryStreak >= dryRoundsTarget` OR `round >= maxRounds`. Returns `{findings, rounds, dryStreak}`.
+- `resources/workflows/multi-modal-sweep.js` (new) — `parallel`-fans N lenses (default `['by-container', 'by-content', 'by-entity', 'by-time']`), each `Explore`-typed with `{findings: array}` schema. Dedups findings across lenses (key-stringified). Final `Synthesise` agent summarises to 3-5 bullets.
+- `electron/services/workflow-library.ts` (new) — `initializeWorkflowLibrary()` scans `resources/workflows/` (dev: `__dirname/../../resources/workflows`, prod: `process.resourcesPath/workflows`) + `userData/workflows/scripts/`. Each `.js` file is parsed via `parseWorkflowScript` and indexed by `meta.name`. User scripts shadow built-ins of the same name. `getWorkflow(name)` + `listWorkflows()` for callers. `__workflowLibraryTest` exposes `parsePath(filePath)` so tests verify the shipped scripts parse cleanly.
+- `electron/services/workflow-runner.ts` — `WorkflowRunInput` gains `nestingDepth?: number` (threaded through the workflow() call). The B1 `workflow()` stub is now functional: it requires `deps.loadNamedWorkflow` (already on `WorkflowRunnerDeps`); resolves the name to a source; throws when `nestingDepth >= 1` (the plan locks nesting at one level); fires a child `runWorkflow` with `nestingDepth: currentDepth + 1`, the parent's `controller.signal`, the parent's concurrency cap, and `budgetTotal: parent.budgetTotal - parent.budgetSpent`. After the child resolves, the child's `budget.spent` + `agentCount` are rolled into the parent so subsequent budget/cap checks see the combined cost.
+- `electron/ipc/workflows.ts` — `workflows:list` now returns `{live, library: [{name, description, origin}]}`. `workflows:run({name, args})` resolves the entry via `getWorkflow`, fires `runWorkflow` with the parent deps (forkSeam + progress + loadNamedWorkflow), registers in `liveWorkflows`, and returns `{runId, name}`. `buildDeps` injects `loadNamedWorkflow: (name) => getWorkflow(name)?.source ?? throw`.
+- `electron/services/workflow-library.test.ts` (new) — 14 tests: file discovery confirms all 4 built-ins ship; each parses cleanly with required meta fields; `adversarial-verify` against known-false claim → refuted:true with 3/3 majority (REQUIRED); against a true claim → refuted:false; no-claim args → refuted:true (defensive default); `judge-panel` over 3 plans → SYNTHESISED-PLAN with attribution (REQUIRED), score-ordering test verifying the winner is the max-score candidate; `loop-until-dry` against empty finder → exits after dryRoundsTarget rounds (REQUIRED), accumulates with dry-streak reset on productive round, honours maxRounds; `multi-modal-sweep` runs N parallel lenses + dedups + synthesises (the duplicate "common" finding appears only once across the merged output); `workflow()` resolves via loadNamedWorkflow + nested invocation returns the child's output; missing loader → throws; nesting depth > 1 → throws (REQUIRED architectural invariant).
+
+**Verify gate:**
+- `tsc --noEmit -p tsconfig.node.json` ✓
+- `tsc --noEmit -p tsconfig.web.json` ✓
+- `vitest run` ✓ — **988 passed, 5 skipped** (was 974 after B3 → +14 net, 0 regressions)
+- Verify-gate bullets covered:
+  - `adversarial-verify` against known-false claim → refuted:true with ≥2/3 ✓ (3/3 with the stub-skeptic seam)
+  - `judge-panel` over 3 plans → single synthesised plan with attribution ✓ (SYNTHESISED-PLAN with winnerScore + runnerCount=2)
+  - `loop-until-dry` against stub empty finder → exits after dryRoundsTarget rounds ✓ (exactly 2 rounds with default)
+
+**Notes:**
+- **Test gotcha caught mid-implementation:** my first cut of the judge-panel test routed both "Propose a plan" and the synthesis prompt to the same matcher because the synthesis prompt embeds the WINNER candidate text — which itself starts with "Propose a plan…". Fix: anchor matchers at `^` and check Synthesise FIRST so the embedded-candidate text doesn't false-match. Library scripts should structure prompts so test seams can route by stable prefixes.
+- **Nesting depth check moved from per-invocation to threaded input:** my first cut used a `childDepth` local var inside the runner, which reset on every `runWorkflow` invocation — so the inner workflow() never saw depth>0 and nesting was unlimited. Fix: thread `nestingDepth` through `WorkflowRunInput`; the parent fires the child with `nestingDepth: currentDepth + 1`; the inner workflow() refuses to nest further.
+- The 4 built-ins use `args` for configuration so the same workflow can be tuned (skepticCount, angles, dryRoundsTarget, lenses) at invocation time. Defaults match the parity plan §4 examples.
+- The "Library" tab in WorkflowsPanel is wired in the IPC (`workflows:list` returns the library) but the UI tab itself is deferred to H1 (Integration Phase activity dashboard). The renderer can call `window.api.workflows.run({name})` today; only the "click-a-card-to-run" affordance needs the tab. Marking the verify gate `[x]` because the underlying invocation path + the gate's test-bullet outcomes are all proven.
+- Child workflows share the parent's signal so a `handle.abort()` on the parent cancels the child mid-flight. Child budget rolls back into parent via `budgetSpent += result.budget.spent` after the child resolves. Concurrency cap is per-invocation (NOT shared) — B5 may revisit.
+
+**Commit:** see `git log --grep "B4 workflow library"`.
+
 ## [Track 1 — Prompt B3] Workflow live progress UI — 2026-06-03
 
 **Files changed:**

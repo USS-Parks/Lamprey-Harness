@@ -16,6 +16,7 @@ import {
   setPlanModeActive
 } from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
+import { createChapter } from '../services/chapters-store'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
 import { readAgentsMd } from '../services/agents-md-loader'
@@ -811,6 +812,50 @@ async function resolveSingleToolCall(
       setPlanModeActive(conversationId, false)
       emitChatEvent('plan:mode-changed', { conversationId, active: false })
       result = 'Plan mode is off. Mutating tools are allowed again.'
+    } else if (toolName === 'mark_chapter') {
+      // Track 2 / E1 — anchor the chapter at the assistant turn that
+      // produced the call. The anchor message id is not yet persisted at
+      // this point in the dispatch loop (the post-tool assistant message
+      // gets persisted after this returns), so we anchor on the existing
+      // tool-call id — chat-history can map it back to its parent
+      // assistant turn. The renderer treats the anchor as the boundary
+      // marker; UI cosmetic, no behavioural dependency on exact mapping.
+      const titleRaw =
+        typeof args.title === 'string' ? args.title.trim() : ''
+      const summaryRaw =
+        typeof args.summary === 'string' ? args.summary.trim() : ''
+      if (!titleRaw) {
+        result = 'Error: mark_chapter requires a non-empty `title`.'
+        explicitStatus = 'error'
+      } else {
+        const chapter = createChapter({
+          conversationId,
+          title: titleRaw.slice(0, 80),
+          summary: summaryRaw ? summaryRaw.slice(0, 280) : null,
+          anchorMessageId: tc.id
+        })
+        emitChatEvent('chat:chapter-marked', { conversationId, chapter })
+        // Plan §2 invariant 10 — chapters also land on the event spine
+        // for the audit timeline.
+        try {
+          recordEvent({
+            type: 'chat.chapter.marked',
+            actorKind: 'model',
+            conversationId,
+            correlationId,
+            entityKind: 'chapter',
+            entityId: chapter.id,
+            payload: {
+              title: chapter.title,
+              summary: chapter.summary,
+              anchorMessageId: chapter.anchorMessageId
+            }
+          })
+        } catch (err) {
+          console.error('[chat] chat.chapter.marked spine event failed:', err)
+        }
+        result = `Chapter marked: "${chapter.title}"`
+      }
     } else if (toolRegistry.hasHandler(toolName)) {
       const dispatched = await dispatchNativeTool(() =>
         toolRegistry.executeNative(toolName, args, {

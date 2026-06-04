@@ -271,6 +271,35 @@ const api = {
     }
   },
 
+  // Track 2 / E1 — session chapters. `markChapter` anchors a chapter to
+  // a message; `list` hydrates the renderer's TOC; `chaptersForAnchor`
+  // returns rows pinned to a specific message id; `delete` removes one.
+  // `onMarked` is the live subscription to `chat:chapter-marked` so any
+  // open chapter sidebar updates without polling.
+  session: {
+    markChapter: (payload: {
+      conversationId: string
+      title: string
+      summary?: string | null
+      anchorMessageId: string
+    }) => ipcRenderer.invoke('session:markChapter', payload),
+    listChapters: (conversationId: string) =>
+      ipcRenderer.invoke('session:listChapters', conversationId),
+    chaptersForAnchor: (anchorMessageId: string) =>
+      ipcRenderer.invoke('session:chaptersForAnchor', anchorMessageId),
+    deleteChapter: (id: string) => ipcRenderer.invoke('session:deleteChapter', id),
+    onChapterMarked: (
+      cb: (e: { conversationId: string; chapter: unknown }) => void
+    ): (() => void) => {
+      const handler = (
+        _: unknown,
+        e: { conversationId: string; chapter: unknown }
+      ) => cb(e)
+      ipcRenderer.on('chat:chapter-marked', handler)
+      return () => ipcRenderer.removeListener('chat:chapter-marked', handler)
+    }
+  },
+
   // Track 2 / C4 — slash commands. `list` returns user-visible commands
   // only (`hidden: true` entries stay out of the palette but `resolve`
   // still resolves them by name); `listAll` is for diagnostics; `resolve`

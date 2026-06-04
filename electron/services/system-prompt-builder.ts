@@ -89,7 +89,8 @@ const CONTRACT_SECTIONS: ContractSection[] = [
       'On long tasks, post one-sentence status at meaningful step boundaries.',
       'Do not narrate internal reasoning or list every tool call.',
       'Do not restate what the user just said back to them.',
-      'Surface real blockers immediately; do not bury them at the end.'
+      'Surface real blockers immediately; do not bury them at the end.',
+      'When the work shifts to a meaningfully different phase (exploration → implementation, fix → verification, the user pivots to a new topic), call mark_chapter with a short noun-phrase title so the user can navigate the session. Use sparingly: a chapter covers a coherent stretch of work, not every tool call.'
     ]
   },
   {

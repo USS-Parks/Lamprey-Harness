@@ -253,6 +253,27 @@ function initSchema(db: Database.Database): void {
   // the `exit_plan_mode` tool / banner button. Stored as INTEGER 0/1.
   safeAddColumn(db, 'conversations', 'plan_mode_active INTEGER NOT NULL DEFAULT 0')
 
+  // Track 2 / E1 — session chapters. Each row anchors a chapter title +
+  // optional summary to a specific message id. Created via the
+  // `mark_chapter` tool descriptor or the `session:markChapter` IPC; the
+  // renderer (E2) shows them as a sidebar TOC + inline dividers, and the
+  // system-prompt builder injects the chapter list under <chapters>.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chapters (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      summary TEXT,
+      anchor_message_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chapters_conversation
+      ON chapters(conversation_id, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_chapters_anchor
+      ON chapters(anchor_message_id);
+  `)
+
   // Parent call id — set on synthetic rows spawned from another tool (e.g.
   // sub-agent calls under `multi_agent_run`). Null for top-level
   // model-initiated calls. Lets the audit log answer "which fanout was this

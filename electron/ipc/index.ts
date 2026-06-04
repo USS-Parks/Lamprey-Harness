@@ -31,6 +31,7 @@ import { registerGitHubHandlers } from './github'
 import { registerEventsHandlers } from './events'
 import { registerRagHandlers } from './rag'
 import { registerSlashHandlers } from './slash'
+import { registerChaptersHandlers } from './chapters'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -61,4 +62,5 @@ export function registerAllIpcHandlers(): void {
   registerEventsHandlers()
   registerRagHandlers()
   registerSlashHandlers()
+  registerChaptersHandlers()
 }

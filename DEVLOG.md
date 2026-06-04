@@ -1,5 +1,44 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 — Prompt E1] Session chapters — 2026-06-03
+
+**Files changed:**
+- `electron/services/database.ts` — new `chapters(id, conversation_id, title, summary, anchor_message_id, created_at)` table with `idx_chapters_conversation` + `idx_chapters_anchor`. Foreign key `conversation_id REFERENCES conversations(id) ON DELETE CASCADE` — deleting a conversation cleans its chapters.
+- `electron/services/chapters-store.ts` (new) — `createChapter`, `listChapters(conversationId)`, `getChapter`, `listChaptersByAnchor`, `deleteChapter`.
+- `electron/ipc/chapters.ts` (new) — `session:markChapter`, `session:listChapters`, `session:chaptersForAnchor`, `session:deleteChapter`. Every successful mark emits `chat:chapter-marked` for live renderer subscriptions.
+- `electron/ipc/index.ts` — wired `registerChaptersHandlers()`.
+- `electron/services/tool-registry.ts` — registered `mark_chapter` native tool with empty risks, `mutates: false`, schema `{ title: required string, summary?: string }` and `additionalProperties: false`. Surface description teaches the model when to use it (phase shifts, not every tool call).
+- `electron/ipc/chat.ts` — inline handler under `enter_plan_mode` / `exit_plan_mode`: validates title, anchors the chapter at the tool-call id (the post-tool assistant message has not been persisted yet at this dispatch point — chat-history maps the tool-call id back to its parent assistant turn), creates the row, emits `chat:chapter-marked`, records the `chat.chapter.marked` spine event.
+- `electron/services/chat-events.ts` — new `chat:chapter-marked` payload + entry in `ChatEventMap`.
+- `electron/services/event-log.ts` — new `chat.chapter.marked` entry in `EVENT_TYPES`.
+- `electron/services/system-prompt-builder.ts` — bullet under `progress` instructing the model on when to call `mark_chapter`.
+- `electron/preload.ts` — new `session.markChapter`, `listChapters`, `chaptersForAnchor`, `deleteChapter`, `onChapterMarked` bindings.
+- `src/lib/types.ts` — added `chat.chapter.marked` to the renderer `EventType` mirror.
+- `src/lib/event-presentation.ts` — added "Chapter marked" label so the Activity Timeline shows the right name.
+- `electron/services/chapters-mark-tool.test.ts` (new) — 5 tests covering descriptor registration shape, schema requirements, `additionalProperties: false`, search ranking, and event-type registration. DB CRUD is left to integration smoke (better-sqlite3 + Electron app-path dependency makes a unit test mostly mechanical mocking).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest 894 passed / 5 skipped (889 → +5 new) ✓
+- Manual smoke — **user-verification-needed** (DB-backed; chokidar / Electron required):
+  1. Have the model call `mark_chapter` with `{ title: "Exploration" }`. The tool result text is `Chapter marked: "Exploration"`; a row lands in `chapters` with the tool-call id as `anchor_message_id`.
+  2. Call again with `{ title: "Implementation", summary: "Apply patches per the plan" }`. A second row lands ordered by `created_at`.
+  3. `session:listChapters(<convId>)` returns both rows in insertion order.
+  4. Restart the app. `session:listChapters(<convId>)` still returns the two rows (table is persisted).
+  5. The Activity Timeline shows two "Chapter marked" entries (spine event recorded).
+  6. The renderer-side sidebar / divider / quick-jumper land in E2 — confirming presence in this smoke does not need any of those.
+
+**Notes:**
+- The renderer-visible sidebar (`ChapterSidebar`), inline `ChapterDivider`, and `ChapterQuickJumper` ship in E2. E1 establishes the data plane only; the renderer can hydrate via `session:listChapters` and subscribe to `chat:chapter-marked` even before E2 lands.
+- Anchor choice: this implementation anchors on the tool-call id rather than the next-persisted assistant message id. Reason: the assistant message that carries the mark_chapter call is saved AFTER the call resolves, so at handler time there is no message id to point at; the tool-call id is the closest stable identifier in this dispatch step. E2's renderer treats the anchor as a boundary marker rather than an exact pin (chapters are between messages, not at one), so this maps cleanly.
+- System-prompt mention is in the `progress` section; the model already sees the descriptor's full prose in the OpenAI tool array, but the `<contract>` reminder makes it actually reach for it. The block ordering plan §2 invariant (`memory_index → skills → retrieved_context → chapters → conversation`) ships the `<chapters>` block via T3:D2 — E1 doesn't add that block, only registers the tool + data plane.
+- Merge-hotspot coordination: `chat-events.ts` extended (additive), `event-log.ts` `EVENT_TYPES` extended (additive), `tool-registry.ts` registration appended (no shape change). Other tracks need no rebase.
+
+**Commit:** see `git log feat/track-2-tool-layer`.
+
+---
+
 ## [Track 2 — Prompt C4] Slash command system + built-ins — 2026-06-03
 
 **Files changed:**

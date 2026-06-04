@@ -10,6 +10,13 @@ import { ApiKeyModal } from '@/components/settings/ApiKeyModal'
 import { SlashCommandPalette } from './SlashCommandPalette'
 import { useSlashCommandsStore } from '@/stores/slash-commands-store'
 import { usePlanStore } from '@/stores/plan-store'
+import {
+  emptyHistoryState,
+  historyDown,
+  historyReset,
+  historyUp,
+  type PromptHistoryState
+} from '@/lib/prompt-history'
 import type { ModelInfo, ProcessedFile } from '@/lib/types'
 
 import defaultAccessLight from '@assets/Lamprey Default Access Icon.png'
@@ -627,6 +634,9 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const [pasteOffer, setPasteOffer] = useState<string | null>(null)
   const [keyPromptProvider, setKeyPromptProvider] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Fluidity J1: ↑/↓ walks past user prompts. Index tracking lives in a ref
+  // so re-renders triggered by setContent() don't reset our position.
+  const historyRef = useRef<PromptHistoryState>(emptyHistoryState)
   const addAttachments = useChatStore((s) => s.addAttachments)
   const setProcessing = useChatStore((s) => s.setAttachmentsProcessing)
   const composeSeedToken = useUiStore((s) => s.composeSeedToken)
@@ -787,6 +797,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
         if (handled) {
           setContent('')
           setSlashPaletteOpen(true)
+          historyRef.current = emptyHistoryState
         }
       })
       return
@@ -797,10 +808,72 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       : trimmed
     onSend(final)
     setContent('')
+    historyRef.current = emptyHistoryState
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const moveCaretToEnd = () => {
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current
+      if (!ta) return
+      const len = ta.value.length
+      ta.setSelectionRange(len, len)
+    })
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (pasteOffer) return
+    // IME composition (e.g. typing kana / pinyin) sends interim keystrokes;
+    // never intercept while a candidate is being assembled.
+    if (e.nativeEvent.isComposing) return
+
+    // Fluidity J1 — ↑ / ↓ walks prompt history when the caret is on line 1
+    // and nothing is selected. Otherwise it falls through to native arrow
+    // navigation so the user can still move inside a multi-line draft.
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const ta = e.currentTarget
+      const selStart = ta.selectionStart ?? 0
+      const selEnd = ta.selectionEnd ?? 0
+      const onFirstLine = ta.value.slice(0, selStart).indexOf('\n') === -1
+      const hasSelection = selStart !== selEnd
+      const browsing = historyRef.current.index !== null
+      // While browsing, both arrows are owned by the walker regardless of
+      // caret position — the textarea holds a recalled prompt and the user
+      // is paging through history, not editing.
+      if (browsing || (onFirstLine && !hasSelection)) {
+        const history = useChatStore.getState().getRecentUserPrompts()
+        if (e.key === 'ArrowUp') {
+          if (history.length === 0) return
+          e.preventDefault()
+          const step = historyUp(history, historyRef.current, content)
+          historyRef.current = step.state
+          setContent(step.text)
+          moveCaretToEnd()
+          return
+        }
+        if (e.key === 'ArrowDown' && browsing) {
+          e.preventDefault()
+          const step = historyDown(history, historyRef.current)
+          historyRef.current = step.state
+          setContent(step.text)
+          moveCaretToEnd()
+          return
+        }
+      }
+    }
+
+    // Esc while browsing restores the saved draft. Streaming-cancel and
+    // search-clear are handled globally in useKeyboardShortcuts — we only
+    // claim Esc here when we have local history state to unwind.
+    if (e.key === 'Escape' && historyRef.current.index !== null) {
+      e.preventDefault()
+      e.stopPropagation()
+      const step = historyReset(historyRef.current)
+      historyRef.current = step.state
+      setContent(step.text)
+      moveCaretToEnd()
+      return
+    }
+
     if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault()
       useUiStore.getState().togglePlanMode()
@@ -956,10 +1029,17 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             ref={textareaRef}
             data-chat-input
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value)
+              // Any keystroke that mutates text is "I'm done browsing":
+              // drop the history index so the next ↑ starts fresh.
+              if (historyRef.current.index !== null) {
+                historyRef.current = emptyHistoryState
+              }
+            }}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder=""
+            placeholder="Ask anything — ↑ for history"
             rows={1}
             disabled={disabled}
             style={{ paddingLeft: '20px', paddingTop: '8px' }}

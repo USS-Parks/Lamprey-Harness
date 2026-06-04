@@ -1,5 +1,39 @@
 # Lamprey Harness Dev Log
 
+## [Fluidity — Prompt J1] ESC cancels stream + ↑ recalls prompt history — 2026-06-04
+
+ESC was already wired in `useKeyboardShortcuts` to cancel an active stream;
+J1 adds the second half — ↑/↓ walks past user prompts from the active
+conversation, with a saved-draft restore on the way back. The history
+walker is a pure helper module so it's directly testable without DOM
+infrastructure (vitest runs node-only here).
+
+**Files changed:**
+- `src/lib/prompt-history.ts` (new) — pure up/down/reset state machine
+- `src/lib/prompt-history.test.ts` (new) — 10 cases covering walk, bounds, draft restore
+- `src/lib/recent-prompts.ts` (new) — `stripAttachmentBlocks` + `getRecentUserPromptsFrom`
+- `src/lib/recent-prompts.test.ts` (new) — 10 cases for the strip + 50-cap selector
+- `src/stores/chat-store.ts` — added `getRecentUserPrompts(limit?)` delegating to the helper
+- `src/components/chat/ChatInput.tsx` — ArrowUp/ArrowDown/Escape wiring, placeholder hint
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1188 passed / 16 skipped — +20 J1 tests, all suites green)
+- user-verification-needed: in a running Electron build, send 2+ prompts, hit ↑ in an empty input → most-recent prompt loads; ↑ again → next older; ↓ → walks back; Esc with history loaded → draft restored; ESC mid-stream → cancel button result (already covered by useKeyboardShortcuts).
+
+**Notes:** Pure helper split was needed because chat-store's transitive `@/`
+value imports (`@/stores/settings-store` and friends) don't resolve under
+vitest without an alias plugin; the store wrapper now just delegates.
+`stripAttachmentBlocks` is the inverse of `buildAttachmentBlock` so the
+recalled prompt is what the user typed, not the stored content with the
+inlined ``` attachment block. Caret-on-first-line + no-selection guard
+means ↑/↓ still scroll within a multi-line draft when the user is editing.
+
+**Commit:** pending
+
+---
+
 ## [Integration Phase Complete] UI Mastery wrap-up - 2026-06-04
 
 **Prompts completed:** H1 Activity dashboard, H2 Workflow command palette + author UX, H3 Session sidebar + resume polish, H4 Hook editor + skill manager polish, H5 Plan-mode UX + spawn-task tray, H6 Status line + AskUserQuestion UI.

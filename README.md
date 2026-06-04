@@ -23,10 +23,11 @@ Pick one — the `.exe` is the standard installer, the `.zip` is the portable bu
 |---|---|---:|---|
 | **NSIS installer** | `Lamprey-0.2.2-x64.exe` | 233 MB | [Download .exe](https://github.com/USS-Parks/lamprey/releases/download/v0.2.2/Lamprey-0.2.2-x64.exe) |
 | **Portable ZIP** | `Lamprey-0.2.2-x64.zip` | 302 MB | [Download .zip](https://github.com/USS-Parks/lamprey/releases/download/v0.2.2/Lamprey-0.2.2-x64.zip) |
+| **Linux AppImage** | `Lamprey-0.2.2-x86_64.AppImage` | 299 MB | [Download .AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.2.2/Lamprey-0.2.2-x86_64.AppImage) |
 
 Or browse all releases → <https://github.com/USS-Parks/lamprey/releases>
 
-**Windows 10/11, x64.** Mac and Linux builds are buildable from source (`npm run build:mac` / `:linux`) but not currently distributed.
+**Windows 10/11 x64** and **Linux x86_64**. macOS builds are buildable from source (`npm run build:mac`) but not currently distributed — they require an Apple Developer signing identity to notarize.
 
 ---
 

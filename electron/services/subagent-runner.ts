@@ -6,6 +6,7 @@ import {
   type AllowedTools,
   type SubagentTypeDef
 } from './subagent-types'
+import type { WorktreeManager, WorktreeContext } from './worktree-runner'
 
 // Subagent fork primitive. The dispatch loop and workflow runner both call
 // forkAgent to spawn a single subagent with a curated tool subset, an optional
@@ -109,6 +110,8 @@ export interface ForkAgentDeps {
   agentRunStore?: AgentRunStoreLike
   /** A2: emitted on every run start + finish for renderer subscribers. */
   notify?: (event: AgentRunNotifyEvent) => void
+  /** A3: provider for isolated worktrees per run when opts.isolation === 'worktree'. */
+  worktreeManager?: WorktreeManager
 }
 
 export interface ForkAgentOptions {
@@ -496,7 +499,23 @@ export function forkAgent<T = string | Record<string, unknown>>(
       timedOut = true
       abort('timeout')
     }, timeoutMs)
+
+    let worktreeCtx: WorktreeContext | undefined
+
     try {
+      // A3: create the isolated worktree before the runner is called so the
+      // runner's tools can scope to it. Creation lives INSIDE the main try
+      // so failure routes through the standard finishRun(error)/notify(error)
+      // path and the agent_runs row never stays stuck in 'running'.
+      if (opts.isolation === 'worktree') {
+        if (!deps.worktreeManager) {
+          throw new Error(
+            'forkAgent: isolation: "worktree" requires deps.worktreeManager'
+          )
+        }
+        worktreeCtx = await deps.worktreeManager.create(runId)
+      }
+
       const messages = buildForkAgentMessages(validated.type, opts)
       const runnerInput: ForkAgentRunnerInput = {
         messages,
@@ -506,7 +525,8 @@ export function forkAgent<T = string | Record<string, unknown>>(
         schemaToolName: opts.schema ? SUBAGENT_SCHEMA_TOOL_NAME : undefined,
         signal: controller.signal,
         agentType: opts.agentType,
-        runId
+        runId,
+        worktreePath: worktreeCtx?.path
       }
       const raw = await deps.runner(runnerInput)
       // If the runner returned cleanly, accept the output even if the signal
@@ -532,6 +552,19 @@ export function forkAgent<T = string | Record<string, unknown>>(
       }
       const elapsedMs = Math.max(0, clock() - startedAt)
       const finishedAt = clock()
+
+      // A3: finalize the worktree. Empty diff → wt removed, no path stamped.
+      // Non-empty diff → wt preserved, path stamped onto agent_runs.
+      let finalWorktreePath: string | null = null
+      if (worktreeCtx && deps.worktreeManager) {
+        try {
+          const result = await deps.worktreeManager.finalize(worktreeCtx)
+          if (result.keep) finalWorktreePath = result.path
+        } catch (err) {
+          console.error('[subagent-runner] worktree finalize threw (continuing):', err)
+        }
+      }
+
       // A2: persist + notify "done".
       if (deps.agentRunStore) {
         try {
@@ -539,7 +572,8 @@ export function forkAgent<T = string | Record<string, unknown>>(
             id: runId,
             status: 'done',
             finishedAt,
-            resultText: raw
+            resultText: raw,
+            worktreePath: finalWorktreePath
           })
         } catch (err) {
           console.error('[subagent-runner] finishRun(done) failed (continuing):', err)
@@ -584,13 +618,28 @@ export function forkAgent<T = string | Record<string, unknown>>(
       const finishedAt = clock()
       const status: 'error' | 'aborted' = finalErr instanceof SubagentAbortError ? 'aborted' : 'error'
       const errorMessage = finalErr instanceof Error ? finalErr.message : String(finalErr)
+
+      // A3: finalize the worktree on the failure path too. If any work
+      // landed before the failure, preserve the worktree so the user can
+      // inspect it; if nothing changed, clean up.
+      let finalWorktreePath: string | null = null
+      if (worktreeCtx && deps.worktreeManager) {
+        try {
+          const result = await deps.worktreeManager.finalize(worktreeCtx)
+          if (result.keep) finalWorktreePath = result.path
+        } catch (wtErr) {
+          console.error('[subagent-runner] worktree finalize (after err) threw (continuing):', wtErr)
+        }
+      }
+
       if (deps.agentRunStore) {
         try {
           deps.agentRunStore.finishRun({
             id: runId,
             status,
             finishedAt,
-            error: errorMessage
+            error: errorMessage,
+            worktreePath: finalWorktreePath
           })
         } catch (storeErr) {
           console.error('[subagent-runner] finishRun(failed) failed (continuing):', storeErr)

@@ -1,5 +1,39 @@
 # Lamprey Harness Dev Log
 
+## [Release v0.2.2 Published] — 2026-06-04
+
+Maintenance build on the 0.2.x line — no behavioral changes versus v0.2.1.
+Cuts the v0.2.2 tag at the version-bump commit, freshly builds Windows
+artifacts locally, and lets the `Build Lamprey` CI workflow tack on a
+Linux AppImage on the tag-push trigger. README download table now lists
+all three distributables and removes the "Linux buildable from source
+but not distributed" caveat.
+
+**Artifacts on the release:**
+- `Lamprey-0.2.2-x64.exe` — 233 MB (244,282,472 B), NSIS installer (CI build replaced the local upload)
+- `Lamprey-0.2.2-x64.zip` — 302 MB (316,462,170 B), portable bundle (local upload)
+- `Lamprey-0.2.2-x64.exe.blockmap` — 248 KB, electron-updater delta map
+- `Lamprey-0.2.2-x86_64.AppImage` — 299 MB (313,337,381 B), Linux distributable from CI
+
+**Release ops:**
+- Local `npm run build:win` produced the NSIS + ZIP + blockmap.
+- `gh release create v0.2.2 --latest --notes-file dist/release-notes-v0.2.2.md` published the release with the three Windows assets and marked it Latest at commit `6e1611f`.
+- CI `Build Lamprey` (workflow run `26960849731`) fired on the tag push, built and attached the Linux AppImage via `softprops/action-gh-release@v3` (the `draft: true` flag in the step is a no-op when the release is already published — assets attach without flipping state).
+- CI also re-attached its own Windows `.exe` build, overwriting the local upload by 2,171 bytes (timestamp/build-id drift between the two signed binaries — functionally identical).
+- README updated: download table gained a Linux AppImage row; the "Mac and Linux buildable from source" caveat narrowed to macOS only.
+
+**Commits / refs:**
+- `6e1611f` — `chore(release): bump to v0.2.2` (release tag points here)
+- README AppImage row + DEVLOG entry on the follow-up commit
+
+**Verify:**
+- electron-builder build ✓ locally (NSIS + ZIP + blockmap)
+- CI `Build Lamprey` workflow ✓ all three jobs (`build-windows`, `build-linux`, `build-macos`-smoke) green
+- Release URL returns `draft=false`, `prerelease=false`, `name="Lamprey v0.2.2 — Maintenance build"`, `tag_name=v0.2.2`
+- `gh release list` shows `v0.2.2` as Latest; `v0.2.1` retained as historical
+
+---
+
 ## [Release v0.2.1 Published] — 2026-06-04
 
 First publish on the 0.2.x line. Cuts the v0.2.1 tag at `main` HEAD

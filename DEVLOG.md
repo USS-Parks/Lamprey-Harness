@@ -1,5 +1,36 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 — Prompt E2] Session TOC + nav — 2026-06-03
+
+**Files changed:**
+- `src/stores/chapters-store.ts` (new) — renderer chapters store: `loadForConversation`, `applyMarked` (live `chat:chapter-marked` reducer), `clear`. Mirrors the main-side Chapter shape 1:1.
+- `src/components/chat/ChapterDivider.tsx` (new) — inline boundary between messages. Carries `data-chapter-id` so the sidebar / quick-jumper can scrollIntoView. Hover surfaces the chapter summary.
+- `src/components/chat/ChapterSidebar.tsx` (new) — floating TOC pinned to the top-right of the chat column. Lists every chapter for the active conversation; self-hides when the list is empty. Click scrolls the message list to the divider.
+- `src/components/chat/ChapterQuickJumper.tsx` (new) — Ctrl+G modal with type-to-filter input. Ranks by title prefix > title substring > summary substring. Arrow keys navigate, Enter jumps, Esc dismisses.
+- `src/components/chat/MessageList.tsx` — wraps each message in a `<div data-message-id={msg.id}>` so future deep-link tooling can target by message id; computes a "before message at index i" → `Chapter[]` map by walking sorted chapters and finding the first message whose `timestamp >= chapter.createdAt`. Renders `<ChapterDivider>` before that message. Chapters created after the last existing message land in an `afterAll` bucket rendered at the bottom (so a late `mark_chapter` still shows up).
+- `src/components/chat/ChatView.tsx` — mounts `<ChapterSidebar conversationId={activeConversationId} />` and `<ChapterQuickJumper conversationId={activeConversationId} />`.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest 894 passed / 5 skipped (no new tests; E2 is heavily DOM-dependent UI — scroll behaviour, keyboard handlers, popovers are hard to unit-test meaningfully) ✓
+- Manual smoke — **user-verification-needed** (needs Electron + `window.api.session`):
+  1. Have the model call `mark_chapter` 4 times across a chat. Sidebar appears in the top-right corner with all 4 titles, counts 4.
+  2. Hover a sidebar row. The summary appears in the native tooltip.
+  3. Click a sidebar row. The message list smooth-scrolls to the divider with `block: 'start'`.
+  4. Press Ctrl+G. The quick-jumper opens, the input is focused. Type the first few characters of a chapter title; the list filters and ranks by prefix > substring > summary. Enter jumps; Esc closes.
+  5. Resize the chat pane narrower. The sidebar stays anchored to top-right and doesn't overlap the message text past the column edge (sidebar is 200 px wide and the chat column is `max-w-4xl`; the absolute-positioned sidebar floats inside the column padding).
+
+**Notes:**
+- Chapter placement is by timestamp, not by anchor-message-id. E1 stores `anchor_message_id` as the tool-call id (which doesn't correspond to a message row), so the renderer uses `createdAt` instead — chapters sit between messages, which matches the user's intuition. If a future iteration wants exact-message anchoring (e.g., when the user manually marks a chapter from the UI on a specific message), `data-message-id` is already in place.
+- The sidebar is an `<aside>` inside `ChatView`'s outer wrapper, positioned `absolute right-3 top-3`. The chat column itself is `position: relative` because of the FileDropZone overlay; the sidebar inherits the same anchor.
+- Ctrl+G also responds to Cmd+G on macOS (the handler checks `e.ctrlKey || e.metaKey`).
+- Live updates: `ChapterSidebar` subscribes to `chat:chapter-marked` and adds the new row to the store; the message list re-renders on the next mount because chapters is in zustand. The quick-jumper reads the same store so it sees the new entry on its next open.
+
+**Commit:** see `git log feat/track-2-tool-layer`.
+
+---
+
 ## [Track 2 — Prompt E1] Session chapters — 2026-06-03
 
 **Files changed:**

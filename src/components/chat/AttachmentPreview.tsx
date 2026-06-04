@@ -79,9 +79,9 @@ export function AttachmentPreview() {
   if (attachments.length === 0 && !processing) return null
 
   return (
-    <div className="border-t border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2">
+    <div className="mx-4 mb-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2.5 shadow-sm">
       {processing && (
-        <div className="mb-1 text-[12px] text-[var(--text-muted)]">Processing attachments...</div>
+        <div className="mb-1 text-[12px] text-[var(--text-muted)]">Processing attachments…</div>
       )}
       <div className="flex flex-wrap gap-2">
         {attachments.map((file, idx) => (

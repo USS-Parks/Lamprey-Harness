@@ -131,7 +131,7 @@ export function ModelSwitcher() {
       )}
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-72 overflow-hidden rounded border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
+        <div className="absolute right-0 top-full z-30 mt-1 w-72 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
           <div className="border-b border-[var(--border)] px-3 py-1.5 text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Active model
           </div>

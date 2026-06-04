@@ -25,7 +25,7 @@ export function ReasoningBlock({ content, isThinking = false }: ReasoningBlockPr
   }
 
   return (
-    <div className="mb-2 overflow-hidden rounded border border-[var(--border)] bg-[var(--bg-primary)]">
+    <div className="mb-2 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)] shadow-sm">
       <button
         type="button"
         onClick={handleToggle}
@@ -43,7 +43,7 @@ export function ReasoningBlock({ content, isThinking = false }: ReasoningBlockPr
           />
           <span className="uppercase tracking-wider">Reasoning</span>
           {isThinking && (
-            <span className="rounded bg-[var(--accent-dim)] px-1.5 py-0.5 text-[11px] text-[var(--accent)]">
+            <span className="rounded-full bg-[var(--accent-dim)] px-2 py-0.5 text-[11px] text-[var(--accent)]">
               thinking…
             </span>
           )}

@@ -165,8 +165,13 @@ const api = {
   },
 
   tools: {
+    // Track 2 / C1: `tools:list` returns lightweight stubs (no inputSchema).
+    // Renderer uses `resolve` / `search` to pull full descriptors on demand.
     list: () => ipcRenderer.invoke('tools:list'),
     get: (id: string) => ipcRenderer.invoke('tools:get', id),
+    resolve: (names: string[]) => ipcRenderer.invoke('tools:resolve', names),
+    search: (payload: { query: string; maxResults?: number }) =>
+      ipcRenderer.invoke('tools:search', payload),
     getRecentCalls: (limit?: number) => ipcRenderer.invoke('tools:getRecentCalls', limit),
     getCallsForConversation: (conversationId: string, limit?: number) =>
       ipcRenderer.invoke('tools:getCallsForConversation', conversationId, limit),

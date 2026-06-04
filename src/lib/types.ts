@@ -337,7 +337,20 @@ export interface LampreyToolDescriptor {
   /** Tool self-gates (its handler is the approval call); never routed through
    * the dispatch-time approval modal. Only `request_permissions` sets this. */
   selfApproves?: boolean
+  /** Track 2 / C1 — derived tag list. Includes providerKind, every risk
+   *  class, and meta tags ('lazy', 'approval-required', 'parallelizable').
+   *  Used for tools:search keyword ranking and renderer filter chips. */
+  tags: string[]
+  /** Track 2 / C1 — true when the schema came from an external provider
+   *  (MCP server, plugin host). `tools:list` ships stubs without
+   *  `inputSchema`; call `window.api.tools.resolve([name])` to expand. */
+  lazy: boolean
 }
+
+/** Track 2 / C1 — stub shape returned by `window.api.tools.list()`.
+ *  No `inputSchema` — call `tools.resolve(names[])` or `tools.search({ query })`
+ *  to get the full descriptor for any tool the renderer wants to inspect. */
+export type LampreyToolStub = Omit<LampreyToolDescriptor, 'inputSchema'>
 
 export type LampreyToolCallStatus =
   | 'pending'

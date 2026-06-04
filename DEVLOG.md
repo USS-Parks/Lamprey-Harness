@@ -1,5 +1,41 @@
 # Lamprey Harness Dev Log
 
+## [Fluidity — Prompt J4] # memory-write inline shortcut — 2026-06-04
+
+Typing `#` (alone) or `# <text>` at col 0 of line 1 in ChatInput flips
+the bar into memory-write mode: the Send pill becomes a "Remember"
+button, and submit opens the MemoryEditor pre-filled with the typed
+description. No silent writes — the editor's Save button is the
+confirm-before-persist step per the feedback_no_fake_polish invariant.
+
+Seeding goes through a new ui-store token pair (`memorySeedDescription`
++ `memorySeedToken`) mirroring the existing `composeDraft` pattern.
+MemoryPanel watches the token and auto-opens its editor when bumped.
+
+**Files changed:**
+- `src/lib/memory-shortcut.ts` (new) — pure detector; line-1 col-0, separator-required
+- `src/lib/memory-shortcut.test.ts` (new) — 8 cases for accept/reject conditions
+- `src/stores/ui-store.ts` — adds `memorySeedDescription` + `memorySeedToken` + accessors
+- `src/components/memory/MemoryEditor.tsx` — accepts `description` in `initialDraft`
+- `src/components/memory/MemoryPanel.tsx` — consumes seed on token bump, opens editor
+- `src/components/chat/ChatInput.tsx` — memory-mode detection, Send→Remember pill swap, submit routes to memory
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1224 passed / 16 skipped — +8 J4 tests)
+- user-verification-needed: in Electron, type `# remember the RAG audit` → Send becomes a "Remember" pill; click → MemoryEditor opens with description prefilled; Save persists, Cancel closes without writing; typing `#hashtag` (no space) does NOT flip mode.
+
+**Notes:** Body of the memory is intentionally NOT prefilled — the
+description goes into the one-liner slot per the plan, leaving the body
+for the user to write properly inside the editor (memory bodies want
+`Why:` / `How to apply:` structure). Type defaults to `feedback` since
+that's the most common type for the "# remember to …" voice.
+
+**Commit:** pending
+
+---
+
 ## [Fluidity — Prompt J3] @file inline mention autocomplete — 2026-06-04
 
 `@<token>` in ChatInput surfaces a popover ranking workspace files by name

@@ -40,6 +40,11 @@ export const EVENT_TYPES = [
   'chat.cancelled',
   'chat.error',
 
+  // Track 2 / E1 — session chapter marker. Emitted by the chapters store
+  // every time a row is inserted via the `mark_chapter` tool or the
+  // `session:markChapter` IPC. Plan §2 invariant 10.
+  'chat.chapter.marked',
+
   // Workspace + worktree (Prompt 4).
   'workspace.changed',
   'worktree.created',

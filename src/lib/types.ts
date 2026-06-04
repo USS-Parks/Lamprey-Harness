@@ -556,6 +556,7 @@ export type EventType =
   | 'model.request.failed'
   | 'chat.cancelled'
   | 'chat.error'
+  | 'chat.chapter.marked'
   | 'workspace.changed'
   | 'worktree.created'
   | 'worktree.removed'

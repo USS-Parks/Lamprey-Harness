@@ -719,6 +719,42 @@ toolRegistry.registerNative({
   mutates: false
 })
 
+// Track 2 / E1 — mark_chapter. Anchors a chapter title (and optional
+// short summary) to the message the model has just produced or the user
+// has just submitted. The renderer's chapter sidebar (E2) uses these to
+// build a TOC; long sessions get navigable without scrolling. Mutates
+// is false: the row is purely organizational, no workspace effect.
+toolRegistry.registerNative({
+  id: 'mark_chapter',
+  name: 'mark_chapter',
+  title: 'Mark a session chapter',
+  description:
+    "Mark the start of a new chapter in this session. Use when the work shifts to a meaningfully different phase — e.g. after finishing exploration and starting implementation, after a fix lands and you move to verification, or when the user pivots to an unrelated request. The user sees a divider in the transcript and a floating table of contents for jumping between chapters. Use sparingly: a chapter should cover a coherent stretch of work, not every tool call.",
+  providerKind: 'native',
+  providerId: 'internal',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      title: {
+        type: 'string',
+        description:
+          'Short noun-phrase title for the chapter (under 40 chars). Shown in the table of contents. e.g. "Codebase exploration", "Auth bug fix", "Test verification".'
+      },
+      summary: {
+        type: 'string',
+        description:
+          'Optional one-line summary of what this chapter covers. Shown on hover in the table of contents.'
+      }
+    },
+    required: ['title'],
+    additionalProperties: false
+  },
+  risks: [],
+  requiresApproval: false,
+  enabled: true,
+  mutates: false
+})
+
 // Tool packs are loaded by electron/services/tool-packs.ts (imported from
 // electron/ipc/index.ts), not from this file. Side-effect imports at the
 // bottom of a module are not safe — bundlers can hoist them above

@@ -102,6 +102,21 @@ export interface PlanModeChangedPayload {
   active: boolean
 }
 
+/** Track 2 / E1 — chapter marker. Fires when the model invokes `mark_chapter`
+ *  or the renderer writes via the `session:markChapter` IPC. The chapter
+ *  payload mirrors the Chapter shape from chapters-store. */
+export interface ChapterMarkedPayload {
+  conversationId: string
+  chapter: {
+    id: string
+    conversationId: string
+    title: string
+    summary: string | null
+    anchorMessageId: string
+    createdAt: number
+  }
+}
+
 export interface ChatEventMap {
   'chat:chunk': ChatChunkPayload
   'chat:done': ChatDonePayload
@@ -111,6 +126,7 @@ export interface ChatEventMap {
   'chat:tool-call-result': ChatToolCallResultPayload
   'plan:updated': PlanUpdatedPayload
   'plan:mode-changed': PlanModeChangedPayload
+  'chat:chapter-marked': ChapterMarkedPayload
   'memory:added': MemoryAddedPayload
   'agent:status': AgentStatusPayload
 }

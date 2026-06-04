@@ -12,6 +12,7 @@ import {
 } from '../services/subagent-runner'
 import { realAgentRunStore } from '../services/agent-run-store'
 import { broadcastAgentRunEvent } from './tasks'
+import { getWorkflow, listWorkflows } from '../services/workflow-library'
 
 // Track 1 / B1: workflows:* IPC + workflow:progress broadcast wiring.
 //
@@ -62,22 +63,29 @@ function buildDeps(): WorkflowRunnerDeps {
       forkAgent,
       forkDeps: buildForkDeps()
     },
-    progress: broadcastWorkflowProgress
+    progress: broadcastWorkflowProgress,
+    loadNamedWorkflow: (name: string) => {
+      const entry = getWorkflow(name)
+      if (!entry) throw new Error(`workflow "${name}" not found in library`)
+      return entry.source
+    }
   }
 }
 
 export function registerWorkflowsHandlers(): void {
-  // List currently-running workflows. The library lookup (B4) will extend
-  // this with saved-on-disk entries.
+  // List currently-running workflows + library entries.
   ipcMain.handle('workflows:list', async () => {
     try {
-      const live = [...liveWorkflows.entries()].map(([runId, h]) => ({
+      const live = [...liveWorkflows.entries()].map(([runId, _h]) => ({
         runId,
-        // We don't yet expose meta from the handle; B3's UI hydrates from
-        // the progress stream. For now the list is a status surface.
         status: 'running' as const
       }))
-      return { success: true, data: { live, library: [] as Array<{ name: string }> } }
+      const library = listWorkflows().map((e) => ({
+        name: e.name,
+        description: e.description,
+        origin: e.origin
+      }))
+      return { success: true, data: { live, library } }
     } catch (err: unknown) {
       return { success: false, error: messageFor(err, 'list failed') }
     }
@@ -115,12 +123,24 @@ export function registerWorkflowsHandlers(): void {
     }
   )
 
-  // Named-workflow invocation. B4 wires the library; until then, return a
-  // structured error so the renderer can surface the missing dep.
-  ipcMain.handle('workflows:run', async (_e, _input: { name: string; args?: unknown }) => {
-    return {
-      success: false,
-      error: 'workflow library not yet available (ships in B4)'
+  // Named-workflow invocation — resolves a library entry by name and runs it.
+  ipcMain.handle('workflows:run', async (_e, input: { name: string; args?: unknown }) => {
+    try {
+      if (!input || typeof input.name !== 'string' || !input.name) {
+        return { success: false, error: 'name required' }
+      }
+      const entry = getWorkflow(input.name)
+      if (!entry) return { success: false, error: `workflow "${input.name}" not found` }
+      const deps = buildDeps()
+      const handle = runWorkflow(
+        { script: entry.source, args: input.args },
+        deps
+      )
+      liveWorkflows.set(handle.runId, handle)
+      handle.promise.finally(() => liveWorkflows.delete(handle.runId)).catch(() => {})
+      return { success: true, data: { runId: handle.runId, name: entry.name } }
+    } catch (err: unknown) {
+      return { success: false, error: messageFor(err, 'run failed') }
     }
   })
 

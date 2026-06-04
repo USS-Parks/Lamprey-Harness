@@ -1,5 +1,45 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 — Prompt C3] Plan mode state gate — 2026-06-03
+
+**Files changed:**
+- `electron/services/database.ts` — migration `safeAddColumn(conversations, 'plan_mode_active INTEGER NOT NULL DEFAULT 0')`.
+- `electron/services/conversation-store.ts` — new `isPlanModeActive(id)` / `setPlanModeActive(id, active)` helpers; the flag survives restart on the conversation row.
+- `electron/services/tool-registry.ts` — added required `mutates: boolean` to `LampreyToolDescriptor`; `LampreyToolRegistration` accepts it as optional and the registry derives `mutates = risks.includes('write') || risks.includes('destructive')` when omitted; MCP descriptor build path also computes it. New helper `isMutatingDescriptor(d)`. Two new inline-registered tools: `enter_plan_mode` and `exit_plan_mode` with empty risks + `mutates: false` so they always run.
+- `electron/services/tool-search.ts` — `computeToolTags` emits a `'mutates'` meta-tag when the flag is set, for the renderer's filter chips and the model-facing tool description.
+- `electron/services/chat-events.ts` — new `plan:mode-changed` event with `PlanModeChangedPayload { conversationId, active }`.
+- `electron/ipc/chat.ts` — dispatcher gates mutating tools BEFORE the approval modal: `blockedByPlanMode = isPlanModeActive(conv) && isMutatingDescriptor(desc)`, sets `approvalSource = 'plan-mode'` and returns `'Blocked: plan mode is active...'` with status `'denied'`. Inline handlers for `enter_plan_mode` / `exit_plan_mode` persist the flag and emit `plan:mode-changed`.
+- `electron/ipc/plan.ts` — new `plan:isModeActive`, `plan:enterMode`, `plan:exitMode` IPC channels.
+- `electron/preload.ts` — `plan.isModeActive`, `plan.enterMode`, `plan.exitMode`, `plan.onModeChanged` bindings.
+- `src/lib/types.ts` — mirrored `mutates: boolean` (required) on `LampreyToolDescriptor`.
+- `src/stores/plan-store.ts` — added `planModeActive: boolean | null`, `enterPlanMode` / `exitPlanMode` actions, `applyModeChange` reducer. `loadForConversation` fetches both plan snapshot AND mode flag in parallel.
+- `src/components/chat/PlanModeBanner.tsx` (new) — yellow strip with "Plan mode is on" + "Exit plan mode" button, hydrates via `plan:isModeActive`, subscribes to `plan:mode-changed`, hides when `planModeActive !== true`.
+- `src/components/chat/ChatView.tsx` — mounts `<PlanModeBanner conversationId={activeConversationId} />` between the file-drop overlay and the message list.
+- `electron/services/plan-mode.test.ts` (new) — 7 tests covering descriptor-side `mutates` derivation, `isMutatingDescriptor`, and the enter/exit-tool mutates-false invariant.
+- `electron/services/tool-parallelism.test.ts` — test helper extended with `mutates: false`.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest 875 passed / 5 skipped (868 → +7 new) ✓
+- Manual smoke — **user-verification-needed**: PlanModeBanner + dispatcher integration need Electron + better-sqlite3. Steps:
+  1. Launch Electron, open a conversation, ask the model to `enter_plan_mode`. Banner appears (yellow strip, "Exit plan mode" button).
+  2. Ask the model to run `shell_command` (or any apply_patch). Tool result reads `Blocked: plan mode is active...` with status `denied` in the audit log.
+  3. Ask the model to run `workspace_context` (read-only). Runs normally — confirms read tools still flow.
+  4. Click "Exit plan mode" in the banner. Banner disappears, next `shell_command` runs (subject to the existing approval gate).
+  5. Re-enter plan mode, force-reload the renderer (Ctrl+R). Banner re-renders on conversation load — plan_mode_active survived because it's persisted on the conversation row.
+  6. Verify `plan-goal-store.ts` checklist (`update_plan` tool) still works inside plan mode (it has risk `'write'` BUT it's a session-state mutation; if this is undesirable we'll need to mark it `mutates: false` explicitly in a follow-up — currently it is gated like other write tools, which is the safer default and means the plan needs to be authored before entering plan mode).
+
+**Notes:**
+- `mutates` derivation defaults to write+destructive risks. The two plan-mode toggles explicitly opt out (`mutates: false`) so they remain callable. The renderer mirror keeps `mutates` required so consumers don't have to handle `undefined` — main-side `LampreyToolRegistration` accepts it as optional to spare the 10 tool-pack files from edits.
+- Block precedes approval (the plan-mode check zeroes `needsApproval`). Reason: there is no point asking the user to approve a tool that plan mode forbids, and a global "deny destructive" policy must not silently allow what plan mode forbids.
+- The `update_plan` tool keeps its `mutates: true` derivation — that's safe (users author plans before entering plan mode) but slightly inconvenient. If complaints arise, a follow-up can flag plan/goal mutation tools as session-only (similar to enter/exit_plan_mode). Tracked here rather than spawning a separate plan to avoid premature scope.
+- Merge-hotspot coordination: `tool-registry.ts` shape extended (+1 required field on the exposed descriptor; +1 optional on the registration input). Existing tool-pack registrations need no edits. Track 1 / T3 must rebase their new tool descriptors onto the extended shape — same `LampreyToolRegistration` ergonomics (mutates auto-derived from risks; explicitly opt out when needed).
+
+**Commit:** see `git log feat/track-2-tool-layer`.
+
+---
+
 ## [Track 2 — Prompt C2] Hooks wired into dispatch + Hooks UI — 2026-06-03
 
 **Files changed:**

@@ -345,6 +345,11 @@ export interface LampreyToolDescriptor {
    *  (MCP server, plugin host). `tools:list` ships stubs without
    *  `inputSchema`; call `window.api.tools.resolve([name])` to expand. */
   lazy: boolean
+  /** Track 2 / C3 — true when invoking this tool may mutate the workspace,
+   *  external systems, or persistent state. The chat dispatcher refuses
+   *  mutating tools while plan mode is on for the conversation; the
+   *  PlanModeBanner exposes a one-click exit. */
+  mutates: boolean
 }
 
 /** Track 2 / C1 — stub shape returned by `window.api.tools.list()`.

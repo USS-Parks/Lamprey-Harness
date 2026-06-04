@@ -142,6 +142,28 @@ export function setConversationProject(id: string, projectId: string | null) {
   if (projectId) touchProject(projectId)
 }
 
+// Track 2 / C3 — plan mode gate. The flag lives on the conversation row so
+// it survives restarts; the dispatcher reads it before approving any
+// mutating tool call. `isPlanModeActive` returns false for missing rows so
+// stale conversation ids in flight cannot trip the gate.
+export function isPlanModeActive(id: string): boolean {
+  const db = getDb()
+  const row = db
+    .prepare('SELECT plan_mode_active FROM conversations WHERE id = ?')
+    .get(id) as { plan_mode_active?: number } | undefined
+  return !!(row && row.plan_mode_active === 1)
+}
+
+export function setPlanModeActive(id: string, active: boolean): boolean {
+  const db = getDb()
+  const result = db
+    .prepare(
+      'UPDATE conversations SET plan_mode_active = ?, updated_at = ? WHERE id = ?'
+    )
+    .run(active ? 1 : 0, Date.now(), id)
+  return result.changes > 0
+}
+
 export function touchConversation(id: string) {
   const db = getDb()
   db.prepare('UPDATE conversations SET updated_at = ? WHERE id = ?').run(Date.now(), id)

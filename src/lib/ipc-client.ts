@@ -76,7 +76,8 @@ export const skills = {
     skill: { name: string; description: string; content: string }
   ): Promise<IpcResponse<Skill>> => api.skills.update(id, skill),
   delete: (id: string): Promise<IpcResponse<void>> => api.skills.delete(id),
-  onChanged: (cb: (skills: Skill[]) => void) => api.skills.onChanged(cb as any)
+  onChanged: (cb: (skills: Skill[]) => void): (() => void) | undefined =>
+    api.skills.onChanged(cb as any)
 }
 
 export const memory = {

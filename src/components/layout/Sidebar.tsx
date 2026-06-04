@@ -119,6 +119,18 @@ function ClockIcon({ size = 22 }: { size?: number }) {
   )
 }
 
+function SessionsIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 7h13" />
+      <path d="M3 12h13" />
+      <path d="M3 17h13" />
+      <path d="M19 7v10" />
+      <circle cx="19" cy="7" r="1.4" fill="currentColor" />
+    </svg>
+  )
+}
+
 interface ProjectGroup {
   project: Project | null
   conversations: Conversation[]
@@ -1000,7 +1012,7 @@ function SidebarBody(props: SidebarBodyProps) {
           onClick={() => openSettings('mcp')}
         />
         <NavRow
-          iconNode={<ClockIcon size={22} />}
+          iconNode={<SessionsIcon size={22} />}
           label="Sessions"
           onClick={() => setSessionsVisible(!sessionsVisible)}
           active={sessionsVisible}

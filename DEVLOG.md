@@ -1,5 +1,38 @@
 # Lamprey Harness Dev Log
 
+## [Fluidity — Prompt J6] Auto-collapse successful tool cards — 2026-06-04
+
+ToolUseCard now derives an auto-expand state from `status` + `risks`:
+failures (`status === 'error'`) and destructive successes mount expanded;
+everything else (successful read/write/network, running, denied) mounts
+collapsed. User toggles still win over the auto-rule via an internal
+`userToggled` override so a deliberate expand sticks for the lifetime of
+the card.
+
+The header now uses a new `collapsedSummary()` helper that caps the
+"key=value, key=value" args one-liner at 60 chars with an ellipsis, so a
+deep path doesn't push the risk badges / elapsed / status icons
+off-screen on narrow widths.
+
+**Files changed:**
+- `src/lib/tool-card-helpers.ts` — added `collapsedSummary`
+- `src/lib/tool-card-helpers.test.ts` — +3 cases for the 60-char cap
+- `src/components/chat/ToolUseCard.tsx` — `userToggled` override + `autoExpanded` derivation
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1233 passed / 16 skipped — +3 J6 tests)
+- user-verification-needed: trigger a successful `read_file` → card mounts collapsed; trigger one that errors → card mounts expanded; trigger a destructive `shell_command` that succeeds → mounts expanded; collapse a destructive card manually → stays collapsed on re-render until you reload.
+
+**Notes:** Denied results stay collapsed too — the denial reason is a
+single short line that fits the collapsed header. Running/pending stay
+collapsed because the live elapsed already ticks in the header.
+
+**Commit:** pending
+
+---
+
 ## [Fluidity — Prompt J5] Inline tool approval chips — 2026-06-04
 
 When a tool approval is requested AND the (server, tool) pair has been

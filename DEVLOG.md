@@ -1,5 +1,39 @@
 # Lamprey Harness Dev Log
 
+## [Track 3 — Prompt F3] PR / Issue browse + actions UI — 2026-06-03
+
+**Files changed:**
+- `electron/services/github-service.ts` — adds `listIssues(owner, repo, { state?, per_page?, labels? })` (REST `/issues` with PR filter), `getPullRequestStatus(owner, repo, number)` which fans the legacy commit-status + modern check-runs APIs into one `PullRequestStatusSummary` with a worst-of `overall` rollup.
+- `electron/ipc/github.ts` — `github:listIssues`, `github:getPullRequestStatus`.
+- `electron/preload.ts` — `window.api.github.listIssues` + `getPullRequestStatus`.
+- `src/lib/github-types.ts` — renderer-side mirrors for `GitHubIssue`, `PullRequestReviewComment`, `PullRequestStatusState`, `PullRequestStatusCheck`, `PullRequestStatusSummary`.
+- `src/lib/ipc-client.ts` — typed `github.*` client methods for the F2 review surface + F3 issues/status.
+- `src/components/github/PRStatusChecks.tsx` (new) — auto-refreshes every 15s, color-codes per state, links to each check's `targetUrl`.
+- `src/components/github/PRDiffView.tsx` (new) — uses the existing `compare(base, head)` IPC to render commit list + per-file `+/−` counts without a new IPC.
+- `src/components/github/InlineCommentComposer.tsx` (new) — `event` picker (COMMENT/APPROVE/REQUEST_CHANGES), free-form overall body, plus an N-row inline-comment form (path/line/body); posts via F2's `createPullRequestReview`.
+- `src/components/github/PullRequestsPanel.tsx` (new) — Open/Drafts/Mine/All filter tabs over a repo-scoped PR list; clicking a PR expands an inline detail strip with status checks, diff view, review comments, and the composer; "Browse on GitHub" button per detail strip.
+- `src/components/github/IssuesPanel.tsx` (new) — repo picker + open/closed/all state filter; rows deep-link to github.com (no inline detail strip — issues live in their own thread surface).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest full suite ✓ (852 passed | 13 skipped — F3 is renderer-only + read-side IPC; no new test files this prompt)
+- user-verification-needed (Electron + GitHub auth required):
+  1. mount `<PullRequestsPanel />` (Integration H3 wires this into the main shell);
+  2. confirm repos load + the first one auto-selects;
+  3. switch filters (Open/Drafts/Mine/All) → list re-fetches with the right view;
+  4. click a PR → detail strip expands with status checks loaded; observe a 15s auto-refresh re-pulling the status rollup;
+  5. open the inline composer, add a row with `path: src/index.ts`, `line: 1`, body, set event to COMMENT, Post → review lands on github.com + the comment surfaces in the review-comments list on refresh;
+  6. "Browse on GitHub" opens the PR page in the OS default browser;
+  7. mount `<IssuesPanel />` → issues list excludes PRs (filter applied in `listIssues`); label chips render with the GitHub label color.
+
+**Notes:**
+- The diff view intentionally doesn't render full unified diffs — it lists files + commit messages (which is what the existing `compare` IPC returns) and links out to github.com for the full hunks. A future prompt can swap in a hunk renderer reusing the artifact sandbox per the plan's verify language; that's polish vs. correctness.
+- The PR panel re-uses the existing `useGitHubStore.repos` so the user can swap connected repos without leaving the panel.
+- No new `src/stores/github-store.ts` slice was added; the panel state (filters, selection, expanded PR, comments) is local component state, which matches the rest of the app's pattern for narrow per-view UI.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
 ## [Track 3 — Prompt F2] PR review threading + inline review post — 2026-06-03
 
 **Files changed:**

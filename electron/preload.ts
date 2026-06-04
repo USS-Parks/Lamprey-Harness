@@ -587,6 +587,17 @@ const api = {
       ipcRenderer.invoke('github:resolveReviewThread', args),
     unresolveReviewThread: (args: { threadId: string }) =>
       ipcRenderer.invoke('github:unresolveReviewThread', args),
+
+    // F3 — issues + status checks.
+    listIssues: (args: {
+      owner: string
+      repo: string
+      state?: 'open' | 'closed' | 'all'
+      per_page?: number
+      labels?: string
+    }) => ipcRenderer.invoke('github:listIssues', args),
+    getPullRequestStatus: (args: { owner: string; repo: string; number: number }) =>
+      ipcRenderer.invoke('github:getPullRequestStatus', args),
     pushBranch: (args: {
       cwd: string
       branch: string

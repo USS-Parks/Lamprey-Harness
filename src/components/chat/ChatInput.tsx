@@ -12,6 +12,7 @@ import { AtFileMention } from './AtFileMention'
 import { useSlashCommandsStore } from '@/stores/slash-commands-store'
 import { usePlanStore } from '@/stores/plan-store'
 import { detectAtMention } from '@/lib/file-rank'
+import { detectMemoryShortcut } from '@/lib/memory-shortcut'
 import {
   emptyHistoryState,
   historyDown,
@@ -650,6 +651,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const setProcessing = useChatStore((s) => s.setAttachmentsProcessing)
   const composeSeedToken = useUiStore((s) => s.composeSeedToken)
   const consumeComposeDraft = useUiStore((s) => s.consumeComposeDraft)
+  const seedMemoryDescription = useUiStore((s) => s.seedMemoryDescription)
   const openSettings = useUiStore((s) => s.openSettings)
   const refreshProviders = useProvidersStore((s) => s.refresh)
   const hasKey = useProvidersStore((s) => s.hasKey)
@@ -874,11 +876,25 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     })
   }
 
+  // Fluidity J4 — derive memory-write mode from the current content.
+  // Pure detector lives in @/lib/memory-shortcut; this is just the wiring.
+  const memoryShortcut = detectMemoryShortcut(content)
+
   const handleSubmit = () => {
     const trimmed = content.trim()
     if (!trimmed || isStreaming || disabled) return
     if (activeProvider && !activeProviderHasKey) {
       setKeyPromptProvider(activeProvider)
+      return
+    }
+    // Fluidity J4 — `#…` opens MemoryEditor with the description prefilled
+    // instead of dispatching as a normal chat turn. The editor is the
+    // confirm-before-save step required by the feedback_no_fake_polish
+    // invariant: we never write memory silently.
+    if (memoryShortcut) {
+      seedMemoryDescription(memoryShortcut.description)
+      setContent('')
+      historyRef.current = emptyHistoryState
       return
     }
     if (trimmed.startsWith('/')) {
@@ -1200,6 +1216,22 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <rect x="4" y="4" width="16" height="16" rx="2" />
               </svg>
+            </button>
+          ) : memoryShortcut ? (
+            // Fluidity J4 — in memory-write mode the Send pill becomes a
+            // "Remember" pill that opens the editor instead of dispatching.
+            <button
+              onClick={handleSubmit}
+              disabled={!canSend}
+              title="Open memory editor (Enter)"
+              aria-label="Remember"
+              data-mode="memory"
+              className="flex h-[60px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-[var(--bg-primary)] transition-all hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:hover:scale-100"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+              Remember
             </button>
           ) : (
             <button

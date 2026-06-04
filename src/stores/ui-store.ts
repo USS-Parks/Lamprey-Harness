@@ -130,6 +130,11 @@ interface UiState {
   memoryOpen: boolean
   composeDraft: string
   composeSeedToken: number
+  /** Fluidity J4: when ChatInput opens the memory modal via the `#…`
+   *  shortcut, it seeds the description here and bumps the token. The
+   *  MemoryPanel reads + clears the seed on the first matching render. */
+  memorySeedDescription: string
+  memorySeedToken: number
   sidebarCollapsed: boolean
   sidebarWidth: number
   rightPanelCollapsed: boolean
@@ -171,6 +176,10 @@ interface UiState {
   toggleMemory: () => void
   seedComposeDraft: (text: string) => void
   consumeComposeDraft: () => string
+  /** Seed the memory editor's description slot + open the modal. */
+  seedMemoryDescription: (text: string) => void
+  /** Read + clear the seed atomically. */
+  consumeMemorySeedDescription: () => string
   setSidebarCollapsed: (v: boolean) => void
   toggleSidebar: () => void
   setSidebarWidth: (w: number) => void
@@ -188,6 +197,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   memoryOpen: false,
   composeDraft: '',
   composeSeedToken: 0,
+  memorySeedDescription: '',
+  memorySeedToken: 0,
   sidebarCollapsed: readBool(SIDEBAR_COLLAPSED_KEY, false),
   sidebarWidth: readNumber(SIDEBAR_WIDTH_KEY, SIDEBAR_DEFAULT, SIDEBAR_MIN, SIDEBAR_MAX),
   rightPanelCollapsed: readBool(RIGHT_COLLAPSED_KEY, false),
@@ -221,6 +232,17 @@ export const useUiStore = create<UiState>((set, get) => ({
   consumeComposeDraft: () => {
     const text = get().composeDraft
     set({ composeDraft: '' })
+    return text
+  },
+  seedMemoryDescription: (text: string) =>
+    set((s) => ({
+      memorySeedDescription: text,
+      memorySeedToken: s.memorySeedToken + 1,
+      memoryOpen: true
+    })),
+  consumeMemorySeedDescription: () => {
+    const text = get().memorySeedDescription
+    set({ memorySeedDescription: '' })
     return text
   },
   setSidebarCollapsed: (v: boolean) => {

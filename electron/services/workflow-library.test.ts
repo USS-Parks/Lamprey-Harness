@@ -391,7 +391,7 @@ describe('multi-modal-sweep built-in', () => {
       {
         test: (p) => /Search angle:/i.test(p),
         respond: (p) => {
-          const lens = (p.match(/Search angle:\s*(\S+)/) ?? [, ''])[1]
+          const lens = p.match(/Search angle:\s*(\S+)/)?.[1] ?? ''
           // Two lenses surface the same finding "common"; the rest are unique.
           if (lens === 'by-container') return JSON.stringify({ findings: ['common', 'unique-c'] })
           if (lens === 'by-content') return JSON.stringify({ findings: ['common', 'unique-co'] })

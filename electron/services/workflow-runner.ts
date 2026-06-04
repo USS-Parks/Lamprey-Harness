@@ -434,7 +434,6 @@ export function runWorkflow(input: WorkflowRunInput, deps: WorkflowRunnerDeps): 
           phase: phaseTag
         })
         const startedAgentAt = clock()
-        let result: ForkAgentResult | null = null
         try {
           const forkOpts: ForkAgentOptions = {
             prompt,
@@ -447,7 +446,7 @@ export function runWorkflow(input: WorkflowRunInput, deps: WorkflowRunnerDeps): 
             label
           }
           const handle = deps.forkSeam.forkAgent(forkOpts, deps.forkSeam.forkDeps)
-          result = (await handle.promise) as ForkAgentResult
+          const result = (await handle.promise) as ForkAgentResult
           budgetTracker.record(resolvedModelId, result.tokensUsedEstimate ?? 0)
           const finishedAgentAt = clock()
           emit({

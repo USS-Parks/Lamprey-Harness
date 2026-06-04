@@ -1,5 +1,36 @@
 # Lamprey Harness Dev Log
 
+## [Track 3 — Prompt F1] Preview verification depth — 2026-06-03
+
+**Files changed:**
+- `electron/services/dev-server-manager.ts` (new) — `spawnDevServer({ command, args, cwd, env, shell })` boots a child process, captures stdout+stderr to a rolling 200KB buffer, and exposes `waitForOutput(id, regex, timeoutMs)` so callers can resolve on "Local: http://localhost:5173/" (Vite, Next, Astro all emit that shape). FORCE_COLOR=0 + NO_COLOR=1 are stamped on the env so URL regexes don't trip over ANSI. Pattern waiters auto-reject when the child exits before matching. `URL_PATTERNS.{vite,generic}` ship as canonical extractors.
+- `electron/services/browser-manager.ts` (extend) — per-tab `consoleLogs` + `networkEvents` rolling buffers (capped at 500 each); `console-message` listener normalizes both the modern named-fields and legacy positional-arg Electron payload shapes; `ensureNetworkCapture(tabId)` lazily attaches the WebContents debugger and translates CDP `Network.requestWillBeSent` / `Network.responseReceived` into structured entries; navigation resets the buffers so old-page logs don't pollute the new-page surface. New exports: `getTabConsoleLogs(id, since?)`, `getTabNetworkEvents(id, since?)`, `clearTabConsoleLogs(id)`, `clearTabNetworkEvents(id)`, `resizeTab(id, w, h)`.
+- `electron/services/browser-tools.ts` (extend) — 9 new `executePreview*` functions: `Start` (spawns dev server, waits for the URL, opens it in a fresh tab, returns `{sessionId, pid, url, tabId, output}`), `Stop` (per-session or `all: true`), `ConsoleLogs` + `Network` (filterable by since-cursor / level / limit), `Snapshot` (returns selector + outerHTML + title + url, truncated at max_bytes), `Inspect` (returns common props + computed styles + attribute map + bounding rect for a selector), `Eval` (arbitrary JS — flagged for permission gating once T2:C1 registers descriptors), `Screenshot` (PNG via capturePage), `Fill` + `Click` (DOM mutators), `Resize` (drives the WebContentsView bounds for responsive testing). Internal session→tab map tracks the most recently started preview so calls without an explicit `tab_id` default to it.
+- `electron/main.ts` — `destroyAllDevServers()` runs on `will-quit` so dev-server children don't leak across an app exit.
+- `electron/services/dev-server-manager.test.ts` (new) — 8 pure-Node tests (run with no Electron deps) covering spawn shape, `waitForOutput` resolve + timeout, exit/failure status reflection, list/destroy lifecycle, and the Vite URL extractor. Quick-exit + failed-child cases are platform-skipped on Windows because `shell: true` exit timing is racy there.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest dev-server-manager ✓ (6 passed | 2 skipped on win32)
+- vitest full suite ✓ (848 passed | 13 skipped — 6 new + 842 baseline; 7 cumulative skips are the binding-gated sessions-search + platform-gated dev-server cases)
+- user-verification-needed (Electron-only — the preview tools all need a real WebContents):
+  1. open the parity worktree in Electron;
+  2. invoke `executePreviewStart({ command: 'npx', args: ['electron-vite', 'dev'], cwd: '<some Vite/Next project>' })`;
+  3. observe a new browser tab opens to the printed URL + the result JSON includes a populated `output` field with the matched URL;
+  4. trigger a `console.log` from the page; `executePreviewConsoleLogs()` returns at least 1 entry with the right level;
+  5. `executePreviewNetwork()` returns the request that loaded the dev server's index page (after the lazy debugger attach);
+  6. `executePreviewInspect({ selector: '#root', properties: ['textContent', 'tagName'] })` returns the live element + computed CSS;
+  7. `executePreviewScreenshot()` writes a PNG under `userData/artifacts/browser-screenshots/preview-*.png`;
+  8. `executePreviewStop({ sessionId })` releases the dev-server port.
+
+**Notes:**
+- Tool-registry descriptors (`preview_start`, `preview_stop`, `preview_console_logs`, `preview_network`, `preview_snapshot`, `preview_inspect`, `preview_eval`, `preview_screenshot`, `preview_fill`, `preview_click`, `preview_resize`) are intentionally NOT registered in this commit — per the parity-plan §8 merge protocol, T2:C1 owns the `tool-registry.ts` lazy-schema refactor and additive tool descriptors rebase onto its shape. As soon as C1 lands on main, a follow-up commit will register all 11 descriptors with the appropriate `mutates` / `risks` tagging (`preview_eval` + `preview_click` + `preview_fill` + `preview_resize` carry write risk; `preview_start` is the heaviest because it spawns arbitrary processes).
+- The previewTabBySession map keeps preview sessions and tabs joined so a `preview_stop` cleanly tears down both ends; an explicit `all: true` form supports app-shutdown cleanup.
+- Network capture uses the WebContents debugger because Electron's session-scoped `webRequest.onCompleted` is shared across tabs and would require URL-based key filtering. Debugger attach is lazy so the cost is paid only when the user actually asks for `preview_network`.
+
+**Commit:** see git log on `feat/track-3-memory-verify`.
+
 ## [Track 3 — Prompt E3] Cross-session search + archive — 2026-06-03
 
 **Files changed:**

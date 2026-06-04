@@ -1,5 +1,41 @@
 # Lamprey Harness Dev Log
 
+## [Integration — Post-merge fixups] H1-H4 merge correctness — 2026-06-04
+
+Three semantic regressions came in with the H1-H4 merge (commit `b585ccb`,
+which folded `codex-t3-final-four` into `main`). Git auto-merged textually
+but landed three behavior bugs that the verify gate caught.
+
+**Files changed:**
+- `electron/ipc/chat.ts` — removed double-injection of `taskNotificationsBlock`.
+  `buildSystemPrompt` already places the block per the locked block order
+  (`memory_index → skills → retrieved_context → chapters → conversation`),
+  so the second concatenation duplicated the `<task-notifications>` block on
+  every turn that had async events pending.
+- `src/hooks/useSkills.ts` + `src/lib/ipc-client.ts` — H4's `SkillsManager.tsx`
+  changed `window.api.skills.onChanged` to return an unsubscriber, but
+  `useSkills` discarded it. Effect cleanup now disposes the listener so
+  re-mounting the renderer does not stack handlers.
+- `src/components/layout/Sidebar.tsx` — H3's new "Sessions" NavRow and the
+  pre-existing "Automations" NavRow both rendered the same `ClockIcon`,
+  producing two visually identical adjacent rows. Added a distinct
+  `SessionsIcon` (list-with-bookmark) for the Sessions row.
+
+**Verify gate:**
+- tsc node ok
+- tsc web ok
+- vitest run: 1152 passed / 16 skipped (no regressions)
+- UI smoke: user-verification-needed for the icon swap (Electron-shell-only).
+
+**Notes:**
+- Parallel session is mid-implementation of H5 (PlanGoalsPanel + `plan:update`
+  IPC). Their unstaged edits to `plan.ts`, `plan-store.ts`, `preload.ts`,
+  and `PlanGoalsPanel.tsx` were intentionally left out of this commit.
+
+**Commit:** this commit
+
+---
+
 ## [Track 2 - COMPLETE] Tool Layer + Continuity track shipped - 2026-06-04
 
 All 9 prompts (C1 -> C2 -> C3 -> C4 -> E1 -> E2 -> E5 -> E6 -> E4) are implemented on `feat/track-2-tool-layer`.

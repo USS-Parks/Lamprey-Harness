@@ -261,7 +261,7 @@ export function registerChatHandlers(): void {
       const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
       const activeWorkspace = getActiveWorkspace()
       const agentsMd = readAgentsMd(activeWorkspace)
-      const baseSystemPrompt = buildSystemPrompt(
+      const systemPrompt = buildSystemPrompt(
         skillContents,
         memoryBlock,
         systemPromptOverride,
@@ -274,9 +274,6 @@ export function registerChatHandlers(): void {
         memoryIndexBlock,
         taskNotificationsBlock
       )
-      const systemPrompt = taskNotificationsBlock
-        ? `${baseSystemPrompt}\n\n${taskNotificationsBlock}`
-        : baseSystemPrompt
 
       // Tools come from the unified registry — natives (memory_add today) plus
       // all currently-connected MCP server tools, with stable descriptors and

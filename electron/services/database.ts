@@ -63,6 +63,52 @@ function initSchema(db: Database.Database): void {
       source_conversation_id TEXT
     );
 
+    -- File-backed memory index (parity Track 3, D1). Files at
+    -- userData/lamprey-memory/<projectSlug>/<slug>.md are the canonical
+    -- store; this table mirrors them so list/search runs against SQL
+    -- instead of re-parsing every file. The store keeps the mirror in
+    -- sync via the chokidar watcher.
+    CREATE TABLE IF NOT EXISTS memory_index (
+      name TEXT PRIMARY KEY,
+      project_slug TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('user','feedback','project','reference')),
+      description TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL,
+      source_conversation_id TEXT,
+      file_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_memory_index_type
+      ON memory_index(type, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_memory_index_project
+      ON memory_index(project_slug, updated_at DESC);
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS memory_index_fts USING fts5(
+      name, description, body,
+      content='memory_index', content_rowid='rowid',
+      tokenize='porter unicode61 remove_diacritics 2'
+    );
+
+    CREATE TRIGGER IF NOT EXISTS memory_index_fts_ai
+      AFTER INSERT ON memory_index BEGIN
+        INSERT INTO memory_index_fts(rowid, name, description, body)
+        VALUES (new.rowid, new.name, new.description, new.body);
+      END;
+    CREATE TRIGGER IF NOT EXISTS memory_index_fts_ad
+      AFTER DELETE ON memory_index BEGIN
+        INSERT INTO memory_index_fts(memory_index_fts, rowid, name, description, body)
+        VALUES ('delete', old.rowid, old.name, old.description, old.body);
+      END;
+    CREATE TRIGGER IF NOT EXISTS memory_index_fts_au
+      AFTER UPDATE ON memory_index BEGIN
+        INSERT INTO memory_index_fts(memory_index_fts, rowid, name, description, body)
+        VALUES ('delete', old.rowid, old.name, old.description, old.body);
+        INSERT INTO memory_index_fts(rowid, name, description, body)
+        VALUES (new.rowid, new.name, new.description, new.body);
+      END;
+
     CREATE TABLE IF NOT EXISTS hooks (
       id TEXT PRIMARY KEY,
       event TEXT NOT NULL,
@@ -243,6 +289,11 @@ function initSchema(db: Database.Database): void {
   safeAddColumn(db, 'conversations', "kind TEXT NOT NULL DEFAULT 'local'")
   safeAddColumn(db, 'conversations', 'worktree_path TEXT')
   safeAddColumn(db, 'conversations', 'project_id TEXT')
+  // E3: archive flag + pin timestamp for the Sessions sidebar
+  // (Recent / Pinned / Archived tabs). pinned_at is NULL when the
+  // conversation isn't pinned so the index stays small.
+  safeAddColumn(db, 'conversations', 'archived INTEGER NOT NULL DEFAULT 0')
+  safeAddColumn(db, 'conversations', 'pinned_at INTEGER')
 
   // Persisted tool_calls on assistant messages. Without this, replaying a
   // conversation that includes a tool round drops the assistant's tool_calls
@@ -451,6 +502,27 @@ function initSchema(db: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_conversation_rag_attachments_conv
       ON conversation_rag_attachments(conversation_id);
+
+    -- E3: cross-session FTS5 over conversation titles + message bodies.
+    -- Plain-content vtable (not external-content) so we can fan the
+    -- two source tables into a single search index keyed by source
+    -- (conversation | message). Conversation rows hold
+    -- conversation_id + title; message rows hold conversation_id +
+    -- message_id + body. The store keeps it in sync on every
+    -- title-update / message insert / conversation delete.
+    CREATE VIRTUAL TABLE IF NOT EXISTS sessions_fts USING fts5(
+      source UNINDEXED,
+      conversation_id UNINDEXED,
+      message_id UNINDEXED,
+      title,
+      body,
+      tokenize='porter unicode61 remove_diacritics 2'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_conversations_archived
+      ON conversations(archived, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_conversations_pinned
+      ON conversations(pinned_at DESC);
   `)
 
   // The sqlite-vec virtual table is created separately and is gated on the
@@ -479,4 +551,11 @@ export function closeDb(): void {
     db.close()
     db = null
   }
+}
+
+// Test-only escape hatch: drop the cached connection so the next
+// `getDb()` re-opens against the current `app.getPath()` (which the
+// test will have re-mocked to a fresh tmpdir). Not exposed via IPC.
+export function __resetDbForTests(): void {
+  closeDb()
 }

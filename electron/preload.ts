@@ -63,6 +63,23 @@ const api = {
     }
   },
 
+  // E3 — cross-session search + archive surface. Separate namespace so
+  // the legacy `conversation.*` calls stay untouched.
+  sessions: {
+    list: (opts?: {
+      tab?: 'recent' | 'pinned' | 'archived'
+      query?: string
+      limit?: number
+      offset?: number
+    }) => ipcRenderer.invoke('sessions:list', opts),
+    archive: (id: string, archived: boolean) =>
+      ipcRenderer.invoke('sessions:archive', id, archived),
+    setPinned: (id: string, pinned: boolean) =>
+      ipcRenderer.invoke('sessions:setPinned', id, pinned),
+    search: (query: string, limit?: number) =>
+      ipcRenderer.invoke('sessions:search', query, limit)
+  },
+
   conversation: {
     list: () => ipcRenderer.invoke('conversation:list'),
     get: (id: string) => ipcRenderer.invoke('conversation:get', id),
@@ -140,15 +157,43 @@ const api = {
   },
 
   memory: {
-    list: () => ipcRenderer.invoke('memory:list'),
+    // `filter` is optional; pass `{ type?: MemoryType, projectSlug?: string }`
+    // to scope the result to a typed file-backed view. The no-arg form
+    // returns the legacy shape (numeric ids) so the pre-D3 MemoryPanel
+    // keeps rendering during the transition.
+    list: (filter?: { type?: string; projectSlug?: string }) =>
+      ipcRenderer.invoke('memory:list', filter),
     add: (content: string) => ipcRenderer.invoke('memory:add', content),
     update: (id: number, content: string) => ipcRenderer.invoke('memory:update', id, content),
-    delete: (id: number) => ipcRenderer.invoke('memory:delete', id),
+    delete: (idOrName: number | string) => ipcRenderer.invoke('memory:delete', idOrName),
     clear: () => ipcRenderer.invoke('memory:clear'),
     export: () => ipcRenderer.invoke('memory:export'),
     import: (entries: unknown[]) => ipcRenderer.invoke('memory:import', entries),
+    // Typed file-backed surface (D1).
+    write: (payload: {
+      name: string
+      type: 'user' | 'feedback' | 'project' | 'reference'
+      body: string
+      description?: string
+      projectSlug?: string
+      sourceConversationId?: string
+    }) => ipcRenderer.invoke('memory:write', payload),
+    read: (name: string) => ipcRenderer.invoke('memory:read', name),
+    search: (query: string, limit?: number) =>
+      ipcRenderer.invoke('memory:search', query, limit),
+    // D2: read the on-disk MEMORY.md for a project, plus the broken-link
+    // list so D3's sidebar pip can surface "to-write" suggestions.
+    readIndex: (projectSlug?: string) =>
+      ipcRenderer.invoke('memory:readIndex', projectSlug),
+    listBrokenLinks: (projectSlug?: string) =>
+      ipcRenderer.invoke('memory:listBrokenLinks', projectSlug),
     onAdded: (cb: (entry: unknown) => void) =>
-      ipcRenderer.on('memory:added', (_, entry) => cb(entry))
+      ipcRenderer.on('memory:added', (_, entry) => cb(entry)),
+    onChanged: (cb: (entries: unknown[]) => void): (() => void) => {
+      const handler = (_: unknown, entries: unknown[]) => cb(entries)
+      ipcRenderer.on('memory:changed', handler)
+      return () => ipcRenderer.removeListener('memory:changed', handler)
+    }
   },
 
   mcp: {
@@ -305,7 +350,8 @@ const api = {
       patch: Partial<{ label: string; cron: string; prompt: string; model: string; enabled: boolean }>
     ) => ipcRenderer.invoke('automations:update', id, patch),
     delete: (id: string) => ipcRenderer.invoke('automations:delete', id),
-    runNow: (id: string) => ipcRenderer.invoke('automations:runNow', id)
+    runNow: (id: string) => ipcRenderer.invoke('automations:runNow', id),
+    validateCron: (expr: string) => ipcRenderer.invoke('automations:validateCron', expr)
   },
 
   worktree: {
@@ -389,6 +435,50 @@ const api = {
       ;['browser:tabUpdated', 'browser:tabClosed', 'browser:activeTab'].forEach((ch) =>
         ipcRenderer.removeAllListeners(ch)
       )
+    }
+  },
+
+  // F4 — Background shell + monitor primitive.
+  shellBg: {
+    spawn: (args: { command: string; cwd?: string; env?: Record<string, string>; emitLines?: boolean }) =>
+      ipcRenderer.invoke('shell:bg:spawn', args),
+    list: () => ipcRenderer.invoke('shell:bg:list'),
+    get: (processId: string) => ipcRenderer.invoke('shell:bg:get', processId),
+    kill: (processId: string) => ipcRenderer.invoke('shell:bg:kill', processId),
+    destroy: (processId: string) => ipcRenderer.invoke('shell:bg:destroy', processId),
+    onLine: (cb: (evt: { processId: string; stream: 'stdout' | 'stderr'; line: string; at: number }) => void) => {
+      const h = (_: unknown, evt: any) => cb(evt)
+      ipcRenderer.on('shell:bg:line', h)
+      return () => ipcRenderer.removeListener('shell:bg:line', h)
+    },
+    onExit: (cb: (evt: { processId: string; exitCode: number | null; signal: string | null; durationMs: number }) => void) => {
+      const h = (_: unknown, evt: any) => cb(evt)
+      ipcRenderer.on('shell:bg:exit', h)
+      return () => ipcRenderer.removeListener('shell:bg:exit', h)
+    }
+  },
+
+  monitor: {
+    start: (opts: { processId: string; untilPattern?: string }) =>
+      ipcRenderer.invoke('monitor:start', opts),
+    read: (streamId: string, since?: number) => ipcRenderer.invoke('monitor:read', streamId, since),
+    stop: (streamId: string) => ipcRenderer.invoke('monitor:stop', streamId),
+    destroy: (streamId: string) => ipcRenderer.invoke('monitor:destroy', streamId),
+    list: () => ipcRenderer.invoke('monitor:list'),
+    onLine: (cb: (evt: { streamId: string; processId: string; entry: unknown }) => void) => {
+      const h = (_: unknown, evt: any) => cb(evt)
+      ipcRenderer.on('monitor:line', h)
+      return () => ipcRenderer.removeListener('monitor:line', h)
+    },
+    onMatched: (cb: (evt: { streamId: string; processId: string; matchedLine: string; entry: unknown }) => void) => {
+      const h = (_: unknown, evt: any) => cb(evt)
+      ipcRenderer.on('monitor:matched', h)
+      return () => ipcRenderer.removeListener('monitor:matched', h)
+    },
+    onExit: (cb: (evt: { streamId: string; processId: string; exitCode: number | null }) => void) => {
+      const h = (_: unknown, evt: any) => cb(evt)
+      ipcRenderer.on('monitor:exit', h)
+      return () => ipcRenderer.removeListener('monitor:exit', h)
     }
   },
 
@@ -547,6 +637,51 @@ const api = {
       ipcRenderer.invoke('github:getPullRequest', args),
     listConversationPullRequests: (args: { conversationId: string }) =>
       ipcRenderer.invoke('github:listConversationPullRequests', args),
+
+    // F2 — PR review threading + inline review post.
+    listPullRequestReviewComments: (args: { owner: string; repo: string; number: number }) =>
+      ipcRenderer.invoke('github:listPullRequestReviewComments', args),
+    listPullRequestReviewThreads: (args: { owner: string; repo: string; number: number }) =>
+      ipcRenderer.invoke('github:listPullRequestReviewThreads', args),
+    createPullRequestReview: (args: {
+      owner: string
+      repo: string
+      number: number
+      body?: string
+      event?: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'
+      commitId?: string
+      comments?: Array<{
+        path: string
+        body: string
+        position?: number
+        line?: number
+        start_line?: number
+        side?: 'LEFT' | 'RIGHT'
+        start_side?: 'LEFT' | 'RIGHT'
+      }>
+    }) => ipcRenderer.invoke('github:createPullRequestReview', args),
+    replyToReviewComment: (args: {
+      owner: string
+      repo: string
+      number: number
+      commentId: number
+      body: string
+    }) => ipcRenderer.invoke('github:replyToReviewComment', args),
+    resolveReviewThread: (args: { threadId: string }) =>
+      ipcRenderer.invoke('github:resolveReviewThread', args),
+    unresolveReviewThread: (args: { threadId: string }) =>
+      ipcRenderer.invoke('github:unresolveReviewThread', args),
+
+    // F3 — issues + status checks.
+    listIssues: (args: {
+      owner: string
+      repo: string
+      state?: 'open' | 'closed' | 'all'
+      per_page?: number
+      labels?: string
+    }) => ipcRenderer.invoke('github:listIssues', args),
+    getPullRequestStatus: (args: { owner: string; repo: string; number: number }) =>
+      ipcRenderer.invoke('github:getPullRequestStatus', args),
     pushBranch: (args: {
       cwd: string
       branch: string

@@ -1,5 +1,62 @@
 # Lamprey Harness Dev Log
 
+## [Track 2 — Partial completion summary] 7/9 prompts shipped — 2026-06-03
+
+Track 2 ("Tool Layer + Continuity") shipped 7 of its 9 prompts; the
+remaining 2 (E6, E4) are blocked on Track 1 prompts that have not yet
+merged to `main` per the plan §0 Step 3c wait-gate protocol.
+
+### Shipped (in commit order on `feat/track-2-tool-layer`)
+
+| # | Title | Verify gate |
+|---|---|---|
+| C1 | Lazy tool schemas + ToolSearch | tsc node ✓ · tsc web ✓ · vitest +32 ✓ |
+| C2 | Hooks wired into dispatch + Hooks UI | tsc node ✓ · tsc web ✓ · vitest +14 ✓ · UI smoke: user-verification-needed |
+| C3 | Plan mode state gate | tsc node ✓ · tsc web ✓ · vitest +7 ✓ · UI smoke: user-verification-needed |
+| C4 | Slash command system + built-ins | tsc node ✓ · tsc web ✓ · vitest +14 ✓ · UI smoke: user-verification-needed |
+| E1 | Session chapters | tsc node ✓ · tsc web ✓ · vitest +5 ✓ · DB smoke: user-verification-needed |
+| E2 | Session TOC + nav | tsc node ✓ · tsc web ✓ · vitest unchanged (DOM-heavy UI) · UI smoke: user-verification-needed |
+| E5 | Auto context compression | tsc node ✓ · tsc web ✓ · vitest +7 ✓ · DB smoke: user-verification-needed |
+
+**Cumulative test delta:** baseline 822 → 901 passing / 5 skipped (+79 tests across the 7 prompts, 0 regressions).
+
+### Blocked
+
+| # | Title | Blocker | Plan §0 §3c |
+|---|---|---|---|
+| E6 | Async event-to-prompt bridge | T1:A2 (background agents + `agent:run:notify`) not merged to main | Defer; revisit after A2 lands. |
+| E4 | Spawn-task primitive | T1:A3 (worktree-isolated subagent runs + `worktree-runner.ts`) not merged to main | Halt per plan: "if A3 is still unmerged when you get there, halt with 'waiting-on-T1:A3' status". |
+
+**Wait status:** `waiting-on-T1:A2` (E6) and `waiting-on-T1:A3` (E4). When the corresponding Track 1 commits land on main, either continue this branch or open a fresh session pointed at this worktree to resume.
+
+### Architectural impact for Tracks 1 + 3 to be aware of when rebasing
+
+- **`electron/services/tool-registry.ts`** — `LampreyToolDescriptor` now requires `tags: string[]`, `lazy: boolean`, `mutates: boolean`. `LampreyToolRegistration` accepts all three as optional and the registry normalizes them on insert. The 10 existing tool-pack files did not need edits; T1/T3's new tool registrations should follow the same pattern (omit unless you need to override the derived defaults).
+- **`electron/ipc/chat.ts`** — dispatcher now runs `compressOldestMessages` then `getEffectiveMessages` BEFORE pulling history (E5); the plan-mode gate (C3) and preToolUse/postToolUse hook fences (C2) wrap the dispatch branch. T1's subagent-fork wiring (A1) needs to land on top of these gates, not under them — a subagent call is itself dispatched through this same path.
+- **`electron/services/chat-events.ts`** — `ChatEventMap` extended with `plan:mode-changed`, `chat:chapter-marked`, `chat:compressed`. Renderer event subscribers can rely on all three.
+- **`electron/services/event-log.ts`** — `EVENT_TYPES` extended with `chat.chapter.marked` and `chat.compressed`. Renderer `EventType` mirror in `src/lib/types.ts` and `event-presentation.ts` labels are in sync.
+- **`electron/services/system-prompt-builder.ts`** — extended additively (new `progress` bullet for `mark_chapter`). T3:D2's `memory_index` block can land in front of all existing blocks without conflict.
+- **`electron/preload.ts`** — new namespaces: `tools.resolve` / `tools.search` (C1), `hooks.test` (C2), `plan.isModeActive` / `enterMode` / `exitMode` / `onModeChanged` (C3), `slash.list` / `listAll` / `resolve` / `onChanged` (C4), `session.markChapter` / `listChapters` / `chaptersForAnchor` / `deleteChapter` / `onChapterMarked` (E1). No removals.
+
+### Manual smoke checklist (Electron-only items the preview server can't reach)
+
+The user should run these to confirm the renderer integrations land cleanly on a real machine:
+
+1. **C1** — Open Settings (or wherever tools are surfaced); `tools:list` payload is materially smaller than before.
+2. **C2** — Settings → Hooks: 5-event tabs, create a `preToolUse` JS hook that throws on `shell_command`, Test → BLOCKED chip; Save and confirm shell_command actually blocks during a chat.
+3. **C3** — Have the model call `enter_plan_mode`; yellow banner appears; attempt `shell_command` → blocked; click Exit banner → next call runs.
+4. **C4** — Type `/` in chat input; palette appears with 8 built-ins; type `/verify` and submit → verify prompt dispatched; drop a custom `userData/slash-commands/release-notes.md` → palette updates without restart.
+5. **E1 + E2** — Have the model call `mark_chapter` 4 times; sidebar appears top-right with 4 entries; Ctrl/Cmd+G opens the jumper; click a row scrolls to the divider.
+6. **E5** — Run a long conversation until projected tokens cross 75% of the model's context; the next turn auto-compresses, a `<conversation_summary>` system message appears as a CompressedRegionPill, the next prompt to the model contains the summary block in place of the originals.
+
+### Next steps
+
+1. Wait for Track 1's A2 + A3 to merge to `main`.
+2. Resume this branch (or open a new session pointing at `feat/track-2-tool-layer`) and implement E6 + E4 per the plan.
+3. After E6 + E4 ship, fast-forward `feat/track-2-tool-layer` and prep for merge to `main`.
+
+---
+
 ## [Track 2 — Prompt E5] Auto context compression — 2026-06-03
 
 **Files changed:**

@@ -1,0 +1,8 @@
+{
+  "id": "example-plugin",
+  "name": "Example Plugin",
+  "description": "Reference plugin demonstrating the directory layout: plugin.json + skills/ + slash-commands/ + connectors.json.",
+  "version": "0.1.0",
+  "author": "Lamprey Contributors",
+  "category": "Examples"
+}

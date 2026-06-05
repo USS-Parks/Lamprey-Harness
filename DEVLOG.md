@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C7 — Plugin manifest + loader (green field)
+
+Shipped the plugin manifest, the on-disk layout contract, and the in-process registry (initialize/scan/watch). No UI yet — IPC + store land in C8, UI in C9, install flow in C10, runtime hookup in C11.
+
+**Shipped**
+- `electron/services/plugin-loader.ts` — full implementation modeled after `skill-loader.ts`. Exports `PluginManifest`, `LoadedPlugin`, plus `initializePluginLoader / shutdownPluginLoader / listPlugins / getPlugin / setPluginEnabled / removePlugin / installFromDirectory / enabledPluginIds / getPluginsRoot`. Bootstraps `resources/plugins/<id>/` → `userData/plugins/<id>/` on first run. Chokidar watches the userland root (depth 2) and broadcasts `plugins:changed` on add/change/unlink. Enabled-state persists separately in `userData/plugins.json` so the manifest stays edit-safe.
+- Manifest schema: required `id` (kebab-case), `name`, `description`, `version`; optional `author`, `homepage`, `category`, `enabled`. Surface counts (`skills`, `slashCommands`, `connectors`) resolved at load time for cheap UI rendering.
+- `electron/main.ts` — wired `initializePluginLoader()` after the skill loader; `shutdownPluginLoader()` added to the `will-quit` teardown.
+- `electron-builder.yml` — `extraResources` extended with `resources/plugins` (and `resources/connectors` from C6) so packaged builds carry the bundled plugins + connector catalog.
+- `resources/plugins/example-plugin/` — first bundled plugin: `plugin.json`, `skills/hello-from-plugin.md`, `README.md`. Demonstrates the directory contract end-to-end.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.52s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C6 — Add-connector flow + IPC
 
 Connector add flow: curated catalog tab + JSON paste tab. Lights up Customize's "Connect your apps" CTA and ConnectorsColumn "+ Add".

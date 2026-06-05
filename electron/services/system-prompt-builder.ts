@@ -116,12 +116,24 @@ const CONTRACT_SECTIONS: ContractSection[] = [
   },
   {
     key: 'deliverables',
-    heading: 'Standalone deliverables',
+    heading: 'Standalone deliverables (create_document is REQUIRED for files)',
     bullets: [
-      "When the user has asked for a discrete artifact they will want to keep — a plan, a draft, a report, a code file, a config, a document — emit it via the `create_document` tool. The harness renders the document as a card below your message with an \"Open in\" action.",
-      "Do NOT also paste the document body into your visible reply. The card IS the user-facing surface; duplicating the content reads as noise.",
-      "Use create_document only for discrete deliverables. Do not wrap casual prose, short answers, status updates, single short snippets, or transient explanations in a document — write those inline.",
-      "Call once per discrete file. For multi-file output (e.g. a component + its test), make one call per file with its own `name` and `mimeType`. Set `mimeType` accurately so the card icon and \"Open in\" routing match (text/markdown, text/x-typescript, text/x-python, application/json, etc.)."
+      "Before sending your final reply, run this self-check: \"Did I produce anything the user would want to keep as a file — a plan, draft, report, code file, config, doc, spreadsheet, prompt, letter, README, .md, .py, .ts, .json, .csv, .sql, .html, .txt, .yaml, .toml, etc.?\" If the answer is yes for ANY portion of your reply, that portion MUST be emitted via the `create_document` tool. There is no exception. The visible reply is for conversation; create_document is for files. The Lamprey harness renders each call as a card with an \"Open in\" action AND lists it in the right-side Documents panel — that is how the user receives, opens, and downloads files.",
+      "Mandatory triggers — if ANY of these match, you MUST call create_document:",
+      "  • The user asked for a file, document, plan, spec, RFC, ADR, design doc, brief, draft, letter, email, report, summary, contract, policy, README, or any other named deliverable.",
+      "  • The user asked you to write code that they will paste into a file (script, module, component, test file, config, migration, schema, etc.) AND the result is more than ~10 lines OR has a clear filename.",
+      "  • You produced a multi-step plan, checklist, or outline that the user is likely to revisit later (≥6 items or ≥150 words of structured content).",
+      "  • You produced any block of content with a filename or extension you would naturally save as that file (e.g. \"package.json\", \"Dockerfile\", \"workflow.yml\", \"prompt.md\").",
+      "  • You produced a markdown table, structured data block, or formatted artifact the user explicitly asked to take away.",
+      "  • The user said \"give me\", \"draft\", \"write\", \"generate\", \"create\", \"produce\", \"build me\", \"make a\", \"export\", or \"export as\" applied to any of the above.",
+      "Anti-patterns — these are violations of this contract, not stylistic preferences:",
+      "  • Pasting a deliverable inside a fenced code block in your visible reply instead of calling create_document. The chat body is conversation; files belong in cards.",
+      "  • Calling create_document AND also pasting the same body in your reply. Pick one (the card). Mentioning the file is fine; duplicating its content is not.",
+      "  • Using a single create_document call for multiple distinct files. Multi-file output: one call per file, each with its own name + mimeType.",
+      "  • Skipping create_document because \"the content is short\" when the user explicitly asked for a file. Honor the user's request — even a 5-line config goes through create_document if they asked for the config file.",
+      "  • Using a generic name like \"file.txt\" or \"document.md\". Choose a meaningful filename with the right extension (e.g. \"auth-middleware.ts\", \"q3-launch-plan.md\", \"users-schema.sql\").",
+      "How to call it correctly: set `name` to a concrete filename with the right extension; set `mimeType` to the IANA type that matches the extension (text/markdown for .md, text/x-typescript for .ts, text/x-python for .py, application/json for .json, text/csv for .csv, text/html for .html, text/plain for .txt, text/yaml for .yaml/.yml, text/x-sql for .sql, etc.); put the FULL final document body in `content` — no truncation, no ellipsis, no \"...rest unchanged\". One discrete deliverable per call. Body cap is 256 KB; for anything larger, split into logical files.",
+      "After calling create_document, your visible reply should say one short sentence acknowledging the deliverable (e.g. \"Plan saved as q3-launch-plan.md — open it from the card below or the Documents panel.\") and nothing else about that file. Do not restate its contents."
     ]
   },
   {

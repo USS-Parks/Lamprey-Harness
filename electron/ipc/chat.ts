@@ -44,6 +44,7 @@ import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
 import { dispatchNativeTool } from '../services/native-dispatch'
 import { emitChatEvent } from '../services/chat-events'
+import { buildFallbackDocuments } from '../services/document-extractor'
 import {
   composeFinalResponse,
   shouldComposeFinalResponse,
@@ -641,7 +642,28 @@ export async function runChatRound(
                 }
               }
             }
-            const documents = drainPendingDocuments(correlationId)
+            let documents = drainPendingDocuments(correlationId)
+            // Reliability safety net. When the model paste-bombed a file
+            // into the visible reply (a fenced block with a filename hint)
+            // instead of calling `create_document`, synthesize the
+            // attachment from the body so the user still gets a card and
+            // the right-side Documents panel still lists the deliverable.
+            // Only runs when the model emitted ZERO documents this turn —
+            // a model that DID call create_document deserves trust about
+            // what to surface vs. keep inline. See electron/services/
+            // document-extractor.ts for the conservative match rules.
+            if (!documents || documents.length === 0) {
+              const fallback = buildFallbackDocuments(finalContent)
+              if (fallback.length > 0) {
+                documents = fallback
+                for (const doc of fallback) {
+                  emitChatEvent('chat:document-created', {
+                    conversationId,
+                    document: doc
+                  })
+                }
+              }
+            }
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
@@ -773,7 +795,19 @@ export async function runChatRound(
           )
           if (hasPartial) {
             try {
-              const documents = drainPendingDocuments(correlationId)
+              let documents = drainPendingDocuments(correlationId)
+              if (!documents || documents.length === 0) {
+                const fallback = buildFallbackDocuments(partial!.content || '')
+                if (fallback.length > 0) {
+                  documents = fallback
+                  for (const doc of fallback) {
+                    emitChatEvent('chat:document-created', {
+                      conversationId,
+                      document: doc
+                    })
+                  }
+                }
+              }
               const errorMarker = `\n\n_[stream interrupted: ${error}]_`
               const assistantMsg = convStore.saveMessage({
                 id: randomUUID(),

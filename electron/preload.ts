@@ -107,6 +107,15 @@ const api = {
     listActive: (limit?: number) => ipcRenderer.invoke('sessions:list-active', limit)
   },
 
+  // Per-conversation deliverables emitted via the `create_document` native
+  // tool. `list` aggregates from every message row in the conversation; the
+  // renderer's right-sidebar Documents view also subscribes to
+  // `chat:document-created` (under chat.*) to live-append while a turn streams.
+  documents: {
+    list: (conversationId: string) =>
+      ipcRenderer.invoke('documents:list', conversationId)
+  },
+
   conversation: {
     list: () => ipcRenderer.invoke('conversation:list'),
     get: (id: string) => ipcRenderer.invoke('conversation:get', id),

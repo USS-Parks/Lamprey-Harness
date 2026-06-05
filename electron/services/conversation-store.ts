@@ -622,3 +622,49 @@ export function getMessages(conversationId: string) {
     }
   })
 }
+
+/** One DocumentAttachment annotated with the message row it lives on so the
+ *  right-sidebar Documents view can offer a "Reveal in chat" action. Ordered
+ *  by document createdAt ascending — newest documents land at the bottom of
+ *  the list, mirroring chat scroll order. */
+export interface ConversationDocument extends StoredDocument {
+  messageId: string
+  messageCreatedAt: number
+}
+
+/** Aggregate every DocumentAttachment across a conversation's messages. Used
+ *  by the right-sidebar Documents view (`window.api.documents.list`). Cheap
+ *  because the documents JSON column is already on each row; one scan, no
+ *  joins. Corrupt JSON rows are silently dropped (matching getMessages). */
+export function listDocumentsForConversation(
+  conversationId: string
+): ConversationDocument[] {
+  const db = getDb()
+  const rows = db.prepare(
+    "SELECT id, created_at, documents FROM messages WHERE conversation_id = ? AND documents IS NOT NULL ORDER BY created_at ASC"
+  ).all(conversationId) as Array<{ id: string; created_at: number; documents: string | null }>
+  const out: ConversationDocument[] = []
+  for (const row of rows) {
+    if (!row.documents) continue
+    try {
+      const parsed = JSON.parse(row.documents)
+      if (!Array.isArray(parsed)) continue
+      for (const doc of parsed as StoredDocument[]) {
+        if (!doc || typeof doc.id !== 'string') continue
+        out.push({
+          id: doc.id,
+          name: doc.name,
+          mimeType: doc.mimeType,
+          content: doc.content,
+          sizeBytes: doc.sizeBytes,
+          createdAt: doc.createdAt,
+          messageId: row.id,
+          messageCreatedAt: row.created_at
+        })
+      }
+    } catch {
+      // Same corrupt-JSON policy as getMessages — skip the row.
+    }
+  }
+  return out
+}

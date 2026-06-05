@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useAgentStore } from '@/stores/agent-store'
 import { usePlanStore } from '@/stores/plan-store'
+import { useDocumentsStore } from '@/stores/documents-store'
+import { useUiStore } from '@/stores/ui-store'
 import type { AgentRunPhase, AgentStatusEvent, PlanSnapshot } from '@/lib/types'
 
 export function useChat(): void {
@@ -120,8 +122,26 @@ export function useChat(): void {
     }).onDocumentCreated
     const docUnsub = onDocCreated
       ? onDocCreated((e) => {
-          if (!matchesActive(e)) return
-          useChatStore.getState().appendStreamingDocument(e.document)
+          // Stream into the chat-store buffer (drives the streaming bubble's
+          // DocumentCardRow) only when this is the active conversation —
+          // side chats own their own bubble. The right-sidebar Documents
+          // view, by contrast, indexes by conversationId, so we still want
+          // its cache to mirror the live event regardless of focus.
+          if (matchesActive(e)) {
+            useChatStore.getState().appendStreamingDocument(e.document)
+            // Auto-surface the right panel the first time a turn produces
+            // a deliverable, exactly like artifacts auto-open on first
+            // render. Reuses the existing autoOpenRightPanel bookkeeping
+            // so the panel respects per-conv user toggles afterwards.
+            try {
+              const ui = useUiStore.getState()
+              ui.autoOpenRightPanel(e.conversationId, `document:${e.document?.id ?? ''}`)
+              if (ui.activeTool !== 'artifacts') ui.setActiveTool('artifacts')
+            } catch {
+              // Best-effort surface — never break the doc append on UI errors.
+            }
+          }
+          useDocumentsStore.getState().appendLive(e.conversationId, e.document)
         })
       : undefined
 

@@ -58,6 +58,14 @@ export interface DocumentAttachment {
   createdAt: number
 }
 
+/** DocumentAttachment annotated with the message row it lives on. Returned by
+ *  `window.api.documents.list(conversationId)` and rendered by the right-side
+ *  Documents view so "Reveal in chat" can scroll to the owning message. */
+export interface ConversationDocument extends DocumentAttachment {
+  messageId: string
+  messageCreatedAt: number
+}
+
 export type ConversationKind = 'local' | 'cloud' | 'worktree'
 
 export interface Conversation {

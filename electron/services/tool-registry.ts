@@ -644,14 +644,55 @@ toolRegistry.registerNative({
 
 // shell_command — PowerShell on Windows, bash elsewhere. The workspace
 // boundary is also enforced inside the handler so a missing approval gate
-// cannot escape the tree (defense in depth).
+// cannot escape the tree (defense in depth). S3-S7 added platform sandbox
+// wrapping (sandbox-exec / bwrap), a shell selector, persistent cwd, and
+// an explicit bypass flag.
 toolRegistry.registerNative(
   {
     id: 'shell_command',
     name: 'shell_command',
     title: 'Shell command',
-    description:
-      'Run a one-shot shell command inside the Lamprey workspace. PowerShell on Windows, bash on macOS/Linux. Returns exit code, stdout (≤30 KB), stderr (≤30 KB), and duration. Default timeout 30s (max 600s). cwd defaults to the workspace root and must stay within it.',
+    description: [
+      'Run a one-shot shell command inside the Lamprey workspace.',
+      '',
+      'PLATFORM SHELL:',
+      ' - Windows → PowerShell (powershell.exe) by default. Set `shell: "bash"` to use Git Bash / WSL when complex POSIX scripts are needed.',
+      ' - macOS / Linux → $SHELL (or /bin/bash). Set `shell: "powershell"` to use `pwsh` (PowerShell Core) when installed.',
+      '',
+      'SANDBOXING (automatic, per-platform):',
+      ' - macOS → sandbox-exec profile (deny default, workspace + tmpdir writable, network policy honoured).',
+      ' - Linux → bubblewrap when available (read-only system mounts, workspace + tmpdir rw, --unshare-net for `deny`).',
+      ' - Windows → no kernel sandbox; the call runs on the host. The result reports `Sandbox: none (windows host)`.',
+      '',
+      'PERSISTENT CWD: when this conversation is the caller, `cd <path>` / `Set-Location <path>` carries forward to the next shell_command call. Workspace boundary still applies — escapes are rejected and do not update the session cwd.',
+      '',
+      'BACKGROUND PROCESSES: this tool is one-shot. To start a long-running process, use the background variant — wired via `shell_list` / `shell_monitor` / `shell_output` / `shell_stop` for visibility.',
+      '',
+      'POWERSHELL 5.1 QUIRKS (Windows default shell):',
+      ' - `&&` / `||` are NOT pipeline operators here. Chain with `; if ($?) { B }` for "B only if A succeeded", or just `;` for unconditional.',
+      ' - Ternary (`?:`), null-coalescing (`??`), null-conditional (`?.`) are not available — use if/else and explicit `$null -eq` checks.',
+      ' - Default file encoding is UTF-16 LE with BOM; pass `-Encoding utf8` to `Out-File`/`Set-Content` for tools that read the file later.',
+      ' - Do NOT pipe a native exe through `2>&1` inside PowerShell — it wraps stderr in NativeCommandError and reports `$?` = false even when the exe returned 0.',
+      '',
+      'NEVER USE INTERACTIVE COMMANDS:',
+      ' - `Read-Host`, `Get-Credential`, `pause`, `git rebase -i`, `git add -i`, any prompt that waits on a TTY — they hang forever (this tool runs `-NonInteractive`).',
+      ' - Destructive cmdlets that auto-prompt (`Remove-Item`, `Stop-Process`, `Clear-Content`) need `-Confirm:$false` to proceed without a prompt.',
+      '',
+      'PREFER DEDICATED TOOLS when one fits:',
+      ' - File search → `tools:search`, native file_glob (NOT `find` / `Get-ChildItem -Recurse`).',
+      ' - Content search → native grep (NOT shell `grep` / `Select-String`).',
+      ' - Read files → `view_image` or `read_thread_terminal` (NOT `Get-Content` / `cat`).',
+      ' - Edit files → `apply_patch` (NOT `sed` / `Set-Content` / inline rewrites).',
+      ' - GitHub work → `gh` CLI (clones, PRs, issues, releases).',
+      '',
+      'HEREDOC PATTERN (multi-line strings to native exes):',
+      ' - PowerShell: use single-quoted here-strings — `@\'\\n…content…\\n\'@`. The closing `\'@` MUST be at column 0. Single-quoted prevents `$` interpolation.',
+      ' - bash: `git commit -m "$(cat <<\'EOF\' \\n…\\nEOF\\n)"`.',
+      '',
+      'DEFAULTS: timeout 30s (raise via `timeout_ms`, ceiling 600s). stdout/stderr capped at 30 KB each. cwd defaults to the persisted session cwd (workspace root if none).',
+      '',
+      'SANDBOX BYPASS: pass `dangerously_disable_sandbox: true` to skip the platform wrapper for one call. The approval modal will re-prompt every time and the result will report `Sandbox: bypassed`. Use sparingly — only when the sandbox demonstrably blocks legitimate work.'
+    ].join('\n'),
     providerKind: 'native',
     providerId: 'internal',
     inputSchema: {
@@ -664,7 +705,7 @@ toolRegistry.registerNative(
         cwd: {
           type: 'string',
           description:
-            'Optional working directory. Absolute paths must resolve inside the workspace root; relative paths resolve against it.'
+            'Optional working directory. Absolute paths must resolve inside the workspace root; relative paths resolve against it. When omitted, defaults to the persisted session cwd (or the workspace root).'
         },
         timeout_ms: {
           type: 'number',
@@ -675,6 +716,17 @@ toolRegistry.registerNative(
           additionalProperties: { type: 'string' },
           description:
             'Optional environment-variable overlay merged on top of the inherited process env.'
+        },
+        shell: {
+          type: 'string',
+          enum: ['auto', 'bash', 'powershell'],
+          description:
+            'Pick an explicit shell flavour. `"auto"` (default) → PowerShell on Windows, $SHELL elsewhere. `"bash"` on Windows resolves to Git Bash → WSL → clean error. `"powershell"` on POSIX resolves to `pwsh` if installed, else clean error.'
+        },
+        dangerously_disable_sandbox: {
+          type: 'boolean',
+          description:
+            'Opt out of the platform sandbox wrapper for this single call. When true, any persisted "always allow" policy is bypassed and the modal re-prompts; the result reports `Sandbox: bypassed`. Use only when the sandbox blocks legitimate work (rare).'
         }
       },
       required: ['command']

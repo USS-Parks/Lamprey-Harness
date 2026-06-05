@@ -1,5 +1,19 @@
 # Lamprey Harness Dev Log
 
+## [Sandbox Parity — Prompt S9] Tool description rewrite — 2026-06-05
+
+**Files changed:**
+- `electron/services/tool-registry.ts` — `shell_command` description expanded from a single paragraph to a structured multi-section block covering: platform shell selection, sandbox tiers per OS, persistent cwd behaviour, background-process tools, PowerShell 5.1 quirks (no `&&`/`||`, no ternary, UTF-16 default, `2>&1` corruption), interactive-command bans, "prefer dedicated tools" nudges (`tools:search`, native grep, `apply_patch`, `gh`), HEREDOC patterns, default caps, and the bypass flag. Input schema gains `shell` (enum) and `dangerously_disable_sandbox` (boolean) properties matching the executor.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `tool-registry.test.ts` + `tool-search.test.ts` ✓ 37/37
+
+**Notes:** No snapshot test pinned the prior description, so the rewrite is a behavioural improvement only. The new description mirrors Claude Code's Bash-tool guidance closely for model parity.
+
+**Commit:** S9
+
 ## [Sandbox Parity — Prompt S7] dangerously_disable_sandbox flag — 2026-06-05
 
 **Files changed:**
@@ -16,7 +30,7 @@
 
 **Notes:** Audit-event differentiation is achieved via the source-string tag (`+sandbox-bypass` suffix) on the existing `tool:approval` event, not a new event type. That keeps the event-log schema stable while giving downstream consumers a clean filter. A future S12 follow-up may introduce a separate `'sandboxBypass'` risk tag in the descriptor risks vocabulary.
 
-**Commit:** S7
+**Commit:** `170a65a`
 
 ## [Sandbox Parity — Prompt S6] Windows fallback + sandboxTier on ShellResult — 2026-06-05
 

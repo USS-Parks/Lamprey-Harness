@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C4 — "Create new skill" wizard
+
+Three-step modal that produces a real skill on disk; also lights up the Customize page-bottom "Create new skills" CTA.
+
+**Shipped**
+- `src/components/customize/NewSkillWizard.tsx` — guided 3-step modal (identity → trigger → preview). Live preview re-renders the generated `skill.md` (with frontmatter) on every keystroke. Suggestions chip-row pulls allowed-tool patterns from native tool hints and connected MCP servers (via `useMcpStore`). Optional directory-mode layout + reference-stub checkbox on the preview step.
+- `electron/ipc/skills.ts` — `SkillInput` gains `directoryMode` + `scaffoldReference`; when set, the handler writes `<skillsDir>/<slug>/skill.md` and optionally a stub `reference.md` (and includes `supportingFiles: ['reference.md']` in the response). `uniqueId` now also dodges existing same-named directories so flat ↔ directory layouts can't collide.
+- `src/stores/skills-store.ts` — `SkillCreateInput` / `SkillUpdateInput` exported and widened to cover the new fields end-to-end; no more renderer-side casts.
+- `src/components/customize/SkillsColumn.tsx` — "+ New" button + page-state `wizardOpen` opens the wizard; replaces the C2 stub toast.
+- `src/components/customize/CustomizeView.tsx` — bottom "Create new skills" CTA wired to open the same wizard.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.80s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C3 — Skill format upgrade
 
 Brought the skill manifest closer to Claude Code's so users can ship richer skills, plus directory-mode supporting files.

@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useUiStore, type CustomizeColumnId } from '@/stores/ui-store'
 import { SkillsColumn } from './SkillsColumn'
 import { ConnectorsColumn } from './ConnectorsColumn'
 import { PluginsColumn } from './PluginsColumn'
+import { NewSkillWizard } from './NewSkillWizard'
 
 interface ColumnDef {
   id: CustomizeColumnId
@@ -51,6 +53,7 @@ function CtaCard({ title, description, onClick, disabled }: CtaCardProps) {
 export function CustomizeView() {
   const closeCustomize = useUiStore((s) => s.closeCustomize)
   const initialColumn = useUiStore((s) => s.customizeInitialColumn)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   // Highlighting only — every column renders all the time so the panel
   // shows the full surface at a glance, matching the Claude Code layout.
@@ -131,10 +134,7 @@ export function CustomizeView() {
           <CtaCard
             title="Create new skills"
             description="Scaffold a Markdown skill in a guided flow."
-            onClick={() => {
-              /* C4 wires this. */
-            }}
-            disabled
+            onClick={() => setWizardOpen(true)}
           />
           <CtaCard
             title="Browse plugins"
@@ -146,6 +146,8 @@ export function CustomizeView() {
           />
         </div>
       </div>
+
+      {wizardOpen && <NewSkillWizard onClose={() => setWizardOpen(false)} />}
     </div>
   )
 }

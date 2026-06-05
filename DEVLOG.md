@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K10] IPC + preload bridge + main-process wiring  —  2026-06-05
+
+**Files changed:**
+- `electron/ipc/snip.ts` (new) — 9 channels: `snip:stats`, `:recent`, `:listFilters`, `:setEnabled`, `:setVerbose`, `:reloadFilters`, `:discover`, `:clearHistory`, `:openFilterDir`. Discover wraps `getUnfilteredCommands` with a category-suggestion heuristic mapping command head → shipped folder (powers the K12 panel's "drop a draft YAML in <category>/" hint). `setEnabled` / `setVerbose` write straight through `patchSettings()` so the K9 shell-handler's next read picks up the change.
+- `electron/ipc/index.ts` — registers `registerSnipHandlers()` at the bottom of the registration list.
+- `electron/main.ts` — initializes the YAML filter loader on app startup (after skill-loader) and shuts it down on `will-quit`.
+- `electron-builder.yml` — added `resources/snip-filters` → `snip-filters` extraResource so the installer ships the 120 built-in YAML files.
+- `electron/preload.ts` — `window.api.snip` exposing all nine IPC channels + an `onFiltersChanged()` subscription (fires when chokidar detects a userData filter file changing). `LampreyAPI` is `typeof api`, so renderer types update automatically.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (224 tests — K10 is pure IPC wire, no new unit tests; coverage is exercised by the K11 / K12 dashboard tests against the IPC mocks)
+
+**Notes:** the renderer surface is now complete. K11 builds the dashboard tab on top of it; K12 adds the Discover panel; K13 adds the status-line slot. The category-suggestion heuristic in `snip.ts` mirrors snip-the-CLI's filter taxonomy — it's a lookup table, not magic.
+
 ## [Snip — Prompt K9] Interpose — apply.ts + shell wire + flags + bypass + verbose  —  2026-06-05
 
 **Files changed:**

@@ -223,10 +223,32 @@ const api = {
     }
   },
 
+  plugins: {
+    list: () => ipcRenderer.invoke('plugins:list'),
+    get: (id: string) => ipcRenderer.invoke('plugins:get', id),
+    enable: (id: string) => ipcRenderer.invoke('plugins:enable', id),
+    disable: (id: string) => ipcRenderer.invoke('plugins:disable', id),
+    remove: (id: string) => ipcRenderer.invoke('plugins:remove', id),
+    installFromDirectory: (srcPath: string) =>
+      ipcRenderer.invoke('plugins:installFromDirectory', srcPath),
+    installFromManifest: (manifest: unknown, files?: Record<string, string>) =>
+      ipcRenderer.invoke('plugins:installFromManifest', manifest, files),
+    installFromUrl: (url: string) => ipcRenderer.invoke('plugins:installFromUrl', url),
+    listBundledAvailable: () => ipcRenderer.invoke('plugins:listBundledAvailable'),
+    installBundled: (id: string) => ipcRenderer.invoke('plugins:installBundled', id),
+    pickDirectory: () => ipcRenderer.invoke('plugins:pickDirectory'),
+    onChanged: (cb: (entries: unknown[]) => void) => {
+      const handler = (_: unknown, entries: unknown[]) => cb(entries)
+      ipcRenderer.on('plugins:changed', handler)
+      return () => ipcRenderer.removeListener('plugins:changed', handler)
+    }
+  },
+
   mcp: {
     list: () => ipcRenderer.invoke('mcp:list'),
     getStatus: (id: string) => ipcRenderer.invoke('mcp:getStatus', id),
     reconnect: (id: string) => ipcRenderer.invoke('mcp:reconnect', id),
+    addServer: (config: unknown) => ipcRenderer.invoke('mcp:addServer', config),
     setupGoogleOAuth: () => ipcRenderer.invoke('mcp:setupGoogleOAuth'),
     approveToolCall: (callId: string, approved: boolean) =>
       ipcRenderer.invoke('mcp:approveToolCall', callId, approved),

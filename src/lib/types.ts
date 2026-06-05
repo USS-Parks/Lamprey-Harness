@@ -89,6 +89,41 @@ export interface Skill {
   content: string
   filePath: string
   enabled: boolean
+  /** Customize C3: glob patterns the skill is allowed to call. */
+  allowedTools?: string[]
+  /** Customize C3: per-skill model override. */
+  model?: string
+  /** Customize C3: false = manual `/name` only. Defaults to true. */
+  autoInvoke?: boolean
+  /** Customize C3: directory-mode sibling files (relative names). */
+  supportingFiles?: string[]
+  /** Customize C11: when sourced from an enabled plugin, the plugin id. */
+  pluginId?: string
+}
+
+// Customize C7/C8 — plugin manifest mirror, kept in `src/lib/types.ts`
+// so the renderer + Zustand store + UI components share one definition
+// with the main-process loader.
+export interface PluginManifest {
+  id: string
+  name: string
+  description: string
+  version: string
+  author?: string
+  homepage?: string
+  category?: string
+  enabled?: boolean
+}
+
+export interface LoadedPlugin {
+  manifest: PluginManifest
+  enabled: boolean
+  rootPath: string
+  surfaceCounts: {
+    skills: number
+    slashCommands: number
+    connectors: number
+  }
 }
 
 export type MemoryType = 'user' | 'feedback' | 'project' | 'reference'
@@ -135,6 +170,10 @@ export interface McpServerConfig {
   auth: 'google-oauth' | 'none'
   enabled: boolean
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
+  /** Customize C11: when set, this connector is registered transiently
+   *  by an enabled plugin. Removing/disabling the plugin removes the
+   *  entry; the user can't edit or persist it directly. */
+  pluginId?: string
 }
 
 export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter'

@@ -45,6 +45,16 @@ extraResources:
   # on first launch; subsequent launches hot-reload from userData.
   - from: resources/snip-filters
     to: snip-filters
+  # Customize C6: starter connector catalog. Mirrors the typed
+  # `src/data/connectors-catalog.ts` shipped to the renderer so the
+  # main-process / installers ship the same data.
+  - from: resources/connectors
+    to: connectors
+  # Customize C7: bundled plugins. plugin-loader.ts copies missing
+  # entries from process.resourcesPath/plugins into userData/plugins/
+  # on first launch; subsequent launches read userData only.
+  - from: resources/plugins
+    to: plugins
 
 mac:
   category: public.app-category.developer-tools

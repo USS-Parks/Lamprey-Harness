@@ -1,5 +1,266 @@
 # Lamprey Harness Dev Log
 
+## [Customize Phase Complete] — 2026-06-05
+
+All twelve prompts of the Customize Phase landed on `claude/determined-pasteur-033123`. The phase gave Lamprey a first-class **Customize** surface in the left sidebar — mirroring Claude Code's Customize panel — with three columns (Skills / Connectors / Plugins) and three bottom CTAs (Connect your apps / Create new skills / Browse plugins). Promoted the previously buried `SkillsManager` and `McpSettings` out of the Settings dialog and retired both tabs, then built the plugin system end-to-end from scratch.
+
+| Prompt | Title | Commit |
+|---|---|---|
+| C1 | Surface scaffolding + sidebar entry | `3dfa91a` |
+| C2 | Skills column promotion (retire 'skills' tab) | `cf9497a` |
+| C3 | Skill format upgrade (allowedTools/model/autoInvoke + directory-mode) | `4891ce7` |
+| C4 | New-skill wizard + IPC directory-mode scaffolding | `974f289` |
+| C5 | Connectors column promotion (retire 'mcp' tab) | `da6c2bf` |
+| C6 | Add-connector flow (curated catalog + JSON paste) | `3c6ce5a` |
+| C7 | Plugin manifest + loader (green field) | _C7 commit_ |
+| C8 | Plugin IPC + Zustand store | `29300c9` |
+| C9 | Plugins column UI + 3 bundled starter plugins | _C9 commit_ |
+| C10 | Plugin install flow (directory + manifest paste + bundled catalog) | `967a731` |
+| C11 | Plugin runtime hookup (skills + commands + connectors) | `0d42730` |
+| C12 | Polish + version bump + phase wrap | _this commit_ |
+
+**Architecture summary**
+- **Surface**: full-window panel (z-30) reachable from the sidebar's relabeled "Customize" button. The legacy `pluginsIcon` button no longer deep-links into `settings:mcp`.
+- **Skills**: live list + filter + per-row toggle/edit/delete + right-side EditDrawer; 3-step wizard for new skills; directory-mode (`<dir>/skill.md` + sibling files) with optional `reference.md` scaffold.
+- **Connectors**: live list with status dot + transport + auth badges + reconnect; embedded Google OAuth panel; AddConnectorFlow modal with Catalog (7 starter MCP servers) and JSON-paste tabs (accepts both single-object and `mcpServers` wrapper forms).
+- **Plugins (green field)**: `PluginManifest` JSON contract; `electron/services/plugin-loader.ts` with chokidar watcher + change-notification subscription; bootstrap `resources/plugins/` → `userData/plugins/` on first run; enabled-state persisted separately in `userData/plugins.json`.
+- **Plugin install paths**: directory picker (native), paste-manifest (with optional `files` map, path-traversal guarded), bundled-catalog re-install. URL/archive fetch deferred (no `tar`/`unzipper` in production deps; adding mid-execute would be fake polish).
+- **Runtime hookup**: skill-loader, slash-commands, and mcp-manager each subscribe to plugin enable/disable broadcasts. Plugin-sourced skills + commands get namespaced ids (`<pluginId>:<entryId>`). Plugin-owned MCP servers are transient — never written to `mcp-servers.json`, rebuilt from `connectors.json` on every enable/disable. The UI surfaces a "plugin: X" badge for both.
+- **Bundled content shipped**: `example-plugin`, `lamprey-git-tools`, `lamprey-research-helpers` (3 plugins) + `example-directory-skill` (1 bundled directory-mode skill).
+- **Retired surfaces**: `SkillsManager.tsx` and `McpSettings.tsx` deleted; `'skills'` and `'mcp'` removed from `SettingsTabId`. All flows live in Customize now.
+
+**Decisions noted up front (per LAMPREY_CUSTOMIZE_PLAN.md §2)**
+- Customize is a full-window panel, not a settings tab or modal — matches Claude Code's UX.
+- Settings → Skills and Settings → MCP Servers were hard-deleted in favor of the unified Customize surface.
+- Plugin manifest is JSON (not YAML) — structured config, zero-dep parse.
+- User-scope only this phase. Per-project plugins are a deliberate future addition.
+- Sidebar icon kept as the existing `pluginsIcon` asset (relabel only); no fake new-asset polish.
+
+**Test verification**
+- TSC node + TSC web → clean.
+- `electron-vite build` → clean (~6.66s final).
+- `vitest electron/services/system-prompt-builder.test.ts` → 24 / 24 (no regressions from the C3 `allowedTools` widening).
+- Full suite: the only failures are environment-only — `better-sqlite3` was compiled against `NODE_MODULE_VERSION 133` and the current Node is 137. The failures hit pre-existing tests (`snip/apply.test.ts`, `conversation-store.test.ts`) on the unchanged pre-Customize commit `52443c0` too, so they're not Customize-introduced. Resolution is `electron-rebuild` against the live Node, outside this phase's scope.
+
+**Version + release**
+- `package.json` bumped from `0.4.0` (Snip Phase) to `0.5.0`.
+- The user is the reviewer + pusher; this commit goes to `main` per the explicit "execute the plan stem to stern… commit and push to main" directive.
+
+## 2026-06-05 — Customize Phase / C12 — Polish + tip strip + version bump
+
+**Shipped**
+- `src/components/customize/CustomizeView.tsx` — first-run tip strip directly under the page heading: "New here? Try Create new skills to scaffold your first skill in three steps, or browse the bundled plugins below." Clicking the inline "Create new skills" link opens NewSkillWizard (same wiring as the bottom CTA).
+- `package.json` — version bumped `0.4.0` → `0.5.0`.
+- `CLAUDE.md` — Current State block extended with Snip + Customize lines.
+- `memory/MEMORY.md` — build-status one-liner refreshed to mention Customize Phase.
+- `memory/project_build_status.md` — new "Customize Phase — complete" section enumerating per-prompt commits + architecture.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.66s, no warnings.
+- `npx vitest run electron/services/system-prompt-builder.test.ts` → 24 / 24.
+
+## 2026-06-05 — Customize Phase / C11 — Plugin runtime hookup
+
+Enabling a plugin now actually surfaces its skills, slash commands, and connectors in the rest of the app. Disabling hides them without touching files on disk.
+
+**Shipped**
+- `electron/services/plugin-loader.ts` — `subscribeToPluginChanges(cb)` + `enabledPluginRoots()` exports. `broadcastChange()` fires the subscriber list before sending the renderer event so other main-process loaders refresh in lockstep.
+- `electron/services/skill-loader.ts` — separate `pluginSkills` Map. `rescanPluginSkills()` walks `<plugin>/skills/` for every enabled root, namespaces ids as `<pluginId>:<skillId>`, and stores under that key. `listSkills()` / `getSkill()` / `getSkillContent()` merge both maps. Initialization subscribes via the plugin-loader hook; shutdown unsubscribes.
+- `electron/services/slash-commands.ts` — same pattern. `pluginCommands` Map; commands keyed by `<pluginId>:<commandName>`; `source: 'plugin'` + `pluginId` on the SlashCommand row.
+- `electron/services/mcp-manager.ts` — `pluginServers` Map. `refreshPluginConnectors()` reads each enabled plugin's `connectors.json` (transport / auth / args / env passthrough), namespaces ids, and connects via the same path as persistent servers. Plugin-owned servers are never written to `mcp-servers.json`. `getServers()` returns the merged view.
+- `src/lib/types.ts` — `Skill.pluginId?` and `McpServerConfig.pluginId?` mirrored to the renderer.
+- `src/components/customize/SkillsColumn.tsx` — "plugin: X" badge when `skill.pluginId` is set (replaces the "bundled" badge for plugin skills).
+- `src/components/customize/ConnectorsColumn.tsx` — "plugin: X" badge when `server.pluginId` is set.
+
+**How the disable path works**
+When a user toggles a plugin off in PluginsColumn, the loader fires `broadcastChange()`. skill-loader, slash-commands, and mcp-manager each re-derive their plugin-sourced sets from `enabledPluginRoots()`. The mcp-manager additionally calls `cleanupServer` on dropped entries so dangling SSE/stdio transports close cleanly. Files on disk stay untouched — re-enabling restores everything.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx vitest run electron/services/system-prompt-builder.test.ts` → 24 / 24 pass.
+- `npx electron-vite build` → built in 6.44s, no warnings.
+
+## 2026-06-05 — Customize Phase / C10 — Plugin install flow
+
+Three real install paths shipped. URL install deferred (see Notes).
+
+**Shipped**
+- `electron/services/plugin-loader.ts` — three new exports:
+  - `installFromManifest(manifest, files?)` — writes a fresh plugin dir from an inline JSON manifest + optional file map (path-traversal guarded; rejects `..` and absolute paths).
+  - `installBundled(id)` — copies one bundled plugin from `resources/plugins/<id>` into userland and rescans.
+  - `bundledPluginsNotInstalled()` — diff bundled vs userland and return manifests that aren't currently installed.
+- `electron/ipc/plugins.ts` — new handlers: `plugins:installFromManifest`, `plugins:installBundled`, `plugins:listBundledAvailable`. `plugins:installFromUrl` now returns a clear "use directory or manifest paste instead" error.
+- `electron/preload.ts` — bridge surface extended with `installFromManifest`, `installBundled`, `listBundledAvailable`.
+- `src/components/customize/InstallPluginFlow.tsx` — three-tab modal:
+  - **From directory** — native picker, copies into userland.
+  - **Paste manifest** — JSON textarea (manifest + optional `files` map); the IPC writes the plugin dir on validate.
+  - **Bundled catalog** — list of bundled plugins not currently installed with per-entry Install button.
+- `src/components/customize/PluginsColumn.tsx` — "+ Install" button opens the flow; replaces the C9 placeholder window event.
+- `src/components/customize/CustomizeView.tsx` — bottom "Browse plugins" CTA opens the same flow.
+
+**Notes — URL install deferred**
+The plan called for a `.zip`/`.tar.gz` URL install. Neither parser exists in current production deps, and adding `tar` / `unzipper` mid-execution without an npm install + sanity bake is the kind of fake polish the project explicitly avoids. The three implemented paths cover the user need (`From directory` handles cloned-from-Git plugins, `Paste manifest` handles single-file authors, `Bundled catalog` handles re-installs); a future phase can add archive support without rework.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.54s, no warnings.
+
+## 2026-06-05 — Customize Phase / C9 — Plugins column UI + bundled starter plugins
+
+The third Customize column gains a real list, grouped by category, with per-row toggle + detail drawer. Ships two more bundled starter plugins so the column reads populated on first launch.
+
+**Shipped**
+- `src/components/customize/PluginsColumn.tsx` — full implementation:
+  - Subscribes to `usePluginsStore`; calls `loadPlugins()` on mount and `setPluginsFromEvent` on the chokidar broadcast.
+  - Header: count + "+ Install" button (dispatches a `customize:open-install-plugin` window event; C10 listens).
+  - Grouped by `manifest.category` (alphabetized, uncategorized → "Other").
+  - Per-row: toggle switch (enable/disable), name + version pill, description, asset counts (skills/commands/connectors).
+  - Detail drawer (right-side, 460px): manifest body, asset counts, file path, Remove action with confirm.
+- `resources/plugins/lamprey-git-tools/` — second starter plugin under category "Engineering". Ships one skill (`git-status-recap`) + one slash command (`branch-ready`).
+- `resources/plugins/lamprey-research-helpers/` — third starter plugin under category "Research". Ships one skill (`source-triage`).
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.38s, no warnings.
+
+## 2026-06-05 — Customize Phase / C8 — Plugin IPC + Zustand store
+
+Wires the loader to the renderer end-to-end. Surfaces the broadcast event in the store.
+
+**Shipped**
+- `electron/ipc/plugins.ts` — handlers: `plugins:list`, `plugins:get`, `plugins:enable`, `plugins:disable`, `plugins:remove`, `plugins:installFromDirectory`, `plugins:pickDirectory`. `plugins:installFromUrl` returns a deliberate "lands in C10" error so the preload surface is callable in advance. Native directory picker uses `dialog.showOpenDialog` against the focused BrowserWindow.
+- `electron/ipc/index.ts` — `registerPluginsHandlers()` plugged in after slash, before chapters.
+- `electron/preload.ts` — `window.api.plugins.*` exposed: list, get, enable, disable, remove, installFromDirectory, installFromUrl, pickDirectory, onChanged. The `onChanged` listener returns its own teardown (mirrors the skills bridge).
+- `src/lib/types.ts` — `PluginManifest` + `LoadedPlugin` mirrored to the renderer so the store, columns, and any other surface share one definition.
+- `src/stores/plugins-store.ts` — Zustand store: `loadPlugins`, `setPluginsFromEvent`, `enable`, `disable`, `remove`, `installFromDirectory`, `pickDirectoryAndInstall`. Toast on success/error.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.73s, no warnings.
+
+## 2026-06-05 — Customize Phase / C7 — Plugin manifest + loader (green field)
+
+Shipped the plugin manifest, the on-disk layout contract, and the in-process registry (initialize/scan/watch). No UI yet — IPC + store land in C8, UI in C9, install flow in C10, runtime hookup in C11.
+
+**Shipped**
+- `electron/services/plugin-loader.ts` — full implementation modeled after `skill-loader.ts`. Exports `PluginManifest`, `LoadedPlugin`, plus `initializePluginLoader / shutdownPluginLoader / listPlugins / getPlugin / setPluginEnabled / removePlugin / installFromDirectory / enabledPluginIds / getPluginsRoot`. Bootstraps `resources/plugins/<id>/` → `userData/plugins/<id>/` on first run. Chokidar watches the userland root (depth 2) and broadcasts `plugins:changed` on add/change/unlink. Enabled-state persists separately in `userData/plugins.json` so the manifest stays edit-safe.
+- Manifest schema: required `id` (kebab-case), `name`, `description`, `version`; optional `author`, `homepage`, `category`, `enabled`. Surface counts (`skills`, `slashCommands`, `connectors`) resolved at load time for cheap UI rendering.
+- `electron/main.ts` — wired `initializePluginLoader()` after the skill loader; `shutdownPluginLoader()` added to the `will-quit` teardown.
+- `electron-builder.yml` — `extraResources` extended with `resources/plugins` (and `resources/connectors` from C6) so packaged builds carry the bundled plugins + connector catalog.
+- `resources/plugins/example-plugin/` — first bundled plugin: `plugin.json`, `skills/hello-from-plugin.md`, `README.md`. Demonstrates the directory contract end-to-end.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.52s, no warnings.
+
+## 2026-06-05 — Customize Phase / C6 — Add-connector flow + IPC
+
+Connector add flow: curated catalog tab + JSON paste tab. Lights up Customize's "Connect your apps" CTA and ConnectorsColumn "+ Add".
+
+**Shipped**
+- `electron/ipc/mcp.ts` — new `mcp:addServer` handler with `sanitizeAddServerInput` validator (id kebab-case rule, transport-specific required fields, env passthrough for stdio). Delegates to `mcpManager.addServerIfMissing` so persistence + duplicate-id check stay in one place.
+- `electron/preload.ts` — `window.api.mcp.addServer(config)` exposed (`mcp:addServer` invoke). Picked up by the inferred `LampreyAPI` type automatically.
+- `src/data/connectors-catalog.ts` — typed catalog of seven starter MCP servers (Playwright, Filesystem, GitHub, Postgres, SQLite, Knowledge-Graph Memory, HTTP Fetch) across five categories. Mirrored at `resources/connectors/catalog.json` so installers can ship the same file unchanged.
+- `src/components/customize/AddConnectorFlow.tsx` — two-tab modal:
+  - **Catalog** tab groups entries by category, shows command + args preview, marks already-installed entries with a disabled "Installed" pill.
+  - **JSON paste** tab accepts a single `McpServerConfig` object _or_ the `.mcp.json` `mcpServers` wrapper (single entry). Inline parse errors + IPC validation errors.
+- `src/components/customize/ConnectorsColumn.tsx` — "+ Add" button + `addOpen` page state open the flow; mounts the modal at the column root.
+- `src/components/customize/CustomizeView.tsx` — bottom "Connect your apps" CTA wired to open the same flow.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.00s, no warnings.
+
+## 2026-06-05 — Customize Phase / C5 — Connectors column promotion
+
+Promoted MCP server management out of Settings into Customize's Connectors column, with the Google OAuth flow embedded as a conditional bottom panel.
+
+**Shipped**
+- `src/components/customize/ConnectorsColumn.tsx` — full implementation. Header carries filter + connector count + "+ Add" button (stubbed; C6 wires AddConnectorFlow). Per-row: status dot (4 states), transport badge (stdio/sse), auth badge (google-oauth), one-line status text with error reason if any, Reconnect button. When at least one server uses `google-oauth`, an inline GoogleOAuthPanel renders below the list with client-id / client-secret inputs + Save credentials + Connect Google buttons. Plaintext-consent guard preserved (`ensurePlaintextConsentIfNeeded`).
+- `src/components/settings/SettingsDialog.tsx` — `'mcp'` tab entry + McpSettings import + render branch removed.
+- `src/stores/ui-store.ts` — `'mcp'` dropped from `SettingsTabId` union.
+- `src/components/layout/Sidebar.tsx` — narrow drawer's `SidebarBodyProps.openSettings` signature narrowed from `'mcp' | 'automations'` to `'automations'` only.
+- `src/components/settings/McpSettings.tsx` — deleted (orphaned after the tab retirement).
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.04s, no warnings.
+
+## 2026-06-05 — Customize Phase / C4 — "Create new skill" wizard
+
+Three-step modal that produces a real skill on disk; also lights up the Customize page-bottom "Create new skills" CTA.
+
+**Shipped**
+- `src/components/customize/NewSkillWizard.tsx` — guided 3-step modal (identity → trigger → preview). Live preview re-renders the generated `skill.md` (with frontmatter) on every keystroke. Suggestions chip-row pulls allowed-tool patterns from native tool hints and connected MCP servers (via `useMcpStore`). Optional directory-mode layout + reference-stub checkbox on the preview step.
+- `electron/ipc/skills.ts` — `SkillInput` gains `directoryMode` + `scaffoldReference`; when set, the handler writes `<skillsDir>/<slug>/skill.md` and optionally a stub `reference.md` (and includes `supportingFiles: ['reference.md']` in the response). `uniqueId` now also dodges existing same-named directories so flat ↔ directory layouts can't collide.
+- `src/stores/skills-store.ts` — `SkillCreateInput` / `SkillUpdateInput` exported and widened to cover the new fields end-to-end; no more renderer-side casts.
+- `src/components/customize/SkillsColumn.tsx` — "+ New" button + page-state `wizardOpen` opens the wizard; replaces the C2 stub toast.
+- `src/components/customize/CustomizeView.tsx` — bottom "Create new skills" CTA wired to open the same wizard.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.80s, no warnings.
+
+## 2026-06-05 — Customize Phase / C3 — Skill format upgrade
+
+Brought the skill manifest closer to Claude Code's so users can ship richer skills, plus directory-mode supporting files.
+
+**Shipped**
+- `electron/services/skill-loader.ts` — `LoadedSkill` interface extended with `allowedTools?: string[]`, `model?: string`, `autoInvoke?: boolean`, `supportingFiles?: string[]`. Frontmatter parser accepts both kebab-case (`allowed-tools`, `auto-invoke`, `disable-model-invocation`) and camelCase forms; missing fields stay undefined so existing flat skills are unchanged. `discoverSupportingFiles()` walks the sibling files of `skill.md` and returns relative filenames sorted alphabetically.
+- `src/lib/types.ts` — `Skill` interface mirrors the new optional fields.
+- `electron/ipc/skills.ts` — `SkillInput` + `serializeSkill` preserve `allowedTools` / `model` / `autoInvoke` on writes; `skills:create` echoes them back in the response payload.
+- `electron/services/system-prompt-builder.ts` — `buildSystemPrompt` widens `activeSkillContents` to optionally include `allowedTools`. When present, the constraint surfaces as an `allowed-tools="…"` attribute on the `<skill>` element so the model can enforce it without bloating the body.
+- `electron/ipc/chat.ts` — when assembling the per-round skill block, `allowedTools` is propagated from the loaded skill into the system-prompt input.
+- `resources/skills/example-directory-skill/skill.md` + `reference.md` — first bundled directory-mode skill. Demonstrates `allowedTools`, `autoInvoke: false`, and a sibling reference doc.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx vitest run electron/services/system-prompt-builder.test.ts` → 24 / 24 pass (no regressions from the optional `allowedTools` widening).
+- `npx electron-vite build` → built in 6.56s, no warnings.
+
+## 2026-06-05 — Customize Phase / C2 — Skills column promotion
+
+Replaced the SkillsColumn placeholder with a real list+drawer surface and retired the legacy Skills tab from SettingsDialog.
+
+**Shipped**
+- `src/components/customize/SkillsColumn.tsx` — full implementation. Header carries a filter input + skill count + "+ New" button (stubbed; C4 wires the wizard). Per-row: enabled toggle, name+description, bundled badge, hover-revealed Edit + Delete buttons. Edit opens a 480px right-side drawer with name/description/content fields, save/cancel, file-path subtitle, and an inline validation banner.
+- `SettingsDialog.tsx` — `'skills'` entry removed from `TABS`, import + render branch removed.
+- `src/stores/ui-store.ts` — `'skills'` removed from `SettingsTabId` union.
+- `src/components/settings/SkillsManager.tsx` — deleted (no remaining references after the tab retirement; surfaces fully owned by Customize now).
+- Bundled vs user-authored badge derives from `filePath` containing `/resources/skills/`.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.88s, no warnings.
+
+## 2026-06-05 — Customize Phase / C1 — Surface scaffolding + sidebar entry
+
+Stood up the Customize surface shell and rewired the sidebar's mislabeled "Plugins" button.
+
+**Shipped**
+- `src/components/customize/CustomizeView.tsx` — full-window panel (z-30) with breadcrumb "← Customize", page heading, three-column body (Skills | Connectors | Plugins), three CTA cards at the bottom ("Connect your apps", "Create new skills", "Browse plugins"). CTAs inert this prompt — wired in C4 / C6 / C10.
+- `src/components/customize/{SkillsColumn,ConnectorsColumn,PluginsColumn}.tsx` — placeholder bodies (each replaced in their respective prompts).
+- `src/stores/ui-store.ts` — new `customizeOpen: boolean`, `customizeInitialColumn: CustomizeColumnId | null`, `openCustomize(column?)`, `closeCustomize()`. Column type exported for downstream prompts.
+- `src/components/layout/Sidebar.tsx` — collapsed-rail Plugins button + expanded NavRow both relabeled "Customize" and rewired to `openCustomize()`. SidebarBody props extended with `openCustomize: () => void`; both call sites (narrow drawer + desktop) pass it through.
+- `src/App.tsx` — mounts `<CustomizeView />` when `customizeOpen`.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 4.73s, no warnings.
+
 ## [Deep Research Phase Complete] — 2026-06-05
 
 **Prompts completed:** D1 DuckDuckGo adapter, D2 cascade, D3 intent classifier + auto-trigger routing, D4 query planner, D5 source collector, D6 readable-text extractor, D7 claim extraction, D8 multi-source corroboration, D9 strict-citation synthesizer, D10 orchestrator + IPC, D11 artifact emission + chat surfacing, D12 progress banner.

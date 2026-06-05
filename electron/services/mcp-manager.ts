@@ -25,6 +25,11 @@ export interface McpServerConfig {
   env?: Record<string, string>
   auth: 'google-oauth' | 'none'
   enabled: boolean
+  /** Customize C11: when registered transiently by the plugin runtime,
+   *  the owning plugin id. Plugin-owned servers are NEVER persisted to
+   *  mcp-servers.json; they're rebuilt from the plugin's connectors.json
+   *  every boot + on every plugin enable/disable. */
+  pluginId?: string
 }
 
 type ServerStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -100,6 +105,12 @@ class McpManager {
   private servers = new Map<string, ServerState>()
   private statusCallbacks: ((serverId: string, status: ServerStatus, error?: string) => void)[] = []
   private initialized = false
+  // Customize C11: plugin-owned servers live in a separate Map keyed by
+  // namespaced id (`<pluginId>:<connectorId>`). They're NEVER persisted
+  // to mcp-servers.json — rebuilt from plugin connectors.json on every
+  // plugin enable/disable.
+  private pluginServers = new Map<string, ServerState>()
+  private unsubscribePluginChanges: (() => void) | null = null
 
   async initialize(): Promise<void> {
     if (this.initialized) return
@@ -124,11 +135,141 @@ class McpManager {
         })
       }
     }
+
+    // Customize C11: subscribe to plugin enable/disable broadcasts so the
+    // plugin-owned server set stays in sync. The lazy require avoids a
+    // hard module-load order between plugin-loader and mcp-manager.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const pl = require('./plugin-loader') as {
+        subscribeToPluginChanges: (cb: () => void) => () => void
+      }
+      this.unsubscribePluginChanges = pl.subscribeToPluginChanges(() =>
+        this.refreshPluginConnectors()
+      )
+      this.refreshPluginConnectors()
+    } catch (err) {
+      console.error('[mcp] plugin subscription failed:', (err as Error).message)
+    }
+  }
+
+  /** Customize C11: rebuild the plugin-owned server set from the current
+   *  enabled plugins. Disconnects + drops any plugin server that's no
+   *  longer enabled; adds any new ones. Persisted servers are untouched. */
+  private refreshPluginConnectors(): void {
+    let enabledRoots: { pluginId: string; rootPath: string }[] = []
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const pl = require('./plugin-loader') as {
+        enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
+      }
+      enabledRoots = pl.enabledPluginRoots()
+    } catch {
+      enabledRoots = []
+    }
+
+    const desired = new Map<string, McpServerConfig>()
+    for (const { pluginId, rootPath } of enabledRoots) {
+      const fp = join(rootPath, 'connectors.json')
+      if (!existsSync(fp)) continue
+      try {
+        const parsed = JSON.parse(readFileSync(fp, 'utf-8'))
+        if (!Array.isArray(parsed)) continue
+        for (const raw of parsed) {
+          if (!raw || typeof raw !== 'object') continue
+          const obj = raw as Record<string, unknown>
+          const innerId = typeof obj.id === 'string' ? obj.id : ''
+          if (!innerId) continue
+          const namespacedId = `${pluginId}:${innerId}`
+          const transport =
+            obj.transport === 'stdio' || obj.transport === 'sse' ? obj.transport : null
+          if (!transport) continue
+          const cfg: McpServerConfig = {
+            id: namespacedId,
+            name: typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : namespacedId,
+            transport,
+            auth: obj.auth === 'google-oauth' ? 'google-oauth' : 'none',
+            enabled: true,
+            pluginId
+          }
+          if (transport === 'sse' && typeof obj.url === 'string') cfg.url = obj.url
+          if (transport === 'stdio' && typeof obj.command === 'string') {
+            cfg.command = obj.command
+            if (Array.isArray(obj.args)) {
+              cfg.args = obj.args.filter((a: unknown): a is string => typeof a === 'string')
+            }
+            if (obj.env && typeof obj.env === 'object' && !Array.isArray(obj.env)) {
+              const env: Record<string, string> = {}
+              for (const [k, v] of Object.entries(obj.env as Record<string, unknown>)) {
+                if (typeof v === 'string') env[k] = v
+              }
+              cfg.env = env
+            }
+          }
+          desired.set(namespacedId, cfg)
+        }
+      } catch (err) {
+        console.error('[mcp] failed to read plugin connectors at', fp, err)
+      }
+    }
+
+    // Disconnect + drop entries no longer present.
+    for (const [id, state] of this.pluginServers) {
+      if (!desired.has(id)) {
+        void this.cleanupServer(state)
+        this.pluginServers.delete(id)
+      }
+    }
+
+    // Add new entries; preserve existing connections.
+    for (const [id, cfg] of desired) {
+      if (this.pluginServers.has(id)) continue
+      const state: ServerState = {
+        config: cfg,
+        status: 'disconnected',
+        client: null,
+        transport: null,
+        tools: [],
+        restartCount: 0
+      }
+      this.pluginServers.set(id, state)
+      // Attempt to connect; surface failures via the status callback.
+      this.connectPluginServer(id).catch((err) => {
+        console.error(`[mcp] Failed to connect plugin server ${id}:`, err?.message)
+      })
+    }
+  }
+
+  private async connectPluginServer(id: string): Promise<void> {
+    const state = this.pluginServers.get(id)
+    if (!state) return
+    // Reuse the same connect path as persistent servers by temporarily
+    // adopting the state into the main Map for the connect call, then
+    // popping it back out. Connect mutates state in place — that's fine.
+    this.servers.set(id, state)
+    try {
+      await this.connectServer(id)
+    } finally {
+      // Whether connect succeeded or not, the state lives in
+      // pluginServers as the canonical home. Remove from the main Map
+      // so list operations don't double-count.
+      this.servers.delete(id)
+    }
   }
 
   getServers(): (McpServerConfig & { status: ServerStatus; error?: string })[] {
     const result: (McpServerConfig & { status: ServerStatus; error?: string })[] = []
     for (const state of this.servers.values()) {
+      result.push({
+        ...state.config,
+        status: state.status,
+        error: state.error
+      })
+    }
+    // Customize C11: append plugin-owned servers. They carry pluginId so
+    // the renderer can render a "from plugin: X" badge and lock the
+    // remove affordance.
+    for (const state of this.pluginServers.values()) {
       result.push({
         ...state.config,
         status: state.status,

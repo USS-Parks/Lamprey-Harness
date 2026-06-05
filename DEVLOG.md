@@ -1,5 +1,22 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K6] Built-in filter set — Python + Ruby + .NET + Docker/K8s + Cloud  —  2026-06-05
+
+**Files changed:**
+- `resources/snip-filters/python/{pytest,ruff,mypy,basedpyright,ty,pip,poetry,uv}.yaml` (8 new) — Python family. ruff/mypy substitute clean-result messages; pip short-circuits "Requirement already satisfied".
+- `resources/snip-filters/ruby/{rspec,rubocop,rake,bundle,rails-migrate,rails-routes}.yaml` (6 new) — Ruby family.
+- `resources/snip-filters/dotnet/{dotnet-build,dotnet-test,dotnet-format}.yaml` (3 new) — .NET family. dotnet-build keeps `Build (succeeded|FAILED)` lines + error/warning detail.
+- `resources/snip-filters/docker/{docker-build,docker-ps,docker-images,docker-logs,docker-compose,kubectl-get,kubectl-logs}.yaml` (7 new) — Docker/K8s family. `docker-logs` / `kubectl-logs` use `tail` (not `head`) — log tails are where the signal is.
+- `resources/snip-filters/cloud/{terraform,tofu,helm,ansible-playbook,gcloud,aws}.yaml` (6 new) — Cloud/Infra family. Terraform / tofu keep the `Plan: N to add` summary + per-resource `# … will be created` lines.
+- `electron/services/snip/filters.test.ts` — extended with goldens for `pytest` (2-passed run) and `terraform` (single-resource plan).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (151 tests; 69 of ~125 filters now schema-validated through the harness)
+
+**Notes:** 69 of the targeted ~125 filters shipped after K6 (39 from K4+K5 plus 30 here — 8+6+3+7+6). K7 closes the filter set with the remaining ~50 across build tools, files/search, linting, package managers, system/network, and misc. `docker-logs` and `kubectl-logs` are the first filters in the set that use `tail` instead of `head` — log output's signal is always at the bottom.
+
 ## [Snip — Prompt K5] Built-in filter set — JS/TS + Go + Rust toolchains  —  2026-06-05
 
 **Files changed:**

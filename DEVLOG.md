@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K5] Built-in filter set — JS/TS + Go + Rust toolchains  —  2026-06-05
+
+**Files changed:**
+- `resources/snip-filters/js/{tsc,vitest,jest,eslint,prettier,biome,oxlint,next,playwright,nx,turbo,npm,npx,yarn,pnpm,prisma}.yaml` (16 new) — JS/TS family. `tsc` returns "no type errors" on empty body, otherwise passes the diagnostics through. `vitest` short-circuits "all passed" then keeps the summary lines. `npm` collapses "up to date" / progress bars to a one-line summary. All `viaNpx: true` filters accept the direct binary AND `npx <bin>` / `pnpm dlx <bin>` / `yarn dlx <bin>` forms (K2 matcher work).
+- `resources/snip-filters/go/{go-test,go-build,go-vet,golangci-lint}.yaml` (4 new) — Go family. `go-test` aggregates `ok` / `FAIL` package counts; `go-build` / `go-vet` substitute "ok" on empty success.
+- `resources/snip-filters/rust/{cargo-test,cargo-build,cargo-check,cargo-clippy,cargo-install,cargo-nextest,rustc}.yaml` (7 new) — Rust family. `cargo-test` keeps result counts + failing-test detail; the rest preserve `warning:` / `error[…]` / `Finished` lines.
+- `electron/services/snip/filters.test.ts` — extended with goldens for `tsc` (clean), `vitest` (all-passed summary), and `cargo-test` (5-test green run).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (119 tests — K1-K4 plus K5's three new goldens; YAML-validation loop now exercises 39 of the planned ~125 filters)
+
+**Notes:** filter count is 39 of the targeted ~125 after K5 (12 git + 16 js + 4 go + 7 rust). K6 will add Python + Ruby + .NET + Docker/K8s + Cloud/Infra (~35); K7 closes with build + files/search + linting + pkg + system/network + other (~50). The K5 set deliberately keeps `npm install` aggressive (drop everything but the `added N packages` summary) — that's where the biggest token wins live for this project.
+
 ## [Snip — Prompt K4] Built-in filter set — git family  —  2026-06-05
 
 **Files changed:**

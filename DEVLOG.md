@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C2 — Skills column promotion
+
+Replaced the SkillsColumn placeholder with a real list+drawer surface and retired the legacy Skills tab from SettingsDialog.
+
+**Shipped**
+- `src/components/customize/SkillsColumn.tsx` — full implementation. Header carries a filter input + skill count + "+ New" button (stubbed; C4 wires the wizard). Per-row: enabled toggle, name+description, bundled badge, hover-revealed Edit + Delete buttons. Edit opens a 480px right-side drawer with name/description/content fields, save/cancel, file-path subtitle, and an inline validation banner.
+- `SettingsDialog.tsx` — `'skills'` entry removed from `TABS`, import + render branch removed.
+- `src/stores/ui-store.ts` — `'skills'` removed from `SettingsTabId` union.
+- `src/components/settings/SkillsManager.tsx` — deleted (no remaining references after the tab retirement; surfaces fully owned by Customize now).
+- Bundled vs user-authored badge derives from `filePath` containing `/resources/skills/`.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 5.88s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C1 — Surface scaffolding + sidebar entry
 
 Stood up the Customize surface shell and rewired the sidebar's mislabeled "Plugins" button.

@@ -153,7 +153,6 @@ export type SettingsTabId =
   | 'permissions'
   | 'planGoal'
   | 'hooks'
-  | 'skills'
   | 'automations'
 
 export type CustomizeColumnId = 'skills' | 'connectors' | 'plugins'

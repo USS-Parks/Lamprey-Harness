@@ -16,6 +16,7 @@ import { startLoopWakeups, stopLoopWakeups } from './services/loop-runner'
 import { mcpManager } from './services/mcp-manager'
 import { ensureNodeReplDefaultServer } from './services/node-repl-default-server'
 import { initializeSkillLoader, shutdownSkillLoader } from './services/skill-loader'
+import { initializePluginLoader, shutdownPluginLoader } from './services/plugin-loader'
 import { initializeFilterLoader, shutdownFilterLoader } from './services/snip'
 import { initializeMemoryStore, shutdownMemoryStore } from './services/memory-store'
 import { backfillSessionsFts } from './services/conversation-store'
@@ -474,6 +475,15 @@ app.whenReady().then(() => {
     console.error('[main] Skill loader init error:', (err as Error).message)
   }
 
+  // Customize C7 — plugin manifest loader. Bootstraps bundled plugins
+  // from resources/plugins/ into userData/plugins/ on first run; then
+  // serves all subsequent reads from userData with chokidar hot-reload.
+  try {
+    initializePluginLoader()
+  } catch (err) {
+    console.error('[main] Plugin loader init error:', (err as Error).message)
+  }
+
   // Snip Phase K10 — load YAML filters under resources/snip-filters/
   // (built-in) and userData/snip/filters/ (user); chokidar hot-reload.
   try {
@@ -546,6 +556,7 @@ app.on('will-quit', () => {
   suppressBoundsPersist = true
   mcpManager.shutdown().catch(() => {})
   shutdownSkillLoader()
+  shutdownPluginLoader()
   shutdownFilterLoader()
   shutdownMemoryStore()
   shutdownSlashCommandLoader()

@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## [Sandbox Parity — Prompt S4] macOS sandbox-exec profile — 2026-06-05
+
+**Files changed:**
+- `electron/services/sandbox/darwin.ts` — replaces the stub with a real SBPL profile builder + dispatcher wrapper. Exposes `buildDarwinProfile(workspaceRoot, fsWritePaths?, networkPolicy?, tmp?)` as a pure helper for unconditional unit tests; `applyDarwinProfile()` returns `{ cmd: 'sandbox-exec', args: ['-p', profile, '--', ...], sandboxTier: 'darwin-sbx' }` or `null` when sandbox-exec is missing. `__setSandboxExecLocatorForTest` provides a test seam over the `findOnPath` lookup.
+- `electron/services/sandbox/darwin.test.ts` (new) — 17 cases: 16 unconditional (profile string structure, writable subpath allowlist, network policy variants, SBPL escaping, dispatcher null-on-missing) + 1 darwin-gated integration test that spawns real sandbox-exec.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `electron/services/sandbox/` ✓ 37 pass, 2 skipped (darwin + linux integration gated on platform)
+- **user-verification-needed:** confirm the gated integration test (`spawns through real sandbox-exec and prints stdout`) passes on a real darwin host.
+
+**Notes:** SBPL has no granular domain-allowlist primitive — `{ allowDomains: [...] }` falls back behaviourally to `'open'` with an SBPL `;;` comment line documenting the intent. The limitation is called out in a top-of-file comment.
+
+**Commit:** S4
+
 ## [Sandbox Parity — Prompt S3] Sandbox profile abstraction layer — 2026-06-05
 
 **Files changed:**
@@ -16,7 +32,7 @@
 
 **Notes:** Stubs structured so S4/S5/S6 can be implemented in parallel without merging the same line of `index.ts` — each fills in its own dedicated platform file; the dispatcher already routes correctly. No executor wiring yet — that happens in S6 when the result threads `sandboxTier` through `ShellResult`.
 
-**Commit:** S3
+**Commit:** `331cfac`
 
 ## [Sandbox Parity — Prompt S2] Shell selector (bash / powershell / auto) — 2026-06-05
 

@@ -1,8 +1,42 @@
 import { ipcMain, shell } from 'electron'
 import { createServer } from 'http'
 import { mcpManager } from '../services/mcp-manager'
+import type { McpServerConfig } from '../services/mcp-manager'
 import * as keychain from '../services/keychain'
 import { createOAuthSession, validateOAuthCallback } from '../services/oauth-state'
+
+function sanitizeAddServerInput(raw: unknown): McpServerConfig | string {
+  if (!raw || typeof raw !== 'object') return 'Connector config must be an object'
+  const obj = raw as Record<string, unknown>
+  const id = typeof obj.id === 'string' ? obj.id.trim() : ''
+  if (!id) return 'Connector id is required (kebab-case)'
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return 'Connector id must be kebab-case (a-z, 0-9, -)'
+  const name = typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : id
+  const transport = obj.transport === 'stdio' || obj.transport === 'sse' ? obj.transport : null
+  if (!transport) return 'transport must be "stdio" or "sse"'
+  const auth = obj.auth === 'google-oauth' ? 'google-oauth' : 'none'
+  const enabled = obj.enabled === false ? false : true
+  const cfg: McpServerConfig = { id, name, transport, auth, enabled }
+  if (transport === 'sse') {
+    if (typeof obj.url !== 'string' || !obj.url.trim()) return 'sse transport requires a url'
+    cfg.url = obj.url.trim()
+  } else {
+    if (typeof obj.command !== 'string' || !obj.command.trim())
+      return 'stdio transport requires a command'
+    cfg.command = obj.command.trim()
+    if (Array.isArray(obj.args)) {
+      cfg.args = obj.args.filter((a): a is string => typeof a === 'string')
+    }
+    if (obj.env && typeof obj.env === 'object' && !Array.isArray(obj.env)) {
+      const env: Record<string, string> = {}
+      for (const [k, v] of Object.entries(obj.env as Record<string, unknown>)) {
+        if (typeof v === 'string') env[k] = v
+      }
+      cfg.env = env
+    }
+  }
+  return cfg
+}
 
 const REDIRECT_PORT = 9876
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}`
@@ -33,6 +67,26 @@ export function registerMcpHandlers(): void {
     try {
       await mcpManager.reconnect(id)
       return { success: true, data: null }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // Customize C6: add a fresh connector. Sanitizes user-supplied config
+  // (catalog click OR JSON paste from the renderer), then delegates to
+  // mcpManager.addServerIfMissing so the id-collision check + persistence
+  // path stays in one place.
+  ipcMain.handle('mcp:addServer', async (_event, raw: unknown) => {
+    try {
+      const parsed = sanitizeAddServerInput(raw)
+      if (typeof parsed === 'string') {
+        return { success: false, error: parsed }
+      }
+      const added = await mcpManager.addServerIfMissing(parsed)
+      if (!added) {
+        return { success: false, error: `Connector "${parsed.id}" already exists` }
+      }
+      return { success: true, data: parsed }
     } catch (err: any) {
       return { success: false, error: err.message }
     }

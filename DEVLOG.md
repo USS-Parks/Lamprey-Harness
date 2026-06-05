@@ -1,5 +1,24 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C6 — Add-connector flow + IPC
+
+Connector add flow: curated catalog tab + JSON paste tab. Lights up Customize's "Connect your apps" CTA and ConnectorsColumn "+ Add".
+
+**Shipped**
+- `electron/ipc/mcp.ts` — new `mcp:addServer` handler with `sanitizeAddServerInput` validator (id kebab-case rule, transport-specific required fields, env passthrough for stdio). Delegates to `mcpManager.addServerIfMissing` so persistence + duplicate-id check stay in one place.
+- `electron/preload.ts` — `window.api.mcp.addServer(config)` exposed (`mcp:addServer` invoke). Picked up by the inferred `LampreyAPI` type automatically.
+- `src/data/connectors-catalog.ts` — typed catalog of seven starter MCP servers (Playwright, Filesystem, GitHub, Postgres, SQLite, Knowledge-Graph Memory, HTTP Fetch) across five categories. Mirrored at `resources/connectors/catalog.json` so installers can ship the same file unchanged.
+- `src/components/customize/AddConnectorFlow.tsx` — two-tab modal:
+  - **Catalog** tab groups entries by category, shows command + args preview, marks already-installed entries with a disabled "Installed" pill.
+  - **JSON paste** tab accepts a single `McpServerConfig` object _or_ the `.mcp.json` `mcpServers` wrapper (single entry). Inline parse errors + IPC validation errors.
+- `src/components/customize/ConnectorsColumn.tsx` — "+ Add" button + `addOpen` page state open the flow; mounts the modal at the column root.
+- `src/components/customize/CustomizeView.tsx` — bottom "Connect your apps" CTA wired to open the same flow.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.00s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C5 — Connectors column promotion
 
 Promoted MCP server management out of Settings into Customize's Connectors column, with the Google OAuth flow embedded as a conditional bottom panel.

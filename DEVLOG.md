@@ -1,5 +1,22 @@
 # Lamprey Harness Dev Log
 
+## [Deep Research — Prompt D6] Readable-text extractor  —  2026-06-05
+
+**Files changed:**
+- `package.json` + `package-lock.json` — `node-html-parser@7.1.0` added (MIT, 169 KB unpacked). Well under the plan's 300 KB minified+gzipped threshold; no fallback path needed.
+- `electron/services/research/extractor.ts` (new) — `extractPage(source)` fetches HTML via `safeFetch` (SSRF invariant), parses with `node-html-parser`, prunes boilerplate (script/style/noscript/nav/footer/aside/form/iframe/svg + class-pattern matchers for `ad`/`cookie`/`newsletter`/`comment`/`share`/`social`/`subscribe`/`related`/`promo`), picks main content in priority order (`<article>` → `<main>` → `[role="main"]` → largest `<div>`/`<section>` text block among body children), extracts title (H1 preferred, then `<title>`, then `og:title`), byline (`meta[name=author]` → `[rel=author]` → `.byline`/`.author`/`[itemprop=author]`), published_at (`<time datetime>` → `meta[property="article:published_time"]`), and caps full text at 30 KB. Non-200 / non-HTML / no-readable-text → `status: 'failed'`; aborted → `status: 'aborted'`. Never throws — peer pages can succeed even when one fails. Streaming body reader caps fetch at 1 MB.
+- `electron/services/research/extractor.test.ts` (new) — 15 tests across happy paths (article extraction, main fallback, largest-div fallback, script/style stripping, H1-over-title preference, published_at extraction, byline extraction, byte cap) and failure paths (HTTP 404, non-HTML content-type, no readable text, abort-before-fetch, fetch-throw lands as failed). Batch entry point `extractAll(sources, concurrency)` tested for parallel-extract correctness + abort.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/research/extractor.test.ts ✓ (15/15)
+- vitest full suite — **D6-specific tests all pass**; 18 pre-existing Windows EPERM flakes in `electron/services/keychain.test.ts` (1) and `electron/services/memory-store.test.ts` (17) showed up. Confirmed not caused by D6 by stashing the working tree and re-running — same 18 failures on the D5 commit. Root cause is better-sqlite3 retaining a file handle on Windows after the test closes the mirror, blocking `rmSync(force: true)` of the temp dir on the next `beforeEach`. Environmental, not a regression. Will fix during phase wrap-up.
+
+**Notes:** `node-html-parser` weighs in at 169 KB unpacked (license MIT), well under the 300 KB gate. The class-pattern boilerplate pruner is conservative — drops anything whose `class`/`id` matches one of the obvious ad/nav/sidebar shapes; false positives degrade readability but never introduce wrong content. Main-block selection uses a strict `> 200 chars` threshold so a stub `<article>` shell doesn't outrank a real `<main>` body. The first compile flagged `result.error` as possibly-undefined when passed to `makeFailed`; coalesced to `'fetch failed'` so the type stays strict.
+
+**Commit:** _pending_
+
 ## [Deep Research — Prompt D5] Source collector — dedup, curate, rank  —  2026-06-05
 
 **Files changed:**
@@ -16,7 +33,7 @@
 
 **Notes:** Pulled `quickCanonical` out of D2 cascade into a shared module so the contract between dedup-at-cascade-time and dedup-at-collector-time is one source of truth — without it, two URLs could be "different" to the cascade but "same" to the collector (or vice versa) and the per-domain cap would behave unpredictably. The cascade test suite proved the refactor non-breaking. The eTLD+1 helper uses a small curated multi-segment-TLD list rather than pulling in `publicsuffix-list` (megabytes); covers the 99% case with a clean "last two labels" fallback.
 
-**Commit:** _pending_
+**Commit:** `1b13942`
 
 ## [Deep Research — Prompt D4] Query planner  —  2026-06-05
 

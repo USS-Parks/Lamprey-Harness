@@ -7,7 +7,6 @@ import { ApiKeySettings } from './ApiKeySettings'
 import { AgentSettings } from './AgentSettings'
 import { AgenticCodingSettings } from './AgenticCodingSettings'
 import { HooksSettings } from './HooksSettings'
-import { SkillsManager } from './SkillsManager'
 import { AutomationsSettings } from './AutomationsSettings'
 import { WebToolsSettings } from './WebToolsSettings'
 import { CurrentInfoSettings } from './CurrentInfoSettings'
@@ -40,7 +39,6 @@ const TABS = [
   { id: 'permissions', label: 'Permissions' },
   { id: 'planGoal', label: 'Plans & Goals' },
   { id: 'hooks', label: 'Hooks' },
-  { id: 'skills', label: 'Skills' },
   { id: 'automations', label: 'Automations' },
   { id: 'library', label: 'Library' },
   { id: 'rag', label: 'RAG' },
@@ -112,7 +110,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'permissions' && <PermissionsSettings />}
             {activeTab === 'planGoal' && <PlanGoalSettings />}
             {activeTab === 'hooks' && <HooksSettings />}
-            {activeTab === 'skills' && <SkillsManager />}
             {activeTab === 'automations' && <AutomationsSettings />}
             {activeTab === 'library' && <LibraryView />}
             {activeTab === 'rag' && <RagSettings />}

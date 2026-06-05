@@ -1,5 +1,44 @@
 # Lamprey Harness Dev Log
 
+## [Snip Phase Complete] — 2026-06-05
+
+All fourteen prompts landed on `feat/snip-phase`. Lamprey now ships a native, in-process RTK-style shell-output filter layer with snip-style YAML extensibility. Every foreground `shell_command` runs through declarative pipelines before reaching the model; ~120 built-in filters cover git / JS-TS / Go / Rust / Python / Ruby / .NET / Docker-K8s / cloud-infra / build tools / files-search / linting / pkg managers / system-network / misc. Token savings tracked in SQLite, surfaced as the SnipSettings dashboard + Discover panel + status-line slot.
+
+| Prompt | Title | Commit |
+|---|---|---|
+| K1 | Engine — types + 11 pipeline actions + runner | `50e20dc` |
+| K2 | Matcher — command parsing + filter selection | `5a982b6` |
+| K3 | YAML filter loader + schema + chokidar hot-reload | `05ed861` |
+| K4 | Built-in filters: git family (12) + golden harness | `0fefc94` |
+| K5 | Built-in filters: JS/TS + Go + Rust toolchains (27) | `58017c0` |
+| K6 | Built-in filters: Python + Ruby + .NET + Docker/K8s + Cloud (30) | `cdafbae` |
+| K7 | Built-in filters: build + files + linting + pkg + system + other (51) | `d50ad4c` |
+| K8 | Tracking — snip_events + snip_command_log + dashboard queries | `cb99aa1` |
+| K9 | Interpose — apply.ts wired live into shell handler | `742e97c` |
+| K10 | IPC + preload bridge + filter-loader init | `95488e1` |
+| K11 + K12 | SnipSettings dashboard + Discover panel | `656dfca` |
+| K13 | Status-line snip slot | `b50b438` |
+| K14 | Phase verify + DEVLOG + README + primer | _this commit_ |
+
+**Phase verify:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ — 1601 / 1619 passing (18 failures are the same pre-existing Windows EPERM tmpdir-race in `memory-store.test.ts` + `keychain.test.ts`, unchanged from the K8 baseline; confirmed unrelated to this phase by reverting `database.ts`).
+- `npx electron-vite build` ✓
+- 120 YAML filters loaded under `resources/snip-filters/`.
+- user-verification-needed: in a running Electron build, run at least 8 distinct shell commands across the chat, confirm compressed bodies reach the model for matched filters, raw bodies for failures + chains + `bypass_snip:true`, Settings → Snip shows events accumulating, Discover panel populates, status-line slot appears after first event.
+
+**Filter set shipped:** 120 built-in YAML filters across 15 categories.
+
+**RTK-parity features:**
+- `gain` dashboard → Settings → Snip header card + sparkline + top filters + recent activity.
+- `discover` filter-gap scanner → Settings → Snip → Discover panel (K12).
+- `rtk proxy <cmd>` analogue → per-call `bypass_snip: true` on `shell_command` (K9, descriptor schema documents it).
+- `rtk -v` analogue → `snipVerbose` settings toggle, renderer-side log only (Invariant 13 — never decorates model-facing text).
+- `~/.config/snip/filters/` analogue → `userData/snip/filters/` with chokidar hot-reload (K3).
+
+**Notes:** YAML extensibility chosen over a TypeScript-filters MVP because Lamprey ships to many machines — filter coverage should be able to grow without app releases. The 11-action engine + matcher + loader are all pure modules (Invariant 1); only `tracking.ts`, `apply.ts`, and `filter-loader.ts` have side effects. The decision tree in `apply.ts` is the only integration point; if it lands wrong the model sees corrupted output, so K9 carried the most-tested invariants (never grows output, exit code preserved, failure pass-through default, tracking best-effort). Pre-execution command rewriting ("inject") is deferred to a v2 phase — the post-process-only approach means `git log` without `--oneline` ships as `head 30 + truncate_lines` rather than the snip-CLI's pretty-format rewrite. Per-filter UI toggles, marketplace-style remote filter loading, and model-callable stats also deferred.
+
 ## [Snip — Prompt K13] Status-line snip slot  —  2026-06-05
 
 **Files changed:**

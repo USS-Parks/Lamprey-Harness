@@ -184,6 +184,38 @@ const goldens: GoldenCase[] = [
     ].join('\n'),
     expectContains: 'main',
     expectMissing: 'Enumerating'
+  },
+  // ─── K5 JS/TS ────────────────────────────────────────────────────
+  {
+    filter: 'tsc',
+    input: '',
+    expectContains: 'no type errors',
+    allowGrowth: true
+  },
+  {
+    filter: 'vitest',
+    input: [
+      ' Test Files  104 passed | 2 skipped (106)',
+      '      Tests  1391 passed | 18 skipped (1409)',
+      '   Start at  14:29:24',
+      '   Duration  9.47s (transform 15.61s, …)'
+    ].join('\n'),
+    expectContains: 'Tests'
+  },
+  // ─── K5 Rust ─────────────────────────────────────────────────────
+  {
+    filter: 'cargo-test',
+    input: [
+      'running 5 tests',
+      'test foo ... ok',
+      'test bar ... ok',
+      'test baz ... ok',
+      'test qux ... ok',
+      'test quux ... ok',
+      '',
+      'test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured'
+    ].join('\n'),
+    expectContains: 'test result'
   }
 ]
 

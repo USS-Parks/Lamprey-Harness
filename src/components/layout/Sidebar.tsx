@@ -855,7 +855,7 @@ interface SidebarBodyProps {
   handleForward: () => void
   handleNewChat: () => Promise<void> | void
   handleSearchClick: () => void
-  openSettings: (tab?: 'mcp' | 'automations') => void
+  openSettings: (tab?: 'automations') => void
   openCustomize: () => void
   sessionsVisible: boolean
   setSessionsVisible: (visible: boolean) => void

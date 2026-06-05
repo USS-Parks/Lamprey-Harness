@@ -146,7 +146,6 @@ export type SettingsTabId =
   | 'api'
   | 'github'
   | 'appearance'
-  | 'mcp'
   | 'webTools'
   | 'currentInfo'
   | 'imageGen'

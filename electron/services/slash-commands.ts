@@ -45,12 +45,18 @@ export interface SlashCommand {
   hidden: boolean
   body: string
   filePath: string
-  source: 'user' | 'builtin'
+  source: 'user' | 'builtin' | 'plugin'
+  /** Customize C11: when sourced from an enabled plugin, the plugin id.
+   *  Command name is namespaced as `<pluginId>:<commandName>` so it
+   *  can't collide with user-defined commands. */
+  pluginId?: string
 }
 
 const commands = new Map<string, SlashCommand>()
+const pluginCommands = new Map<string, SlashCommand>()
 let watcher: FSWatcher | null = null
 let slashDirPath: string | null = null
+let unsubscribePluginChanges: (() => void) | null = null
 
 function resolveSlashDir(): string {
   if (is.dev) {
@@ -179,6 +185,36 @@ function removeByPath(filePath: string): void {
   if (commands.delete(slug)) broadcastChange()
 }
 
+function rescanPluginCommands(): void {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pl = require('./plugin-loader') as {
+    enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
+  }
+  pluginCommands.clear()
+  for (const { pluginId, rootPath } of pl.enabledPluginRoots()) {
+    const dir = join(rootPath, 'slash-commands')
+    if (!existsSync(dir)) continue
+    let files: string[] = []
+    try {
+      files = discoverSlashFiles(dir)
+    } catch {
+      continue
+    }
+    for (const file of files) {
+      const cmd = parseSlashFile(file)
+      if (!cmd) continue
+      const namespacedName = `${pluginId}:${cmd.name}`
+      pluginCommands.set(namespacedName, {
+        ...cmd,
+        name: namespacedName,
+        source: 'plugin',
+        pluginId
+      })
+    }
+  }
+  broadcastChange()
+}
+
 export function initializeSlashCommandLoader(): void {
   if (slashDirPath) return
   const dir = resolveSlashDir()
@@ -204,7 +240,22 @@ export function initializeSlashCommandLoader(): void {
   watcher.on('unlink', removeByPath)
   watcher.on('error', (err) => console.error('[slash-loader] watcher error:', err))
 
-  console.log(`[slash-loader] watching ${dir} (${commands.size} commands loaded)`)
+  // Customize C11 — pick up plugin-sourced commands now and on every
+  // enabled-state change.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pl = require('./plugin-loader') as {
+      subscribeToPluginChanges: (cb: () => void) => () => void
+    }
+    unsubscribePluginChanges = pl.subscribeToPluginChanges(rescanPluginCommands)
+    rescanPluginCommands()
+  } catch (err) {
+    console.error('[slash-loader] plugin subscription failed:', err)
+  }
+
+  console.log(
+    `[slash-loader] watching ${dir} (${commands.size} user, ${pluginCommands.size} plugin)`
+  )
 }
 
 export function shutdownSlashCommandLoader(): void {
@@ -212,16 +263,23 @@ export function shutdownSlashCommandLoader(): void {
     watcher.close().catch(() => {})
     watcher = null
   }
+  if (unsubscribePluginChanges) {
+    unsubscribePluginChanges()
+    unsubscribePluginChanges = null
+  }
   commands.clear()
+  pluginCommands.clear()
   slashDirPath = null
 }
 
 export function listSlashCommands(): SlashCommand[] {
-  return Array.from(commands.values()).sort((a, b) => a.name.localeCompare(b.name))
+  const out = [...commands.values(), ...pluginCommands.values()]
+  return out.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export function getSlashCommand(name: string): SlashCommand | undefined {
-  return commands.get(name.toLowerCase())
+  const key = name.toLowerCase()
+  return commands.get(key) ?? pluginCommands.get(key)
 }
 
 /**

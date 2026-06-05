@@ -1,5 +1,27 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C11 — Plugin runtime hookup
+
+Enabling a plugin now actually surfaces its skills, slash commands, and connectors in the rest of the app. Disabling hides them without touching files on disk.
+
+**Shipped**
+- `electron/services/plugin-loader.ts` — `subscribeToPluginChanges(cb)` + `enabledPluginRoots()` exports. `broadcastChange()` fires the subscriber list before sending the renderer event so other main-process loaders refresh in lockstep.
+- `electron/services/skill-loader.ts` — separate `pluginSkills` Map. `rescanPluginSkills()` walks `<plugin>/skills/` for every enabled root, namespaces ids as `<pluginId>:<skillId>`, and stores under that key. `listSkills()` / `getSkill()` / `getSkillContent()` merge both maps. Initialization subscribes via the plugin-loader hook; shutdown unsubscribes.
+- `electron/services/slash-commands.ts` — same pattern. `pluginCommands` Map; commands keyed by `<pluginId>:<commandName>`; `source: 'plugin'` + `pluginId` on the SlashCommand row.
+- `electron/services/mcp-manager.ts` — `pluginServers` Map. `refreshPluginConnectors()` reads each enabled plugin's `connectors.json` (transport / auth / args / env passthrough), namespaces ids, and connects via the same path as persistent servers. Plugin-owned servers are never written to `mcp-servers.json`. `getServers()` returns the merged view.
+- `src/lib/types.ts` — `Skill.pluginId?` and `McpServerConfig.pluginId?` mirrored to the renderer.
+- `src/components/customize/SkillsColumn.tsx` — "plugin: X" badge when `skill.pluginId` is set (replaces the "bundled" badge for plugin skills).
+- `src/components/customize/ConnectorsColumn.tsx` — "plugin: X" badge when `server.pluginId` is set.
+
+**How the disable path works**
+When a user toggles a plugin off in PluginsColumn, the loader fires `broadcastChange()`. skill-loader, slash-commands, and mcp-manager each re-derive their plugin-sourced sets from `enabledPluginRoots()`. The mcp-manager additionally calls `cleanupServer` on dropped entries so dangling SSE/stdio transports close cleanly. Files on disk stay untouched — re-enabling restores everything.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx vitest run electron/services/system-prompt-builder.test.ts` → 24 / 24 pass.
+- `npx electron-vite build` → built in 6.44s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C10 — Plugin install flow
 
 Three real install paths shipped. URL install deferred (see Notes).

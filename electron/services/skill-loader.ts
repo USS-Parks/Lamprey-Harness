@@ -25,11 +25,21 @@ export interface LoadedSkill {
    *  `skill.md`. Filenames are relative to the skill directory; the
    *  agent reads them by path when referenced. Empty for flat skills. */
   supportingFiles?: string[]
+  /** Customize C11: when sourced from an enabled plugin's skills/ dir,
+   *  the plugin's manifest id. ID is namespaced as `<pluginId>:<skillId>`
+   *  so it can't collide with user-authored skills. */
+  pluginId?: string
 }
 
 const skills = new Map<string, LoadedSkill>()
+// Customize C11: plugin-sourced skills live in a separate Map keyed by
+// namespaced id (`<pluginId>:<skillId>`). The `listSkills()` reader
+// concatenates both. Removing/disabling a plugin clears its entries
+// without touching the user-authored set.
+const pluginSkills = new Map<string, LoadedSkill>()
 let watcher: FSWatcher | null = null
 let skillsDirPath: string | null = null
+let unsubscribePluginChanges: (() => void) | null = null
 
 function resolveSkillsDir(): string {
   if (is.dev) {
@@ -193,6 +203,45 @@ function removeByPath(filePath: string): void {
   }
 }
 
+function rescanPluginSkills(): void {
+  // Lazy require to avoid hard module load order. plugin-loader exports
+  // the subscription + enabled-roots helpers; both are safe to call at
+  // any time after initialize completes.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pl = require('./plugin-loader') as {
+    enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
+  }
+  const before = pluginSkills.size
+  pluginSkills.clear()
+  for (const { pluginId, rootPath } of pl.enabledPluginRoots()) {
+    const dir = join(rootPath, 'skills')
+    if (!existsSync(dir)) continue
+    let files: string[] = []
+    try {
+      files = discoverSkillFiles(dir)
+    } catch {
+      continue
+    }
+    for (const file of files) {
+      const skill = parseSkillFile(file)
+      if (!skill) continue
+      const namespaced: LoadedSkill = {
+        ...skill,
+        id: `${pluginId}:${skill.id}`,
+        pluginId
+      }
+      pluginSkills.set(namespaced.id, namespaced)
+    }
+  }
+  if (before !== pluginSkills.size) {
+    broadcastChange()
+  } else {
+    // No count change but ids may have shifted; broadcast anyway so the
+    // renderer sees the new contents.
+    broadcastChange()
+  }
+}
+
 export function initializeSkillLoader(): void {
   if (skillsDirPath) return
   const dir = resolveSkillsDir()
@@ -220,7 +269,22 @@ export function initializeSkillLoader(): void {
   watcher.on('unlink', removeByPath)
   watcher.on('error', (err) => console.error('[skill-loader] watcher error:', err))
 
-  console.log(`[skill-loader] watching ${dir} (${skills.size} skills loaded)`)
+  // Customize C11 — pick up plugin-sourced skills now and on every
+  // enabled-state change broadcast by plugin-loader.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pl = require('./plugin-loader') as {
+      subscribeToPluginChanges: (cb: () => void) => () => void
+    }
+    unsubscribePluginChanges = pl.subscribeToPluginChanges(rescanPluginSkills)
+    rescanPluginSkills()
+  } catch (err) {
+    console.error('[skill-loader] plugin subscription failed:', err)
+  }
+
+  console.log(
+    `[skill-loader] watching ${dir} (${skills.size} user skills, ${pluginSkills.size} plugin skills loaded)`
+  )
 }
 
 export function shutdownSkillLoader(): void {
@@ -228,7 +292,12 @@ export function shutdownSkillLoader(): void {
     watcher.close().catch(() => {})
     watcher = null
   }
+  if (unsubscribePluginChanges) {
+    unsubscribePluginChanges()
+    unsubscribePluginChanges = null
+  }
   skills.clear()
+  pluginSkills.clear()
   skillsDirPath = null
 }
 
@@ -241,15 +310,19 @@ export function getSkillsDir(): string {
 }
 
 export function listSkills(): LoadedSkill[] {
-  return Array.from(skills.values()).sort((a, b) => a.name.localeCompare(b.name))
+  // Plugin skills come after user skills in the unsorted set, then
+  // the localeCompare gives one merged alpha list. UI groups by
+  // pluginId when present.
+  const out: LoadedSkill[] = [...skills.values(), ...pluginSkills.values()]
+  return out.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export function getSkill(id: string): LoadedSkill | undefined {
-  return skills.get(id)
+  return skills.get(id) ?? pluginSkills.get(id)
 }
 
 export function getSkillContent(id: string): string | null {
-  const skill = skills.get(id)
+  const skill = skills.get(id) ?? pluginSkills.get(id)
   return skill ? skill.content : null
 }
 

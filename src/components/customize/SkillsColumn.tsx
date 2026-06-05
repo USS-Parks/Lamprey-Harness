@@ -242,7 +242,15 @@ export function SkillsColumn() {
                   <span className="truncate text-[13px] font-medium text-[var(--text-primary)]">
                     {skill.name}
                   </span>
-                  {bundled && (
+                  {skill.pluginId && (
+                    <span
+                      className="rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[9px] uppercase tracking-wider text-[var(--accent)]"
+                      title={`From plugin: ${skill.pluginId}`}
+                    >
+                      plugin: {skill.pluginId}
+                    </span>
+                  )}
+                  {bundled && !skill.pluginId && (
                     <span className="rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
                       bundled
                     </span>

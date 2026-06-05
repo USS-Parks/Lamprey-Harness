@@ -65,6 +65,44 @@ let watcher: FSWatcher | null = null
 let pluginsRoot: string | null = null
 let bootstrapped = false
 
+// Customize C11 — change notification. Other loaders (skill-loader,
+// slash-commands, mcp-manager) subscribe at init so they can refresh
+// their plugin-sourced contributions when a plugin is enabled,
+// disabled, removed, or installed. Subscribers are pull-based: they
+// re-derive their plugin contributions by calling `enabledPluginRoots()`.
+type Listener = () => void
+const changeListeners = new Set<Listener>()
+
+export function subscribeToPluginChanges(cb: Listener): () => void {
+  changeListeners.add(cb)
+  return () => changeListeners.delete(cb)
+}
+
+function notifyChangeListeners(): void {
+  for (const cb of changeListeners) {
+    try {
+      cb()
+    } catch (err) {
+      console.error('[plugin-loader] listener error:', err)
+    }
+  }
+}
+
+export interface EnabledPluginRoot {
+  pluginId: string
+  rootPath: string
+}
+
+export function enabledPluginRoots(): EnabledPluginRoot[] {
+  const out: EnabledPluginRoot[] = []
+  for (const plugin of plugins.values()) {
+    if (plugin.enabled) {
+      out.push({ pluginId: plugin.manifest.id, rootPath: plugin.rootPath })
+    }
+  }
+  return out
+}
+
 function resolvePluginsRoot(): string {
   if (is.dev) return join(__dirname, '../../resources/plugins')
   // In packaged builds we bootstrap bundled → userData on first launch.
@@ -224,6 +262,7 @@ function loadPlugin(rootPath: string, enabledState: Record<string, boolean>): Lo
 }
 
 function broadcastChange(): void {
+  notifyChangeListeners()
   const list = listPlugins()
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('plugins:changed', list)

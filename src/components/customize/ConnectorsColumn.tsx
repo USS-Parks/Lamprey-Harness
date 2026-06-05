@@ -207,6 +207,14 @@ export function ConnectorsColumn() {
                       {auth}
                     </span>
                   )}
+                  {server.pluginId && (
+                    <span
+                      className="rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[9px] uppercase tracking-wider text-[var(--accent)]"
+                      title={`From plugin: ${server.pluginId}`}
+                    >
+                      plugin: {server.pluginId}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
                   {badge.label}

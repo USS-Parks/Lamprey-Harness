@@ -62,7 +62,10 @@ export interface ShellResult {
   sandboxNote?: string
 }
 
-export const DEFAULT_TIMEOUT_MS = 30_000
+// S10 — match Claude Code's default Bash-tool timeout (2 minutes). Long
+// commands (`npm install`, builds, large repos) used to time out at the
+// old 30 s default and force the model to pass `timeout_ms` explicitly.
+export const DEFAULT_TIMEOUT_MS = 120_000
 export const MAX_TIMEOUT_MS = 600_000
 export const STDOUT_CAP = 30_000
 export const STDERR_CAP = 30_000

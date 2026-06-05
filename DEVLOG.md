@@ -1,5 +1,59 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning-Block Composer Fallback] — 2026-06-05
+
+**Symptom (user report):** "The Reasoning Block STILL disappears completely
+once complete. I cannot find or reference it at all." Reported on a multi-
+agent run using DeepSeek V4 Pro as the Coder.
+
+**Why v0.3.1's fix didn't catch this case:** v0.3.1 added
+`splitInlineReasoning` to `electron/services/conversation-store.ts` so the
+leading `<think>…</think>` block of an assistant turn would be hoisted into
+the dedicated `reasoning` column at `saveMessage` time. That helper was only
+ever applied to `msg.content`. It missed the path where the Final Response
+Composer runs:
+
+1. Model emits `<think>plan…</think>body…` (inline reasoning, no native
+   `delta.reasoning_content` channel — V4 Pro without thinking mode, Gemma,
+   Qwen).
+2. Tool calls happen (`round > 0`), so `shouldComposeFinalResponse` returns
+   true and the composer rewrites the body into a clean wrap-up.
+3. `runChatRound` in `electron/ipc/chat.ts` puts the composed text into
+   `content` and the ORIGINAL (which carries the `<think>` block) into
+   `draft`.
+4. `saveMessage` calls `splitInlineReasoning(content, reasoning)` — finds no
+   `<think>` in the composed body, returns reasoning=undefined. Row is
+   written with `reasoning = NULL`.
+5. Renderer hydrates the message; `MessageBubble`'s inline-`<think>`
+   fallback also runs on the composer body and finds nothing. ReasoningBlock
+   never renders.
+
+The chain-of-thought is preserved in `draft`, but the UI doesn't look there.
+
+**Fix:**
+- `electron/services/conversation-store.ts` — new
+  `splitInlineReasoningWithDraft` helper that tries `content` first and
+  falls back to `draft` when content has no inline block. `saveMessage` now
+  uses this for assistant rows. The composer body remains the visible
+  content; only the reasoning is hoisted out of the draft. Native-channel
+  reasoning still wins when present.
+- `splitInlineReasoning` exported so it (and the new wrapper) can be
+  unit-tested without DB setup.
+- `electron/services/conversation-store-reasoning.test.ts` — new suite
+  pinning the contract: native wins over inline, inline survives composer
+  replacement via draft, mid-body `<think>` doesn't match, both paths empty
+  → undefined reasoning. 10 tests, all green.
+
+**Verify:**
+- `npx tsc --noEmit -p tsconfig.node.json` — clean.
+- `npx tsc --noEmit -p tsconfig.web.json` — clean.
+- `npx vitest run electron/services/conversation-store-reasoning.test.ts` —
+  10/10 pass.
+- Adjacent suites (`final-response-composer`, `chat-history`) — 10/10 pass,
+  no regression.
+
+**Commit:** pending — user reviews and pushes.
+
 ## [Release v0.3.1 Published] — 2026-06-05
 
 First publish on the 0.3.x line. Supersedes the unpublished v0.3.0 staging

@@ -469,7 +469,7 @@ export function touchConversation(id: string) {
  *  the persistence shape is consistent regardless of which channel produced
  *  the reasoning. If `reasoning` is already populated (native channel did
  *  its job), leave `content` untouched. */
-function splitInlineReasoning(
+export function splitInlineReasoning(
   content: string,
   reasoning: string | undefined
 ): { content: string; reasoning: string | undefined } {
@@ -479,6 +479,35 @@ function splitInlineReasoning(
     return { content: closed[2], reasoning: closed[1].trim() }
   }
   return { content, reasoning }
+}
+
+/** Composer-aware variant: tries to pull inline `<think>…</think>` from
+ *  `content` first; when that comes up empty AND a `draft` is supplied,
+ *  re-runs the split against the draft and hoists any inline reasoning out.
+ *  This lets the Reasoning panel survive Final Response Composer passes,
+ *  which replace the original body in `content` with a clean rewrite and
+ *  stash the original (which carries the inline block) in `draft`.
+ *
+ *  When neither place has a `<think>` block and `reasoning` was already
+ *  supplied by the provider's native channel, the supplied value is
+ *  passed through untouched. */
+export function splitInlineReasoningWithDraft(
+  content: string,
+  reasoning: string | undefined,
+  draft: string | undefined
+): { content: string; reasoning: string | undefined } {
+  const fromContent = splitInlineReasoning(content, reasoning)
+  if (fromContent.reasoning && fromContent.reasoning.length > 0) {
+    return fromContent
+  }
+  if (typeof draft !== 'string' || draft.length === 0) {
+    return fromContent
+  }
+  const fromDraft = splitInlineReasoning(draft, undefined)
+  if (fromDraft.reasoning && fromDraft.reasoning.length > 0) {
+    return { content: fromContent.content, reasoning: fromDraft.reasoning }
+  }
+  return fromContent
 }
 
 export function saveMessage(msg: {
@@ -498,9 +527,19 @@ export function saveMessage(msg: {
   // Only assistant turns can carry reasoning — user/system/tool rows are
   // always pass-through so the <think> heuristic doesn't accidentally
   // mangle user input that happens to start with a literal <think>.
+  //
+  // Composer fallback: when the Final Response Composer rewrites the body,
+  // chat.ts puts the ORIGINAL (which carries the inline `<think>…</think>`)
+  // into `draft` and the composed clean text into `content`. The first
+  // splitInlineReasoning call sees no inline block in `content` and returns
+  // reasoning=undefined; the draft path below recovers the inline block so
+  // the Reasoning panel survives composer passes. Without this, every
+  // tool-using turn from inline-emitting models (Gemma, Qwen, V4 Pro
+  // without thinking mode) loses its chain-of-thought the moment the
+  // composer runs.
   const split =
     msg.role === 'assistant'
-      ? splitInlineReasoning(msg.content, msg.reasoning)
+      ? splitInlineReasoningWithDraft(msg.content, msg.reasoning, msg.draft)
       : { content: msg.content, reasoning: msg.reasoning }
   const toolCallsJson = msg.toolCalls && msg.toolCalls.length > 0 ? JSON.stringify(msg.toolCalls) : null
   const documentsJson = msg.documents && msg.documents.length > 0 ? JSON.stringify(msg.documents) : null

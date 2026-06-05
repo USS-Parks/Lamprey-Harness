@@ -1,5 +1,22 @@
 # Lamprey Harness Dev Log
 
+## [Sandbox Parity — Prompt S12] sandboxBypass risk tag — 2026-06-05
+
+**Files changed:**
+- `electron/services/tool-registry.ts` — `ToolRisk` union extended with `'sandboxBypass'`. Documented in a TSDoc block.
+- `electron/services/permissions-store.ts` — `GATING_RISKS` now includes `'sandboxBypass'`. New `risksCarrySandboxBypass(risks)` helper. `requestApprovalDetailed` now treats `dangerous === true` OR `risks` containing `'sandboxBypass'` as equivalent triggers for skipping persisted policies.
+- `electron/ipc/chat.ts` — when `dangerously_disable_sandbox: true`, per-call risks gain `'sandboxBypass'` (informational, surfaces in the modal payload + the audit row).
+- `electron/services/permissions-store-askuser.test.ts` — new case: `risks: ['sandboxBypass']` alone forces re-prompt, source tagged `+sandbox-bypass`.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `permissions-store*.test.ts` + `permission-policies-store.test.ts` + `tool-registry.test.ts` ✓ 73/73
+
+**Notes:** The two trigger paths (`dangerous: true` boolean and `'sandboxBypass'` in risks) are equivalent at the permission gate. The boolean is more ergonomic at the dispatcher; the risk tag is more discoverable in audit rows + the descriptor model. Both arrive together for `shell_command` bypasses.
+
+**Commit:** S12
+
 ## [Sandbox Parity — Prompt S11] Anti-polling sleep guard — 2026-06-05
 
 **Files changed:**
@@ -13,7 +30,7 @@
 
 **Notes:** Heuristic is intentionally loose — a literal string `"for fun"; sleep 600` would be accepted because the `for` keyword precedes the sleep. The remediation hint in the rejection points the model at `shell_monitor` + `untilPattern` (S8), which is the right answer for "wait for a condition." A future tightening could lex shell tokens properly, but the simple regex catches the most common abuses (raw `sleep 600` polling) without false positives on legitimate scripts.
 
-**Commit:** S11
+**Commit:** `6c90e22`
 
 ## [Sandbox Parity — Prompt S10] Timeout default 30s → 120s — 2026-06-05
 

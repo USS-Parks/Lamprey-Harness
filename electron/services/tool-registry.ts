@@ -41,7 +41,19 @@ import {
 
 export type ToolProviderKind = 'native' | 'mcp' | 'plugin'
 
-export type ToolRisk = 'read' | 'write' | 'network' | 'destructive' | 'secret'
+export type ToolRisk =
+  | 'read'
+  | 'write'
+  | 'network'
+  | 'destructive'
+  | 'secret'
+  /**
+   * S12 — a call carrying `'sandboxBypass'` is one that's running outside
+   * the platform sandbox wrapper (`dangerously_disable_sandbox: true`).
+   * It always re-prompts: no persisted "always allow" policy applies.
+   * The permissions service treats this risk as a hard gate.
+   */
+  | 'sandboxBypass'
 
 export interface LampreyToolDescriptor {
   id: string

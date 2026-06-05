@@ -211,6 +211,25 @@ describe('dangerous: true (S7 sandbox bypass)', () => {
     expect(outcome.decision).toBe('deny')
     expect(outcome.source).toBe('modal+sandbox-bypass')
   })
+
+  it("risks: ['sandboxBypass'] alone (S12) also forces re-prompt", async () => {
+    // Seed an "always allow" policy first.
+    const seed = makeReq()
+    const p1 = permissionsService.requestApprovalDetailed(seed)
+    permissionsService.respond({ callId: seed.callId, decision: 'allow', scope: 'always' })
+    await p1
+
+    // A call with sandboxBypass in risks (and no `dangerous` flag) still
+    // bypasses the persisted policy.
+    h.sent.length = 0
+    const byRisk = makeReq({ risks: ['write', 'network', 'sandboxBypass'] })
+    const promise = permissionsService.requestApprovalDetailed(byRisk)
+    const channels = h.sent.map((e) => e.channel)
+    expect(channels).toContain('tools:approvalRequired')
+    permissionsService.respond({ callId: byRisk.callId, decision: 'allow', scope: 'once' })
+    const outcome = await promise
+    expect(outcome.source).toMatch(/sandbox-bypass$/)
+  })
 })
 
 describe('askUser — no timeout, explicit cancellation only', () => {

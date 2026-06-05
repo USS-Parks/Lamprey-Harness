@@ -689,7 +689,7 @@ toolRegistry.registerNative(
       ' - PowerShell: use single-quoted here-strings — `@\'\\n…content…\\n\'@`. The closing `\'@` MUST be at column 0. Single-quoted prevents `$` interpolation.',
       ' - bash: `git commit -m "$(cat <<\'EOF\' \\n…\\nEOF\\n)"`.',
       '',
-      'DEFAULTS: timeout 30s (raise via `timeout_ms`, ceiling 600s). stdout/stderr capped at 30 KB each. cwd defaults to the persisted session cwd (workspace root if none).',
+      'DEFAULTS: timeout 120s (raise via `timeout_ms`, ceiling 600s). stdout/stderr capped at 30 KB each. cwd defaults to the persisted session cwd (workspace root if none).',
       '',
       'SANDBOX BYPASS: pass `dangerously_disable_sandbox: true` to skip the platform wrapper for one call. The approval modal will re-prompt every time and the result will report `Sandbox: bypassed`. Use sparingly — only when the sandbox demonstrably blocks legitimate work.'
     ].join('\n'),
@@ -709,7 +709,7 @@ toolRegistry.registerNative(
         },
         timeout_ms: {
           type: 'number',
-          description: 'Optional timeout in milliseconds. Default 30000, ceiling 600000.'
+          description: 'Optional timeout in milliseconds. Default 120000, ceiling 600000.'
         },
         env: {
           type: 'object',

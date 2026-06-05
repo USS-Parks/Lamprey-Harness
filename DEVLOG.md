@@ -1,6 +1,24 @@
 # Lamprey Harness Dev Log
 
+## [Sandbox Parity — Prompt S10] Timeout default 30s → 120s — 2026-06-05
+
+**Files changed:**
+- `electron/services/shell-tool.ts` — `DEFAULT_TIMEOUT_MS` raised from `30_000` to `120_000`. Matches Claude Code's Bash-tool default. Ceiling stays at `600_000`.
+- `electron/services/shell-tool.test.ts` — constants assertion updated.
+- `electron/services/tool-registry.ts` — description + schema doc strings updated to reflect 120s.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `shell-tool.test.ts` + `tool-registry.test.ts` ✓ 60/60
+
+**Notes:** Existing callers that pass an explicit `timeout_ms` are unaffected.
+
+**Commit:** S10
+
 ## [Sandbox Parity — Prompt S9] Tool description rewrite — 2026-06-05
+
+
 
 **Files changed:**
 - `electron/services/tool-registry.ts` — `shell_command` description expanded from a single paragraph to a structured multi-section block covering: platform shell selection, sandbox tiers per OS, persistent cwd behaviour, background-process tools, PowerShell 5.1 quirks (no `&&`/`||`, no ternary, UTF-16 default, `2>&1` corruption), interactive-command bans, "prefer dedicated tools" nudges (`tools:search`, native grep, `apply_patch`, `gh`), HEREDOC patterns, default caps, and the bypass flag. Input schema gains `shell` (enum) and `dangerously_disable_sandbox` (boolean) properties matching the executor.
@@ -12,7 +30,7 @@
 
 **Notes:** No snapshot test pinned the prior description, so the rewrite is a behavioural improvement only. The new description mirrors Claude Code's Bash-tool guidance closely for model parity.
 
-**Commit:** S9
+**Commit:** `93d36fc`
 
 ## [Sandbox Parity — Prompt S7] dangerously_disable_sandbox flag — 2026-06-05
 

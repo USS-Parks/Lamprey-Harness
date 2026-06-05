@@ -117,7 +117,7 @@ describe('executeShellCommand', () => {
   })
 
   it('exposes the constants at the documented values', () => {
-    expect(DEFAULT_TIMEOUT_MS).toBe(30_000)
+    expect(DEFAULT_TIMEOUT_MS).toBe(120_000)
     expect(MAX_TIMEOUT_MS).toBe(600_000)
     expect(STDOUT_CAP).toBe(30_000)
   })

@@ -83,12 +83,21 @@ export interface ApprovalOutcome {
 
 // Risks that, even without descriptor.requiresApproval, cause chat.ts to route
 // through this service. Pure 'read' and 'write' alone do NOT gate (memory_add,
-// update_plan are local writes); 'network', 'destructive', and 'secret' do.
+// update_plan are local writes); 'network', 'destructive', 'secret', and
+// 'sandboxBypass' do. Sandbox-bypass calls additionally skip any persisted
+// "always allow" policy — see `requestApprovalDetailed`.
 export const GATING_RISKS: ReadonlySet<ToolRisk> = new Set([
   'network',
   'destructive',
-  'secret'
+  'secret',
+  'sandboxBypass'
 ])
+
+/** True when the per-call risks include `'sandboxBypass'`. Bypasses any
+ *  persisted policy and re-prompts every call. */
+export function risksCarrySandboxBypass(risks: ToolRisk[]): boolean {
+  return risks.includes('sandboxBypass')
+}
 
 /** True if a descriptor with these risks should pass through requestApproval. */
 export function shouldGateOnRisks(risks: ToolRisk[]): boolean {
@@ -140,11 +149,13 @@ class PermissionsService {
       }
     })()
 
-    // S7 — when `dangerous: true`, skip any persisted "always allow" /
-    // "this workspace" / "this conversation" policy and force the modal
-    // every time. The bypass is one-shot by design: a user who said
-    // "always allow shell_command" did not consent to sandbox bypass.
-    if (req.dangerous !== true) {
+    // S7 / S12 — when `dangerous: true` OR the per-call risks include
+    // `'sandboxBypass'`, skip any persisted "always allow" / "this
+    // workspace" / "this conversation" policy and force the modal every
+    // time. The bypass is one-shot by design: a user who said "always
+    // allow shell_command" did not consent to sandbox bypass.
+    const isBypass = req.dangerous === true || risksCarrySandboxBypass(req.risks)
+    if (!isBypass) {
       const persisted = resolvePersistedDecision({
         toolId: req.toolId,
         risks: req.risks,
@@ -163,10 +174,9 @@ class PermissionsService {
 
     const userOutcome = await this.askUser(req, workspacePath)
     // Tag bypass outcomes distinctly so the audit log can filter them.
-    const finalOutcome: ApprovalOutcome =
-      req.dangerous === true
-        ? { ...userOutcome, source: `${userOutcome.source}+sandbox-bypass` }
-        : userOutcome
+    const finalOutcome: ApprovalOutcome = isBypass
+      ? { ...userOutcome, source: `${userOutcome.source}+sandbox-bypass` }
+      : userOutcome
     emitApprovalEvent(req, finalOutcome, workspacePath)
     return finalOutcome
   }

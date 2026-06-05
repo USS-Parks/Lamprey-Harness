@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C5 — Connectors column promotion
+
+Promoted MCP server management out of Settings into Customize's Connectors column, with the Google OAuth flow embedded as a conditional bottom panel.
+
+**Shipped**
+- `src/components/customize/ConnectorsColumn.tsx` — full implementation. Header carries filter + connector count + "+ Add" button (stubbed; C6 wires AddConnectorFlow). Per-row: status dot (4 states), transport badge (stdio/sse), auth badge (google-oauth), one-line status text with error reason if any, Reconnect button. When at least one server uses `google-oauth`, an inline GoogleOAuthPanel renders below the list with client-id / client-secret inputs + Save credentials + Connect Google buttons. Plaintext-consent guard preserved (`ensurePlaintextConsentIfNeeded`).
+- `src/components/settings/SettingsDialog.tsx` — `'mcp'` tab entry + McpSettings import + render branch removed.
+- `src/stores/ui-store.ts` — `'mcp'` dropped from `SettingsTabId` union.
+- `src/components/layout/Sidebar.tsx` — narrow drawer's `SidebarBodyProps.openSettings` signature narrowed from `'mcp' | 'automations'` to `'automations'` only.
+- `src/components/settings/McpSettings.tsx` — deleted (orphaned after the tab retirement).
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.04s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C4 — "Create new skill" wizard
 
 Three-step modal that produces a real skill on disk; also lights up the Customize page-bottom "Create new skills" CTA.

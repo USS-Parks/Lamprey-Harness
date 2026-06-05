@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { McpSettings } from './McpSettings'
 import { GeneralSettings } from './GeneralSettings'
 import { AppearanceSettings } from './AppearanceSettings'
 import { ModelSettings } from './ModelSettings'
@@ -32,7 +31,6 @@ const TABS = [
   { id: 'api', label: 'API Keys' },
   { id: 'github', label: 'GitHub' },
   { id: 'appearance', label: 'Appearance' },
-  { id: 'mcp', label: 'MCP Servers' },
   { id: 'webTools', label: 'Web Tools' },
   { id: 'currentInfo', label: 'Current Info' },
   { id: 'imageGen', label: 'Image Gen' },
@@ -103,7 +101,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'api' && <ApiKeySettings />}
             {activeTab === 'github' && <GitHubSettings />}
             {activeTab === 'appearance' && <AppearanceSettings />}
-            {activeTab === 'mcp' && <McpSettings />}
             {activeTab === 'webTools' && <WebToolsSettings />}
             {activeTab === 'currentInfo' && <CurrentInfoSettings />}
             {activeTab === 'imageGen' && <ImageGenSettings />}

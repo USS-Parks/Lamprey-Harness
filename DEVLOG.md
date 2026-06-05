@@ -1,5 +1,23 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K7] Built-in filter set — build + files/search + linting + pkg + system + other  —  2026-06-05
+
+**Files changed:**
+- `resources/snip-filters/build/{make,gcc,g++,gradle,gradlew,mvn,swift,xcodebuild,just,task,pio,trunk,mise}.yaml` (13 new) — build tools. C/C++ compilers + JVM ecosystem + Apple toolchain + task runners.
+- `resources/snip-filters/files/{ls,find,grep,rg,diff,wc,tree}.yaml` (7 new) — files / search. All use head + per-line truncate; `rg` and `grep` cap at 300 chars/line so a single noisy match doesn't blow the budget.
+- `resources/snip-filters/linting/{shellcheck,hadolint,markdownlint,yamllint,pre-commit}.yaml` (5 new) — linting family; substitute clean-result messages on no findings.
+- `resources/snip-filters/pkg/{brew,composer}.yaml` (2 new) — remaining package managers (npm/yarn/pnpm in K5, pip/poetry/uv in K6, bundle in K6).
+- `resources/snip-filters/system/{curl,wget,psql,jq,ping,ssh,rsync,df,du,ps,systemctl,iptables,stat,fail2ban}.yaml` (14 new) — system/network. `ping` uses `tail 8` for the stats block; logs/long-output tools use `head` with `truncate_lines`.
+- `resources/snip-filters/other/{gh-pr,gh-issue,gh-run,jira,jj,yadm,gt,ollama,sops,skopeo}.yaml` (10 new) — misc. The gh-* trio matches `gh pr / issue / run` subcommands.
+- `electron/services/snip/filters.test.ts` — extended with goldens for `rg` (200-match file list) and `gh-pr` (empty → "no PRs").
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (204 tests; all 120 of the planned ~125 YAML filters schema-validate through the harness)
+
+**Notes:** filter set closed at 120 YAMLs — slightly under the ~125 target because some snip filters (e.g. duplicates between `dotnet-build` / `dotnet-test` and the standalone `dotnet` wrapper) collapsed into a single subcommand-keyed file in the YAML layout. Coverage spans 15 categories (git, js, go, rust, python, ruby, dotnet, docker, cloud, build, files, linting, pkg, system, other) which matches snip's category structure. K8 will land the SQLite tracking now that the filter set is frozen.
+
 ## [Snip — Prompt K6] Built-in filter set — Python + Ruby + .NET + Docker/K8s + Cloud  —  2026-06-05
 
 **Files changed:**

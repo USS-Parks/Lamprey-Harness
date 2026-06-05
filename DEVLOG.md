@@ -1,5 +1,18 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K2] Matcher: command parsing + filter selection  —  2026-06-05
+
+**Files changed:**
+- `electron/services/snip/matcher.ts` (new) — `parseCommand` (shell lexer handling single/double quotes + backslash escapes + chain-operator detection + env-var stripping) and `selectFilter` (head/sub exact match, `viaNpx` for npx / pnpm dlx / yarn dlx wrappers, `excludeFlags` short-circuit with long-flag prefix support).
+- `electron/services/snip/matcher.test.ts` (new) — 25 unit tests covering quoting edge cases, chain detection (`&&`, `||`, `;`, `|`, quoted-vs-unquoted), env-var stripping, viaNpx wrapper resolution across all three forms, and excludeFlags both standalone and combined with viaNpx.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (47 tests including K1's 22)
+
+**Notes:** the lexer is deliberately scoped to what selection needs — it parses well enough to find the head, subcommand, and flag set, and to spot chain operators. It does NOT interpret redirection, command substitution, or process substitution; filtering opts out on `isChain` so we never have to guess which stage of a multi-stage pipeline produced the bytes we're holding. `viaNpx` accepts `npx tsc`, `pnpm dlx tsc`, and `yarn dlx tsc` — all three are how Lamprey's users run JS toolchains.
+
 ## [Snip — Prompt K1] Engine: types + pipeline actions + runner  —  2026-06-05
 
 **Files changed:**

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { existsSync, writeFileSync, unlinkSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import matter from 'gray-matter'
 import { getSkillsDir, listSkills, getSkill } from '../services/skill-loader'
@@ -11,6 +11,13 @@ interface SkillInput {
   allowedTools?: string[]
   model?: string
   autoInvoke?: boolean
+  /** C4: when true, scaffold a directory-mode skill at
+   *  `<skillsDir>/<slug>/skill.md`. When false (default), a flat
+   *  `<skillsDir>/<slug>.md` file is written. */
+  directoryMode?: boolean
+  /** C4: when true and `directoryMode` is also true, scaffold an empty
+   *  `reference.md` stub alongside `skill.md`. */
+  scaffoldReference?: boolean
 }
 
 function slugify(name: string): string {
@@ -22,11 +29,14 @@ function slugify(name: string): string {
   return base || 'skill'
 }
 
-function uniqueId(baseSlug: string): string {
+function uniqueId(baseSlug: string, directoryMode = false): string {
   const dir = getSkillsDir()
-  if (!existsSync(join(dir, `${baseSlug}.md`))) return baseSlug
+  const occupied = (slug: string) =>
+    existsSync(join(dir, `${slug}.md`)) || existsSync(join(dir, slug))
+  if (!occupied(baseSlug)) return baseSlug
   let i = 2
-  while (existsSync(join(dir, `${baseSlug}-${i}.md`))) i++
+  while (occupied(`${baseSlug}-${i}`)) i++
+  void directoryMode
   return `${baseSlug}-${i}`
 }
 
@@ -55,9 +65,30 @@ export function registerSkillsHandlers(): void {
       if (!skill?.name || typeof skill.name !== 'string') {
         return { success: false, error: 'Skill name is required' }
       }
-      const id = uniqueId(slugify(skill.name))
-      const filePath = join(getSkillsDir(), `${id}.md`)
-      writeFileSync(filePath, serializeSkill(skill), 'utf-8')
+      const id = uniqueId(slugify(skill.name), skill.directoryMode)
+      const skillsDir = getSkillsDir()
+      let filePath: string
+      const supportingFiles: string[] = []
+      if (skill.directoryMode) {
+        const dir = join(skillsDir, id)
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+        filePath = join(dir, 'skill.md')
+        writeFileSync(filePath, serializeSkill(skill), 'utf-8')
+        if (skill.scaffoldReference) {
+          const refPath = join(dir, 'reference.md')
+          if (!existsSync(refPath)) {
+            writeFileSync(
+              refPath,
+              `# Reference notes for ${skill.name}\n\nLong-form notes the agent reads only when this skill needs them.\n`,
+              'utf-8'
+            )
+            supportingFiles.push('reference.md')
+          }
+        }
+      } else {
+        filePath = join(skillsDir, `${id}.md`)
+        writeFileSync(filePath, serializeSkill(skill), 'utf-8')
+      }
       return {
         success: true,
         data: {
@@ -69,7 +100,8 @@ export function registerSkillsHandlers(): void {
           enabled: false,
           ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {}),
           ...(skill.model ? { model: skill.model } : {}),
-          ...(typeof skill.autoInvoke === 'boolean' ? { autoInvoke: skill.autoInvoke } : {})
+          ...(typeof skill.autoInvoke === 'boolean' ? { autoInvoke: skill.autoInvoke } : {}),
+          ...(supportingFiles.length ? { supportingFiles } : {})
         }
       }
     } catch (err) {

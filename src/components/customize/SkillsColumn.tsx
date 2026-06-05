@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Skill } from '@/lib/types'
 import { toast } from '@/stores/toast-store'
 import { useSkillsStore } from '@/stores/skills-store'
+import { NewSkillWizard } from './NewSkillWizard'
 
 interface SkillDraft {
   name: string
@@ -150,6 +151,7 @@ export function SkillsColumn() {
 
   const [filter, setFilter] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   useEffect(() => {
     void loadSkills()
@@ -195,7 +197,7 @@ export function SkillsColumn() {
           className="min-w-0 flex-1 rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
         />
         <button
-          onClick={() => toast.info('New-skill wizard lands in C4')}
+          onClick={() => setWizardOpen(true)}
           className="rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] hover:border-[var(--accent)]"
           title="Create a new skill"
         >
@@ -281,6 +283,7 @@ export function SkillsColumn() {
       </div>
 
       {editing && <EditDrawer skill={editing} onClose={() => setEditingId(null)} />}
+      {wizardOpen && <NewSkillWizard onClose={() => setWizardOpen(false)} />}
     </div>
   )
 }

@@ -2,6 +2,31 @@ import { create } from 'zustand'
 import type { Skill } from '@/lib/types'
 import { toast } from '@/stores/toast-store'
 
+export interface SkillCreateInput {
+  name: string
+  description: string
+  content: string
+  /** Customize C3/C4: optional tool allowlist (glob patterns). */
+  allowedTools?: string[]
+  /** Customize C3/C4: optional per-skill model override. */
+  model?: string
+  /** Customize C3/C4: when false the skill is manual-only. */
+  autoInvoke?: boolean
+  /** Customize C4: when true, scaffold a directory-mode skill. */
+  directoryMode?: boolean
+  /** Customize C4: when directoryMode + this, write a reference.md stub. */
+  scaffoldReference?: boolean
+}
+
+export interface SkillUpdateInput {
+  name: string
+  description: string
+  content: string
+  allowedTools?: string[]
+  model?: string
+  autoInvoke?: boolean
+}
+
 interface SkillsState {
   skills: Skill[]
   activeSkillIds: string[]
@@ -9,11 +34,8 @@ interface SkillsState {
   setSkillsFromEvent: (skills: Skill[]) => void
   toggleSkill: (id: string) => void
   setActiveSkillIds: (ids: string[]) => void
-  createSkill: (input: { name: string; description: string; content: string }) => Promise<void>
-  updateSkill: (
-    id: string,
-    input: { name: string; description: string; content: string }
-  ) => Promise<void>
+  createSkill: (input: SkillCreateInput) => Promise<void>
+  updateSkill: (id: string, input: SkillUpdateInput) => Promise<void>
   deleteSkill: (id: string) => Promise<void>
 }
 

@@ -1,5 +1,22 @@
 # Lamprey Harness Dev Log
 
+## [Deep Research — Prompt D2] Adapter cascade + cross-provider dedup  —  2026-06-05
+
+**Files changed:**
+- `electron/services/web-search-adapters.ts` — new `getWebSearchAdapterById(id)` lets the cascade instantiate a specific provider without mutating `webTools.searchProvider` settings.
+- `electron/services/research/adapter-cascade.ts` (new) — `searchCascade(query, opts)` runs the configured cascade in first-non-empty mode by default, or merges across all configured providers when `mergeAll: true`. Transient HTTP errors (`429`, `5xx`, network/timeout/abort) fall through; non-transient errors throw a typed `CascadeFailureError`. Inline canonicaliser strips `www.`, fragments, `utm_*`/`fbclid`/`gclid`/`msclkid`/`yclid`/`dclid`/`igshid`/`_hsenc`/`_hsmi` params; sorts remaining params for stable dedup; trims trailing slash. `readDeepResearchSettings()` reads `deepResearch.providerCascade` from settings.json with default `['duckduckgo','brave','serpapi']`, plus `autoTrigger` (default `false` until D10 wires the orchestrator), `depthTier` (default `'auto'`), and model overrides.
+- `electron/services/research/adapter-cascade.test.ts` (new) — 23 tests across settings parsing, canonical-URL rules, dedup, first-non-empty cascade behaviour (429/503/empty fallthrough, unconfigured-provider skip, all-fail trail, providers override, non-transient abort), and mergeAll mode.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/research/adapter-cascade.test.ts ✓ (23/23)
+- vitest full suite ✓ (1426 passed | 18 skipped — +23 from D1's 1403)
+
+**Notes:** First test draft expected unconfigured providers to surface in `errors`; the implementation correctly filters them out *before* the cascade loop, so the test assertion was wrong, not the code. Settings parsing defaults `autoTrigger` to `false`; D10 flips this to `true` once `runDeepResearch()` exists. The cascade is intentionally provider-agnostic — every later stage that needs search reuses it without knowing or caring about Brave vs DDG vs SerpAPI.
+
+**Commit:** _pending_
+
 ## [Deep Research — Prompt D1] DuckDuckGo adapter (no-key default)  —  2026-06-05
 
 **Files changed:**
@@ -16,7 +33,7 @@
 
 **Notes:** First parser draft used a `<div class="result ...">` block regex that over-matched into the outer `<div class="results">` container and only captured the last block. Rewrote as a single anchor-walking strategy (every `result__a` → nearest `result__snippet` within 1.2 KB) which is more resilient to template revisions and passes all six parser fixtures. DDG returns simpler markup for desktop User-Agent strings, so the adapter sets a generic Chrome UA. Existing users keep their saved provider; default change only affects fresh installs.
 
-**Commit:** _pending_
+**Commit:** `7ec4e68`
 
 ## [Sandbox Parity Phase — COMPLETE] — 2026-06-05
 

@@ -79,7 +79,11 @@ export async function extractPage(
     return makeFailed(source, 'aborted', 'aborted before fetch')
   }
   let html: string
-  let contentType: string | null = null
+  // Assigned in both branches of the try/catch below; the catch path
+  // returns early, so contentType is always defined before the read at
+  // the content-type guard below. The `= null` initializer is omitted to
+  // satisfy `no-useless-assignment` (eslint flags the discarded init).
+  let contentType: string | null
   let status: number
   try {
     if (opts.fetchFn) {

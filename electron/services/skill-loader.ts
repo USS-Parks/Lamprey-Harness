@@ -12,6 +12,19 @@ export interface LoadedSkill {
   content: string
   filePath: string
   enabled: boolean
+  /** Customize C3: tool-glob allowlist injected into the skill block.
+   *  When omitted, the skill can call any tool the agent has access to. */
+  allowedTools?: string[]
+  /** Customize C3: optional per-skill model override. Field is parsed
+   *  and surfaced; routing wiring layers on top in a future phase. */
+  model?: string
+  /** Customize C3: when false the skill is manual-only (user must
+   *  reference it explicitly). Defaults to true. */
+  autoInvoke?: boolean
+  /** Customize C3: directory-mode siblings discovered next to
+   *  `skill.md`. Filenames are relative to the skill directory; the
+   *  agent reads them by path when referenced. Empty for flat skills. */
+  supportingFiles?: string[]
 }
 
 const skills = new Map<string, LoadedSkill>()
@@ -84,6 +97,34 @@ function discoverSkillFiles(dir: string): string[] {
   return files
 }
 
+function asStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const out: string[] = []
+  for (const item of value) {
+    if (typeof item === 'string' && item.trim()) out.push(item.trim())
+  }
+  return out.length ? out : undefined
+}
+
+function discoverSupportingFiles(skillFilePath: string): string[] | undefined {
+  // Only directory-mode skills have supporting files. A directory-mode
+  // skill is one whose filename is exactly `skill.md`.
+  if (basename(skillFilePath).toLowerCase() !== 'skill.md') return undefined
+  const dir = dirname(skillFilePath)
+  const rel: string[] = []
+  try {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry)
+      if (!statSync(full).isFile()) continue
+      if (entry.toLowerCase() === 'skill.md') continue
+      rel.push(entry)
+    }
+  } catch {
+    return undefined
+  }
+  return rel.length ? rel.sort() : undefined
+}
+
 function parseSkillFile(filePath: string): LoadedSkill | null {
   try {
     if (!statSync(filePath).isFile()) return null
@@ -97,13 +138,31 @@ function parseSkillFile(filePath: string): LoadedSkill | null {
       console.warn('[skill-loader] skipping skill without name:', filePath)
       return null
     }
+    const allowedTools = asStringArray(parsed.data.allowedTools ?? parsed.data['allowed-tools'])
+    const model =
+      typeof parsed.data.model === 'string' && parsed.data.model.trim()
+        ? parsed.data.model.trim()
+        : undefined
+    // Two equivalent spellings — matches what users coming from Claude
+    // Code's `disable-model-invocation` instinct expect. Default is on.
+    let autoInvoke: boolean | undefined
+    if (typeof parsed.data.autoInvoke === 'boolean') autoInvoke = parsed.data.autoInvoke
+    else if (typeof parsed.data['auto-invoke'] === 'boolean')
+      autoInvoke = parsed.data['auto-invoke'] as boolean
+    else if (typeof parsed.data['disable-model-invocation'] === 'boolean')
+      autoInvoke = !(parsed.data['disable-model-invocation'] as boolean)
+    const supportingFiles = discoverSupportingFiles(filePath)
     return {
       id: fileIdFromPath(filePath),
       name,
       description,
       content,
       filePath,
-      enabled: false
+      enabled: false,
+      ...(allowedTools ? { allowedTools } : {}),
+      ...(model ? { model } : {}),
+      ...(autoInvoke !== undefined ? { autoInvoke } : {}),
+      ...(supportingFiles ? { supportingFiles } : {})
     }
   } catch (err) {
     console.error('[skill-loader] failed to parse', filePath, err)

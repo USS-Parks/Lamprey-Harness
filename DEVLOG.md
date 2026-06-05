@@ -1,5 +1,23 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C3 — Skill format upgrade
+
+Brought the skill manifest closer to Claude Code's so users can ship richer skills, plus directory-mode supporting files.
+
+**Shipped**
+- `electron/services/skill-loader.ts` — `LoadedSkill` interface extended with `allowedTools?: string[]`, `model?: string`, `autoInvoke?: boolean`, `supportingFiles?: string[]`. Frontmatter parser accepts both kebab-case (`allowed-tools`, `auto-invoke`, `disable-model-invocation`) and camelCase forms; missing fields stay undefined so existing flat skills are unchanged. `discoverSupportingFiles()` walks the sibling files of `skill.md` and returns relative filenames sorted alphabetically.
+- `src/lib/types.ts` — `Skill` interface mirrors the new optional fields.
+- `electron/ipc/skills.ts` — `SkillInput` + `serializeSkill` preserve `allowedTools` / `model` / `autoInvoke` on writes; `skills:create` echoes them back in the response payload.
+- `electron/services/system-prompt-builder.ts` — `buildSystemPrompt` widens `activeSkillContents` to optionally include `allowedTools`. When present, the constraint surfaces as an `allowed-tools="…"` attribute on the `<skill>` element so the model can enforce it without bloating the body.
+- `electron/ipc/chat.ts` — when assembling the per-round skill block, `allowedTools` is propagated from the loaded skill into the system-prompt input.
+- `resources/skills/example-directory-skill/skill.md` + `reference.md` — first bundled directory-mode skill. Demonstrates `allowedTools`, `autoInvoke: false`, and a sibling reference doc.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx vitest run electron/services/system-prompt-builder.test.ts` → 24 / 24 pass (no regressions from the optional `allowedTools` widening).
+- `npx electron-vite build` → built in 6.56s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C2 — Skills column promotion
 
 Replaced the SkillsColumn placeholder with a real list+drawer surface and retired the legacy Skills tab from SettingsDialog.

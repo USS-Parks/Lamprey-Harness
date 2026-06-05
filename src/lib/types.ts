@@ -89,6 +89,14 @@ export interface Skill {
   content: string
   filePath: string
   enabled: boolean
+  /** Customize C3: glob patterns the skill is allowed to call. */
+  allowedTools?: string[]
+  /** Customize C3: per-skill model override. */
+  model?: string
+  /** Customize C3: false = manual `/name` only. Defaults to true. */
+  autoInvoke?: boolean
+  /** Customize C3: directory-mode sibling files (relative names). */
+  supportingFiles?: string[]
 }
 
 export type MemoryType = 'user' | 'feedback' | 'project' | 'reference'

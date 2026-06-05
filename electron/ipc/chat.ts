@@ -358,7 +358,7 @@ export function registerChatHandlers(): void {
         ? mergeAgenticSkillIds(activeSkillIds, agentic.skills)
         : activeSkillIds
 
-      let skillContents: { name: string; content: string }[] = []
+      let skillContents: { name: string; content: string; allowedTools?: string[] }[] = []
       if (effectiveSkillIds.length > 0) {
         const skills = listSkills()
         skillContents = effectiveSkillIds
@@ -366,9 +366,14 @@ export function registerChatHandlers(): void {
             const skill = skills.find((s) => s.id === id)
             if (!skill) return null
             const content = getSkillContent(id)
-            return content ? { name: skill.name, content } : null
+            if (!content) return null
+            return {
+              name: skill.name,
+              content,
+              ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {})
+            }
           })
-          .filter(Boolean) as { name: string; content: string }[]
+          .filter(Boolean) as { name: string; content: string; allowedTools?: string[] }[]
       }
 
       const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)

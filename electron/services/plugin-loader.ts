@@ -341,6 +341,106 @@ export function removePlugin(id: string): boolean {
 }
 
 /**
+ * Customize C10: list bundled plugin manifests that are NOT currently
+ * installed in `userData/plugins/`. Powers the "bundled catalog" tab in
+ * InstallPluginFlow so a user who removed a starter can pull it back.
+ */
+export function bundledPluginsNotInstalled(): PluginManifest[] {
+  const bundled = bundledPluginsRoot()
+  if (!existsSync(bundled)) return []
+  const result: PluginManifest[] = []
+  try {
+    for (const entry of readdirSync(bundled)) {
+      const full = join(bundled, entry)
+      try {
+        if (!statSync(full).isDirectory()) continue
+      } catch {
+        continue
+      }
+      const manifest = parseManifest(full)
+      if (!manifest) continue
+      if (plugins.has(manifest.id)) continue
+      result.push(manifest)
+    }
+  } catch {
+    /* return what we have */
+  }
+  return result.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * Customize C10: copy one bundled plugin by id into the userland root
+ * and rescan. Errors out if the plugin is already installed or if the
+ * bundled source is missing.
+ */
+export function installBundled(id: string): { ok: true; id: string } | { ok: false; error: string } {
+  if (plugins.has(id)) return { ok: false, error: `Plugin "${id}" is already installed` }
+  const src = join(bundledPluginsRoot(), id)
+  if (!existsSync(src)) return { ok: false, error: `No bundled plugin with id "${id}"` }
+  const dest = join(getPluginsRoot(), id)
+  if (!existsSync(dest)) mkdirSync(dest, { recursive: true })
+  copyMissingEntry(src, dest)
+  scanAll()
+  broadcastChange()
+  return { ok: true, id }
+}
+
+/**
+ * Customize C10: write an inline manifest (with optional sibling files)
+ * to a fresh plugin directory. `files` keys are paths relative to the
+ * plugin root; each value is the literal file contents. Used by the
+ * "Paste manifest" tab in InstallPluginFlow.
+ */
+export function installFromManifest(
+  manifest: PluginManifest,
+  files?: Record<string, string>
+): { ok: true; id: string } | { ok: false; error: string } {
+  try {
+    if (!manifest?.id || !/^[a-z0-9][a-z0-9-]*$/.test(manifest.id)) {
+      return { ok: false, error: 'Manifest id must be kebab-case (a-z, 0-9, -)' }
+    }
+    if (plugins.has(manifest.id)) {
+      return { ok: false, error: `Plugin "${manifest.id}" is already installed` }
+    }
+    const dest = join(getPluginsRoot(), manifest.id)
+    if (!existsSync(dest)) mkdirSync(dest, { recursive: true })
+    const manifestOut: PluginManifest = {
+      id: manifest.id,
+      name: manifest.name?.trim() || manifest.id,
+      description: manifest.description?.trim() || '',
+      version: manifest.version?.trim() || '0.1.0',
+      ...(manifest.author ? { author: manifest.author } : {}),
+      ...(manifest.homepage ? { homepage: manifest.homepage } : {}),
+      ...(manifest.category ? { category: manifest.category } : {}),
+      ...(typeof manifest.enabled === 'boolean' ? { enabled: manifest.enabled } : {})
+    }
+    writeFileSync(join(dest, 'plugin.json'), JSON.stringify(manifestOut, null, 2), 'utf-8')
+    if (files) {
+      for (const [rel, body] of Object.entries(files)) {
+        // Path-traversal guard: every relative path must resolve INSIDE
+        // dest. Reject absolute paths + parent-dir escapes.
+        const normalized = rel.replace(/\\/g, '/').replace(/^\/+/, '')
+        if (normalized.includes('..')) {
+          return { ok: false, error: `Refusing to write parent-escape path: ${rel}` }
+        }
+        const fullPath = join(dest, normalized)
+        if (resolve(fullPath).startsWith(resolve(dest)) === false) {
+          return { ok: false, error: `Path escapes plugin dir: ${rel}` }
+        }
+        const dirOnly = fullPath.slice(0, fullPath.length - basename(fullPath).length)
+        if (!existsSync(dirOnly)) mkdirSync(dirOnly, { recursive: true })
+        writeFileSync(fullPath, body, 'utf-8')
+      }
+    }
+    scanAll()
+    broadcastChange()
+    return { ok: true, id: manifest.id }
+  } catch (err) {
+    return { ok: false, error: (err as Error).message }
+  }
+}
+
+/**
  * Customize C7 stub for C10 wiring. Copies a manifest-valid directory
  * tree from `srcPath` into `<pluginsRoot>/<id>`, then rescans.
  */

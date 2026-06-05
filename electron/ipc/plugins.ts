@@ -1,10 +1,14 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
+import type { PluginManifest } from '../services/plugin-loader'
 import {
   listPlugins,
   getPlugin,
   setPluginEnabled,
   removePlugin,
-  installFromDirectory
+  installFromDirectory,
+  installFromManifest,
+  installBundled,
+  bundledPluginsNotInstalled
 } from '../services/plugin-loader'
 
 export function registerPluginsHandlers(): void {
@@ -70,9 +74,49 @@ export function registerPluginsHandlers(): void {
   })
 
   ipcMain.handle('plugins:installFromUrl', async (_event, _url: string) => {
-    // C10 wires the real URL-fetch + extract + validate flow. C8 ships
-    // the stub so the preload bridge + store can be exercised end-to-end.
-    return { success: false, error: 'URL install lands in C10' }
+    // Deferred: archive extraction (.zip / .tar.gz) needs a parser dep that
+    // isn't currently in production deps. The flow ships with the other
+    // three install paths (directory, manifest paste, bundled catalog);
+    // URL fetch + extract is a follow-up. See LAMPREY_CUSTOMIZE_PLAN.md C10.
+    return {
+      success: false,
+      error:
+        'URL install is not yet available. Use "From directory" or "Paste manifest" instead.'
+    }
+  })
+
+  ipcMain.handle(
+    'plugins:installFromManifest',
+    async (_event, manifest: PluginManifest, files?: Record<string, string>) => {
+      try {
+        if (!manifest || typeof manifest !== 'object') {
+          return { success: false, error: 'Manifest object is required' }
+        }
+        const result = installFromManifest(manifest, files)
+        if (!result.ok) return { success: false, error: result.error }
+        return { success: true, data: { id: result.id } }
+      } catch (err) {
+        return { success: false, error: (err as Error).message }
+      }
+    }
+  )
+
+  ipcMain.handle('plugins:listBundledAvailable', async () => {
+    try {
+      return { success: true, data: bundledPluginsNotInstalled() }
+    } catch (err) {
+      return { success: false, error: (err as Error).message }
+    }
+  })
+
+  ipcMain.handle('plugins:installBundled', async (_event, id: string) => {
+    try {
+      const result = installBundled(id)
+      if (!result.ok) return { success: false, error: result.error }
+      return { success: true, data: { id: result.id } }
+    } catch (err) {
+      return { success: false, error: (err as Error).message }
+    }
   })
 
   ipcMain.handle('plugins:pickDirectory', async (event) => {

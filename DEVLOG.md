@@ -1,5 +1,31 @@
 # Lamprey Harness Dev Log
 
+## 2026-06-05 — Customize Phase / C10 — Plugin install flow
+
+Three real install paths shipped. URL install deferred (see Notes).
+
+**Shipped**
+- `electron/services/plugin-loader.ts` — three new exports:
+  - `installFromManifest(manifest, files?)` — writes a fresh plugin dir from an inline JSON manifest + optional file map (path-traversal guarded; rejects `..` and absolute paths).
+  - `installBundled(id)` — copies one bundled plugin from `resources/plugins/<id>` into userland and rescans.
+  - `bundledPluginsNotInstalled()` — diff bundled vs userland and return manifests that aren't currently installed.
+- `electron/ipc/plugins.ts` — new handlers: `plugins:installFromManifest`, `plugins:installBundled`, `plugins:listBundledAvailable`. `plugins:installFromUrl` now returns a clear "use directory or manifest paste instead" error.
+- `electron/preload.ts` — bridge surface extended with `installFromManifest`, `installBundled`, `listBundledAvailable`.
+- `src/components/customize/InstallPluginFlow.tsx` — three-tab modal:
+  - **From directory** — native picker, copies into userland.
+  - **Paste manifest** — JSON textarea (manifest + optional `files` map); the IPC writes the plugin dir on validate.
+  - **Bundled catalog** — list of bundled plugins not currently installed with per-entry Install button.
+- `src/components/customize/PluginsColumn.tsx` — "+ Install" button opens the flow; replaces the C9 placeholder window event.
+- `src/components/customize/CustomizeView.tsx` — bottom "Browse plugins" CTA opens the same flow.
+
+**Notes — URL install deferred**
+The plan called for a `.zip`/`.tar.gz` URL install. Neither parser exists in current production deps, and adding `tar` / `unzipper` mid-execution without an npm install + sanity bake is the kind of fake polish the project explicitly avoids. The three implemented paths cover the user need (`From directory` handles cloned-from-Git plugins, `Paste manifest` handles single-file authors, `Bundled catalog` handles re-installs); a future phase can add archive support without rework.
+
+**Verify**
+- `npx tsc --noEmit -p tsconfig.web.json` → clean.
+- `npx tsc --noEmit -p tsconfig.node.json` → clean.
+- `npx electron-vite build` → built in 6.54s, no warnings.
+
 ## 2026-06-05 — Customize Phase / C9 — Plugins column UI + bundled starter plugins
 
 The third Customize column gains a real list, grouped by category, with per-row toggle + detail drawer. Ships two more bundled starter plugins so the column reads populated on first launch.

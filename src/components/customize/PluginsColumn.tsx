@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { LoadedPlugin } from '@/lib/types'
 import { usePluginsStore } from '@/stores/plugins-store'
+import { InstallPluginFlow } from './InstallPluginFlow'
 
 interface DetailDrawerProps {
   plugin: LoadedPlugin
@@ -121,6 +122,7 @@ export function PluginsColumn() {
   const disable = usePluginsStore((s) => s.disable)
   const remove = usePluginsStore((s) => s.remove)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [installOpen, setInstallOpen] = useState(false)
 
   useEffect(() => {
     void loadPlugins()
@@ -160,10 +162,7 @@ export function PluginsColumn() {
         </span>
         <div className="flex-1" />
         <button
-          onClick={() => {
-            // C10 wires the install flow. C9 leaves the affordance.
-            window.dispatchEvent(new CustomEvent('customize:open-install-plugin'))
-          }}
+          onClick={() => setInstallOpen(true)}
           className="rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] hover:border-[var(--accent)]"
           title="Install a plugin"
         >
@@ -258,6 +257,7 @@ export function PluginsColumn() {
           }}
         />
       )}
+      {installOpen && <InstallPluginFlow onClose={() => setInstallOpen(false)} />}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import type { McpServerConfig } from '@/lib/types'
 import { useMcpStore } from '@/stores/mcp-store'
 import { toast } from '@/stores/toast-store'
 import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
+import { AddConnectorFlow } from './AddConnectorFlow'
 
 type ServerWithStatus = McpServerConfig & { error?: string }
 
@@ -140,6 +141,7 @@ export function ConnectorsColumn() {
   const loadServers = useMcpStore((s) => s.loadServers)
   const reconnect = useMcpStore((s) => s.reconnect)
   const [filter, setFilter] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
 
   useEffect(() => {
     void loadServers()
@@ -166,7 +168,7 @@ export function ConnectorsColumn() {
           className="min-w-0 flex-1 rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
         />
         <button
-          onClick={() => toast.info('"Add connector" flow lands in C6')}
+          onClick={() => setAddOpen(true)}
           className="rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] hover:border-[var(--accent)]"
           title="Add a connector"
         >
@@ -224,6 +226,8 @@ export function ConnectorsColumn() {
       </div>
 
       {needsGoogleOAuth && <GoogleOAuthPanel onComplete={loadServers} />}
+
+      {addOpen && <AddConnectorFlow onClose={() => setAddOpen(false)} />}
     </div>
   )
 }

@@ -227,6 +227,7 @@ const api = {
     list: () => ipcRenderer.invoke('mcp:list'),
     getStatus: (id: string) => ipcRenderer.invoke('mcp:getStatus', id),
     reconnect: (id: string) => ipcRenderer.invoke('mcp:reconnect', id),
+    addServer: (config: unknown) => ipcRenderer.invoke('mcp:addServer', config),
     setupGoogleOAuth: () => ipcRenderer.invoke('mcp:setupGoogleOAuth'),
     approveToolCall: (callId: string, approved: boolean) =>
       ipcRenderer.invoke('mcp:approveToolCall', callId, approved),

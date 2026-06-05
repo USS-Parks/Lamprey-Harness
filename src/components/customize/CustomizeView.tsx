@@ -4,6 +4,7 @@ import { SkillsColumn } from './SkillsColumn'
 import { ConnectorsColumn } from './ConnectorsColumn'
 import { PluginsColumn } from './PluginsColumn'
 import { NewSkillWizard } from './NewSkillWizard'
+import { AddConnectorFlow } from './AddConnectorFlow'
 
 interface ColumnDef {
   id: CustomizeColumnId
@@ -54,6 +55,7 @@ export function CustomizeView() {
   const closeCustomize = useUiStore((s) => s.closeCustomize)
   const initialColumn = useUiStore((s) => s.customizeInitialColumn)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [addConnectorOpen, setAddConnectorOpen] = useState(false)
 
   // Highlighting only — every column renders all the time so the panel
   // shows the full surface at a glance, matching the Claude Code layout.
@@ -126,10 +128,7 @@ export function CustomizeView() {
           <CtaCard
             title="Connect your apps"
             description="Add an MCP server to extend tool reach."
-            onClick={() => {
-              /* C6 wires this. */
-            }}
-            disabled
+            onClick={() => setAddConnectorOpen(true)}
           />
           <CtaCard
             title="Create new skills"
@@ -148,6 +147,7 @@ export function CustomizeView() {
       </div>
 
       {wizardOpen && <NewSkillWizard onClose={() => setWizardOpen(false)} />}
+      {addConnectorOpen && <AddConnectorFlow onClose={() => setAddConnectorOpen(false)} />}
     </div>
   )
 }

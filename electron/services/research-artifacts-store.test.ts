@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, writeFileSync, existsSync, readFileSync, rmSync } from 'fs'
+import { mkdirSync, mkdtempSync, writeFileSync, existsSync, readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -33,7 +33,7 @@ afterEach(() => {
 function writeArtifactFile(dir: string, filename: string, content: string): string {
   const fullDir = join(dir, 'artifacts', 'research')
   if (!existsSync(fullDir)) {
-    require('fs').mkdirSync(fullDir, { recursive: true })
+    mkdirSync(fullDir, { recursive: true })
   }
   const fullPath = join(fullDir, filename)
   writeFileSync(fullPath, content, 'utf-8')

@@ -216,6 +216,35 @@ const goldens: GoldenCase[] = [
       'test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured'
     ].join('\n'),
     expectContains: 'test result'
+  },
+  // ─── K6 Python ───────────────────────────────────────────────────
+  {
+    filter: 'pytest',
+    input: [
+      'test_foo.py::test_one PASSED                                                     [ 50%]',
+      'test_foo.py::test_two PASSED                                                     [100%]',
+      '',
+      '======================== 2 passed in 0.04s ========================'
+    ].join('\n'),
+    expectContains: 'passed'
+  },
+  // ─── K6 Cloud ────────────────────────────────────────────────────
+  {
+    filter: 'terraform',
+    input: [
+      'Refreshing state...',
+      'aws_s3_bucket.foo: Refreshing state...',
+      'aws_s3_bucket.bar: Refreshing state...',
+      'Terraform will perform the following actions:',
+      '  # aws_instance.web will be created',
+      '  + resource "aws_instance" "web" {',
+      '      + ami           = "ami-123"',
+      '      + instance_type = "t3.micro"',
+      '    }',
+      '',
+      'Plan: 1 to add, 0 to change, 0 to destroy.'
+    ].join('\n'),
+    expectContains: 'Plan:'
   }
 ]
 

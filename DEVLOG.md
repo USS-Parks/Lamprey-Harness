@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K8] Tracking — SQLite migration + dashboard queries  —  2026-06-05
+
+**Files changed:**
+- `electron/services/database.ts` — extended `initSchema` with two new tables: `snip_events` (one row per successful filter match — drives the gain dashboard) and `snip_command_log` (one row per foreground shell call regardless of match — feeds the K12 Discover panel). Both tables have `(ts DESC)` indexes plus a secondary `(filter_name | command_head, ts DESC)`.
+- `electron/services/snip/tracking.ts` (new) — `recordEvent`, `recordCommandLog`, `getStats` (totals + top-5-by-tokens-saved + 14-day sparkline with zero-fill), `getRecent`, `getUnfilteredCommands`, `clearAll`. All wrapped in a `safe()` helper that swallows DB errors and returns a sane fallback per Invariant 5. `__setDbForTests` lets tests inject an in-memory better-sqlite3 connection without touching the Electron-backed singleton.
+- `electron/services/snip/tracking.test.ts` (new) — 13 tests against `:memory:` SQLite covering: stats totals + top-5 ordering, 14-day sparkline with zero-fill + window-cutoff, `getRecent` ordering + limit cap, `getUnfilteredCommands` matched-filter exclusion + since-window, `clearAll`, and best-effort failure (closed DB → empty payload, no throw).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (217 tests — K1-K7 plus K8's 13)
+- vitest full sweep — 1590 / 1608 passing; 18 failures in `memory-store.test.ts` (17) + `keychain.test.ts` (1) all from a pre-existing Windows EPERM tmpdir-race when SQLite still holds a handle during `rmSync`. Confirmed unchanged from the pre-K8 baseline (reverted database.ts → same failures).
+
+**Notes:** the tracking module is the first snip file that actually touches a side-effect (SQLite). It uses a `safe()` wrapper around every DB operation so a locked DB / corrupt schema / disk-full failure cannot block the model from receiving the filtered output (Invariant 5). The `__setDbForTests` escape hatch keeps the tests free of Electron — they pass a `better-sqlite3 ':memory:'` connection and the production `getDb()` path is never reached.
+
 ## [Snip — Prompt K7] Built-in filter set — build + files/search + linting + pkg + system + other  —  2026-06-05
 
 **Files changed:**

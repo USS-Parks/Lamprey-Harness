@@ -590,6 +590,37 @@ export function getWebSearchAdapter(): WebSearchAdapter | null {
   }
 }
 
+/**
+ * Build a specific adapter by id, regardless of which provider is currently
+ * "active" in settings. Used by the deep-research cascade (D2) to try a
+ * declared list of providers in order. Returns null when the requested
+ * provider is not fully configured (missing key / endpoint).
+ */
+export function getWebSearchAdapterById(id: WebSearchProviderId): WebSearchAdapter | null {
+  switch (id) {
+    case 'duckduckgo':
+      return new DuckDuckGoAdapter()
+    case 'brave': {
+      const key = getKey(keychainProviderFor('brave'))
+      return key ? new BraveAdapter(key) : null
+    }
+    case 'tavily': {
+      const key = getKey(keychainProviderFor('tavily'))
+      return key ? new TavilyAdapter(key) : null
+    }
+    case 'serpapi': {
+      const key = getKey(keychainProviderFor('serpapi'))
+      return key ? new SerpApiAdapter(key) : null
+    }
+    case 'searxng': {
+      const endpoint = readWebToolsSettings().searxngEndpoint?.trim()
+      return endpoint ? new SearxngAdapter(endpoint) : null
+    }
+    default:
+      return null
+  }
+}
+
 /** True if the provider has a key (Brave/Tavily/SerpAPI) or an endpoint (SearXNG). DDG needs neither. */
 export function isProviderConfigured(id: WebSearchProviderId): boolean {
   if (id === 'duckduckgo') return true

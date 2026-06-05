@@ -6,6 +6,9 @@ coverage/
 .env
 *.log
 lamprey.db
+lamprey.db-shm
+lamprey.db-wal
+.tmp-snip-*/
 .opencode/
 .tmp-test-user-data/
 SESSION-LOG/

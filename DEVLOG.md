@@ -1,5 +1,22 @@
 # Lamprey Harness Dev Log
 
+## [Deep Research — Prompt D9] Markdown synthesizer (strict-citation)  —  2026-06-05
+
+**Files changed:**
+- `electron/services/research/slugify.ts` (new) — small URL-safe slugifier: NFKD-strips diacritics, lowercases, hyphenates non-ASCII-alphanumerics, caps at 80 chars, falls back to `"research"` on empty/punctuation-only inputs.
+- `electron/services/research/synthesizer.ts` (new) — `synthesizeReport(input)` runs the strict-citation system prompt that lists the source pool by index and forbids citing anything else; on first generation `extractCitationRefs` walks every `[n]` / `[n, m]` ref (ignoring code-fence interiors) and validates against the source-pool indices. Fabricated refs trigger one retry with explicit feedback to the model; a second-pass failure raises `FabricatedCitationError` (typed, carrying the fabricated indices). This is the §2 rule 2 invariant — the synthesizer NEVER ships a report with a citation that doesn't map to a real source. After a clean validation pass, the model output (with any model-emitted `## Sources` / `## Bibliography` section stripped) is appended to a deterministically-built bibliography (`[n] [Title](URL) — accessed YYYY-MM-DD`, ordered by first appearance in the body). URLs and titles come straight from `CuratedSource`, never from the model. Filename is `research-<slug(question)>-<timestamp>.md`; the slug part is computed by the new helper.
+- `electron/services/research/synthesizer.test.ts` (new) — 20 tests across the slugifier (lowercase + hyphens, NFKD diacritics, empty fallback, length cap), `extractCitationRefs` (single, multi, multiple groups, code-fence exclusion), happy paths (complete report w/ bibliography, first-appearance ordering, dropping model-emitted bibliography, URL-from-source-not-model, dispute-pair context propagation), and the strict-citation validator (fabricated → throws, retry-then-succeed, error exposes fabricated indices, clean fixture passes), plus a smoke-check of the system prompt content.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/research/synthesizer.test.ts ✓ (20/20)
+- vitest full suite ✓ (1595 passed | 18 skipped — +20 from D8's 1575)
+
+**Notes:** Bibliography is built locally — the model is told NOT to emit a `## Sources` section, and if it does anyway we strip it before appending our own. That's the only way to guarantee the URLs in the final artifact correspond to the actual fetched sources rather than model-hallucinated variants. The retry path uses the same chat history with an additional explicit-correction message ("indices X are not in the pool; regenerate") so the model sees its own error before retrying. `FabricatedCitationError` carries the fabricated index list so the orchestrator (D10) can surface a clear failure message to the user — quality-bar over silent fallback.
+
+**Commit:** _pending_
+
 ## [Deep Research — Prompt D8] Multi-source corroboration  —  2026-06-05
 
 **Files changed:**
@@ -14,7 +31,7 @@
 
 **Notes:** First pass of `buildOppositionCandidates` had an upper bound on token overlap ("don't ask about paraphrases — they should have already clustered together"). But the clustering step is the upstream filter — two clusters in different buckets MEANS their embeddings disagreed regardless of how many tokens they share. So the upper bound was throwing away exactly the strongest contradiction candidates (e.g. "X has been demonstrated" vs "X is purely theoretical" — high token overlap, opposite meaning). Removed the upper bound; lower bound (0.15) still keeps us from asking about unrelated topics. The opposition pass is opt-in via `callLlm` so unit-test callers can avoid network/LLM cost; `corroborateWithOpposition` is the convenience entry-point for the orchestrator.
 
-**Commit:** _pending_
+**Commit:** `ec6ef29`
 
 ## [Deep Research — Prompt D7] Claim extraction (per source)  —  2026-06-05
 

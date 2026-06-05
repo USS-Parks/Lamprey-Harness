@@ -245,6 +245,19 @@ const goldens: GoldenCase[] = [
       'Plan: 1 to add, 0 to change, 0 to destroy.'
     ].join('\n'),
     expectContains: 'Plan:'
+  },
+  // ─── K7 Files ────────────────────────────────────────────────────
+  {
+    filter: 'rg',
+    input: Array.from({ length: 200 }, (_, i) => `src/file${i}.ts:${i}: foo`).join('\n'),
+    expectContains: 'src/file0.ts'
+  },
+  // ─── K7 Other ────────────────────────────────────────────────────
+  {
+    filter: 'gh-pr',
+    input: '',
+    expectContains: 'no PRs',
+    allowGrowth: true
   }
 ]
 

@@ -5,6 +5,7 @@ import { ConnectorsColumn } from './ConnectorsColumn'
 import { PluginsColumn } from './PluginsColumn'
 import { NewSkillWizard } from './NewSkillWizard'
 import { AddConnectorFlow } from './AddConnectorFlow'
+import { InstallPluginFlow } from './InstallPluginFlow'
 
 interface ColumnDef {
   id: CustomizeColumnId
@@ -56,6 +57,7 @@ export function CustomizeView() {
   const initialColumn = useUiStore((s) => s.customizeInitialColumn)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [addConnectorOpen, setAddConnectorOpen] = useState(false)
+  const [installPluginOpen, setInstallPluginOpen] = useState(false)
 
   // Highlighting only — every column renders all the time so the panel
   // shows the full surface at a glance, matching the Claude Code layout.
@@ -138,16 +140,14 @@ export function CustomizeView() {
           <CtaCard
             title="Browse plugins"
             description="Discover and install bundled plugin packs."
-            onClick={() => {
-              /* C10 wires this. */
-            }}
-            disabled
+            onClick={() => setInstallPluginOpen(true)}
           />
         </div>
       </div>
 
       {wizardOpen && <NewSkillWizard onClose={() => setWizardOpen(false)} />}
       {addConnectorOpen && <AddConnectorFlow onClose={() => setAddConnectorOpen(false)} />}
+      {installPluginOpen && <InstallPluginFlow onClose={() => setInstallPluginOpen(false)} />}
     </div>
   )
 }

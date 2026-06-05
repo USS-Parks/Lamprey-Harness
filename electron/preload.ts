@@ -231,7 +231,11 @@ const api = {
     remove: (id: string) => ipcRenderer.invoke('plugins:remove', id),
     installFromDirectory: (srcPath: string) =>
       ipcRenderer.invoke('plugins:installFromDirectory', srcPath),
+    installFromManifest: (manifest: unknown, files?: Record<string, string>) =>
+      ipcRenderer.invoke('plugins:installFromManifest', manifest, files),
     installFromUrl: (url: string) => ipcRenderer.invoke('plugins:installFromUrl', url),
+    listBundledAvailable: () => ipcRenderer.invoke('plugins:listBundledAvailable'),
+    installBundled: (id: string) => ipcRenderer.invoke('plugins:installBundled', id),
     pickDirectory: () => ipcRenderer.invoke('plugins:pickDirectory'),
     onChanged: (cb: (entries: unknown[]) => void) => {
       const handler = (_: unknown, entries: unknown[]) => cb(entries)

@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## [Deep Research — Prompt D7] Claim extraction (per source)  —  2026-06-05
+
+**Files changed:**
+- `electron/services/research/claims.ts` (new) — `extractClaims(page)` runs the configured claims model on a single extracted page with a strict-JSON system prompt that asks for atomic declarative claims, each paired with a verbatim source span. The prompt explicitly excludes opinions / marketing language / rhetorical questions / nav text / comment-section content / vague unverifiable assertions, and caps the per-source output at 25 claims (model is told to pick the most central if there are more). Failed-status pages short-circuit to `[]` with zero LLM cost. LLM errors and malformed JSON also fall to `[]` — the orchestrator relies on these never throwing so peer sources can keep working. `parseClaimsOutput` is exported for direct unit testing; it tolerates prose-wrapped JSON, drops entries without `text`, allows missing/non-string `span`, caps per-claim text at 400 chars and per-claim span at 600 chars, and assigns stable IDs `<source_n>-<i>`. `extractClaimsAll` batches with a configurable concurrency cap (default 6) and honours an abort signal.
+- `electron/services/research/claims.test.ts` (new) — 18 tests across parser shape (clean JSON, prose-wrapped, malformed, missing array, missing-text drop, non-string span tolerance, MAX cap, claim-text cap), `extractClaims` semantics (failed-status no-op, LLM-error → empty, valid output passes through, empty-claims output, user-message contains source URL + title), and `extractClaimsAll` (source-order flatten, failed-page skip without LLM call, abort signal respected).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/research/claims.test.ts ✓ (18/18)
+- vitest full suite ✓ (1555 passed | 18 skipped — +18 from D6's 1537; same 18 pre-existing Windows EPERM flakes in keychain + memory-store)
+
+**Notes:** Mirrored the planner/intent-classifier shape exactly (test-injectable LLM caller, prose-tolerant parser, capped output, no-throw failure path) so the next stages (D8 corroborator, D9 synthesiser) can read the codebase as one consistent module pattern. The per-claim text/span caps protect downstream context budget — a malformed model that emits a 50KB "claim" can't blow up the corroborator's clustering step.
+
+**Commit:** _pending_
+
 ## [Deep Research — Prompt D6] Readable-text extractor  —  2026-06-05
 
 **Files changed:**
@@ -13,9 +29,9 @@
 - vitest electron/services/research/extractor.test.ts ✓ (15/15)
 - vitest full suite — **D6-specific tests all pass**; 18 pre-existing Windows EPERM flakes in `electron/services/keychain.test.ts` (1) and `electron/services/memory-store.test.ts` (17) showed up. Confirmed not caused by D6 by stashing the working tree and re-running — same 18 failures on the D5 commit. Root cause is better-sqlite3 retaining a file handle on Windows after the test closes the mirror, blocking `rmSync(force: true)` of the temp dir on the next `beforeEach`. Environmental, not a regression. Will fix during phase wrap-up.
 
-**Notes:** `node-html-parser` weighs in at 169 KB unpacked (license MIT), well under the 300 KB gate. The class-pattern boilerplate pruner is conservative — drops anything whose `class`/`id` matches one of the obvious ad/nav/sidebar shapes; false positives degrade readability but never introduce wrong content. Main-block selection uses a strict `> 200 chars` threshold so a stub `<article>` shell doesn't outrank a real `<main>` body. The first compile flagged `result.error` as possibly-undefined when passed to `makeFailed`; coalesced to `'fetch failed'` so the type stays strict.
+**Notes:** `node-html-parser` weighs in at 169 KB unpacked (license MIT), well under the 300 KB gate. The class-pattern boilerplate pruner is conservative — drops anything whose `class`/`id` matches one of the obvious ad/nav/sidebar shapes; false positives degrade readability but never introduce wrong content. Main-block selection uses a strict `> 200 chars` threshold so a stub `<article>` shell doesn't outrank a real `<main>` body. The first compile flagged `result.error` as possibly-undefined when passed to `makeFailed`; coalesced to `'fetch failed'` so the type stays strict. The D6 commit accidentally tracked `lamprey.db-shm` and `lamprey.db-wal` (test-leftover SQLite WAL files); follow-up commit `9fadfac` untracks them and extends `.gitignore` to cover all `lamprey.db-*` sidecars.
 
-**Commit:** _pending_
+**Commit:** `0220479` + `9fadfac`
 
 ## [Deep Research — Prompt D5] Source collector — dedup, curate, rank  —  2026-06-05
 

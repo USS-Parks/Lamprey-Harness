@@ -97,6 +97,8 @@ export interface Skill {
   autoInvoke?: boolean
   /** Customize C3: directory-mode sibling files (relative names). */
   supportingFiles?: string[]
+  /** Customize C11: when sourced from an enabled plugin, the plugin id. */
+  pluginId?: string
 }
 
 // Customize C7/C8 — plugin manifest mirror, kept in `src/lib/types.ts`
@@ -168,6 +170,10 @@ export interface McpServerConfig {
   auth: 'google-oauth' | 'none'
   enabled: boolean
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
+  /** Customize C11: when set, this connector is registered transiently
+   *  by an enabled plugin. Removing/disabling the plugin removes the
+   *  entry; the user can't edit or persist it directly. */
+  pluginId?: string
 }
 
 export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter'

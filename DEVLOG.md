@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## [Sandbox Parity — Prompt S5] Linux bubblewrap profile — 2026-06-05
+
+**Files changed:**
+- `electron/services/sandbox/linux.ts` — replaces the stub with `applyLinuxProfile` + exported pure `buildBwrapArgs` arg builder. Uses `findOnPath('bwrap')` from `shell-tool.ts` (no `which` shellout). DI seams (`pathExists`, `locateBwrap`, `tmpdir`) keep it unit-testable on Windows. Returns `null` when bwrap is missing so the dispatcher's pass-through fires.
+- `electron/services/sandbox/linux.test.ts` (new) — 16 cases: 15 unconditional (argv shape, ro-binds for /usr /bin /etc, conditional /lib /lib64 skips, workspace + tmpdir + extra fsWritePaths binds, --proc /proc, --dev /dev, --chdir, --unshare-net toggle by policy, allowDomains note, sandboxTier, null-on-missing) + 1 linux-gated integration.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `electron/services/sandbox/` ✓ 53 pass, 2 skipped
+- **user-verification-needed:** confirm the gated integration test passes on a real Linux host with bwrap installed.
+
+**Notes:** bwrap has no domain-level filtering, so `{ allowDomains: [...] }` leaves the network open and emits a `note` on the SandboxOutput describing the limitation. The dispatcher's pass-through `note` already mentions "bwrap missing?" so when both layers fail the caller gets a useful breadcrumb trail.
+
+**Commit:** S5
+
 ## [Sandbox Parity — Prompt S4] macOS sandbox-exec profile — 2026-06-05
 
 **Files changed:**
@@ -14,7 +30,7 @@
 
 **Notes:** SBPL has no granular domain-allowlist primitive — `{ allowDomains: [...] }` falls back behaviourally to `'open'` with an SBPL `;;` comment line documenting the intent. The limitation is called out in a top-of-file comment.
 
-**Commit:** S4
+**Commit:** `f891ddc`
 
 ## [Sandbox Parity — Prompt S3] Sandbox profile abstraction layer — 2026-06-05
 

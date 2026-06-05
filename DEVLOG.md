@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Snip — Prompt K1] Engine: types + pipeline actions + runner  —  2026-06-05
+
+**Files changed:**
+- `electron/services/snip/types.ts` (new) — `MatchSpec`, `PipelineAction` tagged union (11 variants), `Filter`, `SnipEvent`, `SnipStats`, `SnipRecentRow`, `SnipDiscoverSuggestion`.
+- `electron/services/snip/actions.ts` (new) — pure implementations of all 11 actions + `ActionContext` (counters scratch).
+- `electron/services/snip/engine.ts` (new) — `runPipeline` (try/catch per step + prev-step fallback) + `estimateTokens` (`Math.ceil(len/4)`).
+- `electron/services/snip/engine.test.ts` (new) — 22 unit tests covering each action, runner containment semantics, and the token estimator.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest electron/services/snip/ ✓ (22 tests)
+
+**Notes:** the runner-containment test surfaced a real bug — `applyAction`'s exhaustive switch returns `undefined` at runtime for an unknown action tag, and the runner was previously letting that undefined become the next step's `input`. Fixed by adding (a) a `default: return input` in `applyAction` and (b) a `typeof next === 'string' ? next : prev` guard in `runPipeline`. The pipeline now genuinely never corrupts the model-facing output regardless of action shape. Per-prompt commit SHAs captured in the phase-close summary table at K14.
+
 ## [Sandbox Parity Phase — COMPLETE] — 2026-06-05
 
 All thirteen prompts landed on `feat/sandbox-parity-phase`. Plan moved to reference-only. Brings `shell_command` to functional parity with Claude Code's Bash tool: per-platform OS sandbox (sandbox-exec / bwrap), explicit bypass flag, shell selector, persistent cwd, anti-polling guard, monitor/list/stop/output aux tools, richer tool description, 2-minute default timeout, `'sandboxBypass'` risk vocabulary.

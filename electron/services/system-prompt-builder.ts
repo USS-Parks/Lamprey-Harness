@@ -228,7 +228,7 @@ function defaultBaseFor(modelId?: string): string {
 }
 
 export function buildSystemPrompt(
-  activeSkillContents: { name: string; content: string }[],
+  activeSkillContents: { name: string; content: string; allowedTools?: string[] }[],
   memoryBlock: string,
   systemPromptOverride?: string,
   agentsMd?: string,
@@ -273,7 +273,14 @@ export function buildSystemPrompt(
   }
 
   for (const skill of activeSkillContents) {
-    parts.push(`<skill name="${skill.name}">\n${skill.content}\n</skill>`)
+    // Customize C3: when the skill declares an `allowedTools` allowlist,
+    // surface it as an attribute on the opening tag so the model can
+    // enforce the constraint without leaking it into the body.
+    const attrs = [`name="${skill.name}"`]
+    if (skill.allowedTools && skill.allowedTools.length) {
+      attrs.push(`allowed-tools="${skill.allowedTools.join(',')}"`)
+    }
+    parts.push(`<skill ${attrs.join(' ')}>\n${skill.content}\n</skill>`)
   }
 
   return parts.join('\n\n')

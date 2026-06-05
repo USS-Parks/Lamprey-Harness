@@ -8,6 +8,9 @@ interface SkillInput {
   name: string
   description: string
   content: string
+  allowedTools?: string[]
+  model?: string
+  autoInvoke?: boolean
 }
 
 function slugify(name: string): string {
@@ -28,11 +31,14 @@ function uniqueId(baseSlug: string): string {
 }
 
 function serializeSkill(input: SkillInput): string {
-  const front = matter.stringify(input.content.trim() + '\n', {
+  const data: Record<string, unknown> = {
     name: input.name,
     description: input.description
-  })
-  return front
+  }
+  if (input.allowedTools && input.allowedTools.length) data.allowedTools = input.allowedTools
+  if (input.model) data.model = input.model
+  if (typeof input.autoInvoke === 'boolean') data.autoInvoke = input.autoInvoke
+  return matter.stringify(input.content.trim() + '\n', data)
 }
 
 export function registerSkillsHandlers(): void {
@@ -60,7 +66,10 @@ export function registerSkillsHandlers(): void {
           description: skill.description,
           content: skill.content,
           filePath,
-          enabled: false
+          enabled: false,
+          ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {}),
+          ...(skill.model ? { model: skill.model } : {}),
+          ...(typeof skill.autoInvoke === 'boolean' ? { autoInvoke: skill.autoInvoke } : {})
         }
       }
     } catch (err) {

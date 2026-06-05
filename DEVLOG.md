@@ -1,5 +1,23 @@
 # Lamprey Harness Dev Log
 
+## [Sandbox Parity — Prompt S3] Sandbox profile abstraction layer — 2026-06-05
+
+**Files changed:**
+- `electron/services/sandbox/index.ts` (new) — `SandboxTier` / `NetworkPolicy` / `SandboxOptions` / `SandboxInput` / `SandboxOutput` types; `applyProfile()` dispatcher that delegates to `./darwin.ts` / `./linux.ts` / `./win32.ts` and falls back to a pass-through with `tier: 'none'` when a platform module returns `null`.
+- `electron/services/sandbox/darwin.ts` (new, stub returning null — S4 fills in).
+- `electron/services/sandbox/linux.ts` (new, stub — S5 fills in).
+- `electron/services/sandbox/win32.ts` (new, stub — S6 fills in).
+- `electron/services/sandbox/index.test.ts` (new) — 6 cases covering the dispatch shape, pass-through tier on every platform, note annotations, no input mutation.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `sandbox/index.test.ts` ✓ 6/6
+
+**Notes:** Stubs structured so S4/S5/S6 can be implemented in parallel without merging the same line of `index.ts` — each fills in its own dedicated platform file; the dispatcher already routes correctly. No executor wiring yet — that happens in S6 when the result threads `sandboxTier` through `ShellResult`.
+
+**Commit:** S3
+
 ## [Sandbox Parity — Prompt S2] Shell selector (bash / powershell / auto) — 2026-06-05
 
 **Files changed:**
@@ -14,7 +32,7 @@
 
 **Notes:** On a Windows host where Git Bash IS installed at a standard path, the `'bash' + empty PATH` test takes the success branch rather than the error branch. Asserted with an `if (error)…else…` shape so both worlds pass. The selector defaults to `'auto'` so every existing caller is unaffected.
 
-**Commit:** S2
+**Commit:** `1c2cd53`
 
 ## [Sandbox Parity — Prompt S1] Persistent cwd state across shell calls — 2026-06-05
 

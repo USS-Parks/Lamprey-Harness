@@ -521,15 +521,15 @@ export function registerChatHandlers(): void {
           subAgentRunner: async (subMessages, modelId, subSignal) => {
             // chatOnce takes (messages, modelId, signal); sub-agents are
             // one-shot reasoning calls — per-model temperature/topP from
-            // modelConfig doesn't apply here. R2 returns {content, reasoning};
-            // R3 will plumb the reasoning back through this runner so the
-            // pipeline can persist it. For now (R2) propagate the body only.
+            // modelConfig doesn't apply here. R3: return the object form
+            // so Planner + Reviewer reasoning flows through forkAgent →
+            // SubAgentResult.reasoning → the saved Planner / Reviewer row.
             const result = await chatOnce(subMessages, modelId, subSignal, {
               correlationId,
               conversationId,
               purpose: 'sub-agent'
             })
-            return result.content
+            return { output: result.content, reasoning: result.reasoning }
           },
           coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) =>
             runChatRound(

@@ -39,7 +39,12 @@ vi.mock('../services/git-runner', () => ({
 // The mock fulfils the (messages, modelId, signal?, audit?) signature added
 // in Prompt 3 so the runner can pass an audit object through unchanged.
 const chatOnceMock = vi.fn<
-  (messages: any, modelId: string, signal?: AbortSignal, audit?: unknown) => Promise<string>
+  (
+    messages: any,
+    modelId: string,
+    signal?: AbortSignal,
+    audit?: unknown
+  ) => Promise<{ content: string; reasoning?: string }>
 >()
 vi.mock('./providers/registry', async () => {
   const actual = await vi.importActual<typeof import('./providers/registry')>(

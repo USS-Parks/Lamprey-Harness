@@ -244,6 +244,14 @@ const api = {
     }
   },
 
+  ccImport: {
+    discover: (opts?: { extraRoots?: string[] }) =>
+      ipcRenderer.invoke('ccImport:discover', opts ?? {}),
+    install: (payload: { sourcePath: string; overwrite?: boolean }) =>
+      ipcRenderer.invoke('ccImport:install', payload),
+    pickExtraRoot: () => ipcRenderer.invoke('ccImport:pickExtraRoot')
+  },
+
   mcp: {
     list: () => ipcRenderer.invoke('mcp:list'),
     getStatus: (id: string) => ipcRenderer.invoke('mcp:getStatus', id),

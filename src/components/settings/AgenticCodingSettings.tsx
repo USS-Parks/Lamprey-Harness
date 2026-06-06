@@ -3,6 +3,16 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { useSkillsStore } from '@/stores/skills-store'
 import type { AgenticCodingComposerMode } from '@/lib/types'
 
+const BUNDLED_WORKFLOW_SKILL_IDS = new Set([
+  'context',
+  'debug',
+  'fan-out',
+  'frontend-qa',
+  'plan',
+  'review',
+  'verify'
+])
+
 const COMPOSER_OPTIONS: Array<{
   id: AgenticCodingComposerMode
   label: string
@@ -35,11 +45,11 @@ export function AgenticCodingSettings() {
     if (skills.length === 0) void loadSkills()
   }, [skills.length, loadSkills])
 
-  // Only codex-* skills are eligible for the auto-activation list — the
-  // contract role is "coding" and these are the curated companions. Custom
-  // skills stay reachable via the regular skill panel.
-  const codexSkills = useMemo(
-    () => skills.filter((s) => s.id.startsWith('codex-')),
+  // Only the bundled workflow skills are eligible for the auto-activation
+  // list — the contract role is "coding" and these are the curated
+  // companions. Custom skills stay reachable via the regular skill panel.
+  const workflowSkills = useMemo(
+    () => skills.filter((s) => BUNDLED_WORKFLOW_SKILL_IDS.has(s.id)),
     [skills]
   )
 
@@ -72,7 +82,7 @@ export function AgenticCodingSettings() {
             </span>
             <span className="mt-1 block text-[13px] leading-relaxed text-[var(--text-muted)]">
               Every chat turn layers the coding contract role on top of the base prompt,
-              auto-activates the codex skills selected below, and runs the final-response composer
+              auto-activates the workflow skills selected below, and runs the final-response composer
               per the mode you pick. Off by default.
             </span>
           </span>
@@ -84,19 +94,18 @@ export function AgenticCodingSettings() {
           Auto-activated skills
         </h4>
         <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">
-          When mode is on, these codex skills are merged into every turn&apos;s active set
+          When mode is on, these workflow skills are merged into every turn&apos;s active set
           (your manually-toggled skills are kept as-is, no duplicates).
         </p>
-        {codexSkills.length === 0 ? (
+        {workflowSkills.length === 0 ? (
           <div className="rounded border border-dashed border-[var(--border)] p-3 text-[13px] text-[var(--text-muted)]">
-            No <code className="font-mono">codex-*</code> skills are installed yet. Drop the
-            bundled <code className="font-mono">codex-plan</code>, <code className="font-mono">codex-context</code>, and
-            <code className="font-mono"> codex-verify</code> SKILL.md files into your skills
-            directory.
+            No bundled workflow skills are installed yet. Drop the bundled{' '}
+            <code className="font-mono">plan</code>, <code className="font-mono">context</code>, and{' '}
+            <code className="font-mono">verify</code> SKILL.md files into your skills directory.
           </div>
         ) : (
           <div className="space-y-1.5">
-            {codexSkills.map((skill) => (
+            {workflowSkills.map((skill) => (
               <label
                 key={skill.id}
                 className="flex cursor-pointer items-start gap-3 rounded border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)]"

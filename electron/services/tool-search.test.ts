@@ -142,7 +142,7 @@ describe('scoreDescriptor', () => {
 describe('searchDescriptors', () => {
   const sample = [
     D('shell_command', 'Run a one-shot shell command', ['native', 'write', 'network']),
-    D('workspace_context', 'Codex-style workspace preflight', ['native', 'read', 'parallelizable']),
+    D('workspace_context', 'Workspace preflight', ['native', 'read', 'parallelizable']),
     D('memory_add', 'Save a fact about the user', ['native', 'write']),
     D('chrome__navigate', 'Navigate the browser tab', ['mcp', 'network', 'lazy']),
     D('chrome__click', 'Click a DOM node', [

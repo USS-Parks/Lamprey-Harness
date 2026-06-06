@@ -1,5 +1,5 @@
 ---
-name: Codex Frontend QA
+name: Frontend QA
 description: Exercise local UI changes in the in-app browser. Use for "test the UI", "check the page", "screenshot this", and layout QA.
 triggers:
   - test the UI

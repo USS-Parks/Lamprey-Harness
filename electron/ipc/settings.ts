@@ -37,7 +37,7 @@ const defaultSettings = {
   // Prompt 14: agentic coding mode. Off by default; existing settings.json
   // files migrate cleanly via the readSettings shallow-merge below.
   agenticCodingMode: false,
-  agenticCodingSkills: ['codex-plan', 'codex-context', 'codex-verify'] as string[],
+  agenticCodingSkills: ['plan', 'context', 'verify'] as string[],
   agenticCodingComposer: 'auto' as 'auto' | 'always' | 'never',
   // Snip Phase K9: master switch + verbose dashboard log. snipEnabled
   // is on by default so the layer lights up on first launch.

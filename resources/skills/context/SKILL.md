@@ -1,5 +1,5 @@
 ---
-name: Codex Context
+name: Context
 description: Gather repository context before answering or editing. Use for "what is this repo", "orient me", "preflight", and unfamiliar codebases.
 triggers:
   - what is this repo

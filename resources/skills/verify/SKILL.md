@@ -1,5 +1,5 @@
 ---
-name: Codex Verify
+name: Verify
 description: Verify recent changes with the right checks. Use for "verify", "did it work", "check the change", and pre-commit validation.
 triggers:
   - verify

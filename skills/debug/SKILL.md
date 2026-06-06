@@ -1,5 +1,5 @@
 ---
-name: Codex Debug
+name: Debug
 description: Reproduce, isolate, fix, and verify bugs. Use for "debug", "this is broken", "fix the bug", and failing tests.
 triggers:
   - debug

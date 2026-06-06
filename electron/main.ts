@@ -12,6 +12,7 @@ import { destroyAllBackgroundShells } from './services/shell-tool'
 import { destroyAllMonitors } from './services/monitor-service'
 import { fireHooks } from './services/hooks-runner'
 import { setUserDataPathProvider as setProviderUserDataPath } from './services/providers/registry'
+import { setPipelineUserDataPathProvider } from './services/agent-pipeline'
 import { startAutomations, stopAutomations } from './services/automations-runner'
 import { startLoopWakeups, stopLoopWakeups } from './services/loop-runner'
 import { mcpManager } from './services/mcp-manager'
@@ -465,6 +466,8 @@ app.whenReady().then(() => {
   // T1 — let chatStream's inactivity watchdog read settings.json without
   // dragging an electron import into provider-layer tests.
   setProviderUserDataPath(() => app.getPath('userData'))
+  // T3 — same trick for the pipeline's per-stage wall-clock budgets.
+  setPipelineUserDataPathProvider(() => app.getPath('userData'))
 
   registerAllIpcHandlers()
 

@@ -58,6 +58,7 @@ import {
 } from '../services/research'
 import {
   composeFinalResponse,
+  concatReasoningTrail,
   shouldComposeFinalResponse,
   summarizeRun
 } from '../services/final-response-composer'
@@ -524,13 +525,15 @@ export function registerChatHandlers(): void {
           subAgentRunner: async (subMessages, modelId, subSignal) => {
             // chatOnce takes (messages, modelId, signal); sub-agents are
             // one-shot reasoning calls — per-model temperature/topP from
-            // modelConfig doesn't apply here.
-            const text = await chatOnce(subMessages, modelId, subSignal, {
+            // modelConfig doesn't apply here. R3: return the object form
+            // so Planner + Reviewer reasoning flows through forkAgent →
+            // SubAgentResult.reasoning → the saved Planner / Reviewer row.
+            const result = await chatOnce(subMessages, modelId, subSignal, {
               correlationId,
               conversationId,
               purpose: 'sub-agent'
             })
-            return typeof text === 'string' ? text : String(text)
+            return { output: result.content, reasoning: result.reasoning }
           },
           coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) =>
             runChatRound(
@@ -628,7 +631,7 @@ export function registerChatHandlers(): void {
 
   ipcMain.handle('chat:generateTitle', async (_event, content: string) => {
     try {
-      const raw = await chatOnce(
+      const rawResult = await chatOnce(
         [
           {
             role: 'system',
@@ -639,7 +642,7 @@ export function registerChatHandlers(): void {
         ],
         'deepseek-v4-flash'
       )
-      const cleaned = raw.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.!?]+$/g, '').slice(0, 60)
+      const cleaned = rawResult.content.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.!?]+$/g, '').slice(0, 60)
       return { success: true, data: cleaned || content.slice(0, 40) }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'Title generation failed' }
@@ -680,7 +683,14 @@ export async function runChatRound(
   // RT2 — wall-clock for the whole turn (passed through recursive tool rounds
   // so the final assistant message's stage metric reflects total turn time,
   // not just the last round's). Defaults to Date.now() at the outermost call.
-  roundStartedAt?: number
+  roundStartedAt?: number,
+  /** Reasoning Audit Phase R6 — cumulative reasoning trail. Pre-existing
+   *  rounds' chain-of-thought; this round appends its own onDone.
+   *  Threaded through recursion so the FINAL round (no tool calls + the
+   *  composer ran) can fold the whole trail into the composer-row's
+   *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
+   *  the top-level call so callers don't need to pass it. */
+  roundReasonings: string[] = []
 ): Promise<RunChatRoundResult> {
   const turnStartedAt = roundStartedAt ?? Date.now()
   trace('runChatRound.enter', {
@@ -744,6 +754,12 @@ export async function runChatRound(
           if (!toolCalls || toolCalls.length === 0) {
             let finalContent = fullContent
             let draft: string | undefined
+            let composerReasoning: string | undefined
+            let composerRan = false
+            // R6 — append this round's reasoning to the cumulative trail
+            // BEFORE the composer runs. The trail then carries every
+            // round's CoT plus the composer's CoT into the saved final.
+            const roundsForTrail = [...roundReasonings, fullReasoning ?? '']
             if (resolveComposerGate(composerMode, round)) {
               emitPhase(conversationId, 'summarizing')
               try {
@@ -759,12 +775,15 @@ export async function runChatRound(
                   signal,
                   // chatOnce now takes an optional audit context; the composer
                   // passes it through transparently when callers supply one.
+                  // R2: composer runner returns {content, reasoning?}.
                   runner: (msgs, modelId, sig) =>
                     chatOnce(msgs, modelId, sig, audit && { ...audit, purpose: 'composer' })
                 })
-                if (composed) {
-                  finalContent = composed
+                if (composed.content) {
+                  finalContent = composed.content
                   draft = fullContent
+                  composerReasoning = composed.reasoning
+                  composerRan = true
                 }
               } catch (err) {
                 console.warn('[chat] final response composer failed:', err)
@@ -794,6 +813,19 @@ export async function runChatRound(
               }
             }
             const documents = drainPendingDocuments(correlationId)
+            // R6 — when the composer ran, write the CUMULATIVE per-round
+            // reasoning trail (plus the composer's own CoT) to this row's
+            // reasoning column, capped at MAX_REASONING_BYTES with an
+            // honest truncation marker. Tag the row stage='composer' so
+            // R7's MessageBubble shows the muted "Composer" chip.
+            // When the composer did NOT run (single-shot turn, no tool
+            // rounds, or composer failed), fall back to the streamed
+            // round's own reasoning unchanged — single-agent behavior is
+            // preserved exactly.
+            const finalReasoning = composerRan
+              ? concatReasoningTrail(roundsForTrail, composerReasoning)
+              : fullReasoning
+            const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
@@ -801,8 +833,9 @@ export async function runChatRound(
               content: finalContent,
               model,
               draft,
-              reasoning: fullReasoning,
-              documents
+              reasoning: finalReasoning,
+              documents,
+              stage: finalStage
             })
             // RT2 — per-stage token + duration metric for the assistant turn.
             // suppressDoneEvent=true means the coder stage of the multi-agent
@@ -907,6 +940,13 @@ export async function runChatRound(
           }
 
           try {
+            // R6 — fold THIS round's reasoning into the cumulative trail
+            // before recursing. The final round (no tool calls + composer
+            // ran) reads the trail off the `roundReasonings` parameter
+            // and folds it into the saved composer-row's reasoning column.
+            const nextRoundReasonings = fullReasoning && fullReasoning.length > 0
+              ? [...roundReasonings, fullReasoning]
+              : roundReasonings
             const next = await runChatRound(
               conversationId,
               model,
@@ -919,7 +959,8 @@ export async function runChatRound(
               composerMode,
               suppressDoneEvent,
               correlationId,
-              turnStartedAt
+              turnStartedAt,
+              nextRoundReasonings
             )
             resolve(next)
           } catch (err) {

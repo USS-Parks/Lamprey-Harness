@@ -420,6 +420,20 @@ function initSchema(db: Database.Database): void {
   // for turns that produced none. Rendered as cards below the message body.
   safeAddColumn(db, 'messages', 'documents TEXT')
 
+  // Reasoning Audit Phase R1: per-stage discriminator for assistant rows.
+  // NULL on legacy rows + single-agent runs (default semantic = "the single
+  // assistant row of the turn"). Multi-agent pipeline sets one of:
+  //   'planner'   — saved by agent-pipeline post-planner (R4); rendered
+  //                  attached to the next Coder/Composer bubble behind a
+  //                  "Show pipeline trace" toggle (R7).
+  //   'reviewer'  — saved by agent-pipeline post-reviewer (R5).
+  //   'composer'  — saved by chat.ts when the Final Response Composer runs,
+  //                  carrying the cumulative per-round reasoning trail (R6).
+  // 'coder' is implicit: any assistant row from the multi-agent pipeline that
+  // isn't planner/reviewer/composer is the Coder. We don't write 'coder'
+  // explicitly to keep migration of legacy rows a no-op (NULL stays NULL).
+  safeAddColumn(db, 'messages', 'stage TEXT')
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_conversations_project
       ON conversations(project_id, updated_at DESC);

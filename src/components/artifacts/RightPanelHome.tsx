@@ -111,7 +111,7 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
             key={pill.id}
             type="button"
             onClick={() => setActiveTool(pill.id)}
-            className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
+            className="group flex items-center gap-3 rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
           >
             <span className={`flex ${pill.iconSizeClass ?? 'h-11 w-11'} shrink-0 items-center justify-center`}>
               <img

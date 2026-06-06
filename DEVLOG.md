@@ -1,5 +1,27 @@
 # Lamprey Harness Dev Log
 
+## [Panels — Prompt P8] Auxiliary panel sweep — `--border` → `--panel-border` everywhere structural  —  2026-06-05
+
+**Files changed:** ~70 files across `src/components/` (activity, automations, library, memory, github, mcp, model, settings, customize, layout, ui, snip, plan, tools, workspace, etc.)
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- Final tally: `grep -rln 'border-[var(--border)]' src/components/` → **zero matches**. `grep -rcn 'border-[var(--panel-border)]' src/components/` → **463 occurrences**. Every legacy structural-chrome `--border` softened to `--panel-border`. Allow-list categories (popovers, modal frames, form controls, semantic stripes) survive as edges — just softened to the new 6%-alpha vocabulary.
+- user-verification-needed: launch Electron and walk Activity, Automations, Library, Memory, Settings (every tab), Customize, Snip, model picker, MCP status, GitHub panels. Confirm each reads as part of the panel system, not a different visual language. Tune any preset whose contrast doesn't pop in P9.
+
+**Notes:**
+- Global sweep via `find src/components -name '*.tsx' -exec sed -i 's|border-\[var(--border)\]|border-[var(--panel-border)]|g' {} +`. Surgical edits for special cases were handled in P3–P7; P8 catches everything that survived.
+- **Known trade-off:** form-control borders (input, textarea, select) are also softened from `--border` to `--panel-border` (6% alpha). Focus state still uses `--accent` so active inputs are clear, but resting-state edges blend more into the panel surface. This is consistent with the modern "low-chrome" vocabulary the phase chases (Linear, Notion do the same). If inputs read too washed out in P9 eyeball, the fix is to add a stronger `--input-border` token rather than reverting — kept as a P9 candidate.
+- Modal frames (SettingsDialog, AskUserModal, ToolApprovalModal, etc.) also softened. `shadow-2xl` carries the floating definition; the modal frame edge is now a whisper rather than a shout.
+- All semantic stripes (`--accent`, `--error`, `--success`, `--warning`, color-tier indicators like `border-amber-500/30`) survived untouched. Spot-checked via `grep -c 'border-[var(--accent)]\|border-[var(--error)]'` on the key files.
+- No new types, no new IPC, no new schemas. Pure className-string sweep.
+
+**Commit:** _this commit_
+
+---
+
 ## [Panels — Prompt P7] In-chat surfaces: zero card chrome  —  2026-06-05
 
 **Files changed:** `src/components/chat/AgentRunBanner.tsx`, `DeepResearchBanner.tsx`, `AgentRunInlineGroup.tsx`, `ToolUseCard.tsx`, `InlineApprovalChip.tsx`, `AttachmentPreview.tsx`, `PlanChecklist.tsx`, `PlanGoalsPanel.tsx`, `ReasoningBlock.tsx`, `CompressedRegionPill.tsx`, `ContextAttachBar.tsx`, `TranscriptNotice.tsx`, `WakeupPill.tsx`, `ToolUseGroup.tsx`, `SpawnTaskChip.tsx`, `SpawnTaskTray.tsx`, `ToolActivityChip.tsx`, `SourcePreviewPane.tsx`, `AtFileMention.tsx`, `ChapterQuickJumper.tsx`, `ChapterSidebar.tsx`, `ChatInput.tsx`, `DocumentCardRow.tsx`, `SlashCommandPalette.tsx`

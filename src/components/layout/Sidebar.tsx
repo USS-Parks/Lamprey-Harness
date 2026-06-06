@@ -1025,7 +1025,7 @@ function SidebarBody(props: SidebarBodyProps) {
                 if (!searchQuery.trim()) setFilterVisible(false)
               }}
               placeholder="Filter conversations…"
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 pl-7 text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+              className="w-full rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 pl-7 text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
             />
           </div>
         </div>

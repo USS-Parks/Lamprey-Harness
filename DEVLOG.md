@@ -1,5 +1,63 @@
 # Lamprey Harness Dev Log
 
+## Reasoning Audit Phase complete  —  2026-06-06 (v0.8.0)
+
+Ten-prompt phase closing the per-message reasoning-column audit gap. Every model-emitted chain-of-thought — Planner, Coder (per round + cumulative), Reviewer, Composer — is now preserved on disk, surfaced via the chat UI, and re-fed into the API stack on follow-up turns so the model can audit its own prior thinking. Closes the "no session history tool exists" gap surfaced by the Cascadian Shadow debug-session audit.
+
+| Prompt | Commit | Title |
+|---|---|---|
+| R1 | `27e5c1b` | Schema: add `stage` column to `messages` (idempotent, no backfill) |
+| R2 | `30d3d2f` | `chatOnce` returns `{content, reasoning}` — reads both `message.reasoning` (OpenRouter) AND `message.reasoning_content` (DashScope/DeepSeek non-streamed); composer runner contract widened |
+| R3 | `023aab7` | `SubAgentRunner` + `ForkAgentRunner` return-type widened to backwards-compatible union `string \| {output, reasoning?}`; `takeOutput` carries reasoning |
+| R4 | `d7b8311` | Planner persisted as its own row with `stage='planner'`; new `chat:planner-message` event; renderer hydrates via idempotent `appendPlannerMessage` |
+| R5 | `3481c9f` | Reviewer saveMessage passes `reasoning` + `stage='reviewer'`; works for both native-channel + inline-`<think>` emitters |
+| R6 | `2e843c8` | Cumulative per-round reasoning trail on composer-final + `MAX_REASONING_BYTES=65_536` + honest truncation marker + `stage='composer'` |
+| R7 | `8fd164e` | `MessageList` pre-walk attaches Planner rows; `MessageBubble` "Show pipeline trace ▾" toggle + Reviewer/Composer/orphan-Planner stage chips |
+| R8 | `ae47258` | Re-feed past reasoning to API on follow-up turns (gated by `includePastReasoningInContext`, default ON) |
+| R9 | `9ddb42d` | Settings → Reasoning Audit panel + end-to-end pipeline test |
+| R10 | _this commit_ | Phase wrap (version bump, DEVLOG, memory, CLAUDE.md, .exe build, push) |
+
+**Before → After example.** Pre-R5, a multi-agent turn with Reviewer = deepseek-reasoner (native channel) saved the Reviewer row as:
+
+```sql
+SELECT role, model, length(content), length(reasoning), stage
+  FROM messages WHERE conversation_id = '…' AND model = 'deepseek-reasoner' ORDER BY created_at;
+-- assistant | deepseek-reasoner | 412 | NULL | NULL   ← reasoning DROPPED at the SDK boundary
+```
+
+Post-R5 + R8 the same turn saves:
+
+```sql
+SELECT role, model, length(content), length(reasoning), stage
+  FROM messages WHERE conversation_id = '…' AND model = 'deepseek-reasoner' ORDER BY created_at;
+-- assistant | deepseek-v4-pro    | 318 | 1656 | planner   ← R4 (hidden in UI; "Show pipeline trace" toggle)
+-- assistant | deepseek-v4-flash  | ... |  ... | NULL      ← Coder (the visible reply)
+-- assistant | deepseek-reasoner  | 412 | 2103 | reviewer  ← R5 (now preserves native reasoning)
+```
+
+…and on the follow-up turn the API's assistant message contains `<think>` blocks rehydrated from the prior rows (R8, gated by `includePastReasoningInContext` — default ON).
+
+**Verify gate (full phase):**
+- tsc node ✓ · tsc web ✓
+- vitest ✓ (1916 pass / 38 skip — 18 new cases across the phase: 6 chatOnce reasoning extraction, 1 composer reasoning preserved, 2 takeOutput propagation, 1 happy-path widened to 2 rows, 2 Planner reasoning paths, 2 Reviewer reasoning paths, 6 concatReasoningTrail, 5 chat-history rehydration, 1 end-to-end pipeline trail)
+- electron-vite build ✓
+- npm run build:win → .exe + .zip + .blockmap + latest.yml in primary `dist/` (R10, this commit)
+
+**What stayed unchanged.** Inline `<think>` extraction (`splitInlineReasoning`/`splitInlineReasoningWithDraft`), per-round intermediate assistant saves at chat.ts:814-822, `ReasoningBlock.tsx`, streaming events, `FloatingEnvironmentCard`, every model-streaming provider adapter, the model-callable `multi_agent_run` tool path (intentionally stays body-only).
+
+**Plan locked decision (§2.9, per user direction 2026-06-06):** Planner rows are saved but **hidden** by default in chat; attached to the next downstream Coder/Composer bubble behind a "Show pipeline trace ▾" toggle. Orphan Planner rows (no downstream attachment, e.g. pipeline aborted before Coder) fall through to standalone render with a "Planner (orphan)" chip so the audit trail is never silently lost.
+
+**Out-of-scope follow-ups** (named in plan §6, deferred):
+- Reviewer hallucinated `<bash>` blocks as prose — prompt-tuning issue, not preservation
+- `get_conversation_history` model-callable tool — adjacent to R8's rehydration, additive
+- Dedicated Reasoning-Trace Viewer panel in the right sidebar
+- Reasoning export / audit-report generation
+- Per-stage token-cost accounting
+
+Plan officially reference-only.
+
+---
+
 ## [Reasoning Audit — Prompt R9] Tests + Settings UI panel  —  2026-06-06
 
 **Files changed:** `src/components/settings/ReasoningAuditSettings.tsx` (new file — single-toggle panel), `src/components/settings/SettingsDialog.tsx` (registered tab + renderer hook), `electron/services/agent-pipeline.test.ts` (end-to-end "every stage's reasoning lands on its own audit row with the right stage tag" case)

@@ -30,6 +30,7 @@ import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
 import { saveStageMetrics } from '../services/stage-metrics-store'
 import { approximateTokenCount } from '../services/multi-agent-run-tool'
+import { runGetConversationHistorySafe } from '../services/tool-conversation-history'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -1134,6 +1135,17 @@ async function resolveSingleToolCall(
       const entry = memStore.addMemory(args.content, conversationId)
       emitChatEvent('memory:added', entry)
       result = 'Saved to memory.'
+    } else if (toolName === 'get_conversation_history') {
+      // RT4 — read-only audit-shape access to prior turns in the active
+      // (or specified) conversation. The active conversation id is passed
+      // verbatim so the tool defaults to it.
+      const outcome = runGetConversationHistorySafe(args, conversationId)
+      if (outcome.ok) {
+        result = JSON.stringify(outcome.data)
+      } else {
+        result = `Error: ${outcome.error}`
+        explicitStatus = 'error'
+      }
     } else if (toolName === 'create_document') {
       const nameRaw = typeof args.name === 'string' ? args.name.trim() : ''
       const mimeRaw = typeof args.mimeType === 'string' ? args.mimeType.trim() : ''

@@ -1,5 +1,21 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning-Trace — Prompt RT4] get_conversation_history model-callable tool  —  2026-06-06
+
+**Files changed:** `electron/services/tool-conversation-history.ts` (new), `electron/services/tool-conversation-history.test.ts` (new), `electron/services/tool-registry.ts`, `electron/ipc/chat.ts`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- vitest (tool-conversation-history): 18 passed ✓
+- vitest (full suite): 1927 passed, 38 skipped (baseline 1909/38 + 18 new) ✓
+- user-verification-needed: launch + run a turn that asks the model to "use get_conversation_history with include_stage_metrics: true to summarize the last 3 turns" — confirm tool invocation, JSON result, no approval prompt. Tool inventory in DevTools should show the new descriptor with `risks: ['read']`, `requiresApproval: false`.
+
+**Notes:** New `tool-conversation-history.ts` exports `validateArgs`, `runGetConversationHistory`, `runGetConversationHistorySafe`. Schema params: `conversation_id?`, `turn_index?`, `limit?` (default 20, max 200, clamps + floors), `include_reasoning?` (default true), `include_stage_metrics?` (default false, attaches RT2 rows), `include_tool_calls?` (default false). Active-conversation resolver is injected so the dispatcher's current `conversationId` becomes the default. Risk classification: `risks: ['read']`, `requiresApproval: false`, `mutates: false`, `parallelizable: true` — read-only on the user's own DB rows, no network, no mutation. Registered in `tool-registry.ts` adjacent to `memory_add`; dispatched in `chat.ts` via a new `else if (toolName === 'get_conversation_history')` branch that calls `runGetConversationHistorySafe(args, conversationId)` and JSON-stringifies the result (or sets `explicitStatus='error'` on validation failure). Test suite mocks `conversation-store` + `stage-metrics-store` so the suite runs without SQLite — 18 tests cover validation edge cases (rejection paths, clamping), recency window, single-turn select, out-of-range, conditional reasoning/metrics/tool_calls attachment, conversation_id override, and the safe-wrapper success/error envelopes.
+
+**Commit:** _this commit_
+
 ## [Reasoning-Trace — Prompt RT3] Per-stage token-cost UI  —  2026-06-06
 
 **Files changed:** `electron/ipc/conversation.ts`, `electron/preload.ts`, `src/lib/types.ts`, `src/components/chat/StageTokenChips.tsx` (new), `src/components/chat/MessageBubble.tsx`, `src/components/chat/StreamStatusLine.tsx`

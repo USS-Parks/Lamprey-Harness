@@ -186,7 +186,7 @@ function removeByPath(filePath: string): void {
 }
 
 function rescanPluginCommands(): void {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pl = require('./plugin-loader') as {
     enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
   }
@@ -194,7 +194,7 @@ function rescanPluginCommands(): void {
   for (const { pluginId, rootPath } of pl.enabledPluginRoots()) {
     const dir = join(rootPath, 'slash-commands')
     if (!existsSync(dir)) continue
-    let files: string[] = []
+    let files: string[]
     try {
       files = discoverSlashFiles(dir)
     } catch {
@@ -243,7 +243,7 @@ export function initializeSlashCommandLoader(): void {
   // Customize C11 — pick up plugin-sourced commands now and on every
   // enabled-state change.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pl = require('./plugin-loader') as {
       subscribeToPluginChanges: (cb: () => void) => () => void
     }

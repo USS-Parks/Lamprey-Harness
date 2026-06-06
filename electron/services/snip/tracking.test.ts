@@ -53,9 +53,23 @@ const SCHEMA = `
   CREATE INDEX idx_snip_command_log_head ON snip_command_log(command_head, ts DESC);
 `
 
-let db: Database.Database
+// CI runs with `npm ci --ignore-scripts`, so better-sqlite3's native binding
+// is absent on the Linux runner. Detect that once and skip every test in this
+// file — matches the pattern in sessions-search.test.ts / loop-runner.test.ts.
+const HAS_NATIVE_SQLITE: boolean = (() => {
+  try {
+    const probe = new BetterSqlite3(':memory:')
+    probe.close()
+    return true
+  } catch {
+    return false
+  }
+})()
+
+let db: Database.Database | null = null
 
 beforeEach(() => {
+  if (!HAS_NATIVE_SQLITE) return
   db = new BetterSqlite3(':memory:')
   db.exec(SCHEMA)
   __setDbForTests(db)
@@ -63,13 +77,16 @@ beforeEach(() => {
 
 afterEach(() => {
   __setDbForTests(null)
-  db.close()
+  if (db) {
+    db.close()
+    db = null
+  }
 })
 
 const NOW = 1_780_000_000_000 // arbitrary fixed ts in mid-2026
 const ONE_DAY = 86_400_000
 
-describe('snip tracking — recordEvent + getStats', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip tracking — recordEvent + getStats', () => {
   it('returns the empty-shape SnipStats on a fresh DB', () => {
     const s = getStats(true, NOW)
     expect(s.totalEvents).toBe(0)
@@ -116,7 +133,7 @@ describe('snip tracking — recordEvent + getStats', () => {
   })
 })
 
-describe('snip tracking — sparkline', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip tracking — sparkline', () => {
   it('returns exactly 14 entries with newest at index 13', () => {
     recordEvent(mkEvt({ ts: NOW, tokensBefore: 1000, tokensAfter: 100 }))
     const s = getStats(true, NOW)
@@ -143,7 +160,7 @@ describe('snip tracking — sparkline', () => {
   })
 })
 
-describe('snip tracking — getRecent', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip tracking — getRecent', () => {
   it('returns newest-first, capped by limit', () => {
     for (let i = 0; i < 30; i++) {
       recordEvent(mkEvt({ ts: NOW - i, command: `cmd${i}`, filter: 'tsc' }))
@@ -162,7 +179,7 @@ describe('snip tracking — getRecent', () => {
   })
 })
 
-describe('snip tracking — getUnfilteredCommands', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip tracking — getUnfilteredCommands', () => {
   it('returns top-K unmatched commands by total tokens, ignoring matched ones', () => {
     // 3 runs of `foo` (unmatched, 100 tokens each = 300 total)
     for (let i = 0; i < 3; i++) {
@@ -214,7 +231,7 @@ describe('snip tracking — getUnfilteredCommands', () => {
   })
 })
 
-describe('snip tracking — clearAll', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip tracking — clearAll', () => {
   it('wipes both tables', () => {
     recordEvent(mkEvt({ ts: NOW, filter: 'x' }))
     recordCommandLog({
@@ -230,9 +247,9 @@ describe('snip tracking — clearAll', () => {
   })
 })
 
-describe('snip tracking — best-effort failure handling', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip tracking — best-effort failure handling', () => {
   it('recordEvent does not throw when the DB is closed', () => {
-    db.close()
+    db!.close()
     // Re-route the override to null so handle() falls back through to
     // the mocked getDb that throws. Tracking's safe() wrapper catches
     // and returns silently.
@@ -241,7 +258,7 @@ describe('snip tracking — best-effort failure handling', () => {
   })
 
   it('getStats returns an empty payload on DB failure', () => {
-    db.close()
+    db!.close()
     __setDbForTests(null)
     const s = getStats(true, NOW)
     expect(s.totalEvents).toBe(0)

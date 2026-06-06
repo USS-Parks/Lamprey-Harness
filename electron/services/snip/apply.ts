@@ -79,7 +79,6 @@ export function applySnip(
     return { result, event: null, bypassed: true, matchedFilter: null }
   }
 
-  let filter: Filter | null = null
   let filters: Filter[] = []
   try {
     filters = listActiveFilters()
@@ -87,7 +86,7 @@ export function applySnip(
     // Loader failure (e.g. corrupt YAML mid-stream) — never block.
     console.error('[snip] listActiveFilters failed; passing through:', err)
   }
-  filter = selectFilter(parsed, filters)
+  const filter = selectFilter(parsed, filters)
 
   const tokensRaw = estimateTokens(result.stdout) + estimateTokens(result.stderr)
 

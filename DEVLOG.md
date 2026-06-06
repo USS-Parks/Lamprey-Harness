@@ -1,5 +1,48 @@
 # Lamprey Harness Dev Log
 
+## [Robustness Hotfix — Phase Complete] v0.8.4 — duplicate-app + bash-as-prose ghost-reply closed  —  2026-06-06
+
+**Two user-reported defects closed end-to-end.** The 2026-06-06 screenshots showed (a) Lamprey occasionally opens a second app instance of itself and (b) the user often has to re-prompt to actually get the model to perform a duty (coder emitted `<bash>find …</bash>` as final prose). HX1-HX5 closes both, ships as **v0.8.4**.
+
+### Shipped commits
+
+- **HX1 `f48a79a`** — `app.requestSingleInstanceLock()` in `electron/main.ts`. Headless CLI exempted via `isHeadlessCliArgv`.
+- **HX2 `2fd31d1`** — shared `PSEUDO_TAG_GUARD` constant applied across planner / coder / reviewer / coworker + `COMPOSER_SYSTEM`. Reviewer body byte-identical to RT1 (golden snapshot).
+- **HX3 `4b33433`** — `content_raw TEXT` column on `messages` (idempotent `safeAddColumn`) + pure `sanitize-pseudo-tags.ts` rewriter + 22 vitest cases.
+- **HX4 `2ba44c6`** — wired sanitiser into `saveMessage` (assistant rows only); `Message.contentRaw?` exposed renderer-side; FTS indexes sanitised content; 5 round-trip tests (skip under same `NODE_MODULE_VERSION` mismatch that skips `snip/apply.test.ts`).
+- **HX5** _this commit_ — DEVLOG phase summary + README per `feedback_readme_is_part_of_ship` + CLAUDE.md Current State + memory updates + `package.json` 0.8.3 → 0.8.4 + ship arc (build / push / tag / release / CDN).
+
+### Final verify gate
+
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- vitest full suite: **1996 passed | 43 skipped (133 files)** — vs baseline 1963/38/131. No regressions. +33 passing (HX2 +13, HX3 +22 = +35; −2 from existing reviewer tests rolling under the new HX2 constant scope). +5 skipped (HX4's round-trip tests, native-binding constraint).
+- npm run lint ✓
+- npm run build:win ✓ — `Lamprey-0.8.4-x64.exe` + `Lamprey-0.8.4-x64.exe.blockmap` + `Lamprey-0.8.4-x64.zip` + `latest.yml` produced in worktree `dist/`, then moved into primary repo `dist/` per `feedback_release_artifacts_in_primary_dist`.
+
+### Ship arc
+
+- Push `claude/cool-wescoff-726885` → `main` (fast-forward merge).
+- Push tag `v0.8.4`.
+- `gh release create v0.8.4` with the four artifacts attached.
+- CDN evergreen rename + overwrite-upload `Lamprey-x64.exe` + `Lamprey-x64.zip` to the Cloudflare R2 bucket fronting `cdn.islandmountain.io` per `feedback_cdn_evergreen_artifacts`.
+
+### Honest limits (per `feedback_no_fake_polish`)
+
+- **HX1 single-instance lock**: marked **user-verification-needed** because the OS-level double-launch behaviour can only be observed by running the installed Lamprey from the desktop launcher. The tsc/build gate confirms the code path compiles + integrates; the actual second-process-exits behaviour is for the user to verify on the v0.8.4 installer.
+- **HX4 round-trip tests skip**: same `NODE_MODULE_VERSION` mismatch (better-sqlite3 v133 vs vitest's Node v137) that's been skipping `snip/apply.test.ts`. The 5 tests are written, mock `./database` with an in-memory better-sqlite3 instance, and will run when the binding matches.
+- **Reasoning-trace `<think>` reference in `PSEUDO_TAG_GUARD`**: the guard keeps "Reasoning belongs in your `<think>` block, not in prose." across all five roles where it's appended. Planner / coder / coworker may not natively emit `<think>` blocks; the instruction is ignored harmlessly when they don't. This was a conscious choice to keep the reviewer-byte-identical invariant.
+
+### Companion to
+
+- **RT1** (Reasoning-Trace Phase) — HX2 completes the rollout RT1 started but scoped to the reviewer only.
+- **HX3+HX4** — belt-and-braces for HX2: even when a model ignores `PSEUDO_TAG_GUARD`, the persist-side sanitiser cleans the bubble. `content_raw` keeps the audit trail honest.
+
+**Plan:** [PLANNING/LAMPREY_ROBUSTNESS_HOTFIX_PLAN.md](PLANNING/LAMPREY_ROBUSTNESS_HOTFIX_PLAN.md).
+
+---
+
 ## [Robustness Hotfix — Prompt HX4] Wire `sanitizePseudoTags` into `saveMessage`; expose `content_raw` in reads  —  2026-06-06
 
 **The wiring.** In `electron/services/conversation-store.ts`:

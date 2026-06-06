@@ -1,5 +1,29 @@
 # Lamprey Harness Dev Log
 
+## [Robustness Hotfix — Prompt HX1] Single-instance lock blocks duplicate Lamprey processes  —  2026-06-06
+
+**Defect.** Double-clicking the desktop launcher (or any re-launch firing while the splash is up) spawned a second independent Electron process. Each duplicate opened its own SQLite handle on `lamprey.db`, its own MCP clients, its own watchers — at minimum confusing, at worst a write-race on shared `userData/`.
+
+**Root cause.** `electron/main.ts` never called `app.requestSingleInstanceLock()`. Standard Electron defect for any app that doesn't add the pattern explicitly.
+
+**Fix.** Added the lock at the top of `electron/main.ts`, just after the `mainWindow` declarations and before any other `app.on(...)` handlers register. If the lock isn't acquired, the second process calls `app.quit()` + `process.exit(0)` immediately — no IPC handlers register, no DB opens, no MCP boots. On `second-instance` event, the primary process restores the existing `BrowserWindow` if minimized and focuses it.
+
+**Headless exempted.** `isHeadlessCliArgv(process.argv)` short-circuits the lock check entirely. Each `lamprey --headless …` is a one-shot CLI run that exits cleanly via `stopLoopWakeups()` + `stopAutomations()` already in the headless branch, so parallel headless invocations from a shell stay legitimate.
+
+**Files changed:** `electron/main.ts`, `PLANNING/LAMPREY_ROBUSTNESS_HOTFIX_PLAN.md` (the plan itself).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- user-verification-needed: double-click desktop launcher with Lamprey already open, confirm no second window appears + the existing window comes to front.
+
+**Notes.** `mainWindow` is declared with `let` immediately before the lock block, so the closure inside `app.on('second-instance', …)` resolves cleanly — at registration time the binding exists, at fire time it's assigned. No TypeScript "used before declaration" complaint.
+
+**Commit:** _this commit_
+
+---
+
 ## [Hotfix] v0.8.3 — Right-panel polish round 2  —  2026-06-06
 
 **Three follow-up fixes flagged from the v0.8.2 build.**

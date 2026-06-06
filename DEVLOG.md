@@ -1,5 +1,29 @@
 # Lamprey Harness Dev Log
 
+## [Right Sidebar Card Uniformity Hotfix] — 2026-06-06 (v0.7.4)
+
+Single-file fix for non-uniform card heights in the right-sidebar `RightPanelHome` (Workspace). The user reported two visible problems: cards were inconsistent heights, and the column scrolled.
+
+**Root cause**
+- The Terminal card carried an `iconSizeClass: 'h-[57px] w-[57px]'` override (a leftover from the icon-design pass), making that single card ~13px taller than the rest. Every other card used the default `h-11 w-11` (44×44).
+- Longer descriptions ("Plan goals checklist, approve or reject the gate", "Live agents, tool calls, wakeups, and scheduled jobs", "Embedded webview for docs and references") wrapped to two lines on common panel widths, while shorter ones (Files: "Workspace tree, filter, preview") fit on one line. That alone shifted card heights by ~14px row-to-row even without the Terminal override.
+- The container set `overflow-y-auto`, so once total stack height passed the panel's available height, the column scrolled instead of fitting cleanly.
+
+**Fix**
+- Removed the Terminal `iconSizeClass` override — Terminal icon now uses the standard `h-11 w-11` like every other pill.
+- Pinned each pill button to `h-[68px] shrink-0` so every card is exactly the Files card's height regardless of description length.
+- Added `truncate` to the description span so longer copy gets ellipsis-clipped to one line instead of wrapping and inflating the row.
+- Tightened pill gap (`gap-2.5` → `gap-2`) and switched the container from `overflow-y-auto` to `overflow-hidden`. Stack height: 8 cards × 68px + 7 gaps × 8px = 600px, plus header (40px) + panel padding (20px) = 660px — fits in the right panel at any normal window height with no scrollbar.
+
+**Files**
+- `src/components/artifacts/RightPanelHome.tsx` (only file touched).
+
+**Verification**
+- Both tsc configs clean.
+- Built signed Windows installer to primary `dist/`.
+
+---
+
 ## [Tavily Promotion Hotfix] — 2026-06-05 (v0.7.3)
 
 Single-prompt follow-up to the v0.7.2 research reliability work. User asked to switch primary search from DDG to Tavily after a real-world test confirmed DDG's HTML endpoint returns zero results for both POST and GET.

@@ -1,5 +1,5 @@
 ---
-name: Codex Review
+name: Review
 description: Perform a code-review pass focused on bugs and ship readiness. Use for "review this", "before I ship", "code review", and PR checks.
 triggers:
   - review this

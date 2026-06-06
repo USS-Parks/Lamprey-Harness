@@ -103,7 +103,7 @@ function loadModelConfig(
   }
 }
 
-const DEFAULT_AGENTIC_SKILLS = ['codex-plan', 'codex-context', 'codex-verify'] as const
+const DEFAULT_AGENTIC_SKILLS = ['plan', 'context', 'verify'] as const
 
 function loadAgenticCodingConfig(raw: Record<string, unknown> | null): AgenticCodingConfig {
   const off: AgenticCodingConfig = {

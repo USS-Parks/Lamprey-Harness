@@ -1,5 +1,5 @@
 ---
-name: Codex Plan
+name: Plan
 description: Plan coding work before editing. Use for "make a plan for", "plan this", "decompose", and similar requests.
 triggers:
   - make a plan for

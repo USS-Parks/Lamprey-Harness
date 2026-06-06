@@ -311,9 +311,9 @@ export interface AppSettings {
 }
 
 export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = [
-  'codex-plan',
-  'codex-context',
-  'codex-verify'
+  'plan',
+  'context',
+  'verify'
 ]
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {

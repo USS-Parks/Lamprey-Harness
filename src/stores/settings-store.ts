@@ -24,7 +24,7 @@ const defaultSettings: AppSettings = {
     coworker: 'qwen3-coder-plus'
   },
   agenticCodingMode: false,
-  agenticCodingSkills: ['codex-plan', 'codex-context', 'codex-verify'],
+  agenticCodingSkills: ['plan', 'context', 'verify'],
   agenticCodingComposer: 'auto',
   snipEnabled: true,
   snipVerbose: false

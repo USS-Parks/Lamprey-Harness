@@ -1,5 +1,5 @@
 ---
-name: Codex Fan Out
+name: Fan Out
 description: Use single-model sub-agents for independent angles. Use for "in parallel", "multiple angles", "compare approaches", and broad analysis.
 triggers:
   - in parallel

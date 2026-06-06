@@ -15,18 +15,18 @@
 
 ---
 
-## ⬇ Download v0.8.0
+## ⬇ Download v0.8.3
 
 Pick one — the `.exe` is the standard installer, the `.zip` is the portable bundle (unzip and run `Lamprey.exe` directly, no install required).
 
 | Format | File | Direct link |
 |---|---|---|
-| **NSIS installer** (Windows) | `Lamprey-0.8.0-x64.exe` | [Download .exe](https://github.com/USS-Parks/lamprey/releases/download/v0.8.0/Lamprey-0.8.0-x64.exe) |
-| **Portable ZIP** (Windows) | `Lamprey-0.8.0-x64.zip` | [Download .zip](https://github.com/USS-Parks/lamprey/releases/download/v0.8.0/Lamprey-0.8.0-x64.zip) |
+| **NSIS installer** (Windows) | `Lamprey-0.8.3-x64.exe` | [Download .exe](https://github.com/USS-Parks/lamprey/releases/download/v0.8.3/Lamprey-0.8.3-x64.exe) |
+| **Portable ZIP** (Windows) | `Lamprey-0.8.3-x64.zip` | [Download .zip](https://github.com/USS-Parks/lamprey/releases/download/v0.8.3/Lamprey-0.8.3-x64.zip) |
 
 Or browse all releases → <https://github.com/USS-Parks/lamprey/releases>
 
-**New in v0.8.0 — Reasoning Audit Phase (every model thought, kept on disk):** ten-prompt phase that closes a quiet data-loss path in the multi-agent pipeline. Before this release, chain-of-thought emitted by Planner and Reviewer models was silently dropped at the SDK boundary, and the composer-final row only carried the last round's thought. Now: (1) `chatOnce` reads both `message.reasoning` (OpenRouter) and `message.reasoning_content` (DashScope / deepseek-reasoner), so native-channel emitters survive; (2) Planner output is persisted as its own DB row with `stage='planner'`, hidden by default in the chat thread but surfaced behind a new **"Show pipeline trace ▾"** toggle on the Coder/Composer bubble below it; (3) Reviewer rows persist their chain-of-thought with a small "Reviewer" chip; (4) the composer-final row carries the **cumulative per-round reasoning trail** — `--- round 1 ---` / `--- round 2 ---` / `--- composer ---` separators, capped at 64 KB with an honest `[truncated for length — N kb omitted]` marker; (5) past reasoning is re-fed into follow-up turns as `<think>…</think>` blocks (toggle in Settings → Reasoning Audit, default ON). Single-agent mode unchanged. Bonus: matched soft drop-shadow under both sidebars in Light Mode. See [the spec](PLANNING/LAMPREY_REASONING_AUDIT_PLAN.md).
+**New since v0.8.0 — the Reasoning-Trace Viewer panel + right-panel polish.** v0.8.1 ([Reasoning-Trace Phase](PLANNING/LAMPREY_REASONING_TRACE_PLAN.md)) closes the five "out of scope" items from the v0.8.0 Reasoning Audit Phase: (1) the Reviewer is now guarded against `<bash>`-as-prose pseudo-tool hallucinations; (2) every assistant message persists a `message_stage_metrics` row (single mode → one `stage='single'` row, multi-agent → three rows for planner / coder / reviewer) so per-stage token cost is real-time visible as `StageTokenChips` on the bubble and a live `stage:<role>` segment on the streaming status line; (3) a new model-callable `get_conversation_history` tool lets the model address prior turns by index (low-risk, no approval gate, opt-in stage metrics + tool calls); (4) a dedicated **Reasoning Trace Viewer** is now the 11th right-panel pill — lists every assistant turn, expands each to per-stage subsections with debounced text search and stage-filter chips (All / Planner / Coder / Reviewer / Single); (5) audit-trail export to `.md` or `.csv` via the local `dialog.showSaveDialog`, reasoning content verbatim. v0.8.2 + v0.8.3 are right-panel polish: all nine pills now seat inside the panel at default width and distribute evenly with `flex-1 basis-0 min-h-[58px]`, the Background tasks icon was dilated 6.3% → 7.9% opaque to stop reading "faded" under the dark-mode invert filter, and the Reasoning trace pill finally has its own paired-PNG icon (Light + Dark View) instead of reusing the Plan icon. See [the spec](PLANNING/LAMPREY_REASONING_AUDIT_PLAN.md) for the v0.8.0 Reasoning Audit Phase that the v0.8.1+ work builds on.
 
 **Windows 10/11 x64.** Linux and macOS are buildable from source (`npm run build:linux` / `npm run build:mac`).
 
@@ -204,7 +204,7 @@ User-defined JavaScript sandbox hooks that fire on lifecycle events:
 
 ## Quick start
 
-1. **Download** the [v0.8.0 installer](https://github.com/USS-Parks/lamprey/releases/download/v0.8.0/Lamprey-0.8.0-x64.exe) and run it.
+1. **Download** the [v0.8.3 installer](https://github.com/USS-Parks/lamprey/releases/download/v0.8.3/Lamprey-0.8.3-x64.exe) and run it.
 2. **Get a key.** Easiest: <https://platform.deepseek.com> → sign up → create key → load $5. Lamprey also accepts Google AI Studio (Gemma), Alibaba DashScope (Qwen), and OpenRouter keys.
 3. **Paste your key** in the first-run modal. It's stored with `safeStorage` (OS keychain) under `userData/keys.json`.
 4. **Type something.** That's it.
@@ -280,9 +280,11 @@ Build history: [DEVLOG.md](DEVLOG.md).
 
 ## Roadmap
 
-Built and shipped (v0.8.0):
+Built and shipped (v0.8.x):
 
-- ✅ **Reasoning Audit** — every model-emitted chain-of-thought (Planner, Coder per-round + cumulative, Reviewer, Composer) preserved on disk, surfaced in the chat UI behind a "Show pipeline trace ▾" toggle on the Coder/Composer bubble, and re-fed into the API stack on follow-up turns (gated, default ON). Closes the "no session history tool exists" gap. SDK-boundary fix: `chatOnce` now reads both `message.reasoning` (OpenRouter) and `message.reasoning_content` (DashScope / deepseek-reasoner).
+- ✅ **Right-panel polish** (v0.8.2 + v0.8.3) — all nine right-panel pills (Files → Reasoning trace) seat inside the panel at default width and distribute evenly via `flex-1 basis-0 min-h-[58px]`. Background tasks icon dilated 6.3% → 7.9% opaque so it stops reading "faded" next to peers under the dark-mode `brightness(0) invert(1)` filter. Reasoning trace icon finally has its own paired-PNG art (Light + Dark View) instead of reusing the Plan icon.
+- ✅ **Reasoning-Trace Viewer** (v0.8.1) — 11th right-panel pill that lists every assistant turn, expands each to per-stage subsections (Planner / Coder / Reviewer / Single), debounced text search, stage-filter chips, `.md` + `.csv` audit-trail export via local `dialog.showSaveDialog`. Live `StageTokenChips` on every assistant bubble + live `stage:<role>` segment on the streaming status line, backed by a new `message_stage_metrics` table. New model-callable `get_conversation_history` tool lets the model address prior turns by index. Reviewer system prompt hardened against `<bash>`-as-prose pseudo-tool hallucinations.
+- ✅ **Reasoning Audit** (v0.8.0) — every model-emitted chain-of-thought (Planner, Coder per-round + cumulative, Reviewer, Composer) preserved on disk, surfaced in the chat UI behind a "Show pipeline trace ▾" toggle on the Coder/Composer bubble, and re-fed into the API stack on follow-up turns (gated, default ON). Closes the "no session history tool exists" gap. SDK-boundary fix: `chatOnce` now reads both `message.reasoning` (OpenRouter) and `message.reasoning_content` (DashScope / deepseek-reasoner).
 
 Built and shipped (v0.7.x):
 

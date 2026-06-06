@@ -58,6 +58,23 @@ export interface DocumentAttachment {
   createdAt: number
 }
 
+/** Reasoning-Trace RT2/RT3 — one row per (message, stage) for the per-stage
+ *  token + duration audit surface. Multi-agent turns produce planner + coder
+ *  rows on the coder message id and a reviewer row on the reviewer message id.
+ *  Single-agent turns produce one row with stage='single'. */
+export type StageKey = 'planner' | 'coder' | 'reviewer' | 'single'
+
+export interface StageMetric {
+  id: string
+  messageId: string
+  stage: StageKey
+  model: string | null
+  promptTokens: number | null
+  completionTokens: number | null
+  durationMs: number | null
+  createdAt: number
+}
+
 export type ConversationKind = 'local' | 'cloud' | 'worktree'
 
 export interface Conversation {

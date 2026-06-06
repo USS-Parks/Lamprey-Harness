@@ -137,6 +137,8 @@ const api = {
     updateTitle: (id: string, title: string) =>
       ipcRenderer.invoke('conversation:updateTitle', id, title),
     getMessages: (id: string) => ipcRenderer.invoke('conversation:getMessages', id),
+    listStageMetrics: (messageId: string) =>
+      ipcRenderer.invoke('conversation:listStageMetrics', messageId),
     appendSystem: (id: string, content: string) =>
       ipcRenderer.invoke('conversation:appendSystem', id, content),
     setModel: (id: string, model: string) => ipcRenderer.invoke('conversation:setModel', id, model),

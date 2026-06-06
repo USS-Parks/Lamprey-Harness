@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { randomUUID } from 'crypto'
 import * as store from '../services/conversation-store'
 import { chatOnce } from '../services/providers/registry'
+import { listStageMetrics } from '../services/stage-metrics-store'
 
 export function registerConversationHandlers(): void {
   ipcMain.handle('conversation:list', async () => {
@@ -104,6 +105,18 @@ export function registerConversationHandlers(): void {
   ipcMain.handle('conversation:getMessages', async (_event, id) => {
     try {
       return { success: true, data: store.getMessages(id) }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // RT3 — per-stage token + duration metrics for an assistant message.
+  // Single-agent turns return one row (stage='single'); multi-agent turns
+  // return planner + coder on the coder message id, reviewer on the
+  // reviewer message id.
+  ipcMain.handle('conversation:listStageMetrics', async (_event, messageId: string) => {
+    try {
+      return { success: true, data: listStageMetrics(messageId) }
     } catch (err: any) {
       return { success: false, error: err.message }
     }

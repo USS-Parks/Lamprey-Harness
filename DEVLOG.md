@@ -1,5 +1,19 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning-Trace — Prompt RT3] Per-stage token-cost UI  —  2026-06-06
+
+**Files changed:** `electron/ipc/conversation.ts`, `electron/preload.ts`, `src/lib/types.ts`, `src/components/chat/StageTokenChips.tsx` (new), `src/components/chat/MessageBubble.tsx`, `src/components/chat/StreamStatusLine.tsx`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- user-verification-needed: launch + run a single-agent turn → confirm one `single` chip renders under the assistant bubble · run a multi-agent turn → confirm `planner` + `coder` chips render on the coder bubble and `reviewer` chip on the reviewer bubble · during a multi-agent stream, the StreamStatusLine shows `stage:planner|coder|reviewer` next to the elapsed time · light + dark eyeball pass
+
+**Notes:** Three surfaces wired against RT2's `message_stage_metrics`. (1) New `conversation:listStageMetrics(messageId)` IPC handler + preload export so the renderer can fetch metric rows on bubble mount. (2) New `StageTokenChips` component on the assistant message bubble — fetches once via `window.api.conversation.listStageMetrics`, renders one chip per stage row showing the stage label + `formatTokens(completionTokens)` + `formatDuration(durationMs)`, with a hover title carrying the full model + raw values. Guards on `window.api` presence so the browser dev-mode path doesn't crash. (3) `StreamStatusLine` extended to read `useAgentStore.mode === 'multi'` + the running stage from `activeRun`; when present, inserts a `stage:<role>` segment in accent color between phase and token count. The persistent post-stream view (StageTokenChips on the bubble) and the live in-stream view (StreamStatusLine stage indicator) together replace what the plan called a "vitals pill expansion." Per-stage tokens use `completionTokens` since providers don't return separate prompt-token splits at this layer; prompt token field stays null and the UI omits it. Single-agent bubbles render one `turn` chip (mapping from `stage='single'`).
+
+**Commit:** _this commit_
+
 ## [Reasoning-Trace — Prompt RT2] Per-stage token-cost data layer  —  2026-06-06
 
 **Files changed:** `electron/services/database.ts`, `electron/services/stage-metrics-store.ts` (new), `electron/services/stage-metrics-store.test.ts` (new), `electron/services/agent-pipeline.ts`, `electron/ipc/chat.ts`

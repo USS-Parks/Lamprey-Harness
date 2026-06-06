@@ -8,6 +8,7 @@ import { ReasoningBlock } from './ReasoningBlock'
 import { MessageActions } from './MessageActions'
 import { WakeupPill } from './WakeupPill'
 import { DocumentCardRow } from './DocumentCardRow'
+import { StageTokenChips } from './StageTokenChips'
 
 interface MessageBubbleProps {
   message: Message
@@ -103,6 +104,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
             <MarkdownRenderer content={body} />
+            <StageTokenChips messageId={message.id} />
           </>
         )}
         <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">

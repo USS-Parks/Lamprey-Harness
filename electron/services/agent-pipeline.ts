@@ -306,16 +306,27 @@ function buildCoderUserContent(userContent: string, planText: string): string {
   ].join('\n')
 }
 
-function takeOutput(result: { results: { output: string | null; error?: string }[] }): {
+/** Take the first sub-agent result and surface its output + any error.
+ *  R3: also passes through `reasoning` so the pipeline can persist
+ *  Planner / Reviewer chain-of-thought on their saved rows (R4 + R5).
+ *  Empty-string output with no error is still treated as "no output". */
+function takeOutput(result: {
+  results: { output: string | null; reasoning?: string; error?: string }[]
+}): {
   output: string
+  reasoning?: string
   error?: string
 } {
   const first = result.results[0]
   if (!first) return { output: '', error: 'no sub-agent result' }
   if (first.error || first.output == null) {
-    return { output: first.output ?? '', error: first.error ?? 'sub-agent returned no output' }
+    return {
+      output: first.output ?? '',
+      reasoning: first.reasoning,
+      error: first.error ?? 'sub-agent returned no output'
+    }
   }
-  return { output: first.output }
+  return { output: first.output, reasoning: first.reasoning }
 }
 
 export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<void> {

@@ -1,5 +1,30 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning Audit — Prompt R3] `subAgentRunner` propagates `{output, reasoning}`  —  2026-06-06
+
+**Files changed:** `electron/services/subagent-runner.ts`, `electron/services/multi-agent-run-tool.ts`, `electron/services/multi-agent-run-tool.test.ts`, `electron/services/agent-pipeline.ts` (takeOutput), `electron/ipc/chat.ts` (subAgentRunner closure), `electron/services/spine-events-prompt4.test.ts` (mock typing)
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1901 pass / 38 skip — 2 new R3 cases: `runner returns {output, reasoning}` propagates + plain-string runner produces undefined reasoning)
+- electron-vite build ✓ (6.12s)
+- user-verification-needed: end-to-end pipeline turn against deepseek-v4-pro for both Planner + Reviewer; reasoning should now be CAPTURED through the layers; persistence still lands in R4/R5.
+
+**Notes:**
+- Strategy: widen `ForkAgentRunner` + `SubAgentRunner` return types to **union** `string | {output, reasoning?}` (backwards-compatible — every existing test runner returning `async () => 'ok'` keeps working unchanged). Normalize at the consumer side via `normalizeForkRunnerOutput()`.
+- `ForkAgentResult.rawReasoning?: string` is the new carry channel from `subagent-runner.ts` → `multi-agent-run-tool.ts` → `agent-pipeline.ts`.
+- `SubAgentResult.reasoning?: string` is the visible shape for `takeOutput`'s caller (agent-pipeline.ts Planner + Reviewer destructure sites).
+- `agent-pipeline.ts takeOutput()` widened to return `{output, reasoning?, error?}`.
+- `chat.ts` subAgentRunner closure now returns the object form so chatOnce's reasoning flows through.
+- `multi-agent-run-tool-pack.ts` (the model-callable `multi_agent_run` tool path) intentionally STAYS body-only (`.then(r => r.content)`) — reasoning is the chat-mode pipeline's concern, not the in-context tool's.
+- Touched the existing automation-runner test mock typing (`Promise<{content, reasoning?}>` instead of `Promise<string>`).
+- One ForkAgentResult interface drift fix: my first R3 edit accidentally dropped `elapsedMs` + `tokensUsedEstimate`; restored.
+
+**Commit:** _pending — current commit_
+
+---
+
 ## [Reasoning Audit — Prompt R2] `chatOnce` returns `{content, reasoning}`  —  2026-06-06
 
 **Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/services/final-response-composer.ts`, `electron/services/final-response-composer.test.ts`, `electron/ipc/chat.ts`, `electron/ipc/conversation.ts`, `electron/services/automations-runner.ts`, `electron/services/headless-runner.ts`, `electron/services/deepseek.ts`, `electron/services/multi-agent-run-tool-pack.ts`, `electron/services/research/{claims,corroborator,intent,planner,synthesizer}.ts`, `electron/services/spine-events-prompt4.test.ts`

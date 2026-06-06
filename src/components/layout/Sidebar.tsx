@@ -1140,7 +1140,7 @@ function SidebarBody(props: SidebarBodyProps) {
         </>
       )}
 
-      <div className="border-t border-[var(--border)] px-2 pb-2 pt-2">
+      <div className="mt-1 px-2 pb-2 pt-2">
         <NavRow
           icon={settingsIconUrl}
           label="Settings"

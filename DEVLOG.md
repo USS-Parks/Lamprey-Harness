@@ -1,5 +1,26 @@
 # Lamprey Harness Dev Log
 
+## [Panels — Prompt P3] Left sidebar interior cleanup  —  2026-06-05
+
+**Files changed:** `src/components/layout/Sidebar.tsx`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- user-verification-needed: launch Electron and confirm the sidebar reads as one continuous panel — no internal hairline separating the project list from the settings/Memory/footer strip; the strip is gently spaced (mt-1) instead of bordered. Hover states + project list scrolling still legible.
+
+**Notes:**
+- Audit found only **two** `border` usages in `Sidebar.tsx` after P2:
+  - Line 1028: search input `border border-[var(--border)]` — kept (form-control border, allow-list #7).
+  - Line 1143: footer-strip `border-t border-[var(--border)]` — replaced with `mt-1`.
+- Section headers (Projects, Recents, etc. inside `SidebarBody`) were already spacing-driven; no further hairlines to strip.
+- Final grep `grep -n border src/components/layout/Sidebar.tsx` returns one line — the search input. Allow-list compliant.
+
+**Commit:** _this commit_
+
+---
+
 ## [Panels — Prompt P2] Two rounded sidebar panels on transparent chat substrate  —  2026-06-05
 
 **Files changed:** `src/App.tsx`, `src/components/layout/Sidebar.tsx`

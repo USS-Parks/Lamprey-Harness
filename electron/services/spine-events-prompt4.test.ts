@@ -243,7 +243,9 @@ describe('automation runner emits automation.* events with a per-run correlation
         createdAt: 0
       }
     ])
-    chatOnceMock.mockResolvedValueOnce('the briefing')
+    // R2: chatOnce now returns {content, reasoning?} — automation runner
+    // reads .content from the result.
+    chatOnceMock.mockResolvedValueOnce({ content: 'the briefing' })
     await runAutomation('auto-1')
 
     const events = listEvents({ automationId: 'auto-1', order: 'asc' })

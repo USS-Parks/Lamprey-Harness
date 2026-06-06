@@ -1,5 +1,27 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning Audit — Prompt R2] `chatOnce` returns `{content, reasoning}`  —  2026-06-06
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/services/final-response-composer.ts`, `electron/services/final-response-composer.test.ts`, `electron/ipc/chat.ts`, `electron/ipc/conversation.ts`, `electron/services/automations-runner.ts`, `electron/services/headless-runner.ts`, `electron/services/deepseek.ts`, `electron/services/multi-agent-run-tool-pack.ts`, `electron/services/research/{claims,corroborator,intent,planner,synthesizer}.ts`, `electron/services/spine-events-prompt4.test.ts`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1899 pass / 38 skip — added 6 new `chatOnce` cases + 1 composer reasoning case; updated 1 automation mock to new return shape)
+- electron-vite build ✓ (6.95s)
+- user-verification-needed: run a single-agent turn against deepseek-reasoner (native reasoning channel) in Electron; confirm reasoning still arrives in the assistant row's `reasoning` column post-R2.
+
+**Notes:**
+- `ChatOnceResult` exported from `registry.ts`. Reads both `message.reasoning` (OpenRouter / some DeepSeek variants) and `message.reasoning_content` (DashScope qwen, deepseek-reasoner non-streamed). When both populated, `message.reasoning` wins. Whitespace-only treated as absent. Both fields trimmed.
+- `composeFinalResponse` runner contract widened to `Promise<{content, reasoning?}>`. Composer reasoning will be folded into the cumulative round-trail by R6.
+- 13 call sites updated: composer + subAgentRunner destructure; 11 body-only sites (research callLlm defaults, automation runner, headless runner, deepseek legacy wrapper, title generator, conversation compactor, multi-agent-run-tool-pack runner) get the body via `.content` or `.then(r => r.content)`.
+- `headless-runner.ts` now persists reasoning on the saved row too (bonus — consistent with interactive runs).
+- One test fix in `spine-events-prompt4.test.ts`: automation mock returns `{content: 'the briefing'}` instead of bare string.
+
+**Commit:** _pending — current commit_
+
+---
+
 ## [Reasoning Audit — Prompt R1] Schema: add `stage` column to `messages`  —  2026-06-06
 
 **Files changed:** `electron/services/database.ts`, `electron/services/conversation-store.ts`, `src/lib/types.ts`

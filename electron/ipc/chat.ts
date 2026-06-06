@@ -521,13 +521,15 @@ export function registerChatHandlers(): void {
           subAgentRunner: async (subMessages, modelId, subSignal) => {
             // chatOnce takes (messages, modelId, signal); sub-agents are
             // one-shot reasoning calls — per-model temperature/topP from
-            // modelConfig doesn't apply here.
-            const text = await chatOnce(subMessages, modelId, subSignal, {
+            // modelConfig doesn't apply here. R2 returns {content, reasoning};
+            // R3 will plumb the reasoning back through this runner so the
+            // pipeline can persist it. For now (R2) propagate the body only.
+            const result = await chatOnce(subMessages, modelId, subSignal, {
               correlationId,
               conversationId,
               purpose: 'sub-agent'
             })
-            return typeof text === 'string' ? text : String(text)
+            return result.content
           },
           coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) =>
             runChatRound(
@@ -625,7 +627,7 @@ export function registerChatHandlers(): void {
 
   ipcMain.handle('chat:generateTitle', async (_event, content: string) => {
     try {
-      const raw = await chatOnce(
+      const rawResult = await chatOnce(
         [
           {
             role: 'system',
@@ -636,7 +638,7 @@ export function registerChatHandlers(): void {
         ],
         'deepseek-v4-flash'
       )
-      const cleaned = raw.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.!?]+$/g, '').slice(0, 60)
+      const cleaned = rawResult.content.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.!?]+$/g, '').slice(0, 60)
       return { success: true, data: cleaned || content.slice(0, 40) }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'Title generation failed' }
@@ -751,12 +753,17 @@ export async function runChatRound(
                   signal,
                   // chatOnce now takes an optional audit context; the composer
                   // passes it through transparently when callers supply one.
+                  // R2: composer runner returns {content, reasoning?}.
                   runner: (msgs, modelId, sig) =>
                     chatOnce(msgs, modelId, sig, audit && { ...audit, purpose: 'composer' })
                 })
-                if (composed) {
-                  finalContent = composed
+                if (composed.content) {
+                  finalContent = composed.content
                   draft = fullContent
+                  // R6 will fold `composed.reasoning` into the cumulative
+                  // round-trail and write it on the composer-final row.
+                  // For R2 we capture-but-don't-persist; the round trail
+                  // collection lives in R6.
                 }
               } catch (err) {
                 console.warn('[chat] final response composer failed:', err)

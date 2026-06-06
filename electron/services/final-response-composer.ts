@@ -33,6 +33,19 @@ export interface RunSummary {
   draftReply: string
 }
 
+/** Reasoning Audit Phase R2 — the composer runner now returns BOTH the
+ *  rewritten body and any chain-of-thought the composer model emitted
+ *  while doing the rewrite. The composer's reasoning is later folded
+ *  into the cumulative round-trail by R6's `concatReasoningTrail()` so
+ *  the final saved composer row carries the *whole turn*'s thought log,
+ *  not just the last round's. Runner shape matches the
+ *  `ChatOnceResult` from providers/registry.ts so chat.ts can pass
+ *  `chatOnce` straight through. */
+export interface ComposerRunnerResult {
+  content: string
+  reasoning?: string
+}
+
 export interface ComposerRunnerInput {
   summary: RunSummary
   model: string
@@ -41,7 +54,7 @@ export interface ComposerRunnerInput {
     messages: ChatCompletionMessageParam[],
     model: string,
     signal?: AbortSignal
-  ) => Promise<string>
+  ) => Promise<ComposerRunnerResult>
 }
 
 function stringifyContent(content: unknown): string {
@@ -162,7 +175,7 @@ export async function composeFinalResponse({
   model,
   signal,
   runner
-}: ComposerRunnerInput): Promise<string> {
+}: ComposerRunnerInput): Promise<ComposerRunnerResult> {
   const prompt = buildComposerPrompt(summary)
   const reply = await runner(
     [
@@ -172,5 +185,10 @@ export async function composeFinalResponse({
     model,
     signal
   )
-  return reply.trim()
+  return {
+    content: reply.content.trim(),
+    // Reasoning trimmed at the chatOnce boundary already (see registry.ts);
+    // pass through as-is so R6 can fold it into the cumulative trail.
+    reasoning: reply.reasoning
+  }
 }

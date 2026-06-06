@@ -1,5 +1,19 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning-Trace — Prompt RT5] Reasoning-Trace Viewer panel shell + turn list  —  2026-06-06
+
+**Files changed:** `src/stores/ui-store.ts` (ToolId), `src/components/artifacts/RightPanelHome.tsx` (new pill), `src/components/tools/ToolsPanel.tsx` (label + icon + body switch), `src/components/layout/Titlebar.tsx` (Record<ToolId> extension), `src/components/tools/panels/ReasoningTracePanel.tsx` (new)
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- user-verification-needed: launch · 9th "Reasoning trace" pill renders on the right panel · click expands the docked drawer showing one card per assistant turn (model + stage count + total tokens + time-of-day) · empty conversation shows the "No reasoning yet" hint · light + dark eyeball pass
+
+**Notes:** New `'reasoning'` ToolId joins the existing 10 (now 11 total). Picked the clock-pointing glyph for the ToolsPanel header (consistent with the "historical retrospective" framing). Pill icon reuses `planIcon` for now — visually distinct from neighbors via the description text; can be swapped for a dedicated asset later. New `ReasoningTracePanel` component is the shell: pulls `conversation.getMessages` + per-message `conversation.listStageMetrics` from the renderer IPC, renders a vertical scrollable list of assistant turns with `#index · model · timeofday` header line and a `stages · tokens` subline. Selection state is local (`useState<string | null>`) and only flips a ring on the card — RT6 will use this hook to render the per-stage expansion + search + filter chips. Browser-dev guard checks `window.api` and short-circuits to the empty state if absent (per the `window.api` guard rule). The `Record<ToolId, string>` instances in `Titlebar.tsx` + `ToolsPanel.tsx` were extended in lockstep — tsc enforced this catching one unfinished surface during the verify gate.
+
+**Commit:** _this commit_
+
 ## [Reasoning-Trace — Prompt RT4] get_conversation_history model-callable tool  —  2026-06-06
 
 **Files changed:** `electron/services/tool-conversation-history.ts` (new), `electron/services/tool-conversation-history.test.ts` (new), `electron/services/tool-registry.ts`, `electron/ipc/chat.ts`

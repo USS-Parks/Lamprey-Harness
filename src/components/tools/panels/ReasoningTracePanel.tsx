@@ -1,18 +1,36 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
-import type { Message, StageMetric } from '@/lib/types'
+import { ReasoningBlock } from '@/components/chat/ReasoningBlock'
+import type { Message, StageMetric, StageKey } from '@/lib/types'
 
-// RT5 — Reasoning-Trace Viewer panel (shell). Lists every assistant turn in
-// the active conversation with its model + total tokens + stage count, and
-// emits an `onSelect` placeholder that RT6 will hook into for per-stage
-// expansion + search + filter chips. Data source: `conversation:getMessages`
-// (existing IPC) + `conversation:listStageMetrics` (new in RT3) per assistant
-// row. Browser-dev guard: render an empty-state hint if `window.api` is
-// absent.
+// RT5 + RT6 — Reasoning-Trace Viewer panel. Lists every assistant turn in
+// the active conversation with its model + total tokens + stage count;
+// clicking a row expands a per-stage view that reuses ReasoningBlock for
+// each stage's reasoning text. RT6 adds the debounced search filter and
+// the stage-filter chip cluster (All / Planner / Coder / Reviewer / Single).
+// Data sources: `conversation:getMessages` + per-message `conversation:
+// listStageMetrics`. Browser-dev guard: empty-state hint if `window.api`
+// is absent.
 
 interface TurnRow {
   message: Message
   metrics: StageMetric[]
+}
+
+type StageFilter = 'all' | StageKey
+const STAGE_FILTERS: Array<{ key: StageFilter; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'planner', label: 'Planner' },
+  { key: 'coder', label: 'Coder' },
+  { key: 'reviewer', label: 'Reviewer' },
+  { key: 'single', label: 'Single' }
+]
+
+const STAGE_NOTE: Partial<Record<StageKey, string>> = {
+  planner:
+    '(Planner output is folded into the Coder user message; the planner stage produces no separately-persisted reasoning. The metric row shows token + duration cost only.)',
+  reviewer:
+    '(Reviewer reasoning is not separately persisted on this turn — only the verdict body.)'
 }
 
 function formatTokens(n: number | null | undefined): string {
@@ -34,6 +52,15 @@ export function ReasoningTracePanel(): React.ReactElement {
   const [rows, setRows] = useState<TurnRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [stageFilter, setStageFilter] = useState<StageFilter>('all')
+
+  // RT6 — debounce the search term so rapid typing doesn't flash the list.
+  useEffect(() => {
+    const id = window.setTimeout(() => setSearchTerm(searchInput.trim().toLowerCase()), 250)
+    return () => window.clearTimeout(id)
+  }, [searchInput])
 
   useEffect(() => {
     if (!conversationId) {
@@ -79,6 +106,25 @@ export function ReasoningTracePanel(): React.ReactElement {
     }
   }, [conversationId])
 
+  const filteredRows = useMemo(() => {
+    if (!rows) return [] as TurnRow[]
+    return rows.filter((row) => {
+      if (stageFilter !== 'all') {
+        const hasStage = row.metrics.some((m) => m.stage === stageFilter)
+        if (!hasStage) return false
+      }
+      if (searchTerm) {
+        const haystack = (
+          (row.message.content ?? '') +
+          ' ' +
+          (row.message.reasoning ?? '')
+        ).toLowerCase()
+        if (!haystack.includes(searchTerm)) return false
+      }
+      return true
+    })
+  }, [rows, stageFilter, searchTerm])
+
   if (!conversationId) {
     return (
       <div className="flex flex-1 items-center justify-center p-6 text-[12px] text-[var(--text-muted)]">
@@ -108,51 +154,143 @@ export function ReasoningTracePanel(): React.ReactElement {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-b border-[var(--panel-border)] px-3 py-2 text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
-        {rows.length} assistant turn{rows.length === 1 ? '' : 's'}
-      </div>
-      <div className="flex-1 overflow-y-auto p-2.5">
-        <ul className="space-y-1.5">
-          {rows.map((row, idx) => {
-            const totalTokens = row.metrics.reduce(
-              (n, m) => n + (m.completionTokens ?? 0),
-              0
-            )
-            const stageCount = row.metrics.length
-            const isSelected = selectedId === row.message.id
+      <div className="flex flex-col gap-2 border-b border-[var(--panel-border)] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search reasoning + body…"
+            aria-label="Search reasoning trace"
+            className="flex-1 rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+          />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+            {filteredRows.length}/{rows.length}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          {STAGE_FILTERS.map((f) => {
+            const active = stageFilter === f.key
             return (
-              <li key={row.message.id}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSelectedId(isSelected ? null : row.message.id)
-                  }
-                  className={`w-full rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] p-2.5 text-left transition-all hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] ${
-                    isSelected ? 'ring-1 ring-[var(--accent)]' : ''
-                  }`}
-                  aria-label={`Turn ${idx + 1}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                      #{idx + 1}
-                    </span>
-                    <span className="text-[12px] text-[var(--text-primary)]">
-                      {row.message.model ?? 'unknown'}
-                    </span>
-                    <span className="ml-auto font-mono text-[11px] text-[var(--text-muted)]">
-                      {formatTime(row.message.timestamp)}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-                    <span>{stageCount} stage{stageCount === 1 ? '' : 's'}</span>
-                    <span aria-hidden>·</span>
-                    <span>~{formatTokens(totalTokens)} tokens</span>
-                  </div>
-                </button>
-              </li>
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setStageFilter(f.key)}
+                className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+                  active
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
+                    : 'border-[var(--panel-border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {f.label}
+              </button>
             )
           })}
-        </ul>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2.5">
+        {filteredRows.length === 0 ? (
+          <div className="p-4 text-center text-[12px] text-[var(--text-muted)]">
+            No turns match the current filters.
+          </div>
+        ) : (
+          <ul className="space-y-1.5">
+            {filteredRows.map((row) => {
+              const turnIndex = rows.indexOf(row)
+              const totalTokens = row.metrics.reduce(
+                (n, m) => n + (m.completionTokens ?? 0),
+                0
+              )
+              const stageCount = row.metrics.length
+              const isSelected = selectedId === row.message.id
+              const stagesToShow =
+                stageFilter === 'all'
+                  ? row.metrics
+                  : row.metrics.filter((m) => m.stage === stageFilter)
+              return (
+                <li key={row.message.id}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedId(isSelected ? null : row.message.id)
+                    }
+                    className={`w-full rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] p-2.5 text-left transition-all hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] ${
+                      isSelected ? 'ring-1 ring-[var(--accent)]' : ''
+                    }`}
+                    aria-label={`Turn ${turnIndex + 1}`}
+                    aria-expanded={isSelected}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                        #{turnIndex + 1}
+                      </span>
+                      <span className="text-[12px] text-[var(--text-primary)]">
+                        {row.message.model ?? 'unknown'}
+                      </span>
+                      <span className="ml-auto font-mono text-[11px] text-[var(--text-muted)]">
+                        {formatTime(row.message.timestamp)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+                      <span>{stageCount} stage{stageCount === 1 ? '' : 's'}</span>
+                      <span aria-hidden>·</span>
+                      <span>~{formatTokens(totalTokens)} tokens</span>
+                    </div>
+                  </button>
+                  {isSelected && (
+                    <div className="mt-1.5 space-y-1.5 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-tertiary)]/40 p-2">
+                      {stagesToShow.length === 0 ? (
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          No matching stages for this turn.
+                        </div>
+                      ) : (
+                        stagesToShow.map((m) => (
+                          <div key={m.id} className="space-y-1">
+                            <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
+                              <span className="font-mono uppercase tracking-wider">
+                                {m.stage}
+                              </span>
+                              {m.model && (
+                                <span className="text-[var(--text-muted)]">{m.model}</span>
+                              )}
+                              <span className="ml-auto font-mono text-[var(--text-muted)]">
+                                {m.completionTokens != null
+                                  ? `${formatTokens(m.completionTokens)} tokens`
+                                  : ''}
+                                {m.durationMs != null && (
+                                  <>
+                                    {m.completionTokens != null && ' · '}
+                                    {m.durationMs}ms
+                                  </>
+                                )}
+                              </span>
+                            </div>
+                            {/* Show reasoning + body for the message that owns this stage.
+                                For multi-agent planner riding on the coder message, the planner
+                                has no separate body — show the STAGE_NOTE explanation instead. */}
+                            {m.stage === 'planner' && row.message.model !== m.model ? (
+                              <div className="px-2 text-[11px] italic text-[var(--text-muted)]">
+                                {STAGE_NOTE.planner}
+                              </div>
+                            ) : m.stage === 'reviewer' && !row.message.reasoning ? (
+                              <div className="px-2 text-[11px] italic text-[var(--text-muted)]">
+                                {STAGE_NOTE.reviewer}
+                              </div>
+                            ) : (
+                              row.message.reasoning && (
+                                <ReasoningBlock content={row.message.reasoning} />
+                              )
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
     </div>
   )

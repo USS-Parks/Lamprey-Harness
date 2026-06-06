@@ -1,5 +1,43 @@
 # Lamprey Harness Dev Log
 
+## [Robustness Hotfix — Prompt HX4] Wire `sanitizePseudoTags` into `saveMessage`; expose `content_raw` in reads  —  2026-06-06
+
+**The wiring.** In `electron/services/conversation-store.ts`:
+- Imported `sanitizePseudoTags` from HX3.
+- Added `content_raw: string | null` to the `MessageRow` interface.
+- In `saveMessage`, after the existing `splitInlineReasoning(content, reasoning, draft)` split, compute `sanitizedContent` (assistant rows only) and `contentRaw` (only when sanitiser actually rewrote something — NULL otherwise to avoid bloating the DB with redundant duplicates of already-clean rows).
+- Extended the `INSERT INTO messages (…)` SQL with the `content_raw` column + bound parameter.
+- `getMessages` now reads `row.content_raw` and exposes it as `contentRaw` on the returned shape.
+- FTS index now uses `sanitizedContent` instead of `split.content` — search matches what the user sees in the bubble.
+- `saveMessage` return value gains `contentRaw?: string | undefined`.
+
+**Renderer type.** Added `contentRaw?: string | null` to `src/lib/types.ts` `Message` interface so renderer-side typings compile. **The UI does not consume it yet** — that's an opt-in for a future RT-Viewer audit-surface extension.
+
+**Sanitisation policy.**
+- `role === 'assistant'` → run `sanitizePseudoTags(split.content)`. If the result differs from input, persist `content = sanitized`, `content_raw = original`. If identical (no pseudo-tags), persist `content = original`, `content_raw = NULL`.
+- `role === 'user' | 'system' | 'tool'` → pass through unchanged, `content_raw = NULL`. A user pasting `<bash>` into the prompt area must not have their input rewritten.
+
+**Tests.** New `electron/services/conversation-store-sanitize.test.ts` — 5 round-trip cases through an in-memory better-sqlite3 mock of `./database` (recreates only the columns saveMessage touches): assistant-with-tags → fenced + raw preserved; assistant-no-tags → contentRaw NULL; user-with-tag-like-text → unchanged + contentRaw NULL; system + tool rows → pass-through + contentRaw NULL; idempotency on re-save of already-cleaned content.
+
+**Honest test-count note (per `feedback_no_fake_polish`).** The 5 HX4 round-trip cases SKIP in this vitest environment under the same `NODE_MODULE_VERSION` mismatch that skips `electron/services/snip/apply.test.ts` and friends: better-sqlite3's native binding is compiled for Electron (v133) but vitest runs under Node (v137). The cases are written + exercise the real `saveMessage` code path when the binding is available; the test count moved 1963 → 1996 (+33; HX2 added 13, HX3 added 22 = 35; the −2 delta is two existing reviewer tests rolling under the new HX2 constant scope). Skipped file count moved 4 → 5 (matches the +1 HX4 file). **The integration smoke at runtime is the real coverage**: user-verification-needed below.
+
+**Files changed:** `electron/services/conversation-store.ts`, `electron/services/conversation-store-sanitize.test.ts` (new), `src/lib/types.ts`.
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- vitest full suite: 1996 passed | 43 skipped (vs baseline 1963 | 38) ✓
+- user-verification-needed: launch app + run a multi-agent turn that historically emitted `<bash>` in coder output → confirm the chat bubble shows a clean fenced ```bash code block instead of pseudo-XML prose.
+
+**Notes.** Two reasons we don't auto-populate `content_raw` on every assistant row even when the sanitiser was a no-op:
+1. DB bloat — half the assistant turns are already clean; doubling their bodies adds GBs on long sessions.
+2. The semantic is "the model emitted something the sanitiser had to rewrite." NULL says "no rewrite happened — what you see IS what the model emitted." That's the audit signal a future RT-Viewer wants.
+
+**Commit:** _this commit_
+
+---
+
 ## [Robustness Hotfix — Prompt HX3] `content_raw` column + pure `sanitizePseudoTags` module  —  2026-06-06
 
 **Setup for HX4.** This prompt lands the data layer + the rewriter without touching the save path. HX4 then wires them together.

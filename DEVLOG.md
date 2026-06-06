@@ -1,5 +1,71 @@
 # Lamprey Harness Dev Log
 
+## [Panels Phase Complete] — 2026-06-05 (v0.6.0)
+
+Ten-prompt visual chrome overhaul. Lamprey now matches Claude Code on layout restraint — two rounded sidebar panels float on a warm two-tone substrate, the chat column between them is transparent so content flows directly on the substrate, and the bottom dock pill cluster (prompt input pill + adjacent chips + `FloatingEnvironmentCard`) is the only in-chat chrome. Right-panel interior cards (Recents, tool shortcuts, docked env card) preserved as-is per user constraint; `FloatingEnvironmentCard` untouched entirely.
+
+| Prompt | Title | Commit |
+|---|---|---|
+| P1 | Surface tokens + theme-preset feed-through | `8b5c516` |
+| P2 | Two rounded sidebar panels on transparent chat substrate | `5c4e9e4` |
+| P3 | Left sidebar interior cleanup | `dd97c8f` |
+| P4 | Right panel interior trim (cards preserved) | `e937210` |
+| P5 | Chat column transparent + ChatInput pill softened (FloatingEnvironmentCard untouched) | `bfe15f8` |
+| P6 | Modal interior surface cleanup | `685513c` |
+| P7 | In-chat surfaces: zero card chrome | `ffe3778` |
+| P8 | Auxiliary panel sweep — `--border` → `--panel-border` everywhere structural | `64bf3ae` |
+| P9 | Light + dark QA + light-mode bg-primary tune for input contrast | `a5da2be` |
+| P10 | Phase wrap (v0.6.0) | _this commit_ |
+
+**Architecture summary**
+
+- **Two-tone substrate**: `--app-bg` (warm cream in light, deeper shade in dark) is the outer shell tone; `--panel-bg` (white in light, `--bg-secondary` alias in dark) is the sidebar panel surface tone. The chat column does NOT have its own panel — it sits transparent on `--app-bg`.
+- **Five new CSS variables**: `--app-bg`, `--panel-bg`, `--panel-border` (6%-alpha edge), `--panel-radius` (12px), `--panel-gap` (8px). `appBg` + `panelBg` threaded through `ThemePresetTokens` so theme switching keeps them in sync across all 8 presets.
+- **Allow-list explicitly preserved**: floating UI (popovers/modal frames/toasts), form controls (input/textarea/select), semantic stripes (`--accent`, `--error`, color-tier indicators), resize handles, sandbox boundaries. All structural chrome `--border` softened to `--panel-border`; nothing in the allow-list was deleted.
+- **Two preservation guarantees enforced**: right-panel interior cards (RightPanelHome recents, tool shortcuts, docked env card) preserved as-is — P4 only trimmed outermost-edge hairlines that doubled the panel boundary; `FloatingEnvironmentCard.tsx` untouched entirely (zero className/prop/position-math/fade/width-tracking change).
+- **Final tally**: 0 `border-[var(--border)]` usages remaining; 463 `border-[var(--panel-border)]` usages. Light-mode `--bg-primary` tuned from `#ffffff` to `#f8f9fa` so form-control inputs read as distinct surfaces against the new white `--panel-bg`.
+
+**Trade-offs documented**
+- Form-control input borders softened to 6%-alpha. Focus state still uses `--accent`; resting state edges blend more into the panel surface. Consistent with the modern "low-chrome" vocabulary the phase chases.
+- Modal outer frames also softened — `shadow-2xl` carries the floating definition.
+- Banner perimeter borders dropped entirely (PlanChecklist, TranscriptNotice, AgentRunBanner, DeepResearchBanner, etc.); tonal lift via `--bg-tertiary` carries the distinction.
+
+**Phase verify**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- final `grep -rn 'border-[var(--border)]' src/components/` → 0 matches
+- user-verification-needed: launch Electron, walk every theme preset in dark + light; confirm two sidebar panels read as floating, chat is transparent, right-panel cards unchanged, `FloatingEnvironmentCard` fade timing identical, modals float cleanly, no perimeter borders on banners or in-chat content.
+
+**Plan**: `PLANNING/LAMPREY_PANELS_PLAN.md` (P1 → P10). Now reference-only.
+
+**Commit range**: `b214a84` (plan landing) → `8b5c516`..`<P10 SHA>` (per-prompt + phase wrap).
+
+---
+
+## [Panels — Prompt P10] Phase wrap (v0.6.0)  —  2026-06-05
+
+**Files changed:** `package.json`, `package-lock.json`, `CLAUDE.md`, `README.md`, `DEVLOG.md`, `memory/MEMORY.md`, `memory/project_build_status.md`, `PLANNING/LAMPREY_PANELS_PLAN.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- `git status` clean post-commit
+- Plan officially reference-only
+
+**Notes:**
+- Bumped `package.json` + `package-lock.json` `0.5.2 → 0.6.0` (minor bump — user-visible chrome change without breaking API).
+- DEVLOG appended with full Panels Phase Complete summary (above) listing all 10 commits + architecture + trade-offs.
+- `memory/project_build_status.md` got a "Panels Phase — complete 2026-06-05 (v0.6.0)" section.
+- `memory/MEMORY.md` Build status line updated to mention Panels Phase + seven plans reference-only.
+- `CLAUDE.md` "Current State" gained a Panels bullet; execution rule §1 wording added "LAMPREY_PANELS_PLAN.md" to the reference-only list (along with the also-shipped Snip + Customize plans which weren't previously listed).
+- `README.md` "New in v0.6.0" section replaces the v0.3.6 sandbox-parity blurb; download links point at the v0.6.0 release artifacts.
+
+**Commit:** _this commit_
+
+---
+
 ## [Panels — Prompt P9] Light + dark QA tuning + screenshot grid  —  2026-06-05
 
 **Files changed:** `src/styles/theme-presets.ts`, `src/styles/index.css`

@@ -1,5 +1,19 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning-Trace — Prompt RT6] Viewer per-stage expansion + search + filter chips  —  2026-06-06
+
+**Files changed:** `src/components/tools/panels/ReasoningTracePanel.tsx`
+
+**Verify gate:**
+- tsc node ✓ (no node-side changes; covered by RT5 baseline)
+- tsc web ✓
+- electron-vite build ✓
+- user-verification-needed: launch · open the Reasoning trace panel · click a turn row → expansion shows one stage subsection per metric row · search box filters list by content/reasoning text match (debounced 250ms) · stage chips (All / Planner / Coder / Reviewer / Single) restrict both the visible turns AND the subsections inside each expansion · multi-agent turn → coder bubble's expansion shows planner subsection with the explanatory note + coder subsection with ReasoningBlock · single-agent turn → expansion shows one `single` subsection with the message's reasoning · light + dark eyeball pass
+
+**Notes:** Extends RT5's shell. New search input + filter-chip row inside the panel header; chips include `Single` so the single-agent metric type is reachable. Debounced via a 250ms `setTimeout`. Filter logic in a `useMemo` over `rows`, applies both stage-presence + lowercase substring match against `content + reasoning`. Expansion reuses R7's `ReasoningBlock` for visual consistency. Two stage-specific explanatory notes cover the cases where the metric row's "owner stage" has no separately-persisted reasoning — (a) the planner stage rides on the coder message id, so when `m.stage === 'planner'` and `row.message.model !== m.model` (i.e. they're different — planner vs coder roster slot) we render the `STAGE_NOTE.planner` italic note instead, and (b) reviewer stage when no reasoning was persisted shows `STAGE_NOTE.reviewer`. Filtered-count chip in the header shows `filteredRows.length / rows.length` so the user knows how aggressive their filter is.
+
+**Commit:** _this commit_
+
 ## [Reasoning-Trace — Prompt RT5] Reasoning-Trace Viewer panel shell + turn list  —  2026-06-06
 
 **Files changed:** `src/stores/ui-store.ts` (ToolId), `src/components/artifacts/RightPanelHome.tsx` (new pill), `src/components/tools/ToolsPanel.tsx` (label + icon + body switch), `src/components/layout/Titlebar.tsx` (Record<ToolId> extension), `src/components/tools/panels/ReasoningTracePanel.tsx` (new)

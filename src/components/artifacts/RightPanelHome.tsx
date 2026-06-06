@@ -56,8 +56,7 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
       id: 'terminal',
       label: 'Terminal',
       description: 'PowerShell, Git Bash, WSL, or cmd',
-      icon: codingIcon,
-      iconSizeClass: 'h-[57px] w-[57px]'
+      icon: codingIcon
     },
     {
       id: 'review',
@@ -105,13 +104,13 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-2.5">
+      <div className="flex flex-1 flex-col gap-2 overflow-hidden p-2.5">
         {pills.map((pill) => (
           <button
             key={pill.id}
             type="button"
             onClick={() => setActiveTool(pill.id)}
-            className="group flex items-center gap-3 rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
+            className="group flex h-[68px] shrink-0 items-center gap-3 rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
           >
             <span className={`flex ${pill.iconSizeClass ?? 'h-11 w-11'} shrink-0 items-center justify-center`}>
               <img
@@ -125,7 +124,7 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
               <span className="text-[14px] font-medium text-[var(--text-primary)]">
                 {pill.label}
               </span>
-              <span className="text-[12px] leading-tight text-[var(--text-muted)]">
+              <span className="truncate text-[12px] leading-tight text-[var(--text-muted)]">
                 {pill.description}
               </span>
             </span>

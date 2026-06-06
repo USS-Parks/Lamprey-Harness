@@ -213,7 +213,7 @@ export function AskUserModal() {
       onClick={cancel}
     >
       <div
-        className="flex max-h-[80vh] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] shadow-2xl"
+        className="flex max-h-[80vh] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3">
@@ -263,7 +263,7 @@ export function AskUserModal() {
                 value={otherText}
                 onChange={(e) => setOtherText(e.target.value)}
                 placeholder="Your answer…"
-                className="rounded-md border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1.5 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+                className="rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1.5 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               />
             )}
           </div>
@@ -287,7 +287,7 @@ export function AskUserModal() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional notes for the agent…"
-            className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+            className="min-w-0 flex-1 rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
           />
           <button
             type="button"

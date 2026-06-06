@@ -52,7 +52,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className="flex h-[560px] w-[720px] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-2xl">
+      <div className="flex h-[560px] w-[720px] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-2xl">
         {/* Sidebar tabs */}
         <div className="flex w-40 flex-col bg-[var(--bg-primary)] py-2">
           {TABS.map((tab) => (

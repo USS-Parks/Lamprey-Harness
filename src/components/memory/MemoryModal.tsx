@@ -66,7 +66,7 @@ export function MemoryModal() {
       onClick={close}
     >
       <div
-        className="relative flex h-[80vh] w-[min(720px,92vw)] flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] shadow-2xl"
+        className="relative flex h-[80vh] w-[min(720px,92vw)] flex-col overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between px-4 py-3">

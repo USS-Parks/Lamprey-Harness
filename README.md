@@ -325,7 +325,7 @@ Codex toolset parity sprint (v0.1.26):
 - ✅ Image-generation provider + Node REPL MCP server + MCP resources / tool search
 - ✅ Parallel tool reads and single-model sub-agents via `multi_agent_run` (compact run card)
 - ✅ Deterministic final-response composer after tool rounds
-- ✅ Seven bundled Codex workflow skills (`codex-plan`, `codex-context`, `codex-debug`, `codex-review`, `codex-verify`, `codex-frontend-qa`, `codex-fan-out`)
+- ✅ Seven bundled workflow skills (`plan`, `context`, `debug`, `review`, `verify`, `frontend-qa`, `fan-out`)
 - ✅ End-to-end agentic coding mode (input pill + auto-loaded skills)
 
 Next up:

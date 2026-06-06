@@ -1,5 +1,26 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning Audit — Prompt R6] Cumulative reasoning concat on composer-final + composer's own reasoning preserved  —  2026-06-06
+
+**Files changed:** `electron/services/final-response-composer.ts` (`MAX_REASONING_BYTES = 65_536` + `concatReasoningTrail()` helper), `electron/services/final-response-composer.test.ts` (6 new cases), `electron/ipc/chat.ts` (`roundReasonings: string[]` threaded through `runChatRound`; concat applied at composer-save site; `stage: 'composer'` set when composer ran)
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1910 pass / 38 skip — 6 new `concatReasoningTrail` cases: undefined-on-empty, single-round, renumbering-on-gaps, composer-appended, composer-only, over-cap truncation with marker)
+- electron-vite build ✓ (6.97s)
+- user-verification-needed: multi-round tool turn against Electron — confirm the final composed message's reasoning pill shows `--- round 1 ---` / `--- round 2 ---` / `--- composer ---` separator structure; multi-round turn with very-long reasoning → confirm `[truncated for length — N kb omitted]` marker present.
+
+**Notes:**
+- `MAX_REASONING_BYTES = 65_536` chosen per Invariant §2.2 — generous (10-round turn × ~6 KB CoT/round still fits), and over-cap behavior is HONEST (explicit marker, not silent truncation).
+- `concatReasoningTrail()` is a pure helper. Empty / whitespace-only / undefined entries are skipped BEFORE numbering, so "round N" reflects surviving rounds (not absolute round index). Composer reasoning is always last, never numbered.
+- When the composer did NOT run (gate said no, or composer failed) the row falls back to `fullReasoning` (last round only) — exactly matches pre-R6 behavior. Single-agent turns are unchanged.
+- `stage: 'composer'` is set ONLY when the composer ran. Single-agent / composer-skipped rows stay NULL (the implicit "single" semantic from R1).
+
+**Commit:** _pending — current commit_
+
+---
+
 ## [Reasoning Audit — Prompt R5] Save Reviewer reasoning + `stage: 'reviewer'`  —  2026-06-06
 
 **Files changed:** `electron/services/agent-pipeline.ts` (reviewer saveMessage now passes `reasoning: taken.reasoning` + `stage: 'reviewer'`), `electron/services/agent-pipeline.test.ts` (widen happy-path expectation to include stage='reviewer' + 2 new R5 cases: native channel + inline `<think>` Reviewer)

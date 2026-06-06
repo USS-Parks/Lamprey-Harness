@@ -55,6 +55,7 @@ import {
 } from '../services/research'
 import {
   composeFinalResponse,
+  concatReasoningTrail,
   shouldComposeFinalResponse,
   summarizeRun
 } from '../services/final-response-composer'
@@ -675,7 +676,14 @@ export async function runChatRound(
   params?: ModelParams,
   composerMode: AgenticComposerMode = 'auto',
   suppressDoneEvent: boolean = false,
-  correlationId?: string
+  correlationId?: string,
+  /** Reasoning Audit Phase R6 — cumulative reasoning trail. Pre-existing
+   *  rounds' chain-of-thought; this round appends its own onDone.
+   *  Threaded through recursion so the FINAL round (no tool calls + the
+   *  composer ran) can fold the whole trail into the composer-row's
+   *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
+   *  the top-level call so callers don't need to pass it. */
+  roundReasonings: string[] = []
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -738,6 +746,12 @@ export async function runChatRound(
           if (!toolCalls || toolCalls.length === 0) {
             let finalContent = fullContent
             let draft: string | undefined
+            let composerReasoning: string | undefined
+            let composerRan = false
+            // R6 — append this round's reasoning to the cumulative trail
+            // BEFORE the composer runs. The trail then carries every
+            // round's CoT plus the composer's CoT into the saved final.
+            const roundsForTrail = [...roundReasonings, fullReasoning ?? '']
             if (resolveComposerGate(composerMode, round)) {
               emitPhase(conversationId, 'summarizing')
               try {
@@ -760,10 +774,8 @@ export async function runChatRound(
                 if (composed.content) {
                   finalContent = composed.content
                   draft = fullContent
-                  // R6 will fold `composed.reasoning` into the cumulative
-                  // round-trail and write it on the composer-final row.
-                  // For R2 we capture-but-don't-persist; the round trail
-                  // collection lives in R6.
+                  composerReasoning = composed.reasoning
+                  composerRan = true
                 }
               } catch (err) {
                 console.warn('[chat] final response composer failed:', err)
@@ -793,6 +805,19 @@ export async function runChatRound(
               }
             }
             const documents = drainPendingDocuments(correlationId)
+            // R6 — when the composer ran, write the CUMULATIVE per-round
+            // reasoning trail (plus the composer's own CoT) to this row's
+            // reasoning column, capped at MAX_REASONING_BYTES with an
+            // honest truncation marker. Tag the row stage='composer' so
+            // R7's MessageBubble shows the muted "Composer" chip.
+            // When the composer did NOT run (single-shot turn, no tool
+            // rounds, or composer failed), fall back to the streamed
+            // round's own reasoning unchanged — single-agent behavior is
+            // preserved exactly.
+            const finalReasoning = composerRan
+              ? concatReasoningTrail(roundsForTrail, composerReasoning)
+              : fullReasoning
+            const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
@@ -800,8 +825,9 @@ export async function runChatRound(
               content: finalContent,
               model,
               draft,
-              reasoning: fullReasoning,
-              documents
+              reasoning: finalReasoning,
+              documents,
+              stage: finalStage
             })
             if (!suppressDoneEvent) {
               emitPhase(conversationId, 'done')
@@ -888,6 +914,13 @@ export async function runChatRound(
           }
 
           try {
+            // R6 — fold THIS round's reasoning into the cumulative trail
+            // before recursing. The final round (no tool calls + composer
+            // ran) reads the trail off the `roundReasonings` parameter
+            // and folds it into the saved composer-row's reasoning column.
+            const nextRoundReasonings = fullReasoning && fullReasoning.length > 0
+              ? [...roundReasonings, fullReasoning]
+              : roundReasonings
             const next = await runChatRound(
               conversationId,
               model,
@@ -899,7 +932,8 @@ export async function runChatRound(
               params,
               composerMode,
               suppressDoneEvent,
-              correlationId
+              correlationId,
+              nextRoundReasonings
             )
             resolve(next)
           } catch (err) {

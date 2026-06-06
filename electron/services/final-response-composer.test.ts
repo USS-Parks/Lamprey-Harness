@@ -133,13 +133,31 @@ describe('composeFinalResponse', () => {
         seen.push(model)
         seen.push(String(messages[0].content))
         seen.push(String(messages[1].content))
-        return '  composed  '
+        return { content: '  composed  ' }
       }
     })
-    expect(out).toBe('composed')
+    expect(out.content).toBe('composed')
+    expect(out.reasoning).toBeUndefined()
     expect(seen[0]).toBe('model-a')
     expect(seen[1]).toContain('final-response composer')
     expect(seen[2]).toContain('Model draft reply')
+  })
+
+  // R2 — composer's own reasoning is preserved on the result so R6 can
+  // fold it into the cumulative round-trail. Trim happens on content
+  // only; reasoning is passed through as-supplied by chatOnce (which
+  // already trimmed it at the SDK boundary).
+  it('preserves composer reasoning on the result', async () => {
+    const out = await composeFinalResponse({
+      model: 'model-b',
+      summary: { userGoal: 'goal', toolCalls: [], draftReply: 'draft' },
+      runner: async () => ({
+        content: 'composed body',
+        reasoning: 'rewrote the draft to lead with the answer'
+      })
+    })
+    expect(out.content).toBe('composed body')
+    expect(out.reasoning).toBe('rewrote the draft to lead with the answer')
   })
 })
 

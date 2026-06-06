@@ -181,7 +181,8 @@ export function registerConversationHandlers(): void {
             content: m.content
           }))
       ]
-      const summary = await chatOnce(summaryReq as any, conv.model)
+      const summaryResult = await chatOnce(summaryReq as any, conv.model)
+      const summary = summaryResult.content
       if (!summary?.trim()) {
         return { success: false, error: 'Summarizer returned empty output.' }
       }

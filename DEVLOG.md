@@ -1,5 +1,26 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning Audit — Prompt R7] MessageBubble: stage chip + Planner-trace toggle on Coder bubble  —  2026-06-06
+
+**Files changed:** `src/components/chat/MessageList.tsx` (pre-walk attaches Planner rows to next downstream bubble; orphan fallback at end), `src/components/chat/MessageBubble.tsx` (`attachedPlanner?: Message` prop, "Show pipeline trace ▾" toggle, stage chip for Reviewer / Composer / orphan Planner)
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1910 pass / 38 skip; no test additions for R7 — verifying renderer behavior happens in user-eyeball)
+- electron-vite build ✓ (6.03s)
+- user-verification-needed: in Electron, (i) single-agent turn → no chips, no toggle, layout unchanged; (ii) multi-agent turn → Coder/Composer bubble shows `Show pipeline trace ▾` toggle; click reveals attached Planner row's reasoning pill + plan text; Reviewer bubble below carries small purple "Reviewer" chip; light + dark mode both look correct.
+
+**Notes:**
+- Planner rows are NEVER rendered as their own visible bubbles per Invariant §2.9. The MessageList pre-walk stashes them and attaches to the NEXT assistant row (Coder = stage NULL, or Composer = stage='composer'). If a Planner row has no downstream attachment (e.g. pipeline aborted before Coder), it falls through to standalone render with a blue "Planner (orphan)" chip so the audit trail is never silently lost (Invariant §2.2 — no silent drops).
+- The toggle stores expanded state in component state — refreshes on the page reset it to collapsed. Per-row persisted toggle state would need a store; deferred as a polish item.
+- The toggle's tonal-lift container uses `bg-[var(--bg-tertiary)]/40` (no border) per Panels Phase invariants. The inner `ReasoningBlock` keeps its own pill chrome.
+- Chip colors: Reviewer = purple-500/15, Composer = muted bg-tertiary, orphan Planner = sky-500/15. All non-bordered to match the existing model-name pill convention (`bg-[var(--bg-primary)] px-1`).
+
+**Commit:** _pending — current commit_
+
+---
+
 ## [Reasoning Audit — Prompt R6] Cumulative reasoning concat on composer-final + composer's own reasoning preserved  —  2026-06-06
 
 **Files changed:** `electron/services/final-response-composer.ts` (`MAX_REASONING_BYTES = 65_536` + `concatReasoningTrail()` helper), `electron/services/final-response-composer.test.ts` (6 new cases), `electron/ipc/chat.ts` (`roundReasonings: string[]` threaded through `runChatRound`; concat applied at composer-save site; `stage: 'composer'` set when composer ran)

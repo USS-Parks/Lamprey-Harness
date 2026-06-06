@@ -1,5 +1,38 @@
 # Lamprey Harness Dev Log
 
+## [Robustness Hotfix — Prompt HX3] `content_raw` column + pure `sanitizePseudoTags` module  —  2026-06-06
+
+**Setup for HX4.** This prompt lands the data layer + the rewriter without touching the save path. HX4 then wires them together.
+
+**Migration.** Added `safeAddColumn(db, 'messages', 'content_raw TEXT')` in `electron/services/database.ts` `initSchema`, right after the R1 `stage TEXT` add (line 435). The existing `safeAddColumn` helper swallows the "duplicate column name" error on re-run, so the migration is idempotent on already-migrated DBs. NULL on pre-hotfix rows + non-assistant rows; HX4 sets it on assistant writes.
+
+**Pure rewriter.** New `electron/services/sanitize-pseudo-tags.ts` exports `sanitizePseudoTags(text: string): string`. Behaviour:
+- Shell-shaped tags (`<bash>` / `<tool>` / `<run>` / `<shell>` / `<execute>` / `<command>` / `<terminal>`) → ` ```bash ` fences.
+- Output-shaped tags (`<output>` / `<result>` / `<stdout>` / `<stderr>`) → ` ```text ` fences (deliberately not `bash` — would lie about content).
+- Case-insensitive tag names; body case + whitespace preserved verbatim.
+- Multi-line bodies preserved.
+- Fence-aware: pseudo-tags already inside an existing ` ``` … ``` ` block are left alone.
+- Unbalanced-safe: open-without-close → left intact (under-rewrite over corrupt).
+- Idempotent: `sanitize(sanitize(x)) === sanitize(x)` (covered by 3 explicit tests).
+- Non-string input returns input verbatim (defensive guard for malformed callers).
+
+**Tests.** 22 cases in `electron/services/sanitize-pseudo-tags.test.ts` — basic shell rewrites, output rewrites, case-insensitive matching, multi-tag strings, fence-awareness, unbalanced/edge cases, idempotency, plus the real-world 2026-06-06 user-reported bash-as-prose ghost-reply (asserts the canonical defective coder output cleans up correctly).
+
+**Files changed:** `electron/services/database.ts`, `electron/services/sanitize-pseudo-tags.ts` (new), `electron/services/sanitize-pseudo-tags.test.ts` (new).
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- vitest (`sanitize-pseudo-tags`): 22 / 22 ✓
+- user-verification-needed: `PRAGMA table_info(messages)` against an existing `lamprey.db` snapshot to confirm the column lands once and re-launch is a no-op.
+
+**Notes.** The renderer strips a single leading + trailing newline from the body when materialising the fence — the typical model emission is `<bash>\nls\n</bash>` and a doubled newline at fence start would look scruffy. Inner newlines are preserved.
+
+**Commit:** _this commit_
+
+---
+
 ## [Robustness Hotfix — Prompt HX2] `PSEUDO_TAG_GUARD` constant generalised across model-facing roles  —  2026-06-06
 
 **Defect.** RT1 added the pseudo-XML guard ("never wrap commentary in `<bash>`, `<tool>`, `<run>`, …") but only on the Reviewer role. The same bash-as-prose defect surfaced on `coder` (per the 2026-06-06 user-reported screenshots) and is structurally possible on `planner` / `coworker` / composer too.

@@ -47,7 +47,20 @@ const SCHEMA = `
   );
 `
 
-let db: Database.Database
+// CI runs with `npm ci --ignore-scripts`, so better-sqlite3's native binding
+// is absent on the Linux runner. Detect that once and skip every test in this
+// file — matches the pattern in sessions-search.test.ts / loop-runner.test.ts.
+const HAS_NATIVE_SQLITE: boolean = (() => {
+  try {
+    const probe = new BetterSqlite3(':memory:')
+    probe.close()
+    return true
+  } catch {
+    return false
+  }
+})()
+
+let db: Database.Database | null = null
 
 const mkResult = (overrides: Partial<import('../shell-tool').ShellResult>): import('../shell-tool').ShellResult => ({
   command: 'test',
@@ -71,6 +84,7 @@ const gitStatusFilter: Filter = {
 }
 
 beforeEach(() => {
+  if (!HAS_NATIVE_SQLITE) return
   db = new BetterSqlite3(':memory:')
   db.exec(SCHEMA)
   __setDbForTests(db)
@@ -79,10 +93,13 @@ beforeEach(() => {
 
 afterEach(() => {
   __setDbForTests(null)
-  db.close()
+  if (db) {
+    db.close()
+    db = null
+  }
 })
 
-describe('snip applySnip', () => {
+describe.skipIf(!HAS_NATIVE_SQLITE)('snip applySnip', () => {
   it('master switch off → pass-through with no DB writes', () => {
     filtersBox.filters = [gitStatusFilter]
     const r = mkResult({ stdout: 'verbose\noutput\nhere' })
@@ -96,11 +113,11 @@ describe('snip applySnip', () => {
     expect(o.bypassed).toBe(false)
     expect(o.matchedFilter).toBe(null)
     // Zero rows in either table.
-    expect(db.prepare('SELECT COUNT(*) AS c FROM snip_events').get() as { c: number }).toEqual({
+    expect(db!.prepare('SELECT COUNT(*) AS c FROM snip_events').get() as { c: number }).toEqual({
       c: 0
     })
     expect(
-      db.prepare('SELECT COUNT(*) AS c FROM snip_command_log').get() as { c: number }
+      db!.prepare('SELECT COUNT(*) AS c FROM snip_command_log').get() as { c: number }
     ).toEqual({ c: 0 })
   })
 
@@ -115,7 +132,7 @@ describe('snip applySnip', () => {
     expect(o.bypassed).toBe(true)
     expect(o.result.stdout).toBe('long stuff')
     expect(o.event).toBe(null)
-    const log = db
+    const log = db!
       .prepare('SELECT command_head, matched_filter FROM snip_command_log')
       .all() as Array<{ command_head: string; matched_filter: string | null }>
     expect(log).toEqual([{ command_head: 'git', matched_filter: null }])
@@ -131,7 +148,7 @@ describe('snip applySnip', () => {
     })
     expect(o.matchedFilter).toBe(null)
     expect(o.result.stdout).toBe('something')
-    const log = db
+    const log = db!
       .prepare('SELECT command_head, matched_filter FROM snip_command_log')
       .all() as Array<{ command_head: string; matched_filter: string | null }>
     expect(log).toEqual([{ command_head: 'mystery', matched_filter: null }])
@@ -165,7 +182,7 @@ describe('snip applySnip', () => {
     expect(o.result.exitCode).toBe(0) // preserved
     expect(o.event).not.toBe(null)
     expect(o.event?.tokensBefore).toBeGreaterThan(o.event!.tokensAfter)
-    const rows = db.prepare('SELECT filter_name, conversation_id FROM snip_events').all() as Array<{
+    const rows = db!.prepare('SELECT filter_name, conversation_id FROM snip_events').all() as Array<{
       filter_name: string
       conversation_id: string | null
     }>
@@ -196,7 +213,7 @@ describe('snip applySnip', () => {
     expect(o.result.stdout).toBe('') // raw preserved
     // matched_filter still recorded so the dashboard knows the filter
     // fired (coverage signal), just no savings event.
-    const log = db
+    const log = db!
       .prepare('SELECT matched_filter FROM snip_command_log')
       .all() as Array<{ matched_filter: string | null }>
     expect(log).toEqual([{ matched_filter: 'grows' }])

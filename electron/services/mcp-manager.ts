@@ -140,7 +140,7 @@ class McpManager {
     // plugin-owned server set stays in sync. The lazy require avoids a
     // hard module-load order between plugin-loader and mcp-manager.
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pl = require('./plugin-loader') as {
         subscribeToPluginChanges: (cb: () => void) => () => void
       }
@@ -157,9 +157,9 @@ class McpManager {
    *  enabled plugins. Disconnects + drops any plugin server that's no
    *  longer enabled; adds any new ones. Persisted servers are untouched. */
   private refreshPluginConnectors(): void {
-    let enabledRoots: { pluginId: string; rootPath: string }[] = []
+    let enabledRoots: { pluginId: string; rootPath: string }[]
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pl = require('./plugin-loader') as {
         enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
       }

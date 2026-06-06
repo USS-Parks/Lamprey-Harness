@@ -207,7 +207,7 @@ function rescanPluginSkills(): void {
   // Lazy require to avoid hard module load order. plugin-loader exports
   // the subscription + enabled-roots helpers; both are safe to call at
   // any time after initialize completes.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pl = require('./plugin-loader') as {
     enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
   }
@@ -216,7 +216,7 @@ function rescanPluginSkills(): void {
   for (const { pluginId, rootPath } of pl.enabledPluginRoots()) {
     const dir = join(rootPath, 'skills')
     if (!existsSync(dir)) continue
-    let files: string[] = []
+    let files: string[]
     try {
       files = discoverSkillFiles(dir)
     } catch {
@@ -272,7 +272,7 @@ export function initializeSkillLoader(): void {
   // Customize C11 — pick up plugin-sourced skills now and on every
   // enabled-state change broadcast by plugin-loader.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pl = require('./plugin-loader') as {
       subscribeToPluginChanges: (cb: () => void) => () => void
     }

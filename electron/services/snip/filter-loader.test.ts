@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -267,7 +267,6 @@ pipeline:
 `,
       'utf-8'
     )
-    const { readFileSync } = require('fs') as typeof import('fs')
     const raw = readFileSync(path, 'utf-8')
     const r = __filterLoaderTest.loadOneFromString(path, raw)
     expect(r.error).toBeUndefined()

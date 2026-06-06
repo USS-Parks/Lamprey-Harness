@@ -3,8 +3,57 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool
 } from 'openai/resources/chat/completions'
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 import { getKey } from '../keychain'
 import { boundedJsonPreview, recordEvent } from '../event-log'
+
+// T1 — SSE inactivity watchdog. Some providers (notably DeepSeek under load
+// and OpenRouter when routing through a stalled upstream) silently leave the
+// SSE socket half-open: no chunks, no FIN, no error. The `for await` loop
+// below would otherwise wait forever. We race each chunk-await against a
+// timer and abort the underlying HTTP request on expiry; the throw lands in
+// the existing partial-persist + retry path so the user's on-screen content
+// is preserved and a flaky provider gets the same retry treatment as a 429.
+export class StreamInactivityError extends Error {
+  constructor(public readonly inactivityMs: number) {
+    super(`Stream stalled — provider sent no chunks for ${Math.round(inactivityMs / 1000)}s.`)
+    this.name = 'StreamInactivityError'
+  }
+}
+
+const DEFAULT_STREAM_INACTIVITY_MS = 60_000
+const MIN_STREAM_INACTIVITY_MS = 5_000
+
+// Test hook: setting this overrides the settings.json value for the duration
+// of the test. Cleared by setting back to null.
+let streamInactivityOverrideMs: number | null = null
+export function __setStreamInactivityForTesting(ms: number | null): void {
+  streamInactivityOverrideMs = ms
+}
+
+// Injected by main.ts during boot so we can read settings.json without an
+// electron import in test contexts. Tests leave it null and use the override.
+let userDataPathProvider: (() => string) | null = null
+export function setUserDataPathProvider(fn: (() => string) | null): void {
+  userDataPathProvider = fn
+}
+
+function readStreamInactivityMs(): number {
+  if (streamInactivityOverrideMs !== null) return streamInactivityOverrideMs
+  if (!userDataPathProvider) return DEFAULT_STREAM_INACTIVITY_MS
+  try {
+    const path = join(userDataPathProvider(), 'settings.json')
+    if (!existsSync(path)) return DEFAULT_STREAM_INACTIVITY_MS
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as { streamInactivityMs?: unknown }
+    const ms = raw.streamInactivityMs
+    if (typeof ms !== 'number' || !Number.isFinite(ms)) return DEFAULT_STREAM_INACTIVITY_MS
+    if (ms <= 0) return 0 // 0 disables the watchdog entirely
+    return Math.max(MIN_STREAM_INACTIVITY_MS, ms)
+  } catch {
+    return DEFAULT_STREAM_INACTIVITY_MS
+  }
+}
 
 export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter'
 
@@ -615,9 +664,39 @@ export async function chatStream(
   const toolCallsAccumulator: Map<number, ToolCallAccumulator> = new Map()
   let retries = 0
   const maxRetries = 3
+  const inactivityMs = readStreamInactivityMs()
 
   while (retries <= maxRetries) {
+    // T1 — Per-attempt controller. User-signal aborts route through this;
+    // the inactivity timer also fires it. We use the `inactivityFired` flag
+    // to disambiguate inactivity-abort from user-cancel in the catch.
+    const attemptController = new AbortController()
+    let inactivityFired = false
+    let inactivityTimer: ReturnType<typeof setTimeout> | null = null
+
+    const clearInactivityTimer = (): void => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer)
+        inactivityTimer = null
+      }
+    }
+    const armInactivityTimer = (): void => {
+      if (inactivityMs <= 0) return
+      clearInactivityTimer()
+      inactivityTimer = setTimeout(() => {
+        inactivityFired = true
+        attemptController.abort()
+      }, inactivityMs)
+    }
+
+    const onUserAbort = (): void => attemptController.abort()
+    if (signal) {
+      if (signal.aborted) attemptController.abort()
+      else signal.addEventListener('abort', onUserAbort, { once: true })
+    }
+
     try {
+      armInactivityTimer()
       const stream = await client.chat.completions.create(
         {
           model: desc.apiModelId,
@@ -628,10 +707,11 @@ export async function chatStream(
           ...(params?.topP !== undefined && { top_p: params.topP }),
           ...(params?.maxTokens != null && { max_tokens: params.maxTokens })
         },
-        { signal }
+        { signal: attemptController.signal }
       )
 
       for await (const chunk of stream) {
+        clearInactivityTimer()
         if (signal?.aborted) {
           callbacks.onDone(
             fullContent + ' [cancelled]',
@@ -690,7 +770,11 @@ export async function chatStream(
             if (tc.function?.arguments) acc.function.arguments += tc.function.arguments
           }
         }
+        armInactivityTimer()
       }
+
+      clearInactivityTimer()
+      if (signal) signal.removeEventListener('abort', onUserAbort)
 
       const toolCalls = toolCallsAccumulator.size > 0
         ? Array.from(toolCallsAccumulator.values())
@@ -707,6 +791,12 @@ export async function chatStream(
       })
       return
     } catch (err: any) {
+      clearInactivityTimer()
+      if (signal) signal.removeEventListener('abort', onUserAbort)
+
+      // User-cancelled — the attempt controller was fired by the user signal,
+      // not the watchdog. Treat as a clean cancellation regardless of which
+      // error the SDK threw on the way out.
       if (signal?.aborted) {
         callbacks.onDone(
           fullContent + ' [cancelled]',
@@ -720,6 +810,32 @@ export async function chatStream(
           durationMs: Date.now() - startedAt,
           cancelled: true,
           emittedToolCallCount: toolCallsAccumulator.size
+        })
+        return
+      }
+
+      // Inactivity watchdog fired. Treat like a transient network error:
+      // retry up to maxRetries with the same back-off, then emit a clearly
+      // labeled error so the user knows the provider stalled (not bad code).
+      if (inactivityFired) {
+        if (retries < maxRetries) {
+          retries++
+          const delay = Math.pow(2, retries) * 1000
+          await new Promise((r) => setTimeout(r, delay))
+          continue
+        }
+        const stallErr = new StreamInactivityError(inactivityMs)
+        callbacks.onError(stallErr.message, {
+          content: fullContent,
+          reasoning: fullReasoning || undefined
+        })
+        emitModelRequestFailed(desc, audit, {
+          streaming: true,
+          toolCount: offeredToolCount,
+          retryCount: retries,
+          durationMs: Date.now() - startedAt,
+          cancelled: false,
+          error: stallErr
         })
         return
       }

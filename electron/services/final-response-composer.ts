@@ -8,6 +8,66 @@ export type ComposerSkipReason = 'no-tool-rounds' | 'composer-failed'
 export const COMPOSER_DRAFT_CAP = 8192
 export const COMPOSER_TOOL_RESULT_CAP = 4096
 
+/** Reasoning Audit Phase R6 — generous-but-finite cap on the cumulative
+ *  per-round + composer reasoning concatenation. Chain-of-thought is the
+ *  most audit-load-bearing artifact a turn produces; 64 KB lets a 10-round
+ *  tool-using turn keep ~6 KB of reasoning per round + composer without
+ *  truncation, which covers nearly every real session.
+ *
+ *  When over-cap, `concatReasoningTrail()` truncates with an explicit
+ *  `[truncated for length — N kb omitted]` marker so the user knows the
+ *  history is incomplete (per Invariant §2.2 — no silent truncation). */
+export const MAX_REASONING_BYTES = 65_536
+
+/** Reasoning Audit Phase R6 — build the cumulative per-round reasoning
+ *  trail for a composer-final assistant row. Format:
+ *
+ *    --- round 1 ---
+ *    <round 1's chain-of-thought>
+ *
+ *    --- round 2 ---
+ *    <round 2's chain-of-thought>
+ *
+ *    --- composer ---
+ *    <composer's own chain-of-thought>
+ *
+ *  Empty round entries are skipped (filter out `null`/`undefined`/empty
+ *  strings BEFORE numbering, so "round N" tracks the surviving rounds —
+ *  not the absolute round index). Composer reasoning is appended last,
+ *  always at the bottom, never re-numbered. Returns `undefined` when no
+ *  reasoning exists at all so the saved row's `reasoning` column stays
+ *  NULL instead of holding the empty string.
+ *
+ *  Over-cap behavior: truncate at MAX_REASONING_BYTES and append the
+ *  honest `[truncated for length — N kb omitted]` marker (Invariant §2.2). */
+export function concatReasoningTrail(
+  roundReasonings: Array<string | undefined>,
+  composerReasoning: string | undefined
+): string | undefined {
+  const rounds = roundReasonings
+    .map((r) => (typeof r === 'string' ? r.trim() : ''))
+    .filter((r) => r.length > 0)
+  const composer =
+    typeof composerReasoning === 'string' && composerReasoning.trim().length > 0
+      ? composerReasoning.trim()
+      : undefined
+  if (rounds.length === 0 && !composer) return undefined
+  const parts: string[] = []
+  for (let i = 0; i < rounds.length; i++) {
+    parts.push(`--- round ${i + 1} ---\n${rounds[i]}`)
+  }
+  if (composer) parts.push(`--- composer ---\n${composer}`)
+  const joined = parts.join('\n\n')
+  if (Buffer.byteLength(joined, 'utf8') <= MAX_REASONING_BYTES) return joined
+  // Truncate to MAX_REASONING_BYTES bytes, leaving room for the marker.
+  const marker = (kb: number): string => `\n\n[truncated for length — ${kb} kb omitted]`
+  const reserve = marker(9999).length + 8 // generous reserve for the marker tail
+  const head = joined.slice(0, Math.max(0, MAX_REASONING_BYTES - reserve))
+  const omittedBytes = Buffer.byteLength(joined, 'utf8') - Buffer.byteLength(head, 'utf8')
+  const omittedKb = Math.round(omittedBytes / 1024)
+  return head + marker(omittedKb)
+}
+
 export interface RunSummaryMessage {
   role: string
   content?: unknown

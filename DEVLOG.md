@@ -1,5 +1,25 @@
 # Lamprey Harness Dev Log
 
+## [Reasoning Audit — Prompt R1] Schema: add `stage` column to `messages`  —  2026-06-06
+
+**Files changed:** `electron/services/database.ts`, `electron/services/conversation-store.ts`, `src/lib/types.ts`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (1892 pass / 38 skip; existing `conversation-store-reasoning.test.ts` 10/10 still green)
+- electron-vite build ✓ (4.83 → 6.29s, no regression)
+- user-verification-needed: open a fresh conversation in Electron after the migration runs; confirm `PRAGMA table_info(messages)` (DevTools DB inspector) shows the new `stage TEXT` column; existing rows show `stage: NULL`.
+
+**Notes:**
+- Migration uses the existing `safeAddColumn` idempotent helper (catches "duplicate column name" on re-run) so dev databases that already opened the schema pre-R1 get the column on next launch without manual reset.
+- `MessageStage` type union (`'planner' | 'reviewer' | 'composer'`) exported from `conversation-store.ts` and mirrored in `src/lib/types.ts` Message type. Coder rows stay NULL — see the migration comment in `database.ts` for the no-backfill rationale.
+- Renderer `Message.stage` is the optional `?:` shape so all existing consumers (which destructure without it) keep working unchanged. R7 is the first reader.
+
+**Commit:** _pending — current commit_
+
+---
+
 ## [UX Polish] — 2026-06-06 (v0.7.5)
 
 Two-strand polish pass to land final-mile chrome cleanup + Plan-pill consolidation, stacked on top of the same-day R6 Tavily promotion (v0.7.3) and the panels card-uniformity hotfix (v0.7.4). No new features, no plan roster — focused commits, build, ship. Version 0.7.5 (skipping the local-machine 0.7.4 slot consumed by the panels hotfix).

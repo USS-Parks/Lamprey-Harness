@@ -36,6 +36,18 @@ export interface Message {
     type: 'function'
     function: { name: string; arguments: string }
   }>
+  /** Reasoning Audit Phase R1 — multi-agent pipeline stage discriminator.
+   *  Undefined on legacy rows + single-agent runs + Coder rows (the
+   *  default semantic = "the single assistant row of the turn"). Set to
+   *  'planner' / 'reviewer' / 'composer' by agent-pipeline.ts + chat.ts
+   *  composer save sites. MessageBubble (R7) reads this to decide:
+   *    - stage === 'planner'    → row hidden in main thread; attached to
+   *                               next Coder/Composer bubble behind a
+   *                               "Show pipeline trace" toggle.
+   *    - stage === 'reviewer'   → render with a small "Reviewer" chip.
+   *    - stage === 'composer'   → render with a muted "Composer" chip.
+   *    - stage undefined        → default render (Coder / single-agent). */
+  stage?: 'planner' | 'reviewer' | 'composer'
 }
 
 /** Standalone deliverable a model produced inside a single assistant turn —

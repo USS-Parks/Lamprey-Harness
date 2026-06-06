@@ -181,7 +181,7 @@ function PermissionsDropdown() {
         <span>{active.label}</span>
       </DropdownButton>
       {open && (
-        <div className="absolute bottom-full left-0 z-30 mb-1 w-52 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
+        <div className="absolute bottom-full left-0 z-30 mb-1 w-52 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-xl">
           {PERMISSION_OPTIONS.map((opt) => {
             const icon = opt.icon
             return (
@@ -268,7 +268,7 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
         <span className="font-medium">{active.name}</span>
       </DropdownButton>
       {open && (
-        <div className="absolute bottom-full right-0 z-30 mb-1 w-72 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-xl">
+        <div className="absolute bottom-full right-0 z-30 mb-1 w-72 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-xl">
           {models.map((m) => {
             const locked = !hasKey(m.provider)
             return (
@@ -392,7 +392,7 @@ function ContextChip({ icon, label, title, onClick, menu }: ContextChipProps) {
       {hasMenu && open && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 z-30 mb-1 min-w-[220px] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-xl"
+          className="absolute bottom-full left-0 z-30 mb-1 min-w-[220px] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] py-1 shadow-xl"
         >
           {menu!.map((item) => (
             <button
@@ -600,7 +600,7 @@ function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
         </svg>
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 z-30 mb-1 w-60 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-xl">
+        <div className="absolute bottom-full left-0 z-30 mb-1 w-60 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] py-1 shadow-xl">
           {items.map((item) => (
             <button
               key={item.label}

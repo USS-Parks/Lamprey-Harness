@@ -1,5 +1,39 @@
 # Lamprey Harness Dev Log
 
+## [Panels — Prompt P7] In-chat surfaces: zero card chrome  —  2026-06-05
+
+**Files changed:** `src/components/chat/AgentRunBanner.tsx`, `DeepResearchBanner.tsx`, `AgentRunInlineGroup.tsx`, `ToolUseCard.tsx`, `InlineApprovalChip.tsx`, `AttachmentPreview.tsx`, `PlanChecklist.tsx`, `PlanGoalsPanel.tsx`, `ReasoningBlock.tsx`, `CompressedRegionPill.tsx`, `ContextAttachBar.tsx`, `TranscriptNotice.tsx`, `WakeupPill.tsx`, `ToolUseGroup.tsx`, `SpawnTaskChip.tsx`, `SpawnTaskTray.tsx`, `ToolActivityChip.tsx`, `SourcePreviewPane.tsx`, `AtFileMention.tsx`, `ChapterQuickJumper.tsx`, `ChapterSidebar.tsx`, `ChatInput.tsx`, `DocumentCardRow.tsx`, `SlashCommandPalette.tsx`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- electron-vite build ✓
+- final grep tally: only 3 `--border` hits remain in `src/components/chat/` — all in `AskUserModal.tsx` (modal frame + 2 form inputs), all allow-list keepers. Allow-list compliant.
+- user-verification-needed: launch Electron and confirm:
+  - In-chat banners (Plan, Deep Research, Agent run, multi-agent run header) read as substrate-floating notes with tonal lift only — **no perimeter borders**
+  - Tool use cards: default tone has no perimeter (just bg-tertiary lift); error/denied keep their semantic stripe
+  - Message stream reads as one continuous column on substrate; no card outlines around inline content
+  - Popovers (slash command palette, @ file mention, agent/model dropdowns, document-row menu) still feel "lifted" — their borders are now `--panel-border` (6% alpha) but `shadow-xl` carries the floating definition
+  - InlineApprovalChip keeps its `--accent` semantic frame; Deny/Always buttons softened
+  - `FloatingEnvironmentCard` untouched per plan §2 #4
+
+**Notes:**
+- **AgentRunBanner**: both the inline-flex status pill (34) and the multi-agent pipeline banner (70) dropped perimeter borders, swapped `--bg-secondary` → `--bg-tertiary` for tonal lift.
+- **DeepResearchBanner**: dropped sticky `border-b` (79), added `rounded-md` + bg-tertiary tint; cancel button softened (120).
+- **AgentRunInlineGroup**: row borders (65, 99, 106) softened to `--panel-border` (semantic error variant `--error/40` preserved). Header group (139) dropped perimeter border, keeps bg-tertiary lift.
+- **ToolUseCard**: default `border-[var(--border)]` → `border-transparent` (tonal lift carries; semantic error/denied stripes preserved). RISK_TONE fallback softened.
+- **InlineApprovalChip**: RISK_COLOR read tier + Deny/Always button borders softened. Outer chip frame uses `--accent` semantic (preserved).
+- **AttachmentPreview**: outer chip frame + conditional borders softened.
+- **PlanChecklist + TranscriptNotice**: dropped perimeter border entirely, replaced with `bg-tertiary` (or `/60` for notice) tonal lift — these are unobtrusive in-chat indicators that shouldn't read as cards.
+- **PlanGoalsPanel, ReasoningBlock, CompressedRegionPill, ContextAttachBar, WakeupPill, ToolUseGroup, SpawnTaskChip, ToolActivityChip**: all `--border` → `--panel-border` via bulk sed. Chip definition preserved; harshness reduced.
+- **DocumentCardRow, ChatInput popovers (4), AtFileMention, ChapterQuickJumper, ChapterSidebar, SlashCommandPalette, SpawnTaskTray, SourcePreviewPane**: popovers and floating side-panels softened to `--panel-border`. Their `shadow-xl`/`shadow-md` continues to carry floating-edge definition; the hairline now whispers rather than shouts.
+- **AskUserModal lines 216, 266, 290**: modal frame + 2 form inputs — kept per allow-list #6 + #7.
+- `FloatingEnvironmentCard.tsx` not touched (preserved per plan §2 #4).
+
+**Commit:** _this commit_
+
+---
+
 ## [Panels — Prompt P6] Modal interior surface cleanup  —  2026-06-05
 
 **Files changed:** `src/components/settings/SettingsDialog.tsx`, `src/components/customize/CustomizeView.tsx`, `src/components/memory/MemoryModal.tsx`, `src/components/chat/AskUserModal.tsx`, `src/components/tools/ToolApprovalModal.tsx`

@@ -733,8 +733,132 @@ function initSchema(db: Database.Database): void {
   }
 }
 
+// PS2 — WAL checkpoint result. Exported so the Persistence Settings
+// panel (PS10) can surface "last checkpoint" stats.
+export interface CheckpointResult {
+  /** True if better-sqlite3 reported the operation completed without busy. */
+  ok: boolean
+  /** Pages in the WAL before the checkpoint started. */
+  pagesInWal: number
+  /** Pages checkpointed (moved from WAL to main DB). */
+  pagesCheckpointed: number
+  /** Wall-clock duration. */
+  durationMs: number
+}
+
+/**
+ * PS2 — Force a WAL checkpoint in TRUNCATE mode. Used on graceful
+ * shutdown and on the periodic timer.
+ *
+ * better-sqlite3's `pragma('wal_checkpoint(TRUNCATE)')` returns a row
+ * `{ busy, log, checkpointed }` where:
+ *   - busy:         0 = ok, non-zero = some other connection was holding
+ *                   the wal lock and not all pages could be moved
+ *   - log:          pages in the WAL at the time of the call
+ *   - checkpointed: pages actually moved (only valid when busy === 0)
+ *
+ * TRUNCATE mode is the right choice for shutdown + periodic hygiene: it
+ * not only moves WAL pages into the main DB but truncates the WAL file
+ * to zero length afterwards. PASSIVE / FULL leave a large WAL file on
+ * disk even after checkpointing.
+ */
+export function checkpoint(database?: Database.Database): CheckpointResult {
+  const target = database ?? db
+  if (!target) {
+    return { ok: false, pagesInWal: 0, pagesCheckpointed: 0, durationMs: 0 }
+  }
+  const startedAt = performance.now()
+  // better-sqlite3 returns the pragma row as an array; we read the first.
+  const rows = target.pragma('wal_checkpoint(TRUNCATE)') as Array<{
+    busy: number
+    log: number
+    checkpointed: number
+  }>
+  const durationMs = Math.round(performance.now() - startedAt)
+  const row = rows?.[0] ?? { busy: 1, log: 0, checkpointed: 0 }
+  return {
+    ok: row.busy === 0,
+    pagesInWal: row.log,
+    pagesCheckpointed: row.checkpointed,
+    durationMs
+  }
+}
+
+// PS2 — periodic checkpoint state. Module-scoped so multiple callers
+// can't accidentally double-schedule.
+let checkpointTimer: NodeJS.Timeout | null = null
+let lastCheckpointResult: CheckpointResult | null = null
+const DEFAULT_CHECKPOINT_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * PS2 — start a recurring WAL checkpoint. Idempotent: a second call
+ * with the same DB is a no-op. Returns a stop function that cancels the
+ * timer.
+ *
+ * The interval default (5 min) is conservative — frequent enough to keep
+ * the WAL bounded during long sessions, rare enough not to compete with
+ * streaming writes. Configurable via the Persistence Settings panel
+ * (PS10) once that ships.
+ */
+export function startPeriodicCheckpoint(
+  intervalMs: number = DEFAULT_CHECKPOINT_INTERVAL_MS
+): () => void {
+  if (checkpointTimer) {
+    // Already running; return a stop fn that cancels the live timer.
+    const live = checkpointTimer
+    return () => {
+      if (checkpointTimer === live) {
+        clearInterval(live)
+        checkpointTimer = null
+      }
+    }
+  }
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+    throw new Error(`startPeriodicCheckpoint: invalid intervalMs ${intervalMs}`)
+  }
+  checkpointTimer = setInterval(() => {
+    try {
+      lastCheckpointResult = checkpoint()
+    } catch (err) {
+      // A failing checkpoint must not crash the timer; we log via console
+      // here because the event-log spine isn't always ready in shutdown
+      // edges. PS22 wires the formal event emission.
+      console.warn('[db] periodic checkpoint failed:', err)
+    }
+  }, intervalMs)
+  // Allow the process to exit while the timer is pending — important for
+  // headless CLI runs that should not be held alive by this interval.
+  checkpointTimer.unref?.()
+  return () => {
+    if (checkpointTimer) {
+      clearInterval(checkpointTimer)
+      checkpointTimer = null
+    }
+  }
+}
+
+/** PS10 surface — exposes the most recent periodic-checkpoint outcome. */
+export function getLastCheckpointResult(): CheckpointResult | null {
+  return lastCheckpointResult
+}
+
 export function closeDb(): void {
   if (db) {
+    // PS2 — TRUNCATE the WAL before closing so the next launch starts
+    // with a small WAL footprint. On an ungraceful exit we lose this,
+    // and the WAL recovery on next open handles that case correctly —
+    // the periodic checkpoint exists precisely to bound the worst case.
+    try {
+      checkpoint(db)
+    } catch (err) {
+      console.warn('[db] checkpoint on close failed:', err)
+    }
+    // Stop the periodic timer if it was running — closing the DB while
+    // the interval is live would have the next tick fail.
+    if (checkpointTimer) {
+      clearInterval(checkpointTimer)
+      checkpointTimer = null
+    }
     db.close()
     db = null
   }

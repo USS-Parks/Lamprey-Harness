@@ -79,6 +79,30 @@ export const MIGRATIONS: Migration[] = [
         }
       }
     }
+  },
+  {
+    version: 2,
+    description:
+      'PS7 embedder meta — record active embedder + dimensions for vec0 dim-guard',
+    up(db) {
+      // Singleton table. The PRIMARY KEY constraint on `id` + the
+      // hard-coded 'singleton' value means there is at most one row,
+      // ever. stamp/read helpers in rag/embedder-meta.ts enforce that.
+      //
+      // No backfill: a DB that already has rag_chunk_vec rows but no
+      // meta row is treated as "unknown embedder, assume default";
+      // assertEmbedderDimensionMatch stamps the first row on first
+      // post-PS7 ingest. That's safe because the only dims-in-use up
+      // to this point are 384 (both catalogue entries).
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS rag_embedder_meta (
+          id          TEXT PRIMARY KEY CHECK(id = 'singleton'),
+          embedder_id TEXT NOT NULL,
+          dimensions  INTEGER NOT NULL,
+          stamped_at  INTEGER NOT NULL
+        );
+      `)
+    }
   }
 ]
 

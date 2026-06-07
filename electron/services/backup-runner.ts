@@ -10,6 +10,7 @@ import {
   unlinkSync
 } from 'fs'
 import { getDb, checkpoint } from './database'
+import { recordEvent } from './event-log'
 
 // Persistence Phase / PS5 — daily SQLite backups + rolling retention +
 // restore.
@@ -111,13 +112,30 @@ export async function createBackup(
     }
   }
   const stat = statSync(destPath)
-  return {
+  const info: BackupInfo = {
     path: destPath,
     name: filename,
     mtime: stat.mtimeMs,
     bytes: stat.size,
     reason
   }
+  // PS22 — emit. Backup events let the Activity Timeline show "last
+  // backup" pulses + flag missing nightly runs.
+  try {
+    recordEvent({
+      type: 'persistence.backup',
+      actorKind: 'system',
+      severity: 'info',
+      payload: {
+        path: destPath,
+        bytes: stat.size,
+        reason
+      }
+    })
+  } catch {
+    /* non-fatal */
+  }
+  return info
 }
 
 /**
@@ -243,11 +261,28 @@ export async function restoreFromBackup(
       /* already closed */
     }
   }
-  return {
+  const result: RestoreInfo = {
     movedTo: corruptPath,
     restoredFrom: backupPath,
     restoredAt: Date.now()
   }
+  // PS22 — recovery is a high-signal event; severity 'warning' so the
+  // timeline surfaces it (a restore implies the previous DB was suspect).
+  try {
+    recordEvent({
+      type: 'persistence.recovery',
+      actorKind: 'user',
+      severity: 'warning',
+      payload: {
+        fromPath: backupPath,
+        toPath: dbPath,
+        movedTo: corruptPath
+      }
+    })
+  } catch {
+    /* non-fatal */
+  }
+  return result
 }
 
 // Periodic runner — schedules `createBackup` once per day at startup

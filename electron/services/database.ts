@@ -4,6 +4,7 @@ import { join } from 'path'
 import { loadSqliteVec } from './rag/vec-loader'
 import { runMigrations } from './db-migrations'
 import { initLegacySchema } from './schema-init'
+import { recordEvent } from './event-log'
 
 let db: Database.Database | null = null
 
@@ -98,12 +99,31 @@ export function checkpoint(database?: Database.Database): CheckpointResult {
   }>
   const durationMs = Math.round(performance.now() - startedAt)
   const row = rows?.[0] ?? { busy: 1, log: 0, checkpointed: 0 }
-  return {
+  const result: CheckpointResult = {
     ok: row.busy === 0,
     pagesInWal: row.log,
     pagesCheckpointed: row.checkpointed,
     durationMs
   }
+  // PS22 — emit event spine row so the Activity Timeline + Persistence
+  // panel can graph WAL hygiene over time. Best-effort: a failed event
+  // write must not mask the checkpoint result.
+  try {
+    recordEvent({
+      type: 'persistence.checkpoint',
+      actorKind: 'system',
+      severity: result.ok ? 'info' : 'warning',
+      payload: {
+        ok: result.ok,
+        pagesInWal: result.pagesInWal,
+        pagesCheckpointed: result.pagesCheckpointed,
+        durationMs: result.durationMs
+      }
+    })
+  } catch {
+    /* event spine unavailable during early boot — non-fatal */
+  }
+  return result
 }
 
 // PS2 — periodic checkpoint state. Module-scoped so multiple callers
@@ -286,6 +306,23 @@ export function runIntegrityCheck(
     }
   }
   lastIntegrityResult = result
+  // PS22 — emit. A non-'ok' integrity check is severity 'error' so the
+  // timeline highlights it.
+  try {
+    recordEvent({
+      type: 'persistence.integrity',
+      actorKind: 'system',
+      severity: result.ok ? 'info' : 'error',
+      payload: {
+        ok: result.ok,
+        result: result.result.slice(0, 512), // bounded preview
+        durationMs: result.durationMs
+      },
+      redaction: result.ok ? 'metadata' : 'preview'
+    })
+  } catch {
+    /* event spine unavailable during early boot — non-fatal */
+  }
   return result
 }
 

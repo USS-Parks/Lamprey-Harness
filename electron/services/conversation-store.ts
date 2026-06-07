@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { getDb } from './database'
+import { getDb, withWriteRetry } from './database'
 import { touchProject } from './projects-store'
 import { clearConversationState } from './plan-goal-store'
 import { sanitizePseudoTags } from './sanitize-pseudo-tags'
@@ -574,32 +574,43 @@ export function saveMessage(msg: {
     msg.role === 'assistant' && sanitizedContent !== split.content ? split.content : null
   const toolCallsJson = msg.toolCalls && msg.toolCalls.length > 0 ? JSON.stringify(msg.toolCalls) : null
   const documentsJson = msg.documents && msg.documents.length > 0 ? JSON.stringify(msg.documents) : null
-  db.prepare(
-    'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, draft, reasoning, documents, stage, content_raw, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(
-    msg.id,
-    msg.conversationId,
-    msg.role,
-    sanitizedContent,
-    msg.model || null,
-    msg.toolCallId || null,
-    toolCallsJson,
-    msg.draft || null,
-    split.reasoning || null,
-    documentsJson,
-    msg.stage || null,
-    contentRaw,
-    now
+  // PS3 — wrap the message INSERT + touchConversation + FTS sync in
+  // withWriteRetry so a transient SQLITE_BUSY (post-busy_timeout, rare
+  // multi-process edge case) doesn't drop a chat message silently.
+  // This is the single highest-frequency writer in the app; a dropped
+  // row leaves the renderer's optimistic-updated bubble without DB
+  // backing on the next reload.
+  withWriteRetry(
+    () => {
+      db.prepare(
+        'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, draft, reasoning, documents, stage, content_raw, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(
+        msg.id,
+        msg.conversationId,
+        msg.role,
+        sanitizedContent,
+        msg.model || null,
+        msg.toolCallId || null,
+        toolCallsJson,
+        msg.draft || null,
+        split.reasoning || null,
+        documentsJson,
+        msg.stage || null,
+        contentRaw,
+        now
+      )
+      touchConversation(msg.conversationId)
+      // E3: keep the cross-session FTS index in sync. User/assistant
+      // bodies are the ones worth searching; system/tool messages are
+      // usually plumbing and would inflate the index with noise. We index
+      // the sanitised content so search matches what the user sees in the
+      // bubble, not the pseudo-XML.
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        ftsInsertMessage(msg.id, msg.conversationId, sanitizedContent)
+      }
+    },
+    { label: 'conversation-store.saveMessage' }
   )
-  touchConversation(msg.conversationId)
-  // E3: keep the cross-session FTS index in sync. User/assistant
-  // bodies are the ones worth searching; system/tool messages are
-  // usually plumbing and would inflate the index with noise. We index
-  // the sanitised content so search matches what the user sees in the
-  // bubble, not the pseudo-XML.
-  if (msg.role === 'user' || msg.role === 'assistant') {
-    ftsInsertMessage(msg.id, msg.conversationId, sanitizedContent)
-  }
   return {
     id: msg.id,
     conversationId: msg.conversationId,

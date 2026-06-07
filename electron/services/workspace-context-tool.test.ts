@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import { join, sep } from 'path'
 
 import {
+  buildProofContext,
   detectFrameworks,
   executeWorkspaceContext,
   findInstructionFiles,
@@ -13,6 +14,8 @@ import {
   resolveInsideWorkspace,
   type PackageManifest
 } from './workspace-context-tool'
+import type { ChangeContract } from './change-contract-store'
+import type { ProofReceiptRecord } from './proof-receipts'
 
 let root: string
 
@@ -249,13 +252,17 @@ describe('executeWorkspaceContext (integration, no git)', () => {
       })
     )
     writeFileSync(join(root, 'AGENTS.md'), '# Agents')
-    const out = await executeWorkspaceContext({}, root)
+    const out = await executeWorkspaceContext({}, root, {
+      getActiveContract: () => null,
+      listReceipts: () => []
+    })
     const data = JSON.parse(out)
     expect(data.cwd).toBe(root)
     expect(data.package.name).toBe('demo')
     expect(data.frameworks).toEqual(expect.arrayContaining(['react', 'electron']))
     expect(data.instructionFiles).toContain('AGENTS.md')
     expect(data.verificationCommands).toEqual(expect.arrayContaining(['npm test', 'npm run lint']))
+    expect(data.proof.policy.mutatingTurnsRequireFreshProof).toBe(true)
   })
 
   it('throws when cwd escapes the workspace', async () => {
@@ -293,5 +300,131 @@ describe('executeWorkspaceContext (integration, no git)', () => {
     const data = JSON.parse(out)
     expect(data.cwd).toBe(sub)
     expect(data.package.name).toBe('nested')
+  })
+})
+
+describe('proof context', () => {
+  const contract: ChangeContract = {
+    id: 'ctr_1',
+    conversationId: 'conv-1',
+    correlationId: 'corr-1',
+    status: 'active',
+    implicit: false,
+    source: 'user',
+    goal: 'Add contract context',
+    acceptanceCriteria: ['context names active contract'],
+    expectedFiles: ['electron/services/workspace-context-tool.ts'],
+    nonGoals: [],
+    verificationCommands: ['npm run lint'],
+    requiredReceiptKinds: ['verify'],
+    createdAt: 1,
+    updatedAt: 2
+  }
+
+  function receipt(input: Partial<ProofReceiptRecord>): ProofReceiptRecord {
+    return {
+      id: 'prf_1',
+      kind: 'verify',
+      status: 'passed',
+      conversationId: 'conv-1',
+      correlationId: 'corr-1',
+      contractId: 'ctr_1',
+      toolCallId: 'tool-1',
+      workspacePath: root,
+      cwd: root,
+      gitDirty: false,
+      command: 'npm test',
+      commandHash: 'cmd-hash',
+      startedAt: 10,
+      finishedAt: 20,
+      durationMs: 10,
+      exitCode: 0,
+      timedOut: false,
+      stdoutHash: 'stdout-hash',
+      stderrHash: 'stderr-hash',
+      stdoutPreview: '',
+      stderrPreview: '',
+      stdoutTruncated: false,
+      stderrTruncated: false,
+      stdoutBytes: 0,
+      stderrBytes: 0,
+      parsedMetrics: { tests: { passed: 1 } },
+      createdBy: 'agent',
+      createdAt: 21,
+      ...input
+    }
+  }
+
+  it('includes active contract, recent receipts, and recommended commands', async () => {
+    const proof = await buildProofContext({
+      cwd: root,
+      git: {
+        branch: 'main',
+        isDirty: false,
+        ahead: 0,
+        behind: 0,
+        changedFiles: [],
+        totalChanged: 0,
+        truncated: false
+      },
+      verificationCommands: ['npm test'],
+      deps: {
+        conversationId: 'conv-1',
+        getActiveContract: () => contract,
+        listReceipts: () => [receipt({ id: 'prf_passed' })]
+      }
+    })
+
+    expect(proof.activeContract?.id).toBe('ctr_1')
+    expect(proof.recentReceipts.map((r) => r.id)).toEqual(['prf_passed'])
+    expect(proof.recommendedVerificationCommands).toEqual(['npm run lint', 'npm test'])
+  })
+
+  it('summarizes the last failed receipt per command', async () => {
+    const proof = await buildProofContext({
+      cwd: root,
+      git: {
+        branch: 'main',
+        isDirty: false,
+        ahead: 0,
+        behind: 0,
+        changedFiles: [],
+        totalChanged: 0,
+        truncated: false
+      },
+      verificationCommands: [],
+      deps: {
+        getActiveContract: () => null,
+        listReceipts: () => [
+          receipt({ id: 'old', status: 'failed', command: 'npm test', finishedAt: 10 }),
+          receipt({ id: 'new', status: 'failed', command: 'npm test', finishedAt: 30 }),
+          receipt({ id: 'lint', status: 'failed', command: 'npm run lint', finishedAt: 20 })
+        ]
+      }
+    })
+
+    expect(proof.lastFailedReceipts.map((r) => r.id).sort()).toEqual(['lint', 'new'])
+  })
+
+  it('warns when latest passing proof is dirty and has no diff hash', async () => {
+    const proof = await buildProofContext({
+      cwd: root,
+      git: {
+        branch: 'main',
+        isDirty: true,
+        ahead: 0,
+        behind: 0,
+        changedFiles: [{ status: 'M', path: 'src/a.ts' }],
+        totalChanged: 1,
+        truncated: false
+      },
+      verificationCommands: [],
+      deps: {
+        getActiveContract: () => null,
+        listReceipts: () => [receipt({ id: 'green', status: 'passed', diffHash: undefined })]
+      }
+    })
+
+    expect(proof.staleGreenWarnings[0]).toContain('green')
   })
 })

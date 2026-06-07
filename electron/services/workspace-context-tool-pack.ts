@@ -10,7 +10,7 @@ toolRegistry.registerNative(
     name: 'workspace_context',
     title: 'Workspace context',
     description:
-      'Workspace preflight. Returns a JSON summary of the active workspace: cwd, git branch + ahead/behind + a capped list of changed files, package.json name/version/scripts (when present), detected frameworks, key instruction files (AGENTS.md, CLAUDE.md, README.md, CONTRIBUTING.md), and likely verification commands inferred from scripts and root tsconfigs. Prefer calling this once at the start of a coding task instead of running four separate reads. Output is read-only, size-capped (default 8 KB, max 32 KB via cap_bytes).',
+      'Workspace preflight. Returns a JSON summary of the active workspace: cwd, git branch + ahead/behind + a capped list of changed files, package.json name/version/scripts (when present), detected frameworks, key instruction files (AGENTS.md, CLAUDE.md, README.md, CONTRIBUTING.md), likely verification commands inferred from scripts and root tsconfigs, and current proof state: proof policy, active contract, recent receipts, failed receipts, stale-green warnings, and recommended verification commands. Prefer calling this once at the start of a coding task instead of running separate reads. Output is read-only, size-capped (default 8 KB, max 32 KB via cap_bytes).',
     providerKind: 'native',
     providerId: 'internal',
     inputSchema: {
@@ -35,6 +35,7 @@ toolRegistry.registerNative(
   async (args, ctx) =>
     executeWorkspaceContext(
       args as unknown as WorkspaceContextArgs,
-      ctx.workspacePath ?? process.cwd()
+      ctx.workspacePath ?? process.cwd(),
+      { conversationId: ctx.conversationId }
     )
 )

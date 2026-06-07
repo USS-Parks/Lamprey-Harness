@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Mechanical Proof Harness - Prompt M3] Dynamic context upgrades - 2026-06-07
+
+**Files changed:** `electron/services/workspace-context-tool.ts`, `electron/services/workspace-context-tool.test.ts`, `electron/services/workspace-context-tool-pack.ts`, `electron/services/proof-policy.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest `electron/services/workspace-context-tool.test.ts` OK
+- build/smoke/user-verification-needed: not applicable
+
+**Proof receipt:** not applicable
+**Notes:** `workspace_context` now includes proof policy, active contract summary, recent receipts, last failed receipts per command, stale-green warnings, and contract-merged recommended verification commands. Proof storage lookup is best-effort and cap-aware so context remains available in lightweight or pre-migration environments.
+
+**Commit:** _this commit_
+
 ## [Mechanical Proof Harness - Prompt M2] Change contract store - 2026-06-07
 
 **Files changed:** `electron/services/change-contract-schema.ts`, `electron/services/change-contract-store.ts`, `electron/services/change-contract-store.test.ts`, `electron/ipc/contracts.ts`, `electron/ipc/index.ts`, `electron/preload.ts`, `electron/services/db-migrations.ts`, `src/lib/types.ts`, `src/lib/event-presentation.ts`

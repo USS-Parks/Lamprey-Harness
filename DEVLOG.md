@@ -1,5 +1,14 @@
 # Lamprey Harness Dev Log
 
+### 2026-06-06 — PS11-PS20/PS22 Track B: fork + seed surface
+
+**Goal**: wire the Fork/Seed UI promise into real IPC, persistence, side-chat seeding, lineage, and seed-budget controls.
+**Touch**: `electron/ipc/conversation.ts`, `electron/services/conversation-store.ts`, `electron/services/db-migrations.ts`, `electron/services/rag/store.ts`, `src/components/chat/*`, `src/components/artifacts/CodeBlock.tsx`, `src/components/tools/panels/SideChatPanel.tsx`, `src/components/settings/SeedBudgetSettings.tsx`.
+**Verify**: `npx tsc --noEmit -p tsconfig.node.json`; `npx tsc --noEmit -p tsconfig.web.json`; `npx vitest run` (129 files passed, 7 skipped; 1998 tests passed, 56 skipped).
+**Notes**: Track B branch reserves fork/seed schema at migration v11 so Track A can own PS3-PS10. Merge this after Claude's Track A migration series. Runtime Electron smoke was not run in this pass.
+
+---
+
 ## [Build] Generic artifact filenames — drop the version suffix  —  2026-06-06
 
 User-directed policy change ahead of the v0.8.4 build: `dist/` artifacts must land at stable, version-less paths every release. From now on:

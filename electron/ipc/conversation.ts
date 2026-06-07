@@ -3,6 +3,136 @@ import { randomUUID } from 'crypto'
 import * as store from '../services/conversation-store'
 import { chatOnce } from '../services/providers/registry'
 import { listStageMetrics } from '../services/stage-metrics-store'
+import { getActiveWorkspace } from '../services/workspace-state'
+import { copyAttachments } from '../services/rag/store'
+import { readSettings } from '../services/settings-helper'
+
+type SeedKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
+type WorkspaceMode = 'inherit' | 'current' | 'none'
+
+export interface ForkParams {
+  sourceConversationId: string
+  sourceMessageId?: string
+  seedKind: SeedKind
+  seedContent?: string
+  seedBlobJson?: string
+  includeRagAttachments?: boolean
+  workspaceMode?: WorkspaceMode
+  titleOverride?: string
+}
+
+const SEED_KINDS = new Set<SeedKind>([
+  'none',
+  'message',
+  'block',
+  'transcript-range',
+  'custom'
+])
+const WORKSPACE_MODES = new Set<WorkspaceMode>(['inherit', 'current', 'none'])
+
+function sanitizeForkParams(raw: unknown): ForkParams {
+  if (typeof raw === 'string') {
+    return {
+      sourceConversationId: raw,
+      seedKind: 'none',
+      includeRagAttachments: true,
+      workspaceMode: 'inherit'
+    }
+  }
+  const input = (raw ?? {}) as Partial<ForkParams>
+  if (typeof input.sourceConversationId !== 'string' || !input.sourceConversationId) {
+    throw new Error('sourceConversationId is required')
+  }
+  const seedKind = input.seedKind ?? 'none'
+  if (!SEED_KINDS.has(seedKind)) throw new Error(`invalid seedKind: ${seedKind}`)
+  const workspaceMode = input.workspaceMode ?? 'current'
+  if (!WORKSPACE_MODES.has(workspaceMode)) {
+    throw new Error(`invalid workspaceMode: ${workspaceMode}`)
+  }
+  const sourceMessageId =
+    typeof input.sourceMessageId === 'string' && input.sourceMessageId
+      ? input.sourceMessageId
+      : undefined
+  const seedContent =
+    typeof input.seedContent === 'string' ? input.seedContent : undefined
+  const seedBlobJson =
+    typeof input.seedBlobJson === 'string' ? input.seedBlobJson : undefined
+
+  if ((seedKind === 'block' || seedKind === 'custom') && !seedContent?.trim()) {
+    throw new Error(`seedContent is required for seedKind=${seedKind}`)
+  }
+  if (seedKind === 'transcript-range' && !seedBlobJson?.trim() && !seedContent?.trim()) {
+    throw new Error('seedBlobJson or seedContent is required for seedKind=transcript-range')
+  }
+
+  return {
+    sourceConversationId: input.sourceConversationId,
+    sourceMessageId,
+    seedKind,
+    seedContent,
+    seedBlobJson,
+    includeRagAttachments: input.includeRagAttachments !== false,
+    workspaceMode,
+    titleOverride:
+      typeof input.titleOverride === 'string' && input.titleOverride.trim()
+        ? input.titleOverride.trim()
+        : undefined
+  }
+}
+
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function buildSeedTurn(params: ForkParams, content: string): string {
+  const attrs = [
+    `source="${escapeAttr(params.sourceConversationId)}"`,
+    `kind="${escapeAttr(params.seedKind)}"`
+  ]
+  if (params.sourceMessageId) {
+    attrs.push(`from_message_id="${escapeAttr(params.sourceMessageId)}"`)
+  }
+  return `<seed_context ${attrs.join(' ')}>\n${content.trim()}\n</seed_context>`
+}
+
+function seedBudget(): number {
+  const raw = readSettings().safeSeedLength
+  return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : 8192
+}
+
+function seedTurnBody(params: ForkParams, content: string): { body: string; truncated: boolean } {
+  const limit = seedBudget()
+  if (content.length <= limit) {
+    return { body: buildSeedTurn(params, content), truncated: false }
+  }
+  const estimatedTokens = Math.ceil(content.length / 4)
+  return {
+    truncated: true,
+    body: buildSeedTurn(
+      params,
+      `Seed attached as document (${estimatedTokens} estimated tokens, ${content.length} chars). ` +
+        `Inline seed budget is ${limit} chars.`
+    )
+  }
+}
+
+function resolveSeedContent(params: ForkParams): string | null {
+  if (params.seedKind === 'none') return null
+  if (params.seedContent?.trim()) return params.seedContent
+  if (params.seedKind === 'message' && params.sourceMessageId) {
+    const message = store.findMessage(params.sourceConversationId, params.sourceMessageId)
+    if (!message) throw new Error('source message not found')
+    return message.content
+  }
+  if (params.seedKind === 'transcript-range' && params.seedBlobJson?.trim()) {
+    return params.seedBlobJson
+  }
+  return null
+}
 
 export function registerConversationHandlers(): void {
   ipcMain.handle('conversation:list', async () => {
@@ -145,28 +275,64 @@ export function registerConversationHandlers(): void {
     }
   })
 
-  ipcMain.handle('conversation:fork', async (_event, id: string) => {
+  ipcMain.handle('conversation:fork', async (_event, raw: unknown) => {
     try {
-      const src = store.getConversation(id)
+      const params = sanitizeForkParams(raw)
+      const src = store.getConversation(params.sourceConversationId)
       if (!src) return { success: false, error: 'source not found' }
+      const seedContent = resolveSeedContent(params)
+      let worktreePath: string | null = null
+      if (params.workspaceMode === 'inherit') {
+        worktreePath = src.worktreePath ?? null
+      } else if (params.workspaceMode === 'current') {
+        worktreePath = getActiveWorkspace()
+      }
       const next = store.createConversation(src.model, {
         kind: src.kind ?? 'local',
-        worktreePath: src.worktreePath ?? null
+        worktreePath,
+        projectId: src.projectId ?? null,
+        forkedFromId: params.sourceConversationId,
+        forkedFromMessageId: params.sourceMessageId ?? null,
+        seedSourceKind: params.seedKind,
+        seedBlob:
+          params.seedKind === 'none'
+            ? null
+            : {
+                sourceConversationId: params.sourceConversationId,
+                sourceMessageId: params.sourceMessageId,
+                kind: params.seedKind,
+                seedBytes: seedContent ? Buffer.byteLength(seedContent, 'utf8') : 0,
+                contentPreview: seedContent?.slice(0, 240)
+              }
       })
-      // Copy messages over.
-      const msgs = store.getMessages(id)
-      for (const m of msgs) {
+
+      if (params.includeRagAttachments) {
+        copyAttachments(params.sourceConversationId, next.id)
+      }
+
+      if (seedContent && params.seedKind !== 'none') {
+        const seedTurn = seedTurnBody(params, seedContent)
         store.saveMessage({
           id: randomUUID(),
           conversationId: next.id,
-          role: m.role,
-          content: m.content,
-          model: m.model,
-          toolCallId: m.toolCallId
+          role: 'user',
+          content: seedTurn.body
         })
       }
-      if (src.title) store.updateConversationTitle(next.id, `${src.title} (fork)`)
-      return { success: true, data: next }
+      const title = params.titleOverride ?? (src.title ? `${src.title} (fork)` : null)
+      if (title) store.updateConversationTitle(next.id, title)
+      return { success: true, data: { conversationId: next.id } }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('conversation:lineage', async (_event, conversationId: string) => {
+    try {
+      if (typeof conversationId !== 'string' || !conversationId) {
+        return { success: false, error: 'conversationId is required' }
+      }
+      return { success: true, data: store.listConversationLineage(conversationId) }
     } catch (err: any) {
       return { success: false, error: err.message }
     }

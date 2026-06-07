@@ -55,7 +55,14 @@ const TYPE_LABELS: Record<EventType, string> = {
   'rag.ingest.failed': 'Ingest failed',
   'rag.query.completed': 'Retrieval ran',
   'rag.query.failed': 'Retrieval failed',
-  'rag.rerank.completed': 'Reranked'
+  'rag.rerank.completed': 'Reranked',
+  'persistence.checkpoint': 'DB checkpoint',
+  'persistence.integrity': 'DB integrity',
+  'persistence.backup': 'DB backup',
+  'persistence.recovery': 'DB recovery',
+  'conversation.forked': 'Conversation forked',
+  'conversation.seed.attached': 'Seed attached',
+  'conversation.seed.truncated': 'Seed budget hit'
 }
 
 export function eventTypeLabel(type: EventType): string {
@@ -184,6 +191,23 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
         preview && fusedCount !== undefined
           ? `${preview} → ${fusedCount}`
           : preview ?? null
+      break
+    }
+    case 'persistence.checkpoint':
+    case 'persistence.integrity':
+    case 'persistence.backup':
+    case 'persistence.recovery': {
+      const reason = typeof p.reason === 'string' ? p.reason : undefined
+      const result = typeof p.result === 'string' ? p.result : undefined
+      s = reason ?? result ?? null
+      break
+    }
+    case 'conversation.forked':
+    case 'conversation.seed.attached':
+    case 'conversation.seed.truncated': {
+      const seedKind = typeof p.seedKind === 'string' ? p.seedKind : undefined
+      const seedBytes = typeof p.seedBytes === 'number' ? p.seedBytes : undefined
+      s = seedKind && seedBytes !== undefined ? `${seedKind} (${seedBytes} bytes)` : seedKind ?? null
       break
     }
     case 'chat.cancelled':

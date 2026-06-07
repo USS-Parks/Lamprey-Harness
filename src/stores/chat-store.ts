@@ -8,7 +8,8 @@ import type {
   ToolCallEvent,
   ToolCallResultEvent,
   ToolProviderKind,
-  ToolRisk
+  ToolRisk,
+  ForkParams
 } from '@/lib/types'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useModelStore } from '@/stores/model-store'
@@ -77,6 +78,7 @@ interface ChatState {
   loadConversations: () => Promise<void>
   selectConversation: (id: string) => Promise<void>
   createConversation: () => Promise<string>
+  forkFromMessage: (messageId: string, opts?: Partial<ForkParams>) => Promise<string | null>
   deleteConversation: (id: string) => Promise<void>
   sendMessage: (content: string, activeSkillIds: string[]) => Promise<void>
   cancelStream: () => void
@@ -277,6 +279,35 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return conv.id
     }
     return ''
+  },
+
+  forkFromMessage: async (messageId: string, opts: Partial<ForkParams> = {}) => {
+    const state = get()
+    const sourceConversationId = state.activeConversationId
+    if (!sourceConversationId) return null
+    const message = state.messages.find((m) => m.id === messageId)
+    if (!message) {
+      toast.error('Could not find the message to fork from')
+      return null
+    }
+    const result = await window.api.conversation.fork({
+      sourceConversationId,
+      sourceMessageId: messageId,
+      seedKind: opts.seedKind ?? 'message',
+      seedContent: opts.seedContent ?? message.content,
+      includeRagAttachments: opts.includeRagAttachments ?? true,
+      workspaceMode: opts.workspaceMode ?? 'current',
+      titleOverride: opts.titleOverride
+    })
+    if (!result.success) {
+      toast.error(result.error ?? 'Could not create fork')
+      return null
+    }
+    const nextId = (result.data as { conversationId: string }).conversationId
+    await get().loadConversations()
+    await get().selectConversation(nextId)
+    toast.success('Fork created')
+    return nextId
   },
 
   deleteConversation: async (id: string) => {

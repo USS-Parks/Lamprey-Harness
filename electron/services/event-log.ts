@@ -111,7 +111,14 @@ export const EVENT_TYPES = [
   // payload, not emitted separately.
   'rag.query.completed',
   'rag.query.failed',
-  'rag.rerank.completed'
+  'rag.rerank.completed',
+  'persistence.checkpoint',
+  'persistence.integrity',
+  'persistence.backup',
+  'persistence.recovery',
+  'conversation.forked',
+  'conversation.seed.attached',
+  'conversation.seed.truncated'
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

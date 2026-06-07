@@ -7,6 +7,7 @@ import '@/styles/markdown.css'
 
 interface MarkdownRendererProps {
   content: string
+  sourceMessageId?: string
 }
 
 // Fluidity J10: turn bare `path/file.ext[:line]` references in prose into
@@ -97,7 +98,7 @@ function FileRefSpan({
   )
 }
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, sourceMessageId }: MarkdownRendererProps) {
   return (
     <div className="markdown-body">
       <ReactMarkdown
@@ -112,7 +113,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             const codeStr = String(children).replace(/\n$/, '')
 
             if (match) {
-              return <CodeBlock code={codeStr} language={match[1]} />
+              return <CodeBlock code={codeStr} language={match[1]} sourceMessageId={sourceMessageId} />
             }
 
             return (

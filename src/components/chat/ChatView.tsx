@@ -12,6 +12,7 @@ import { PlanModeBanner } from './PlanModeBanner'
 import { ChapterSidebar } from './ChapterSidebar'
 import { ChapterQuickJumper } from './ChapterQuickJumper'
 import { SpawnTaskTray } from './SpawnTaskTray'
+import { LineageChip } from './LineageChip'
 
 // Shared chat column: max-width cap + internal padding. Messages and the
 // input pill both use this so they sit in the same centered column no
@@ -62,6 +63,7 @@ export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
       {/* Track 2 / C3 — persistent yellow banner above the conversation
           when plan mode is active. Self-hides when off. */}
       <PlanModeBanner conversationId={activeConversationId} />
+      <LineageChip />
 
       {/* Track 2 / E2 — chapter TOC + Ctrl+G quick-jumper. The sidebar
           floats over the message list (top-right) and self-hides until

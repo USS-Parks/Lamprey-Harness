@@ -159,22 +159,18 @@ export function readStoredPassphrase(): string | null {
   const userData = app.getPath('userData')
   const keysPath = join(userData, 'keys.json')
   if (!existsSync(keysPath)) return null
-  try {
-    const json = JSON.parse(readFileSync(keysPath, 'utf8')) as Record<string, string>
-    const entry = json[ENCRYPTION_PROVIDER]
-    if (!entry) return null
-    if (entry.startsWith('plain:')) return entry.slice('plain:'.length)
-    if (!safeStorage.isEncryptionAvailable()) {
-      // Encrypted-on-disk passphrase without OS keychain available is
-      // a configuration error; surface honestly.
-      throw new Error(
-        'stored encryption passphrase requires OS keychain to decrypt'
-      )
-    }
-    return safeStorage.decryptString(Buffer.from(entry, 'base64'))
-  } catch (err) {
-    throw err
+  const json = JSON.parse(readFileSync(keysPath, 'utf8')) as Record<string, string>
+  const entry = json[ENCRYPTION_PROVIDER]
+  if (!entry) return null
+  if (entry.startsWith('plain:')) return entry.slice('plain:'.length)
+  if (!safeStorage.isEncryptionAvailable()) {
+    // Encrypted-on-disk passphrase without OS keychain available is
+    // a configuration error; surface honestly.
+    throw new Error(
+      'stored encryption passphrase requires OS keychain to decrypt'
+    )
   }
+  return safeStorage.decryptString(Buffer.from(entry, 'base64'))
 }
 
 function writeStoredPassphrase(passphrase: string): void {
@@ -224,7 +220,7 @@ export function getEncryptionStatus(): EncryptionStatus {
   try {
     passphraseStored = readStoredPassphrase() !== null
   } catch {
-    passphraseStored = false
+    /* unreadable keychain means "not available" for status purposes */
   }
   return {
     bindingAvailable: binding !== null,
@@ -422,10 +418,14 @@ export function changePassphrase(oldPassphrase: string, newPassphrase: string): 
  * better-sqlite3 declaration namespace because the cipher binding is
  * a runtime detail; callers cast where they need to.
  */
-export function openEncryptedDatabase(passphrase: string, dbFilePath: string): CipherDatabase | null {
+export function openEncryptedDatabase(
+  passphrase: string,
+  dbFilePath: string,
+  opts?: { readonly?: boolean; fileMustExist?: boolean }
+): CipherDatabase | null {
   const binding = loadCipherBinding()
   if (!binding) return null
-  const handle = new binding(dbFilePath)
+  const handle = new binding(dbFilePath, opts)
   const escapedPass = passphrase.replace(/'/g, "''")
   handle.pragma(`key = '${escapedPass}'`)
   // Touch a pragma that requires the key to be correct; a mistyped
@@ -438,7 +438,10 @@ export function openEncryptedDatabase(passphrase: string, dbFilePath: string): C
     } catch {
       /* already closed */
     }
-    throw new Error(`encrypted database: passphrase rejected (${err instanceof Error ? err.message : String(err)})`)
+    throw new Error(
+      `encrypted database: passphrase rejected (${err instanceof Error ? err.message : String(err)})`,
+      { cause: err }
+    )
   }
   return handle
 }

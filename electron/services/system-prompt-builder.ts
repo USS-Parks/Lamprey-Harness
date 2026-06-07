@@ -260,7 +260,8 @@ export function buildSystemPrompt(
   //   memory_index → skills → retrieved_context → chapters → conversation
   // so the index sits just above the skill blocks below.
   memoryIndexBlock?: string,
-  taskNotificationsBlock?: string
+  taskNotificationsBlock?: string,
+  chaptersBlock?: string
 ): string {
   // A non-empty override fully replaces the default base (identity + contract).
   // Power users who set a custom prompt are opting out of the contract on
@@ -290,6 +291,10 @@ export function buildSystemPrompt(
 
   if (taskNotificationsBlock && taskNotificationsBlock.trim()) {
     parts.push(taskNotificationsBlock.trim())
+  }
+
+  if (chaptersBlock && chaptersBlock.trim()) {
+    parts.push(chaptersBlock.trim())
   }
 
   for (const skill of activeSkillContents) {

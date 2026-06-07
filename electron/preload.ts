@@ -353,7 +353,9 @@ const api = {
     disableEncryption: (passphrase: string) =>
       ipcRenderer.invoke('persistence:disableEncryption', passphrase),
     changePassphrase: (oldPassphrase: string, newPassphrase: string) =>
-      ipcRenderer.invoke('persistence:changePassphrase', oldPassphrase, newPassphrase)
+      ipcRenderer.invoke('persistence:changePassphrase', oldPassphrase, newPassphrase),
+    setReadOnlyMode: (enabled: boolean) =>
+      ipcRenderer.invoke('persistence:setReadOnlyMode', enabled)
   },
 
   permissions: {

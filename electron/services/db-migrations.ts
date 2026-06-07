@@ -201,7 +201,8 @@ export function runMigrations(db: Database): MigrationResult {
     } catch (err: any) {
       const msg = err?.message ?? String(err)
       throw new Error(
-        `db-migrations v${migration.version} (${migration.description}) failed: ${msg}`
+        `db-migrations v${migration.version} (${migration.description}) failed: ${msg}`,
+        { cause: err }
       )
     }
   }

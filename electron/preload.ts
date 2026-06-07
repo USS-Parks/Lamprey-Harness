@@ -152,7 +152,8 @@ const api = {
     appendSystem: (id: string, content: string) =>
       ipcRenderer.invoke('conversation:appendSystem', id, content),
     setModel: (id: string, model: string) => ipcRenderer.invoke('conversation:setModel', id, model),
-    fork: (id: string) => ipcRenderer.invoke('conversation:fork', id),
+    fork: (input: unknown) => ipcRenderer.invoke('conversation:fork', input),
+    lineage: (conversationId: string) => ipcRenderer.invoke('conversation:lineage', conversationId),
     compact: (id: string) => ipcRenderer.invoke('conversation:compact', id)
   },
 
@@ -334,6 +335,27 @@ const api = {
       decision: 'allow' | 'deny'
       scope: 'once' | 'conversation' | 'workspace' | 'always'
     }) => ipcRenderer.invoke('tools:respondToApproval', response)
+  },
+
+  persistence: {
+    // PS4–PS10 — read-write surface for the persistence floor.
+    getStatus: () => ipcRenderer.invoke('persistence:getStatus'),
+    runIntegrityCheck: () => ipcRenderer.invoke('persistence:runIntegrityCheck'),
+    forceCheckpoint: () => ipcRenderer.invoke('persistence:forceCheckpoint'),
+    createBackup: () => ipcRenderer.invoke('persistence:createBackup'),
+    listBackups: () => ipcRenderer.invoke('persistence:listBackups'),
+    restoreFromBackup: (backupPath: string) =>
+      ipcRenderer.invoke('persistence:restoreFromBackup', backupPath),
+    // PS9 encryption opt-in.
+    getEncryptionStatus: () => ipcRenderer.invoke('persistence:getEncryptionStatus'),
+    enableEncryption: (passphrase: string) =>
+      ipcRenderer.invoke('persistence:enableEncryption', passphrase),
+    disableEncryption: (passphrase: string) =>
+      ipcRenderer.invoke('persistence:disableEncryption', passphrase),
+    changePassphrase: (oldPassphrase: string, newPassphrase: string) =>
+      ipcRenderer.invoke('persistence:changePassphrase', oldPassphrase, newPassphrase),
+    setReadOnlyMode: (enabled: boolean) =>
+      ipcRenderer.invoke('persistence:setReadOnlyMode', enabled)
   },
 
   permissions: {

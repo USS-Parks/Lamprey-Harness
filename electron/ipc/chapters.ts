@@ -6,6 +6,7 @@ import {
   listChaptersByAnchor
 } from '../services/chapters-store'
 import { emitChatEvent } from '../services/chat-events'
+import { recordEvent } from '../services/event-log'
 
 // Track 2 / E1 — chapter IPC. The model writes via the `mark_chapter`
 // tool descriptor (handled inline in chat.ts so it can emit the chat
@@ -43,6 +44,22 @@ export function registerChaptersHandlers(): void {
         conversationId: payload.conversationId,
         chapter
       })
+      try {
+        recordEvent({
+          type: 'chat.chapter.marked',
+          actorKind: 'user',
+          conversationId: payload.conversationId,
+          entityKind: 'chapter',
+          entityId: chapter.id,
+          payload: {
+            title: chapter.title,
+            summary: chapter.summary,
+            anchorMessageId: chapter.anchorMessageId
+          }
+        })
+      } catch (err) {
+        console.error('[chapters] chat.chapter.marked spine event failed:', err)
+      }
       return { success: true, data: chapter }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'session:markChapter failed' }

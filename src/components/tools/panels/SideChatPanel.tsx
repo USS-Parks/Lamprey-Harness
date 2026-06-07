@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useModelStore } from '@/stores/model-store'
+import { useUiStore } from '@/stores/ui-store'
 
 interface Msg {
   role: 'user' | 'assistant'
@@ -16,7 +17,10 @@ export function SideChatPanel() {
   const [streamBuf, setStreamBuf] = useState('')
   const [error, setError] = useState<string | null>(null)
   const activeModel = useModelStore((s) => s.activeModel)
+  const sideChatSeed = useUiStore((s) => s.sideChatSeed)
+  const consumeSideChatSeed = useUiStore((s) => s.consumeSideChatSeed)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const streamBufRef = useRef('')
 
   // Initialize: load or create the side conversation. We persist its ID in
   // localStorage so reopening the panel keeps history.
@@ -24,6 +28,34 @@ export function SideChatPanel() {
     let cancelled = false
     void (async () => {
       if (!window.api) return
+      const seed = consumeSideChatSeed()
+      if (seed) {
+        const forked = await window.api.conversation.fork({
+          sourceConversationId: seed.sourceConversationId,
+          sourceMessageId: seed.sourceMessageId,
+          seedKind: seed.seedKind,
+          seedContent: seed.seedContent,
+          includeRagAttachments: true,
+          workspaceMode: 'current',
+          titleOverride: 'Side chat seed'
+        })
+        if (cancelled) return
+        if (!forked.success) {
+          setError(forked.error ?? 'Failed to seed side conversation')
+          return
+        }
+        const id = (forked.data as { conversationId: string }).conversationId
+        window.localStorage?.setItem(SIDE_CONV_KEY, id)
+        setConvId(id)
+        const msgs = await window.api.conversation.getMessages(id)
+        if (!cancelled && msgs.success) {
+          const list = (msgs.data as any[])
+            .filter((m) => m.role === 'user' || m.role === 'assistant')
+            .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+          setMessages(list)
+        }
+        return
+      }
       const stored = window.localStorage?.getItem(SIDE_CONV_KEY)
       if (stored) {
         const exists = await window.api.conversation.get(stored)
@@ -53,7 +85,11 @@ export function SideChatPanel() {
     return () => {
       cancelled = true
     }
-  }, [activeModel])
+  }, [activeModel, consumeSideChatSeed, sideChatSeed])
+
+  useEffect(() => {
+    streamBufRef.current = streamBuf
+  }, [streamBuf])
 
   // Wire per-conversation event subscription.
   useEffect(() => {
@@ -64,7 +100,7 @@ export function SideChatPanel() {
       },
       onDone: (e) => {
         const msg = e.message as any
-        const content = typeof msg?.content === 'string' ? msg.content : streamBuf
+        const content = typeof msg?.content === 'string' ? msg.content : streamBufRef.current
         setMessages((cur) => [...cur, { role: 'assistant', content }])
         setStreamBuf('')
         setStreaming(false)
@@ -76,7 +112,7 @@ export function SideChatPanel() {
       }
     })
     return unsub
-  }, [convId, streamBuf])
+  }, [convId])
 
   // Auto-scroll on new content.
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { getDb } from './database'
+import { getDb, withWriteRetry } from './database'
 import type { LampreyToolCall, LampreyToolCallStatus } from './tool-registry'
 
 // Tool-call audit log. Every model-initiated tool invocation is persisted
@@ -56,39 +56,49 @@ function previewOf(s: string | undefined): string | null {
 
 export function insertToolCall(call: LampreyToolCall): void {
   const db = getDb()
-  db.prepare(
-    `INSERT INTO tool_calls
-       (id, tool_id, name, conversation_id, args_json, status,
-        result_preview, error, started_at, finished_at, duration_ms,
-        approval_source, parent_call_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       tool_id = excluded.tool_id,
-       name = excluded.name,
-       conversation_id = excluded.conversation_id,
-       args_json = excluded.args_json,
-       status = excluded.status,
-       result_preview = excluded.result_preview,
-       error = excluded.error,
-       started_at = excluded.started_at,
-       finished_at = excluded.finished_at,
-       duration_ms = excluded.duration_ms,
-       approval_source = COALESCE(excluded.approval_source, tool_calls.approval_source),
-       parent_call_id = COALESCE(excluded.parent_call_id, tool_calls.parent_call_id)`
-  ).run(
-    call.id,
-    call.toolId,
-    call.name,
-    call.conversationId ?? null,
-    JSON.stringify(call.args ?? {}),
-    call.status,
-    previewOf(call.result),
-    call.error ?? null,
-    call.startedAt,
-    call.finishedAt ?? null,
-    call.durationMs ?? null,
-    call.approvalSource ?? null,
-    call.parentCallId ?? null
+  // PS3 — wrap in withWriteRetry so a transient SQLITE_BUSY (post-
+  // busy_timeout) doesn't drop an audit row. The tool_calls table is the
+  // structured audit trail for every model-initiated tool invocation —
+  // a dropped row breaks both the Activity Timeline and the policy-
+  // resolution path that consults previous calls.
+  withWriteRetry(
+    () => {
+      db.prepare(
+        `INSERT INTO tool_calls
+           (id, tool_id, name, conversation_id, args_json, status,
+            result_preview, error, started_at, finished_at, duration_ms,
+            approval_source, parent_call_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           tool_id = excluded.tool_id,
+           name = excluded.name,
+           conversation_id = excluded.conversation_id,
+           args_json = excluded.args_json,
+           status = excluded.status,
+           result_preview = excluded.result_preview,
+           error = excluded.error,
+           started_at = excluded.started_at,
+           finished_at = excluded.finished_at,
+           duration_ms = excluded.duration_ms,
+           approval_source = COALESCE(excluded.approval_source, tool_calls.approval_source),
+           parent_call_id = COALESCE(excluded.parent_call_id, tool_calls.parent_call_id)`
+      ).run(
+        call.id,
+        call.toolId,
+        call.name,
+        call.conversationId ?? null,
+        JSON.stringify(call.args ?? {}),
+        call.status,
+        previewOf(call.result),
+        call.error ?? null,
+        call.startedAt,
+        call.finishedAt ?? null,
+        call.durationMs ?? null,
+        call.approvalSource ?? null,
+        call.parentCallId ?? null
+      )
+    },
+    { label: 'tool-calls-store.insertToolCall' }
   )
 }
 

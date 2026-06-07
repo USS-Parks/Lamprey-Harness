@@ -36,6 +36,13 @@ export type ToolId =
 
 export type ShellKind = 'powershell' | 'cmd' | 'git-bash' | 'wsl'
 
+export interface SideChatSeedPayload {
+  sourceConversationId: string
+  sourceMessageId?: string
+  seedKind: 'message' | 'block' | 'custom'
+  seedContent: string
+}
+
 function readShell(): ShellKind {
   if (typeof window === 'undefined') return 'powershell'
   const raw = window.localStorage?.getItem(ACTIVE_SHELL_KEY)
@@ -155,6 +162,7 @@ export type SettingsTabId =
   | 'hooks'
   | 'automations'
   | 'timeouts'
+  | 'seedBudget'
 
 export type CustomizeColumnId = 'skills' | 'connectors' | 'plugins'
 
@@ -191,7 +199,10 @@ interface UiState {
   activeRightPanelConvId: string | null
   permissionsMode: PermissionsMode
   activeTool: ToolId | null
+  sideChatSeed: SideChatSeedPayload | null
   setActiveTool: (tool: ToolId | null) => void
+  seedSideChat: (payload: SideChatSeedPayload) => void
+  consumeSideChatSeed: () => SideChatSeedPayload | null
   closeActiveTool: () => void
   toggleTool: (tool: ToolId) => void
   activeShell: ShellKind
@@ -273,6 +284,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   activeRightPanelConvId: null,
   permissionsMode: readPermissions(),
   activeTool: null,
+  sideChatSeed: null,
   activeShell: readShell(),
   quickOpenVisible: false,
   workflowPaletteVisible: false,
@@ -387,6 +399,17 @@ export const useUiStore = create<UiState>((set, get) => ({
       set({ rightPanelCollapsed: false })
     }
     set({ activeTool: tool })
+  },
+  seedSideChat: (payload) => {
+    if (get().rightPanelCollapsed) {
+      writeLocal(RIGHT_COLLAPSED_KEY, '0')
+    }
+    set({ activeTool: 'sidechat', rightPanelCollapsed: false, sideChatSeed: payload })
+  },
+  consumeSideChatSeed: () => {
+    const seed = get().sideChatSeed
+    set({ sideChatSeed: null })
+    return seed
   },
   closeActiveTool: () => set({ activeTool: null }),
   setActiveShell: (kind: ShellKind) => {

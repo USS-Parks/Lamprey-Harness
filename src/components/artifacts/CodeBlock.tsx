@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BundledLanguage, Highlighter } from 'shiki'
+import { useChatStore } from '@/stores/chat-store'
+import { useUiStore } from '@/stores/ui-store'
 
 const ARTIFACT_LANGUAGES = new Set(['html', 'svg', 'mermaid', 'jsx', 'tsx', 'react'])
 
@@ -59,8 +61,8 @@ function getShiki(): Promise<Highlighter> {
           'xml',
           'svg',
           'graphql',
-          'diff',
-        ],
+          'diff'
+        ]
       })
     ) as Promise<Highlighter>
   }
@@ -70,12 +72,15 @@ function getShiki(): Promise<Highlighter> {
 interface CodeBlockProps {
   code: string
   language?: string
+  sourceMessageId?: string
 }
 
-export function CodeBlock({ code, language }: CodeBlockProps) {
+export function CodeBlock({ code, language, sourceMessageId }: CodeBlockProps) {
   const [html, setHtml] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const codeRef = useRef<HTMLDivElement>(null)
+  const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const seedSideChat = useUiStore((s) => s.seedSideChat)
 
   const lang = language?.toLowerCase() ?? ''
   const detectedType = detectArtifactType(code, lang)
@@ -92,7 +97,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
         const langId = supported.includes(lang as BundledLanguage) ? lang : 'text'
         const result = highlighter.codeToHtml(code, {
           lang: langId as BundledLanguage,
-          theme: 'one-dark-pro',
+          theme: 'one-dark-pro'
         })
         setHtml(result)
       })
@@ -119,27 +124,49 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
     }
   }
 
+  const handleExtract = () => {
+    if (!activeConversationId || !sourceMessageId) return
+    seedSideChat({
+      sourceConversationId: activeConversationId,
+      sourceMessageId,
+      seedKind: 'block',
+      seedContent: code
+    })
+  }
+
+  const actions = (
+    <div className="flex items-center gap-2">
+      {sourceMessageId && (
+        <button
+          onClick={handleExtract}
+          className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+        >
+          Extract
+        </button>
+      )}
+      <button
+        onClick={handleCopy}
+        className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+    </div>
+  )
+
   if (isArtifact) {
     const previewLines = code.split('\n').slice(0, 4).join('\n')
     return (
-      <div className="my-2 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--panel-border)] bg-[var(--bg-tertiary)]">
-          <span className="text-xs font-mono text-[var(--accent)]">{detectedType}</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopy}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-            >
-              {copied ? '✓' : 'Copy'}
-            </button>
-          </div>
+      <div className="my-2 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)]">
+        <div className="flex items-center justify-between border-b border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-3 py-1.5">
+          <span className="font-mono text-xs text-[var(--accent)]">{detectedType}</span>
+          {actions}
         </div>
-        <pre className="px-3 py-2 text-xs font-mono text-[var(--text-muted)] overflow-hidden">
+        <pre className="overflow-hidden px-3 py-2 font-mono text-xs text-[var(--text-muted)]">
           <code>{previewLines}</code>
         </pre>
         <button
           onClick={handleOpenArtifact}
-          className="w-full px-3 py-2 text-xs font-medium text-[var(--accent)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border-t border-[var(--panel-border)] transition-colors"
+          className="w-full border-t border-[var(--panel-border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs font-medium text-[var(--accent)] transition-colors hover:bg-[var(--bg-tertiary)]"
         >
           Open artifact
         </button>
@@ -148,24 +175,19 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
   }
 
   return (
-    <div className="my-2 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--panel-border)] bg-[var(--bg-tertiary)]">
-        <span className="text-xs font-mono text-[var(--text-muted)]">{lang || 'text'}</span>
-        <button
-          onClick={handleCopy}
-          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-        >
-          {copied ? '✓ Copied' : 'Copy'}
-        </button>
+    <div className="my-2 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)]">
+      <div className="flex items-center justify-between border-b border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-3 py-1.5">
+        <span className="font-mono text-xs text-[var(--text-muted)]">{lang || 'text'}</span>
+        {actions}
       </div>
       {html ? (
         <div
           ref={codeRef}
-          className="overflow-x-auto text-xs [&_pre]:!bg-[var(--bg-primary)] [&_pre]:p-3 [&_pre]:m-0 [&_code]:!font-[IBM_Plex_Mono,Fira_Code,monospace]"
+          className="overflow-x-auto text-xs [&_code]:!font-[IBM_Plex_Mono,Fira_Code,monospace] [&_pre]:!m-0 [&_pre]:!bg-[var(--bg-primary)] [&_pre]:p-3"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (
-        <pre className="overflow-x-auto p-3 text-xs font-mono text-[var(--text-secondary)]">
+        <pre className="overflow-x-auto p-3 font-mono text-xs text-[var(--text-secondary)]">
           <code>{code}</code>
         </pre>
       )}

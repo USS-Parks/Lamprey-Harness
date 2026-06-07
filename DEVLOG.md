@@ -1,5 +1,102 @@
 # Lamprey Harness Dev Log
 
+## [Persistence & Seed Phase — Phase Complete] v0.9.0 — 24-prompt roster shipped end-to-end  —  2026-06-06
+
+24-prompt phase across three tracks shipped on `claude/flamboyant-cannon-e7bb34` (Track A + C + ship) merged with `codex/persistence-seed-track-b` (Track B). The persistence floor under v0.9.0 is now genuinely regulated-industry capable (backup + integrity + checkpoint + busy-timeout + opt-in encryption + versioned migrations) and the "per-hunk chat seeding" UI promise is fully wired (Fork button → full param IPC → seed channel → RAG copy → lineage chip → Pin sibling closed).
+
+### Shipped commits
+
+**Track A — Persistence Hardening (PS1–PS10):**
+- **PS1 `81d2cb8`** — `PRAGMA user_version` migration ledger. Typed `MIGRATIONS` registry + transactional `runMigrations(db)`. Downgrade-guard refuses to run against a higher-than-known DB. 7 vitest cases.
+- **PS2 `b2eff15`** — WAL checkpoint on shutdown + periodic 5-min. `checkpoint(db?)` runs `wal_checkpoint(TRUNCATE)`; wired into `closeDb()` + `startPeriodicCheckpoint`. 6 tmpdir DB cases.
+- **PS3 `897dcc0`** — `busy_timeout = 5000` pragma + `withWriteRetry()` (3-retry, 50/200/800ms backoff via `Atomics.wait`, BUSY-only catch). Adopted in `saveMessage` + `insertToolCall`. 6 synthetic-error cases.
+- **PS7 `285cec4`** — vec0 dimension guard. v2 migration adds singleton `rag_embedder_meta`; `assertEmbedderDimensionMatch` throws structured `EmbedderDimensionMismatchError`. 8 cases.
+- **PS8 `3083ef8`** — `transactional<T>(fn)` helper + `findOrphanPipelineStages` (NOT EXISTS subselect). Planner+coder metric pair wrapped. 10 cases.
+- **PS4 + PS5 `9e9f0b1`** — integrity_check + recovery banner + daily backup. Cached startup integrity result; `IntegrityBanner` non-dismissible; `userData/backups/lamprey-YYYY-MM-DD.db` with 14-day retention; better-sqlite3 12's `.backup()` returns Promise. 4 + 9 cases.
+- **PS6 `181bdec`** — partition 700-line `initSchema` into `schema-init.ts` with 7 named per-domain segments. `database.ts` shrinks from 754 → 356 lines. `safeAddColumn` moves to `schema-init.ts`. 7 partition-regression cases; 22 github-repo DDL-grep tests rerouted to the new file.
+- **PS9 `352cc44`** — optional SQLCipher passphrase encryption. `better-sqlite3-multiple-ciphers` binding gated (vec-loader pattern). 10 binding-absent cases.
+- **PS10 `a6dbb62`** — Settings → Persistence panel with live status + all PS2/PS4/PS5/PS9 actions.
+
+**Track B — Fork & Seed Surface (PS11–PS20, via Codex):**
+- **`729490e`** — single squash covering all 10 prompts: fork lineage migration, `conversation:fork` full param surface, workspace re-anchor, RAG attachment copy, `<seed_context>` sentinel, Fork+Pin UI wiring, per-code-block Extract chip, side-chat seed prop, forked-from chip + 10-level lineage walk, token-budget guard with auto-attach-as-RAG fallback.
+
+**Track C — wrap:**
+- **`7ef941f`** — merge Track B into Track A. Resolved conflicts in `db-migrations.ts` (both v2 = embedder meta + v11 = fork lineage; local `safeAddColumn` inside the migration body) and `SettingsDialog.tsx` (both Persistence + SeedBudget tabs).
+- **PS21 + PS22 `740dbad`** — PinDialog wires `session:markChapter` IPC (closes the adjacent Fork sibling stub); `persistence.checkpoint/integrity/backup/recovery` event emissions wired into PS2/PS4/PS5 with best-effort try/catch.
+- **PS23 `_this commit_`** — ARCHITECTURE/PERSISTENCE.md rewritten (Migration ledger replaces Migration story; new Backup/integrity/recovery + Legacy schema partition + Optional encryption sections; table reference rows added for `rag_embedder_meta`, `message_stage_metrics`, the four fork lineage columns). DEVLOG phase-complete entry (this).
+- **PS24** — version bump 0.8.4 → 0.9.0, README "New in v0.9.0", Bucket ship.
+
+### Final verify gate
+
+- `tsc --noEmit -p tsconfig.node.json` ✓
+- `tsc --noEmit -p tsconfig.web.json` ✓
+- vitest full suite: **2014 passed | 94 skipped (143 files)** — vs pre-phase baseline 1996/43 (134 files). +18 passing + +51 skipped (binding-gap cases that run in CI where the better-sqlite3 ABI matches Node's). Zero failures.
+
+### Honest limits (per `feedback_no_fake_polish`)
+
+- **PS9 SQLCipher** binding is gated; no new hard dependency added. Users who want at-rest encryption `npm install better-sqlite3-multiple-ciphers` themselves; the Settings panel shows the install hint until then.
+- **PS4 restore action** requires the user to relaunch after; no auto-relaunch path.
+- **PS2 periodic checkpoint** doesn't fire during the first 5 minutes; an ungraceful exit before then can leave a moderately-sized WAL.
+- **Primary repo merge state.** When this phase landed, the primary repo at `C:/Users/17076/Documents/Claude/Lamprey Harness` was in an unfinished merge state across ~20 files (pre-existing stash-pop). Phase work itself ran cleanly in the worktree; PS24's Bucket ship will require the user to reconcile or abandon the primary's merge before `git push origin v0.9.0` succeeds.
+
+### Plan
+
+[PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md](PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md).
+
+---
+
+### 2026-06-06 — PS11-PS20/PS22 Track B: fork + seed surface
+
+**Goal**: wire the Fork/Seed UI promise into real IPC, persistence, side-chat seeding, lineage, and seed-budget controls.
+**Touch**: `electron/ipc/conversation.ts`, `electron/services/conversation-store.ts`, `electron/services/db-migrations.ts`, `electron/services/rag/store.ts`, `src/components/chat/*`, `src/components/artifacts/CodeBlock.tsx`, `src/components/tools/panels/SideChatPanel.tsx`, `src/components/settings/SeedBudgetSettings.tsx`.
+**Verify**: `npx tsc --noEmit -p tsconfig.node.json`; `npx tsc --noEmit -p tsconfig.web.json`; `npx vitest run` (129 files passed, 7 skipped; 1998 tests passed, 56 skipped).
+**Notes**: Track B branch reserves fork/seed schema at migration v11 so Track A can own PS3-PS10. Merge this after Claude's Track A migration series. Runtime Electron smoke was not run in this pass.
+
+---
+
+## [Persistence & Seed Phase — Track A in-flight] PS1, PS2, PS3, PS7, PS8 shipped  —  2026-06-06
+
+Five of ten Track A (Persistence Hardening) prompts shipped on the work branch `claude/flamboyant-cannon-e7bb34` against the v0.9.0 phase plan ([PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md](PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md)). Track B (PS11–PS20) running concurrently via Codex in a separate worktree.
+
+### Shipped commits (Track A)
+
+- **PS1 `81d2cb8`** — `PRAGMA user_version` migration ledger. `electron/services/db-migrations.ts` introduces the typed `Migration` registry + transactional `runMigrations(db)`. Existing schema stamped as v1; future schema work appends Migration entries instead of editing `initSchema`. Downgrade-guard refuses to run against a DB carrying a higher `user_version` than this build knows. 7 vitest cases (skip on binding gap).
+- **PS2 `b2eff15`** — WAL checkpoint on graceful shutdown + periodic 5-min checkpoint. `checkpoint(db?)` runs `wal_checkpoint(TRUNCATE)` so the WAL file shrinks to 0 after the call; wired into `closeDb()` for the will-quit path and `startPeriodicCheckpoint(intervalMs=5min)` for live sessions. `electron/main.ts` cancels the timer before `closeDb()` to avoid a tick against a dropped handle. 6 vitest cases against a tmpdir file-backed DB.
+- **PS3 `897dcc0`** — `busy_timeout = 5000` pragma + `withWriteRetry()` helper. 5s OS-level backoff covers most contention; 3-retry helper (50/200/800ms backoff via `Atomics.wait`) catches the rare post-timeout `SQLITE_BUSY`. Adopted in the two highest-frequency writers: `conversation-store.saveMessage` (drop = lost chat row + broken FTS) and `tool-calls-store.insertToolCall` (drop = audit hole + broken policy resolution). 6 vitest cases on synthetic errors; conversation-store + tool-audit regression 23 passed.
+- **PS7 `285cec4`** — vec0 dimension guard. `rag_embedder_meta` singleton table (CHECK(id='singleton')) added via v2 migration; `assertEmbedderDimensionMatch(id)` stamps on first ingest, throws `EmbedderDimensionMismatchError` (four-field structured payload) when stored dim ≠ catalogue dim. Today both catalogue embedders are 384d; PS7 makes the mismatch loud for any future 1536d or other-dim embedder. PS10 will surface the "Rebuild RAG index" action that catches the structured error. 8 vitest cases.
+- **PS8 `3083ef8`** — transactional helper + orphan pipeline-stage detection. `transactional<T>(fn)` synchronously wraps better-sqlite3's `db.transaction` for within-stage row+metric atomicity; adopted around the planner+coder metric pair on the coder message id (a mid-write crash there used to leave a half-state). The cross-stage relationship between planner→coder→reviewer remains structurally non-transactional (awaits between stages), so `findOrphanPipelineStages(conversationId)` derives orphans via a NOT EXISTS subselect — planner rows whose Coder/Composer companion never landed. RT5 viewer consumes these in a future extension to render an "Incomplete pipeline" chip. 10 vitest cases.
+
+### Remaining Track A — handoff list
+
+| # | Title | Notes |
+|---|-------|-------|
+| **PS4** | `integrity_check` at startup + recovery banner | UI (banner component + Settings entry) + IPC. Substantial. |
+| **PS5** | Daily `db.backup()` + retention + restore | Background runner, retention pruner, restore IPC, banner integration. |
+| **PS6** | Partition `initSchema` by domain | Large structural refactor (700-line schema → ~7 per-domain `init*Schema(db)` files). Required precondition for Codex's PS11. |
+| **PS9** | Optional SQLCipher passphrase mode | `better-sqlite3-multiple-ciphers` evaluation + rekey IPC + Settings opt-in toggle. Heaviest of the remaining. |
+| **PS10** | Persistence Settings panel | Surfaces every PS1–PS9 lever + live status (DB size, WAL size, last checkpoint, last backup, last integrity_check). |
+
+Track C (PS21–PS24) and the Bucket ship arc wait on Track A + Track B both completing.
+
+### Verify gate (consolidated)
+
+- `tsc --noEmit -p tsconfig.node.json` ✓
+- `tsc --noEmit -p tsconfig.web.json` ✓
+- vitest full suite at PS1 baseline: **1996 passed | 50 skipped (134 files)** (vs pre-phase 1996/43; +7 = PS1's new tests under binding gap, zero regressions).
+- Per-prompt regression runs through PS8: no failures introduced.
+- PS3's retry helper tests + PS8's orphan tests run cleanly without binding (no native better-sqlite3 ops in their hot paths).
+- Smoke checks deferred to PS10 when the live UI surface lands.
+
+### Known precondition for ship (out-of-band of this phase)
+
+The **primary repo** at `C:/Users/17076/Documents/Claude/Lamprey Harness` is in an unfinished merge state (~20 files across `UU` / `D` / `M` markers, including `package.json`, `CLAUDE.md`, `DEVLOG.md`, `system-prompt-builder.{ts,test.ts}`, `RightPanelHome.tsx`, and several Reasoning-Trace Phase files marked deleted that per CLAUDE.md shipped at v0.8.1). This state precedes the phase work and was not introduced by Track A. The Bucket ship pipeline at PS24 will block on it; the user needs to reconcile (or abandon) the merge before then. Only one touch on the primary was made during Track A: `package.json` was restored to HEAD via `git checkout HEAD -- package.json && git add` to unblock vitest's package.json walk-up. The other ~19 files were left untouched.
+
+### Plan
+
+[PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md](PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md). 24-prompt roster across Tracks A/B/C; this entry covers Track A in-flight only.
+
+---
+
 ## [Build] Generic artifact filenames — drop the version suffix  —  2026-06-06
 
 User-directed policy change ahead of the v0.8.4 build: `dist/` artifacts must land at stable, version-less paths every release. From now on:

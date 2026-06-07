@@ -4,6 +4,7 @@ import { readFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { registerAllIpcHandlers } from './ipc'
 import { closeDb, startPeriodicCheckpoint } from './services/database'
+import { startBackupRunner } from './services/backup-runner'
 import { destroy as destroyArtifactSandbox } from './services/artifact-sandbox'
 import { ptyKillAll } from './services/pty-manager'
 import { destroyAll as destroyBrowserTabs } from './services/browser-manager'
@@ -55,6 +56,10 @@ let boundsPersistTimer: NodeJS.Timeout | null = null
 // stopping it, an interval tick could fire mid-shutdown against a
 // closed DB.
 let stopPeriodicCheckpoint: (() => void) | null = null
+// PS5 — handle returned by startBackupRunner(). Same lifecycle contract:
+// the will-quit handler stops the timer before closeDb() so the
+// 30-second delayed first-tick can't fire against a closed handle.
+let stopBackupRunner: (() => void) | null = null
 
 // Duplicate-launch protection. GUI launches must run as a single Electron
 // process — two parallel processes would each open their own SQLite handle
@@ -399,6 +404,11 @@ app.whenReady().then(() => {
   // long live sessions; will-quit calls stopPeriodicCheckpoint + closeDb
   // (which runs a final TRUNCATE) for the graceful exit path.
   stopPeriodicCheckpoint = startPeriodicCheckpoint()
+  // PS5 — schedule daily db.backup() snapshot with 14-day retention.
+  // First tick is delayed 30 seconds (in the runner) so startup isn't
+  // slowed and the first backup happens once the app is settled.
+  // Subsequent ticks fire every 24 hours.
+  stopBackupRunner = startBackupRunner()
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     if (details.url.includes('lamprey-artifact')) {
@@ -624,6 +634,11 @@ app.on('will-quit', () => {
   if (stopPeriodicCheckpoint) {
     stopPeriodicCheckpoint()
     stopPeriodicCheckpoint = null
+  }
+  // PS5 — same lifecycle for the backup runner.
+  if (stopBackupRunner) {
+    stopBackupRunner()
+    stopBackupRunner = null
   }
   mcpManager.shutdown().catch(() => {})
   shutdownSkillLoader()

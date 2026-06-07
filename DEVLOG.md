@@ -476,43 +476,14 @@ Plan officially reference-only.
 
 **Files changed:** `src/components/settings/ReasoningAuditSettings.tsx` (new file — single-toggle panel), `src/components/settings/SettingsDialog.tsx` (registered tab + renderer hook), `electron/services/agent-pipeline.test.ts` (end-to-end "every stage's reasoning lands on its own audit row with the right stage tag" case)
 
-(For the RT7 audit-trail export entry's verify gate continuation, see the top of this file. The block below this header — through line 198 — is the R9 entry from the Reasoning Audit Phase. Both phases ship in v0.8.1.)
-
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- electron-vite build ✓
-- vitest (reasoning-trace-exporter): 12 passed ✓
-- vitest (full suite): 1939 passed, 38 skipped (baseline 1927 + 12 new) ✓
-- user-verification-needed: launch · open Reasoning trace panel on a real multi-agent conversation · click `.md` → save dialog opens, write the file, open it in a Markdown viewer (heading per turn, fenced reasoning + content, stage subsections) · click `.csv` → write the file, open in Excel/LibreOffice (header row + one row per turn × stage, commas/quotes/newlines in excerpts not breaking columns) · click `.md` then cancel the dialog → no error, no toast; the panel stays responsive · reasoning content is exported verbatim — user controls the destination path (local-only export, no upload).
-
-**Notes:** Reasoning content is exported verbatim — user controls the destination path. Local-only via `dialog.showSaveDialog`; never POSTs anywhere. New `reasoning-trace-exporter.ts` exports `toMarkdown` + `toCsv` as pure functions taking an `ExportInput` shape with `{conversationId, conversationTitle?, generatedAt, turns: TurnInput[], stageMetrics: Record<msgId, PersistedStageMetric[]>}`. Markdown layout: top header block (conversation id + title + ISO `generatedAt` + turn count), then per-turn `## Turn N` with `### Stage: <stage>` subsections, `**Model:**` / `**Tokens:**` / `**Duration:**` meta bullets, then `#### Reasoning` + `#### Content` fenced blocks. CSV layout: 10 columns (`turn_index, stage, role, model, prompt_tokens, completion_tokens, duration_ms, timestamp, content_excerpt, reasoning_excerpt`), excerpts capped at 200 chars + whitespace-flattened, RFC-4180 escape via `csvEscape` (commas, quotes-doubled, embedded newlines → quoted cell). 12 exporter tests cover header content, multi-stage ordering, the synthetic empty-stage row for non-assistant turns, CSV escape correctness (quotes / commas / newlines), excerpt truncation with ellipsis, and trailing-newline conformance. New `electron/ipc/reasoning-trace.ts` registers `reasoning-trace:export` — pulls `getMessages` + per-message `listStageMetrics`, builds an `ExportInput`, runs `toMarkdown` or `toCsv` based on the payload format, opens `dialog.showSaveDialog` (defaultPath = `lamprey-reasoning-trace-<slug>.<ext>`), writes via `fs/promises.writeFile`. Returns `{success: true, data: {path}}` on write, `{success: false, error: 'cancelled'}` on dialog dismiss, `{success: false, error: <message>}` on validation/IO failures. Preload exposes the namespace `window.api.reasoningTrace.export({conversationId, format})`. Panel UI: two pill buttons `.md` + `.csv` in a new row inside the header (below the search input + filter chips). Hover titles describe the audit purpose. Errors other than 'cancelled' log to console; no toast UI added because the user picked the destination path and gets the dialog's success/cancel signal directly.
-
-**Commit:** _this commit_
-
-## [Reasoning-Trace — Prompt RT6] Viewer per-stage expansion + search + filter chips  —  2026-06-06
-
-**Files changed:** `src/components/tools/panels/ReasoningTracePanel.tsx`
-
-**Verify gate:**
-- tsc node ✓ (no node-side changes; covered by RT5 baseline)
-- tsc web ✓
-- electron-vite build ✓
-- user-verification-needed: launch · open the Reasoning trace panel · click a turn row → expansion shows one stage subsection per metric row · search box filters list by content/reasoning text match (debounced 250ms) · stage chips (All / Planner / Coder / Reviewer / Single) restrict both the visible turns AND the subsections inside each expansion · multi-agent turn → coder bubble's expansion shows planner subsection with the explanatory note + coder subsection with ReasoningBlock · single-agent turn → expansion shows one `single` subsection with the message's reasoning · light + dark eyeball pass
-
-**Notes:** Extends RT5's shell. New search input + filter-chip row inside the panel header; chips include `Single` so the single-agent metric type is reachable. Debounced via a 250ms `setTimeout`. Filter logic in a `useMemo` over `rows`, applies both stage-presence + lowercase substring match against `content + reasoning`. Expansion reuses R7's `ReasoningBlock` for visual consistency. Two stage-specific explanatory notes cover the cases where the metric row's "owner stage" has no separately-persisted reasoning — (a) the planner stage rides on the coder message id, so when `m.stage === 'planner'` and `row.message.model !== m.model` (i.e. they're different — planner vs coder roster slot) we render the `STAGE_NOTE.planner` italic note instead, and (b) reviewer stage when no reasoning was persisted shows `STAGE_NOTE.reviewer`. Filtered-count chip in the header shows `filteredRows.length / rows.length` so the user knows how aggressive their filter is.
-
-**Commit:** _this commit_
-
-## [Reasoning-Trace — Prompt RT5] Reasoning-Trace Viewer panel shell + turn list  —  2026-06-06
-
-**Files changed:** `src/stores/ui-store.ts` (ToolId), `src/components/artifacts/RightPanelHome.tsx` (new pill), `src/components/tools/ToolsPanel.tsx` (label + icon + body switch), `src/components/layout/Titlebar.tsx` (Record<ToolId> extension), `src/components/tools/panels/ReasoningTracePanel.tsx` (new)
-
 - vitest ✓ (1916 pass / 38 skip — 1 new R9 end-to-end pipeline reasoning-trail case)
 - electron-vite build ✓ (4.97s)
 - user-verification-needed: open Settings → Reasoning Audit tab in Electron; confirm the toggle reads as ON by default, flips OFF persists across launches; flip back to ON and run a multi-agent turn; confirm the next turn's API stack carries past `<think>` blocks (debug-trace log or model-request audit).
 
-**Notes (R9):**
+**Notes:**
 - ReasoningAuditSettings.tsx is intentionally minimal: one toggle, multi-paragraph explanation of the trade-off (audit continuity vs. token cost), no extra knobs. Per Invariant §2.7 default is ON.
 - The other R-phase outputs (Planner row save, Reviewer stage, Composer trail, MessageBubble chip + toggle) are always-on by design — there's nothing user-toggleable about them, hence no additional settings rows.
 - End-to-end test asserts: Planner row exists with `stage='planner'` + native reasoning preserved + model=roster.planner; Reviewer row exists with `stage='reviewer'` + reasoning preserved + model=roster.reviewer. Coder row is owned by chat.ts's runChatRound in production (outside agent-pipeline's scope), so it's not asserted here — R6's composer-trail tests cover that path.
@@ -528,16 +499,6 @@ Plan officially reference-only.
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- electron-vite build ✓
-- user-verification-needed: launch · 9th "Reasoning trace" pill renders on the right panel · click expands the docked drawer showing one card per assistant turn (model + stage count + total tokens + time-of-day) · empty conversation shows the "No reasoning yet" hint · light + dark eyeball pass
-
-**Notes:** New `'reasoning'` ToolId joins the existing 10 (now 11 total). Picked the clock-pointing glyph for the ToolsPanel header (consistent with the "historical retrospective" framing). Pill icon reuses `planIcon` for now — visually distinct from neighbors via the description text; can be swapped for a dedicated asset later. New `ReasoningTracePanel` component is the shell: pulls `conversation.getMessages` + per-message `conversation.listStageMetrics` from the renderer IPC, renders a vertical scrollable list of assistant turns with `#index · model · timeofday` header line and a `stages · tokens` subline. Selection state is local (`useState<string | null>`) and only flips a ring on the card — RT6 will use this hook to render the per-stage expansion + search + filter chips. Browser-dev guard checks `window.api` and short-circuits to the empty state if absent (per the `window.api` guard rule). The `Record<ToolId, string>` instances in `Titlebar.tsx` + `ToolsPanel.tsx` were extended in lockstep — tsc enforced this catching one unfinished surface during the verify gate.
-
-**Commit:** _this commit_
-
-## [Reasoning-Trace — Prompt RT4] get_conversation_history model-callable tool  —  2026-06-06
-
-**Files changed:** `electron/services/tool-conversation-history.ts` (new), `electron/services/tool-conversation-history.test.ts` (new), `electron/services/tool-registry.ts`, `electron/ipc/chat.ts`
 - vitest ✓ (1915 pass / 38 skip — 5 new chat-history rehydration cases: default-on prepends `<think>`, explicit-off passes through, no-reasoning passes through, no-double-tag when content already starts with `<think>`, tool-call-carrying assistant also rehydrates)
 - electron-vite build ✓ (5.23s)
 - user-verification-needed: in Electron, send a multi-agent turn with a reasoning-emitting Reviewer; follow up with another turn; toggle `includePastReasoningInContext` ON → confirm the next API call's assistant content reflects the prior reasoning (check via debug-trace or model-request audit log); toggle OFF → confirm prior reasoning is absent.
@@ -559,18 +520,6 @@ Plan officially reference-only.
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- electron-vite build ✓
-- vitest (tool-conversation-history): 18 passed ✓
-- vitest (full suite): 1927 passed, 38 skipped (baseline 1909/38 + 18 new) ✓
-- user-verification-needed: launch + run a turn that asks the model to "use get_conversation_history with include_stage_metrics: true to summarize the last 3 turns" — confirm tool invocation, JSON result, no approval prompt. Tool inventory in DevTools should show the new descriptor with `risks: ['read']`, `requiresApproval: false`.
-
-**Notes:** New `tool-conversation-history.ts` exports `validateArgs`, `runGetConversationHistory`, `runGetConversationHistorySafe`. Schema params: `conversation_id?`, `turn_index?`, `limit?` (default 20, max 200, clamps + floors), `include_reasoning?` (default true), `include_stage_metrics?` (default false, attaches RT2 rows), `include_tool_calls?` (default false). Active-conversation resolver is injected so the dispatcher's current `conversationId` becomes the default. Risk classification: `risks: ['read']`, `requiresApproval: false`, `mutates: false`, `parallelizable: true` — read-only on the user's own DB rows, no network, no mutation. Registered in `tool-registry.ts` adjacent to `memory_add`; dispatched in `chat.ts` via a new `else if (toolName === 'get_conversation_history')` branch that calls `runGetConversationHistorySafe(args, conversationId)` and JSON-stringifies the result (or sets `explicitStatus='error'` on validation failure). Test suite mocks `conversation-store` + `stage-metrics-store` so the suite runs without SQLite — 18 tests cover validation edge cases (rejection paths, clamping), recency window, single-turn select, out-of-range, conditional reasoning/metrics/tool_calls attachment, conversation_id override, and the safe-wrapper success/error envelopes.
-
-**Commit:** _this commit_
-
-## [Reasoning-Trace — Prompt RT3] Per-stage token-cost UI  —  2026-06-06
-
-**Files changed:** `electron/ipc/conversation.ts`, `electron/preload.ts`, `src/lib/types.ts`, `src/components/chat/StageTokenChips.tsx` (new), `src/components/chat/MessageBubble.tsx`, `src/components/chat/StreamStatusLine.tsx`
 - vitest ✓ (1910 pass / 38 skip; no test additions for R7 — verifying renderer behavior happens in user-eyeball)
 - electron-vite build ✓ (6.03s)
 - user-verification-needed: in Electron, (i) single-agent turn → no chips, no toggle, layout unchanged; (ii) multi-agent turn → Coder/Composer bubble shows `Show pipeline trace ▾` toggle; click reveals attached Planner row's reasoning pill + plan text; Reviewer bubble below carries small purple "Reviewer" chip; light + dark mode both look correct.
@@ -592,16 +541,6 @@ Plan officially reference-only.
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- electron-vite build ✓
-- user-verification-needed: launch + run a single-agent turn → confirm one `single` chip renders under the assistant bubble · run a multi-agent turn → confirm `planner` + `coder` chips render on the coder bubble and `reviewer` chip on the reviewer bubble · during a multi-agent stream, the StreamStatusLine shows `stage:planner|coder|reviewer` next to the elapsed time · light + dark eyeball pass
-
-**Notes:** Three surfaces wired against RT2's `message_stage_metrics`. (1) New `conversation:listStageMetrics(messageId)` IPC handler + preload export so the renderer can fetch metric rows on bubble mount. (2) New `StageTokenChips` component on the assistant message bubble — fetches once via `window.api.conversation.listStageMetrics`, renders one chip per stage row showing the stage label + `formatTokens(completionTokens)` + `formatDuration(durationMs)`, with a hover title carrying the full model + raw values. Guards on `window.api` presence so the browser dev-mode path doesn't crash. (3) `StreamStatusLine` extended to read `useAgentStore.mode === 'multi'` + the running stage from `activeRun`; when present, inserts a `stage:<role>` segment in accent color between phase and token count. The persistent post-stream view (StageTokenChips on the bubble) and the live in-stream view (StreamStatusLine stage indicator) together replace what the plan called a "vitals pill expansion." Per-stage tokens use `completionTokens` since providers don't return separate prompt-token splits at this layer; prompt token field stays null and the UI omits it. Single-agent bubbles render one `turn` chip (mapping from `stage='single'`).
-
-**Commit:** _this commit_
-
-## [Reasoning-Trace — Prompt RT2] Per-stage token-cost data layer  —  2026-06-06
-
-**Files changed:** `electron/services/database.ts`, `electron/services/stage-metrics-store.ts` (new), `electron/services/stage-metrics-store.test.ts` (new), `electron/services/agent-pipeline.ts`, `electron/ipc/chat.ts`
 - vitest ✓ (1910 pass / 38 skip — 6 new `concatReasoningTrail` cases: undefined-on-empty, single-round, renumbering-on-gaps, composer-appended, composer-only, over-cap truncation with marker)
 - electron-vite build ✓ (6.97s)
 - user-verification-needed: multi-round tool turn against Electron — confirm the final composed message's reasoning pill shows `--- round 1 ---` / `--- round 2 ---` / `--- composer ---` separator structure; multi-round turn with very-long reasoning → confirm `[truncated for length — N kb omitted]` marker present.
@@ -623,17 +562,6 @@ Plan officially reference-only.
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- electron-vite build ✓
-- vitest (stage-metrics-store): 12 passed ✓
-- vitest (full suite): 1909 passed, 38 skipped (baseline 1897/38 + 12 new) ✓
-
-**Notes:** New `message_stage_metrics` table (`id`, `message_id` FK→messages.id ON DELETE CASCADE, `stage` CHECK planner/coder/reviewer/single, `model`, `prompt_tokens`, `completion_tokens`, `duration_ms`, `created_at`) + index on `message_id`. Idempotent `CREATE TABLE IF NOT EXISTS`, no destructive migration. New `stage-metrics-store.ts` mirrors `plan-goal-persistence` shape: write-through SQLite with an in-memory fallback that activates if `getDb()` throws (headless tests, disk failure). Wired three call sites: (a) `runChatRound` in `chat.ts` writes one `stage='single'` row per non-suppressed assistant message, with wall-clock duration threaded through tool-round recursion via a new optional `roundStartedAt` param so total turn time is captured rather than just the last round, (b) `agent-pipeline.ts` stashes planner `tokensUsedEstimate` + `elapsedMs` then writes `stage='planner'` + `stage='coder'` rows against the persisted coder message id once the coder runner returns, and (c) writes `stage='reviewer'` against the persisted reviewer message id. Single-mode token estimate uses `approximateTokenCount(finalContent)` to match the multi-agent path; prompt tokens left null because no provider returns a separate split at this layer. The fallback flag is reset between test suites via `__resetStageMetricsForTests` + `__forceMemoryFallback` helpers.
-
-**Commit:** _this commit_
-
-## [Reasoning-Trace — Prompt RT1] Reviewer prompt-tuning  —  2026-06-06
-
-**Files changed:** `electron/services/system-prompt-builder.ts`, `electron/services/system-prompt-builder.test.ts`
 - vitest ✓ (1904 pass / 38 skip — 30/30 in `agent-pipeline.test.ts`)
 - electron-vite build ✓
 - user-verification-needed: end-to-end multi-agent turn against deepseek-reasoner as Reviewer — confirm `messages.reasoning` column populated (was NULL pre-R5 when the model emitted on the native channel).
@@ -654,13 +582,6 @@ Plan officially reference-only.
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- electron-vite build ✓
-- vitest (system-prompt-builder): 29 passed (was 24, +5 new guard tests) ✓
-- user-verification-needed: re-run a multi-agent turn that historically triggered the `<bash>`-as-prose hallucination and confirm reviewer output is clean Markdown. No canned repro exists in-tree.
-
-**Notes:** Patched `AGENT_ROLE_PROMPTS.reviewer` to (a) declare the reviewer has no tools, (b) forbid pseudo-XML tool tags by name (`<bash>`, `<tool>`, `<run>`, `<shell>`, `<execute>`, `<command>`, `<terminal>`, `<output>`, `<result>`, `<stdout>`, `<stderr>`), (c) route code references through fenced Markdown blocks with language tags, (d) keep the SHIP / FAIL-with-reasons / file:line evidence contract intact. New `describe` block in the test file pins each guard plus the propagation through `buildAgentSystemPrompt('reviewer')`.
-
-**Commit:** _this commit_
 - vitest ✓ (1902 pass / 38 skip — 28/28 in `agent-pipeline.test.ts` including the new R4 reasoning-preservation case)
 - electron-vite build ✓ (6.90s)
 - user-verification-needed: end-to-end multi-agent turn in Electron — confirm `PRAGMA table_info(messages)` shows 2 rows (planner + coder/composer) for the turn, planner row has `stage='planner'` + the model's reasoning when the model emits one; right-panel chat thread looks unchanged for now (R7 will hide the Planner row and surface it via the "Show pipeline trace" toggle).

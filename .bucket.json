@@ -1,0 +1,16 @@
+{
+  "r2": {
+    "accountId": "f8860a6be5ac925eba3698b652e8a365",
+    "bucket": "lamprey-downloads"
+  },
+  "aws": {
+    "profile": "default"
+  },
+  "cloudflare": {
+    "cdnHost": "cdn.islandmountain.io",
+    "zoneId": "bca8adf2124c39e4bd92529ce85559c0"
+  },
+  "github": {
+    "repo": "USS-Parks/lamprey"
+  }
+}

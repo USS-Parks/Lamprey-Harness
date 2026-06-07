@@ -12,12 +12,9 @@ import {
   type EventType
 } from './event-log'
 import {
-  approximateTokenCount,
   executeMultiAgentRun,
   type SubAgentRunner
 } from './multi-agent-run-tool'
-import { saveStageMetrics } from './stage-metrics-store'
-import { transactional } from './database'
 import { summarizeRun } from './final-response-composer'
 import { trace } from './debug-trace'
 
@@ -402,15 +399,6 @@ export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<v
     })
   }
 
-  // RT2 — pending stage metrics captured pre-message. The planner stage
-  // produces no persisted message of its own (its output is folded into
-  // the coder's user message), so we stash its metrics here and write
-  // them against the coder's message id once it's persisted.
-  const pendingPlannerMetric: {
-    durationMs: number | null
-    tokensEstimate: number | null
-  } = { durationMs: null, tokensEstimate: null }
-
   // PLANNER ------------------------------------------------------------
   emitter.status({ conversationId, role: 'planner', model: roster.planner, state: 'running' })
   stageStarted('planner', roster.planner)
@@ -476,12 +464,6 @@ export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<v
       }
     } else {
       planText = taken.output
-      // RT2 — capture planner stage cost. SubAgentResult.tokensUsedEstimate
-      // is an approximation over the output text only; record it as the
-      // completion-token estimate and leave promptTokens null.
-      const plannerSub = planResult.results[0]
-      pendingPlannerMetric.durationMs = plannerSub?.elapsedMs ?? null
-      pendingPlannerMetric.tokensEstimate = plannerSub?.tokensUsedEstimate ?? approximateTokenCount(planText)
       emitter.status({
         conversationId,
         role: 'planner',
@@ -650,50 +632,13 @@ export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<v
   }
   coderBudget.cleanup()
   emitter.status({ conversationId, role: 'coder', model: roster.coder, state: 'done' })
-  const coderContent = typeof (coderMessage.message as { content?: unknown }).content === 'string'
-    ? ((coderMessage.message as { content: string }).content)
-    : ''
-  stageDone('coder', roster.coder, coderContent)
-
-  // RT2 — write the planner + coder stage metrics against the coder
-  // message id. The planner has no message of its own, so its row rides
-  // on the coder message (StageTokenChips will show both chips on the
-  // coder bubble). Coder duration is the stage wall clock the existing
-  // event spine already tracked.
-  const coderMsgId = (coderMessage.message as { id?: string }).id
-  if (coderMsgId) {
-    const coderStartedAt = stageStartedAt['coder']
-    const coderDurationMs = coderStartedAt !== undefined ? Date.now() - coderStartedAt : null
-    try {
-      // PS8 — planner + coder metric writes share the same coder message
-      // id. Wrapping the pair in one transaction means a mid-failure
-      // can't leave a "planner row stamped, coder row missing" half-state
-      // that StageTokenChips would render as an incomplete pipeline.
-      transactional(() => {
-        if (
-          pendingPlannerMetric.durationMs !== null ||
-          pendingPlannerMetric.tokensEstimate !== null
-        ) {
-          saveStageMetrics(coderMsgId, {
-            stage: 'planner',
-            model: roster.planner,
-            promptTokens: null,
-            completionTokens: pendingPlannerMetric.tokensEstimate,
-            durationMs: pendingPlannerMetric.durationMs
-          })
-        }
-        saveStageMetrics(coderMsgId, {
-          stage: 'coder',
-          model: roster.coder,
-          promptTokens: null,
-          completionTokens: approximateTokenCount(coderContent),
-          durationMs: coderDurationMs
-        })
-      })
-    } catch (err) {
-      console.warn('[agent-pipeline] saveStageMetrics(planner/coder) failed:', err)
-    }
-  }
+  stageDone(
+    'coder',
+    roster.coder,
+    typeof (coderMessage.message as { content?: unknown }).content === 'string'
+      ? ((coderMessage.message as { content: string }).content)
+      : ''
+  )
 
   if (signal.aborted) {
     // Coder finished but we were cancelled before Reviewer; emit the
@@ -785,19 +730,6 @@ export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<v
       reasoning: taken.reasoning,
       stage: 'reviewer'
     })
-    // RT2 — reviewer stage metric rides on the reviewer message id.
-    const reviewerSub = reviewResult.results[0]
-    try {
-      saveStageMetrics(reviewerMessage.id, {
-        stage: 'reviewer',
-        model: roster.reviewer,
-        promptTokens: null,
-        completionTokens: reviewerSub?.tokensUsedEstimate ?? approximateTokenCount(taken.output),
-        durationMs: reviewerSub?.elapsedMs ?? null
-      })
-    } catch (err) {
-      console.warn('[agent-pipeline] saveStageMetrics(reviewer) failed:', err)
-    }
     emitter.status({
       conversationId,
       role: 'reviewer',

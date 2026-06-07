@@ -32,7 +32,7 @@ export type ToolId =
   | 'artifacts'
   | 'plan'
   | 'background'
-  | 'reasoning'
+  | 'afterAction'
 
 export type ShellKind = 'powershell' | 'cmd' | 'git-bash' | 'wsl'
 

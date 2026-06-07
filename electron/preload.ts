@@ -147,8 +147,6 @@ const api = {
     updateTitle: (id: string, title: string) =>
       ipcRenderer.invoke('conversation:updateTitle', id, title),
     getMessages: (id: string) => ipcRenderer.invoke('conversation:getMessages', id),
-    listStageMetrics: (messageId: string) =>
-      ipcRenderer.invoke('conversation:listStageMetrics', messageId),
     appendSystem: (id: string, content: string) =>
       ipcRenderer.invoke('conversation:appendSystem', id, content),
     setModel: (id: string, model: string) => ipcRenderer.invoke('conversation:setModel', id, model),
@@ -288,11 +286,6 @@ const api = {
     eject: (payload: { pluginId: string; skillSlug: string; overwrite?: boolean }) =>
       ipcRenderer.invoke('ccImport:eject', payload),
     pickExtraRoot: () => ipcRenderer.invoke('ccImport:pickExtraRoot')
-  },
-
-  reasoningTrace: {
-    export: (payload: { conversationId: string; format: 'md' | 'csv' }) =>
-      ipcRenderer.invoke('reasoning-trace:export', payload)
   },
 
   mcp: {
@@ -1084,6 +1077,10 @@ const api = {
     list: (filter?: unknown) => ipcRenderer.invoke('events:list', filter ?? {}),
     get: (id: string) => ipcRenderer.invoke('events:get', id),
     timeline: (filter: unknown) => ipcRenderer.invoke('events:timeline', filter)
+  },
+
+  afterAction: {
+    get: (conversationId: string) => ipcRenderer.invoke('after-action:get', conversationId)
   },
 
   // Local RAG (Lamprey RAG Plan, R1+). R1 ships collection CRUD; R2 adds the

@@ -3,7 +3,7 @@ import { basename, extname, join } from 'path'
 import { readFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { registerAllIpcHandlers } from './ipc'
-import { closeDb } from './services/database'
+import { closeDb, startPeriodicCheckpoint } from './services/database'
 import { destroy as destroyArtifactSandbox } from './services/artifact-sandbox'
 import { ptyKillAll } from './services/pty-manager'
 import { destroyAll as destroyBrowserTabs } from './services/browser-manager'
@@ -49,6 +49,12 @@ const splashStart = Date.now()
 const SPLASH_MIN_MS = 3000
 let suppressBoundsPersist = false
 let boundsPersistTimer: NodeJS.Timeout | null = null
+
+// PS2 — handle returned by startPeriodicCheckpoint(). Stored at module
+// scope so will-quit can stop the timer before closeDb() runs. Without
+// stopping it, an interval tick could fire mid-shutdown against a
+// closed DB.
+let stopPeriodicCheckpoint: (() => void) | null = null
 
 // Duplicate-launch protection. GUI launches must run as a single Electron
 // process — two parallel processes would each open their own SQLite handle
@@ -387,6 +393,13 @@ app.whenReady().then(() => {
     return
   }
 
+  // PS2 — schedule periodic WAL checkpoint for the GUI lifetime.
+  // First tick fires 5 minutes after startup; by then any first-IPC has
+  // already opened the DB. The interval keeps the WAL bounded during
+  // long live sessions; will-quit calls stopPeriodicCheckpoint + closeDb
+  // (which runs a final TRUNCATE) for the graceful exit path.
+  stopPeriodicCheckpoint = startPeriodicCheckpoint()
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     if (details.url.includes('lamprey-artifact')) {
       callback({
@@ -605,6 +618,13 @@ app.on('will-quit', () => {
     boundsPersistTimer = null
   }
   suppressBoundsPersist = true
+  // PS2 — stop the periodic checkpoint before closing the DB. Order
+  // matters: an interval tick that lands after `db.close()` would error
+  // on the dropped handle.
+  if (stopPeriodicCheckpoint) {
+    stopPeriodicCheckpoint()
+    stopPeriodicCheckpoint = null
+  }
   mcpManager.shutdown().catch(() => {})
   shutdownSkillLoader()
   shutdownPluginLoader()
@@ -621,5 +641,9 @@ app.on('will-quit', () => {
   stopAutomations()
   stopLoopWakeups()
   void shutdownReviewWatcher()
+  // closeDb() also runs a final TRUNCATE checkpoint before closing the
+  // handle (PS2). That covers graceful exits. The periodic checkpoint
+  // bounds the WAL during long live sessions and is the safety net for
+  // ungraceful exits (force-kill, OOM) where closeDb() never runs.
   closeDb()
 })

@@ -86,9 +86,9 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
       icon: backgroundIcon
     },
     {
-      id: 'reasoning',
-      label: 'Reasoning trace',
-      description: 'Per-stage reasoning + token cost for every assistant turn',
+      id: 'afterAction',
+      label: 'After action',
+      description: 'Explain stalls, empty turns, failures, and tool loops',
       icon: reasoningTraceIcon
     }
   ]

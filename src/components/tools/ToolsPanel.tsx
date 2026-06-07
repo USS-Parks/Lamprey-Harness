@@ -4,6 +4,7 @@ import reviewIcon from '@assets/Lamprey Auto-Review Icon.png'
 import chatIcon from '@assets/Lamprey Chat Window Icon.png'
 import planIcon from '@assets/Lamprey Plan Icon.png'
 import backgroundIcon from '@assets/Lamprey Background Tasks Icon.png'
+import reasoningTraceIcon from '@assets/Lamprey Reasoning Trace Icon Light View.png'
 import { FilesPanel } from './panels/FilesPanel'
 import { SideChatPanel } from './panels/SideChatPanel'
 import { BrowserPanel } from './panels/BrowserPanel'
@@ -11,7 +12,7 @@ import { ReviewPanel } from './panels/ReviewPanel'
 import { TerminalPanel } from './panels/TerminalPanel'
 import { PlanToolPanel } from './panels/PlanToolPanel'
 import { BackgroundTasksPanel } from './panels/BackgroundTasksPanel'
-import { ReasoningTracePanel } from './panels/ReasoningTracePanel'
+import { AfterActionPanel } from './panels/AfterActionPanel'
 import { EnvironmentPanel } from '@/components/workspace/EnvironmentPanel'
 import { SourcesPanel } from '@/components/workspace/SourcesPanel'
 import { ArtifactsPanel } from '@/components/workspace/ArtifactsPanel'
@@ -27,7 +28,7 @@ const TOOL_LABELS: Record<ToolId, string> = {
   artifacts: 'Artifacts',
   plan: 'Plan',
   background: 'Background tasks',
-  reasoning: 'Reasoning trace'
+  afterAction: 'After action'
 }
 
 function BrowserGlyph(): React.ReactElement {
@@ -107,15 +108,8 @@ function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
       return <img src={planIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
     case 'background':
       return <img src={backgroundIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
-    case 'reasoning':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <circle cx="12" cy="12" r="9" />
-            <polyline points="12 7 12 12 15 14" />
-          </svg>
-        </span>
-      )
+    case 'afterAction':
+      return <img src={reasoningTraceIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
   }
 }
 
@@ -141,8 +135,8 @@ function renderToolBody(tool: ToolId): React.ReactElement {
       return <PlanToolPanel />
     case 'background':
       return <BackgroundTasksPanel />
-    case 'reasoning':
-      return <ReasoningTracePanel />
+    case 'afterAction':
+      return <AfterActionPanel />
   }
 }
 

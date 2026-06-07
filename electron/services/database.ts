@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
 import { isVecAvailable, loadSqliteVec } from './rag/vec-loader'
+import { runMigrations } from './db-migrations'
 
 let db: Database.Database | null = null
 
@@ -18,6 +19,11 @@ export function getDb(): Database.Database {
     // surface the disabled state through `isVecAvailable()`.
     loadSqliteVec(db)
     initSchema(db)
+    // PS1 — versioned migration ledger gated by PRAGMA user_version. Runs
+    // after `initSchema` so the baseline tables exist for the v1 stamp.
+    // Future schema work (PS6/PS7/PS9/PS11) appends Migration entries to
+    // the registry in `db-migrations.ts` instead of editing `initSchema`.
+    runMigrations(db)
   }
   return db
 }

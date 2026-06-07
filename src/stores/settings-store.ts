@@ -28,6 +28,7 @@ const defaultSettings: AppSettings = {
   agenticCodingComposer: 'auto',
   snipEnabled: true,
   snipVerbose: false,
+  safeSeedLength: 8192,
   // R8 default — ON per user direction (2026-06-06). Closes the audit
   // gap where the model couldn't see its own past chain-of-thought on
   // follow-up turns. User-toggle lands in R9's Settings → Reasoning

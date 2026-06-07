@@ -953,6 +953,50 @@ export function listAttachments(conversationId: string): RagAttachment[] {
     .map((a) => ({ ...a }))
 }
 
+export function copyAttachments(sourceConversationId: string, targetConversationId: string): number {
+  if (!sourceConversationId || !targetConversationId) {
+    throw new Error('copyAttachments: sourceConversationId and targetConversationId are required')
+  }
+  const now = Date.now()
+  if (!useFallback) {
+    try {
+      const db = getDb()
+      const result = db
+        .prepare(
+          `INSERT OR IGNORE INTO conversation_rag_attachments
+             (conversation_id, collection_id, document_id, attached_at)
+           SELECT ?, collection_id, document_id, ?
+             FROM conversation_rag_attachments
+            WHERE conversation_id = ?`
+        )
+        .run(targetConversationId, now, sourceConversationId)
+      return result.changes
+    } catch (err) {
+      activateFallback((err as Error)?.message ?? 'unknown')
+    }
+  }
+  const source = memoryAttachments.filter((a) => a.conversationId === sourceConversationId)
+  let copied = 0
+  for (const a of source) {
+    const exists = memoryAttachments.some(
+      (m) =>
+        m.conversationId === targetConversationId &&
+        m.collectionId === a.collectionId &&
+        m.documentId === a.documentId
+    )
+    if (!exists) {
+      memoryAttachments.push({
+        conversationId: targetConversationId,
+        collectionId: a.collectionId,
+        documentId: a.documentId,
+        attachedAt: now
+      })
+      copied += 1
+    }
+  }
+  return copied
+}
+
 // ──────────────────── test-only hooks ────────────────────
 
 export function __resetCollectionStore(): void {

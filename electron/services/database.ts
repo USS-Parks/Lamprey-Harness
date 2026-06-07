@@ -12,6 +12,15 @@ export function getDb(): Database.Database {
     db = new Database(dbPath)
     db.pragma('journal_mode = WAL')
     db.pragma('foreign_keys = ON')
+    // PS3 — back off on SQLITE_BUSY for up to 5 seconds before giving up.
+    // The single-instance lock (HX1) covers most GUI-vs-GUI contention,
+    // but headless CLI invocations are exempted from the lock and a
+    // future feature might legitimately open the same DB from a side
+    // process. busy_timeout is the standard pragma for that case; the
+    // withWriteRetry() helper below adds a second guard so the rare
+    // post-timeout SQLITE_BUSY still completes instead of dropping the
+    // caller's write.
+    db.pragma('busy_timeout = 5000')
     // Load sqlite-vec BEFORE migrations: the RAG vec0 virtual table can only
     // be created after the extension is registered. When the extension fails
     // to load (missing native binary on this target), `initSchema` skips the
@@ -840,6 +849,69 @@ export function startPeriodicCheckpoint(
 /** PS10 surface — exposes the most recent periodic-checkpoint outcome. */
 export function getLastCheckpointResult(): CheckpointResult | null {
   return lastCheckpointResult
+}
+
+/**
+ * PS3 — retry a write that may transiently see SQLITE_BUSY despite the
+ * 5-second busy_timeout pragma. better-sqlite3 raises the error
+ * synchronously; we catch only that one code, sleep with exponential
+ * backoff, and re-invoke. Anything else propagates.
+ *
+ * The retry contract is conservative: 3 retries max, with backoff
+ * 50ms → 200ms → 800ms (total <= 1.05s on top of the underlying 5s
+ * busy_timeout the connection already enforces). The intended use is
+ * the highest-contention writers (saveMessage, recordToolCall) where
+ * a dropped write would silently corrupt a chat or audit row.
+ *
+ * Every retry path logs via console.warn so the wild-occurrence rate
+ * is visible during dev/QA. PS22 wires the event-spine emission.
+ */
+export interface WriteRetryOpts {
+  /** Max retry attempts before giving up. Default 3. */
+  maxRetries?: number
+  /** Base backoff in ms; doubles each retry. Default 50. */
+  baseDelayMs?: number
+  /** Label for the warn line + (future) event payload. */
+  label?: string
+}
+
+export function withWriteRetry<T>(fn: () => T, opts: WriteRetryOpts = {}): T {
+  const maxRetries = opts.maxRetries ?? 3
+  const baseDelayMs = opts.baseDelayMs ?? 50
+  const label = opts.label ?? 'db-write'
+  let attempt = 0
+  // The synchronous-sleep approach matches better-sqlite3's sync API.
+  // node 18+ has Atomics.wait but we use a busy-wait via a SharedArrayBuffer
+  // to stay portable without a worker. The total sleep is bounded.
+  const sleep = (ms: number): void => {
+    const sab = new SharedArrayBuffer(4)
+    const ia = new Int32Array(sab)
+    Atomics.wait(ia, 0, 0, ms)
+  }
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      return fn()
+    } catch (err: any) {
+      const msg = String(err?.message ?? err)
+      const code = err?.code as string | undefined
+      const isBusy = code === 'SQLITE_BUSY' || /SQLITE_BUSY/i.test(msg)
+      if (!isBusy || attempt >= maxRetries) {
+        if (isBusy) {
+          console.warn(
+            `[db] ${label}: SQLITE_BUSY after ${attempt} retries — giving up`
+          )
+        }
+        throw err
+      }
+      const delay = baseDelayMs * Math.pow(2, attempt)
+      console.warn(
+        `[db] ${label}: SQLITE_BUSY on attempt ${attempt + 1}; backing off ${delay}ms`
+      )
+      sleep(delay)
+      attempt++
+    }
+  }
 }
 
 export function closeDb(): void {

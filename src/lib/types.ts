@@ -94,6 +94,19 @@ export interface StageMetric {
 }
 
 export type ConversationKind = 'local' | 'cloud' | 'worktree'
+export type SeedSourceKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
+export type ForkWorkspaceMode = 'inherit' | 'current' | 'none'
+
+export interface ForkParams {
+  sourceConversationId: string
+  sourceMessageId?: string
+  seedKind: SeedSourceKind
+  seedContent?: string
+  seedBlobJson?: string
+  includeRagAttachments?: boolean
+  workspaceMode?: ForkWorkspaceMode
+  titleOverride?: string
+}
 
 export interface Conversation {
   id: string
@@ -105,6 +118,10 @@ export interface Conversation {
   kind?: ConversationKind
   worktreePath?: string | null
   projectId?: string | null
+  forkedFromId?: string | null
+  forkedFromMessageId?: string | null
+  seedBlob?: unknown
+  seedSourceKind?: SeedSourceKind
 }
 
 export interface Project {
@@ -407,6 +424,10 @@ export interface AppSettings {
    * gap surfaced by the Cascadian Shadow debug-session audit.
    */
   includePastReasoningInContext?: boolean
+  /** PS20 seed budget: inline fork seeds above this character count are
+   * represented by a compact attached-document marker instead of filling
+   * the first user turn. */
+  safeSeedLength?: number
 }
 
 export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = [
@@ -822,6 +843,13 @@ export type EventType =
   | 'rag.query.completed'
   | 'rag.query.failed'
   | 'rag.rerank.completed'
+  | 'persistence.checkpoint'
+  | 'persistence.integrity'
+  | 'persistence.backup'
+  | 'persistence.recovery'
+  | 'conversation.forked'
+  | 'conversation.seed.attached'
+  | 'conversation.seed.truncated'
 
 export interface EventRecord {
   id: string

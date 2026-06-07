@@ -1,5 +1,14 @@
 # Lamprey Harness Dev Log
 
+### 2026-06-06 — PS11-PS20/PS22 Track B: fork + seed surface
+
+**Goal**: wire the Fork/Seed UI promise into real IPC, persistence, side-chat seeding, lineage, and seed-budget controls.
+**Touch**: `electron/ipc/conversation.ts`, `electron/services/conversation-store.ts`, `electron/services/db-migrations.ts`, `electron/services/rag/store.ts`, `src/components/chat/*`, `src/components/artifacts/CodeBlock.tsx`, `src/components/tools/panels/SideChatPanel.tsx`, `src/components/settings/SeedBudgetSettings.tsx`.
+**Verify**: `npx tsc --noEmit -p tsconfig.node.json`; `npx tsc --noEmit -p tsconfig.web.json`; `npx vitest run` (129 files passed, 7 skipped; 1998 tests passed, 56 skipped).
+**Notes**: Track B branch reserves fork/seed schema at migration v11 so Track A can own PS3-PS10. Merge this after Claude's Track A migration series. Runtime Electron smoke was not run in this pass.
+
+---
+
 ## [Persistence & Seed Phase — Track A in-flight] PS1, PS2, PS3, PS7, PS8 shipped  —  2026-06-06
 
 Five of ten Track A (Persistence Hardening) prompts shipped on the work branch `claude/flamboyant-cannon-e7bb34` against the v0.9.0 phase plan ([PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md](PLANNING/LAMPREY_PERSISTENCE_AND_SEED_PLAN.md)). Track B (PS11–PS20) running concurrently via Codex in a separate worktree.

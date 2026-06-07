@@ -20,6 +20,7 @@ import { SnipSettings } from './SnipSettings'
 import { StreamingTimeoutsSettings } from './StreamingTimeoutsSettings'
 import { ReasoningAuditSettings } from './ReasoningAuditSettings'
 import { PersistenceSettings } from './PersistenceSettings'
+import { SeedBudgetSettings } from './SeedBudgetSettings'
 import { useUiStore } from '@/stores/ui-store'
 
 interface SettingsDialogProps {
@@ -45,6 +46,7 @@ const TABS = [
   { id: 'rag', label: 'RAG' },
   { id: 'snip', label: 'Snip' },
   { id: 'timeouts', label: 'Timeouts' },
+  { id: 'seedBudget', label: 'Seed Budget' },
   { id: 'reasoning', label: 'Reasoning Audit' },
   { id: 'persistence', label: 'Persistence' },
   { id: 'activity', label: 'Activity' }
@@ -118,6 +120,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'rag' && <RagSettings />}
             {activeTab === 'snip' && <SnipSettings />}
             {activeTab === 'timeouts' && <StreamingTimeoutsSettings />}
+            {activeTab === 'seedBudget' && <SeedBudgetSettings />}
             {activeTab === 'reasoning' && <ReasoningAuditSettings />}
             {activeTab === 'persistence' && <PersistenceSettings />}
             {activeTab === 'activity' && <ActivityTimeline />}

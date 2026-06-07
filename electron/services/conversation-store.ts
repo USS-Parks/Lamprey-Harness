@@ -15,6 +15,10 @@ export interface ConversationRow {
   project_id?: string | null
   archived?: number
   pinned_at?: number | null
+  forked_from_id?: string | null
+  forked_from_message_id?: string | null
+  seed_blob?: string | null
+  seed_source_kind?: SeedSourceKind | null
 }
 
 export interface MessageRow {
@@ -52,6 +56,17 @@ export interface MessageRow {
  *  callers can pass `undefined` to mean "not a multi-agent row".
  *  Coder rows intentionally stay NULL — see database.ts R1 migration. */
 export type MessageStage = 'planner' | 'reviewer' | 'composer'
+export type SeedSourceKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
+
+export interface ConversationSeedBlob {
+  sourceConversationId?: string
+  sourceMessageId?: string
+  source?: string
+  kind: SeedSourceKind
+  contentPreview?: string
+  attachedDocumentId?: string
+  seedBytes?: number
+}
 
 export interface StoredToolCall {
   id: string
@@ -74,6 +89,10 @@ export function createConversation(
     kind?: 'local' | 'cloud' | 'worktree'
     worktreePath?: string | null
     projectId?: string | null
+    forkedFromId?: string | null
+    forkedFromMessageId?: string | null
+    seedBlob?: ConversationSeedBlob | string | null
+    seedSourceKind?: SeedSourceKind
   }
 ) {
   const db = getDb()
@@ -82,9 +101,32 @@ export function createConversation(
   const kind = opts?.kind ?? 'local'
   const worktreePath = opts?.worktreePath ?? null
   const projectId = opts?.projectId ?? null
+  const seedSourceKind = opts?.seedSourceKind ?? 'none'
+  const seedBlob =
+    typeof opts?.seedBlob === 'string'
+      ? opts.seedBlob
+      : opts?.seedBlob
+        ? JSON.stringify(opts.seedBlob)
+        : null
   db.prepare(
-    'INSERT INTO conversations (id, title, model, created_at, updated_at, kind, worktree_path, project_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, null, model, now, now, kind, worktreePath, projectId)
+    `INSERT INTO conversations
+       (id, title, model, created_at, updated_at, kind, worktree_path, project_id,
+        forked_from_id, forked_from_message_id, seed_blob, seed_source_kind)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    null,
+    model,
+    now,
+    now,
+    kind,
+    worktreePath,
+    projectId,
+    opts?.forkedFromId ?? null,
+    opts?.forkedFromMessageId ?? null,
+    seedBlob,
+    seedSourceKind
+  )
   if (projectId) touchProject(projectId)
   return {
     id,
@@ -95,11 +137,23 @@ export function createConversation(
     messageCount: 0,
     kind,
     worktreePath,
-    projectId
+    projectId,
+    forkedFromId: opts?.forkedFromId ?? null,
+    forkedFromMessageId: opts?.forkedFromMessageId ?? null,
+    seedBlob: seedBlob ?? undefined,
+    seedSourceKind
   }
 }
 
 function rowToConversation(row: ConversationRow, count: number) {
+  let seedBlob: ConversationSeedBlob | string | null = null
+  if (row.seed_blob) {
+    try {
+      seedBlob = JSON.parse(row.seed_blob) as ConversationSeedBlob
+    } catch {
+      seedBlob = row.seed_blob
+    }
+  }
   return {
     id: row.id,
     title: row.title || 'New conversation',
@@ -111,8 +165,31 @@ function rowToConversation(row: ConversationRow, count: number) {
     worktreePath: row.worktree_path ?? null,
     projectId: row.project_id ?? null,
     archived: row.archived === 1,
-    pinnedAt: row.pinned_at ?? null
+    pinnedAt: row.pinned_at ?? null,
+    forkedFromId: row.forked_from_id ?? null,
+    forkedFromMessageId: row.forked_from_message_id ?? null,
+    seedBlob,
+    seedSourceKind: row.seed_source_kind ?? 'none'
   }
+}
+
+export function findMessage(conversationId: string, messageId: string) {
+  const rows = getMessages(conversationId)
+  return rows.find((m) => m.id === messageId) ?? null
+}
+
+export function listConversationLineage(conversationId: string, limit = 10) {
+  const lineage: ReturnType<typeof getConversation>[] = []
+  let current = getConversation(conversationId)
+  let guard = 0
+  while (current?.forkedFromId && guard < limit) {
+    const parent = getConversation(current.forkedFromId)
+    if (!parent) break
+    lineage.push(parent)
+    current = parent
+    guard += 1
+  }
+  return lineage
 }
 
 export function getConversation(id: string) {

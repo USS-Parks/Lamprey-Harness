@@ -47,7 +47,8 @@ const defaultSettings = {
   // Snip Phase K9: master switch + verbose dashboard log. snipEnabled
   // is on by default so the layer lights up on first launch.
   snipEnabled: true,
-  snipVerbose: false
+  snipVerbose: false,
+  safeSeedLength: 8192
 }
 
 function readSettings() {

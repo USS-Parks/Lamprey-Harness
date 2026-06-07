@@ -152,7 +152,8 @@ const api = {
     appendSystem: (id: string, content: string) =>
       ipcRenderer.invoke('conversation:appendSystem', id, content),
     setModel: (id: string, model: string) => ipcRenderer.invoke('conversation:setModel', id, model),
-    fork: (id: string) => ipcRenderer.invoke('conversation:fork', id),
+    fork: (input: unknown) => ipcRenderer.invoke('conversation:fork', input),
+    lineage: (conversationId: string) => ipcRenderer.invoke('conversation:lineage', conversationId),
     compact: (id: string) => ipcRenderer.invoke('conversation:compact', id)
   },
 

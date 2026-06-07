@@ -9,6 +9,9 @@ import { MessageActions } from './MessageActions'
 import { WakeupPill } from './WakeupPill'
 import { DocumentCardRow } from './DocumentCardRow'
 import { StageTokenChips } from './StageTokenChips'
+import { ForkDialog } from './ForkDialog'
+import { SeedContextChip, parseSeedContext } from './SeedContextChip'
+import { useChatStore } from '@/stores/chat-store'
 
 interface MessageBubbleProps {
   message: Message
@@ -38,7 +41,9 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
   const isUser = message.role === 'user'
   const isTool = message.role === 'tool'
   const addMemory = useMemoryStore((s) => s.addMemory)
+  const forkFromMessage = useChatStore((s) => s.forkFromMessage)
   const [saving, setSaving] = useState(false)
+  const [forkOpen, setForkOpen] = useState(false)
   // R7 — collapsed by default. Click "Show pipeline trace ▾" to expand
   // the inline panel showing the attached Planner row's reasoning + plan.
   const [traceOpen, setTraceOpen] = useState(false)
@@ -47,6 +52,7 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
 
   const wakeup = isUser && message.content.startsWith(WAKEUP_PREFIX)
   const wakeupParts = wakeup ? parseWakeupContent(message.content) : null
+  const seed = isUser ? parseSeedContext(message.content) : null
 
   // Reasoning comes from one of two places (in priority order):
   // 1) The `reasoning` column — persisted from the provider's
@@ -108,12 +114,14 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
         }
       >
         {wakeupParts && <WakeupPill reason={wakeupParts.reason} />}
-        {isUser ? (
+        {isUser ? seed ? (
+          <SeedContextChip seed={seed} />
+        ) : (
           <div className="whitespace-pre-wrap break-words text-sm">{wakeupParts?.body ?? message.content}</div>
         ) : (
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
-            <MarkdownRenderer content={body} />
+            <MarkdownRenderer content={body} sourceMessageId={message.id} />
             <StageTokenChips messageId={message.id} />
             {/* R7 — "Show pipeline trace ▾" toggle. Reveals the attached
                 Planner row (stage='planner', hidden in the main thread per
@@ -195,7 +203,18 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
       {!isUser && message.documents && message.documents.length > 0 && (
         <DocumentCardRow documents={message.documents} />
       )}
-      {!isUser && <MessageActions content={body || message.content} />}
+      {!isUser && (
+        <>
+          <MessageActions content={body || message.content} onFork={() => setForkOpen(true)} />
+          <ForkDialog
+            open={forkOpen}
+            onClose={() => setForkOpen(false)}
+            onConfirm={async (opts) => {
+              await forkFromMessage(message.id, opts)
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }

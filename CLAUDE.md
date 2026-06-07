@@ -72,6 +72,10 @@ npx electron-vite build
 
 ## Execution Rules
 1. **All shipped plans (`PLANNING/LAMPREY_HARNESS_FINAL.md`, the RAG roster, `LAMPREY_PARITY_PLAN.md`, `LAMPREY_FLUIDITY_PLAN.md`, `LAMPREY_DEEP_RESEARCH_PLAN.md`, `LAMPREY_SNIP_PLAN.md`, `LAMPREY_CUSTOMIZE_PLAN.md`, `LAMPREY_PANELS_PLAN.md`, `LAMPREY_REASONING_AUDIT_PLAN.md`, `LAMPREY_REASONING_TRACE_PLAN.md`, and `LAMPREY_ROBUSTNESS_HOTFIX_PLAN.md`) are reference-only.** When the user starts a new plan, treat its §0 (or equivalent) as the source of truth for verify gates + commit discipline.
+
+Canonical planning shorthand:
+- **P-SPR = Plan - Sequential Prompt Roster.** A single canonical `PLANNING/*.md` file that defines one phase end to end: goal, scope, non-goals, ordered prompts, files, verify gates, commit/devlog discipline, completion criteria, and approval state. Pasted or drafted text becomes a P-SPR only after it is saved as that plan file.
+- **STS = Stem to Stern.** After the user explicitly approves a P-SPR or says to run it STS, execute the roster in order from first prompt through phase wrap, verifying/logging/committing each prompt as specified. Do not treat a plan's own "STS authorization" wording as approval by itself. Do not skip prompts, batch prompts, push early, or reopen plan decisions unless blocked by new facts.
 2. Each prompt in any active plan must pass its verify gate (both tsc configs + relevant tests + smoke checks) before being marked `[x]` and committed.
 3. Log each prompt's work in `DEVLOG.md` per the format in the active plan's §0 Step 4.
 4. **Push policy:** the user is the reviewer + pusher. When they explicitly ask to push (any phrasing — "push", "push to main", "push it now"), execute on the first try; the request itself satisfies the review step (see `feedback_push_when_told` memory). Do NOT volunteer pushes the user didn't ask for, and never `--force` without an explicit force-push instruction.

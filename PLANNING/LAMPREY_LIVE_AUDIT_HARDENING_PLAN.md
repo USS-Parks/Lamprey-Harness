@@ -1,22 +1,18 @@
-# Lamprey Live Audit Hardening Phase - Plan + Sequential Prompt Roster
+# Lamprey Live Audit Hardening Phase - Sequential Prompt Roster
 
-> **Status: draft for user review.** Do not execute this roster until the user approves it. This plan is based on the live repository audit performed on 2026-06-05.
+> **Status: revised draft for user review.** Do not execute this roster until the user approves it. This supersedes the stale 2026-06-05 draft and is based on a fresh audit of `main` on 2026-06-06 after the v0.8.0 Reasoning Audit Phase.
 
-**Goal:** close the three ship-readiness findings from the live repo audit without broad refactors: harden JavaScript workflow/hook isolation, prevent plugin-installed connectors from auto-spawning local processes without explicit trust, and restrict main-window external URL opening to safe schemes.
+**Goal:** close the current live-repo hardening findings without broad product redesign: harden workflow/hook JavaScript isolation, prevent plugin/skill-import paths from silently creating executable capabilities, keep filesystem writes inside intended roots, and centralize safe external URL opening.
 
-**Why this phase exists:** the current codebase has strong recent hardening work around shell sandboxing, URL safety, keychain consent, and tool approvals. The live audit found a smaller but serious set of remaining gaps at the edges of those systems:
+**Why this revision exists:** the prior draft predated the shipped Reasoning Audit and Skill Import work. The re-audit found that the original three findings are still live, and the newer Skill Import ejection path adds one new path-boundary finding that should be fixed in the same hardening phase.
 
-- `vm`-based workflows and JS hooks are described as sandboxed, but exposed host functions make `process` reachable.
-- Plugin bundles can include MCP `stdio` connector definitions, and enabled plugin connectors are auto-connected, which can spawn local commands immediately after install/enable.
-- Main-window popup handling forwards arbitrary URLs to the OS external opener, while the IPC external-open path already limits itself to HTTP(S).
+**Execution model:** single session, single worktree off `main`, sequential H1 -> H7. No track splits. H1 defines the isolation contract; H2 and H3 apply it to production workflow/hook runners; H4 gates executable plugin connectors; H5 hardens Skill Import filesystem boundaries; H6 centralizes external-open scheme checks; H7 closes verification, docs, and the approval packet.
 
-**Execution model:** single worktree off `main`, sequential H1 -> H6. No track splits unless the user explicitly asks for parallel implementation. H1 defines the shared isolation model; H2 and H3 apply it to workflows and hooks; H4 gates plugin connectors; H5 closes external-open scheme handling; H6 is the verification and documentation tail.
-
-**Companion to:** [`LAMPREY_SANDBOX_PARITY_PLAN.md`](LAMPREY_SANDBOX_PARITY_PLAN.md), [`LAMPREY_CUSTOMIZE_PLAN.md`](LAMPREY_CUSTOMIZE_PLAN.md), and [`LAMPREY_SNIP_PLAN.md`](LAMPREY_SNIP_PLAN.md). Those are reference-only for format and neighboring architecture.
+**Companion to:** [`LAMPREY_REASONING_AUDIT_PLAN.md`](LAMPREY_REASONING_AUDIT_PLAN.md), [`LAMPREY_SKILL_IMPORT_PLAN.md`](LAMPREY_SKILL_IMPORT_PLAN.md), [`LAMPREY_CUSTOMIZE_PLAN.md`](LAMPREY_CUSTOMIZE_PLAN.md), and [`LAMPREY_SANDBOX_PARITY_PLAN.md`](LAMPREY_SANDBOX_PARITY_PLAN.md). These are reference-only for shipped architecture and current P-SPR format.
 
 ---
 
-## 0. SESSION BOOTSTRAP - READ THIS FIRST
+## 0. Session Bootstrap - Read This First
 
 You are a fresh coding session handed this document. Before doing anything else:
 
@@ -25,28 +21,41 @@ You are a fresh coding session handed this document. Before doing anything else:
 Verify:
 
 - Working directory is `C:\Users\17076\Documents\Claude\Lamprey Harness` or a worktree thereof.
-- Current branch is not `main`. Create a worktree branch such as `feat/live-audit-hardening` off `main` if needed.
+- Current branch is not `main`. Create a branch such as `feat/live-audit-hardening` off `main` if needed.
 - `git status --short --branch` is inspected before editing. Do not revert unrelated user changes.
 - Baseline checks pass before H1 starts:
   - `npm run typecheck`
   - `npm run lint`
   - `npm test`
+  - `npm run build`
 
 If any baseline check fails, halt and report the exact failure. Do not start on a broken baseline.
 
-### Step 2 - Execute H1 -> H6 in order
+### Step 2 - Fresh-audit baseline already observed
+
+The 2026-06-06 re-audit baseline was:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed: 124 files passed, 4 skipped; 1916 tests passed, 38 skipped.
+- `npm run build` passed.
+- In the sandbox, `npm test` and `npm run build` first failed with `spawn EPERM` while starting the build helper; rerunning with approved outside-sandbox execution passed.
+
+Re-run the same checks in the implementation session anyway. This note is context, not a waiver.
+
+### Step 3 - Execute H1 -> H7 without stopping
 
 1. Do not ask further questions unless a prompt requires a decision only the user can make.
-2. For each prompt:
-   - Read the "Files" list and the nearby existing code before editing.
+2. For each prompt, in order:
+   - Read the "Files" list and nearby code before editing.
    - Implement only the prompt's scope.
    - Run the prompt's verify gate.
    - If verify fails: fix and retry up to 2 times. On the third failure, halt, write a blocked DEVLOG entry, and report.
-   - If verify passes: mark the prompt `[x]` in this file, append a DEVLOG entry, then commit. Do not push.
+   - If verify passes: mark the prompt `[x]` in this document, append a DEVLOG entry, then commit. Do not push.
 3. One commit per prompt. No batching, no amending across prompts unless the user explicitly asks.
-4. When all prompts complete: run the phase completion criteria, write the phase-complete DEVLOG entry, and report final status.
+4. When all prompts complete: run the phase completion gate, write the phase-complete DEVLOG entry, and report final status.
 
-### Step 3 - DEVLOG entry format
+### Step 4 - DEVLOG entry format
 
 ```markdown
 ## [Live Audit Hardening - Prompt HN] <Title> - <YYYY-MM-DD>
@@ -55,114 +64,104 @@ If any baseline check fails, halt and report the exact failure. Do not start on 
 **Verify gate:**
 - typecheck OK
 - lint OK
-- vitest <subset or all> OK (N tests)
-- build/smoke/manual checks, or "user-verification-needed: <what to check>"
+- vitest <subset or all> OK
+- build OK, smoke OK, or "user-verification-needed: <what to check>"
 
 **Notes:** <anything surprising, deferred, or worth knowing>
 
 **Commit:** <SHA>
 ```
 
-### Step 4 - Commit discipline
+### Step 5 - Commit discipline
 
 - One commit per prompt.
 - Never use `--no-verify`. If a hook fails, fix the underlying issue.
 - Never add a `Co-Authored-By` trailer.
 - Use the project's commit-message style, for example:
-  - `fix(hardening): H1 add isolated script runner`
-  - `fix(plugins): H4 require trust before plugin stdio connectors`
+  - `fix(hardening): H1 add isolated script probes`
+  - `fix(plugins): H4 require trust before plugin connectors`
+  - `fix(skill-import): H5 constrain ejected skill paths`
 
 ---
 
-## 1. Audit Summary - What Exists vs. What Is Missing
+## 1. Audit Summary - Current Findings
 
-| Capability | Current state | Target | Owner prompt |
+| # | Finding | Current evidence | Owner prompt |
 |---|---|---|---|
-| Workflow JS execution | Node `vm` context with documented API, but host timer functions are exposed | Workflow code cannot reach host `process`, `require`, `Function`, `child_process`, or Electron globals | H1, H2 |
-| Hook JS execution | Node `vm` context with host `log`, `Date`, `JSON`, `Math` exposed | Hook code cannot escape via host function constructors; JS hook docs match actual isolation | H1, H3 |
-| Sandbox regression tests | Tests cover `Math.random` and `Date.now` guards, not host escape vectors | Tests assert every exposed binding fails common escape probes | H1, H2, H3 |
-| Plugin connectors | Enabled plugin roots contribute `connectors.json`; stdio connectors auto-connect | Plugin MCP connectors install disabled/untrusted and require explicit user trust before connect | H4 |
-| Plugin install from manifest | Manifest `files` can create `connectors.json` and manifest defaults to enabled | Install can still write assets, but connector execution is inert until trusted | H4 |
-| External URL opening | `shell:openExternal` IPC restricts to HTTP(S); main-window popup handler does not | One shared allowlist guard limits external opens to HTTP(S) everywhere | H5 |
-| Documentation and release notes | No live-audit hardening phase notes yet | README/DEVLOG/plan reflect the shipped hardening and residual risks | H6 |
+| 1 | Workflow JS is described as sandboxed but receives raw host functions and constructors. Exposed timer/log/stdlib bindings can become escape gadgets unless proven otherwise. | `electron/services/workflow-runner.ts` builds a `vm` sandbox with raw `JSON`, `Math`, `Promise`, `Array`, `Object`, timers, and helpers at lines 675-707. | H1, H2 |
+| 2 | Hook JS has the same isolation class problem. It exposes raw `log`, `console`, `Date`, `JSON`, and `Math` into a `vm` context. | `electron/services/hooks-runner.ts` returns raw helper functions and stdlib constructors at lines 110-127, then runs hook code in `vm.Script` at lines 130-150. | H1, H3 |
+| 3 | Plugin-owned MCP connectors auto-connect when a plugin is enabled. A plugin `connectors.json` entry with `transport: "stdio"` can start a local process without a separate connector trust action. | `electron/services/mcp-manager.ts` reads enabled plugin `connectors.json`, sets `enabled: true`, adds states, then calls `connectPluginServer()` at lines 200-280. `connectStdio()` constructs `StdioClientTransport` at lines 626-636. | H4 |
+| 4 | Skill Import ejection trusts renderer-supplied `skillSlug` for source and destination paths. A malicious or compromised renderer IPC caller can attempt path traversal and, with overwrite, destructive removal outside the intended user-skill root. | `electron/ipc/cc-skill-import.ts` forwards `payload.skillSlug` directly at lines 75-86. `electron/services/cc-skill-importer.ts` joins it into both `sourceSkillDir` and `destDir` without a containment check at lines 353-391. | H5 |
+| 5 | Main-window popup handling still opens arbitrary URL schemes through the OS external opener. The IPC helper has a string-prefix HTTP(S) check, but the popup path does not share that guard. | `electron/main.ts` calls `shell.openExternal(details.url)` inside `setWindowOpenHandler` at lines 294-296. `shell:openExternal` uses a separate prefix check at lines 383-386. | H6 |
 
-**Non-goals for this phase:**
+### Observed but not assigned a prompt
 
-- No redesign of the workflow language.
-- No removal of workflows, hooks, plugins, or MCP.
-- No remote plugin marketplace policy.
-- No full OS-level sandbox replacement on Windows.
-- No unrelated audit backlog from older plans.
+- The Reasoning Audit Phase is now shipped and tested. `includePastReasoningInContext` defaults on by design, and `buildApiMessagesFromStoredMessages()` rehydrates saved reasoning as `<think>...</think>` when enabled. This is intentional product behavior from the shipped R8/R9 prompts, so this hardening phase should preserve it rather than reverse it.
+- `debug-trace` is opt-in through settings unless explicitly forced in a debug build. The audit did not find it writing full prompts or reasoning bodies by default; no hardening prompt is assigned.
+- GitHub external opening already gates to `https://github.com`. H6 may reuse the central helper there only if it keeps that stricter host check intact.
 
 ---
 
 ## 2. Architectural Invariants - Locked
 
-Treat these as binding across all six prompts.
-
-1. **Do not describe Node `vm` as a security boundary unless escape probes prove it.** If using `vm`, all host callable functions must be wrapped or avoided, string code generation must be disabled where possible, and tests must pin the boundary.
-2. **Workflow and hook APIs stay useful.** `agent`, `parallel`, `pipeline`, `phase`, `log`, `workflow`, `memory`, `askUser`, `args`, `budget`, and hook context bindings remain available unless the prompt explicitly replaces them with safer equivalents.
-3. **No host functions cross the boundary raw.** Timer/log/helper bindings must not expose constructors that can return host `process`.
-4. **Plugin-provided `stdio` connectors are executable capability.** They must be treated closer to shell/network tools than to passive skill markdown.
-5. **Install is not trust. Enable is not trust.** A plugin may be installed and enabled for passive assets while its `stdio` connector remains untrusted.
-6. **Trusted connector state is auditable and reversible.** Users can see why a connector is blocked, trust it explicitly, and revoke that trust.
-7. **External-open allowlist is central.** Main-process popup handling and IPC external-open use the same scheme validation helper.
-8. **Verification is evidence-based.** If an Electron UI or platform behavior cannot be fully exercised in the coding session, record `user-verification-needed` rather than claiming it.
+1. **No raw host callables cross into untrusted JavaScript.** Workflow and hook bindings must either be context-owned, data-only, or wrapped so `binding.constructor("return process")()` does not reach host `process`.
+2. **Do not call Node `vm` a security boundary without regression probes.** Every exposed binding gets escape tests before the prompt is considered done.
+3. **Workflow and hook APIs stay useful.** `agent`, `parallel`, `pipeline`, `phase`, `log`, `workflow`, `memory`, `askUser`, `args`, `budget`, hook context values, and logging remain available unless a prompt explicitly replaces them with safer equivalents.
+4. **Plugin connectors are executable capability.** Install, import, or enable can make connector definitions visible, but must not spawn `stdio` or connect SSE without explicit trust.
+5. **Renderer IPC payloads are untrusted.** Any filesystem path or slug that crosses IPC must be validated, normalized, and proven to remain under the intended root before copy, write, remove, or open operations.
+6. **External-open allowlist is central.** Main-process popup handling and IPC external-open use the same URL parser/allowlist helper. HTTP(S) only unless a prompt explicitly documents a narrower allowlist such as GitHub-only.
+7. **Reasoning audit behavior is preserved.** This phase does not remove saved reasoning, stage chips, or the `includePastReasoningInContext` toggle. Tests should guard that hardening changes do not break the v0.8.0 reasoning trail.
+8. **Verification is evidence-based.** If an Electron UI behavior cannot be exercised in the coding session, record `user-verification-needed` instead of claiming it.
 
 ---
 
-## 3. The Six Prompts
+## 3. The Seven Prompts
 
 ### Prompt sequence
 
 | # | Prompt | One-liner | Files (net new / modified) | Verify | Status |
 |---|---|---|---|---|---|
-| H1 | **Isolated script runner + escape probes** | Create a shared script-isolation test harness and runner contract for untrusted JS. Add regression probes for `Function`, host function constructors, timers, `Date`, `log`, `Object.constructor`, `this.constructor`, `process`, `require`, dynamic import, and `child_process`. This prompt may introduce a safer helper such as `electron/services/isolated-script-runner.ts`; it should not yet rewire all production callers unless the helper is simple and low-risk. | `electron/services/isolated-script-runner.ts` (new if useful), `electron/services/isolated-script-runner.test.ts` (new), `electron/services/workflow-runner.test.ts`, `electron/services/hooks-runner.test.ts` | unit: escape probes fail in the shared runner; unit: runner still supports allowed API calls; unit: timeout still interrupts sync infinite loop; typecheck; lint | [ ] |
-| H2 | **Workflow sandbox remediation** | Rewire `workflow-runner.ts` to use the H1 isolation model. Replace raw host timers/logging with safe wrappers or a worker/process boundary. Preserve workflow features: top-level async IIFE, `agent`, `parallel`, `pipeline`, `phase`, `workflow`, `memory`, `askUser`, `args`, `budget`, and deterministic guards for `Date.now`, `new Date`, and `Math.random`. Add direct tests proving workflow scripts cannot reach host `process` through timers or any exposed API. | `electron/services/workflow-runner.ts`, `electron/services/workflow-runner.test.ts`, `electron/services/isolated-script-runner.ts` (if H1 created it) | unit: current workflow tests pass; unit: `setTimeout.constructor("return process")()` cannot reach process; unit: allowed workflow API still runs; unit: abort/timeout behavior unchanged; typecheck; lint; `npm test` subset for workflow | [ ] |
-| H3 | **Hook sandbox remediation + docs alignment** | Rewire JS hooks to the same isolation boundary. Replace raw `log`, `console`, `Date`, `JSON`, and `Math` exposure with safe context-owned bindings. Decide and document the legacy shell-hook policy: existing shell-language rows may remain as explicitly legacy/executable, but new UI-created hooks stay JS-only unless user explicitly opts into shell execution. Update the settings copy so it does not overpromise isolation. | `electron/services/hooks-runner.ts`, `electron/services/hooks-runner.test.ts`, `src/components/settings/HooksSettings.tsx`, optional `electron/services/database.ts` if legacy policy metadata is needed | unit: current hook tests pass; unit: `log.constructor("return process")()` and `Date.constructor("return process")()` fail; unit: throwing `preToolUse` hook still blocks tool call; jsdom/UI smoke for settings copy if available; typecheck; lint | [ ] |
-| H4 | **Plugin connector trust gate** | Treat plugin `connectors.json` entries, especially `stdio`, as executable capabilities. Add trust state for plugin-owned MCP servers. Plugin connectors load as blocked/untrusted by default and do not auto-connect until user trust is granted. Persist trust decisions, show blocked status in connector/customize UI, and add revoke flow. Keep passive plugin assets (skills, slash commands, README) working. | `electron/services/mcp-manager.ts`, `electron/services/plugin-loader.ts`, `electron/ipc/plugins.ts` or `electron/ipc/mcp.ts`, `electron/preload.ts`, `src/components/customize/ConnectorsColumn.tsx`, `src/components/customize/PluginsColumn.tsx`, `src/stores/plugins-store.ts`, tests | unit: plugin `stdio` connector does not instantiate `StdioClientTransport` before trust; unit: trusted connector connects; unit: revoke disconnects and blocks reconnect; unit: passive plugin skills still load; typecheck; lint; targeted tests | [ ] |
-| H5 | **External-open scheme hardening** | Add one main-process helper for OS external opens that accepts only HTTP(S). Use it in `mainWindow.webContents.setWindowOpenHandler`, `shell:openExternal`, GitHub/browser doc-link paths where appropriate, and any artifact external-open bridge. Deny `file:`, `javascript:`, `data:`, `view-source:`, custom protocols, and empty/malformed URLs. | `electron/main.ts`, optional `electron/services/external-open.ts` (new), `electron/preload.ts` if type comments change, `electron/ipc/github.ts` if it has a separate opener path, tests | unit: helper accepts `http://` and `https://`; unit: helper rejects dangerous schemes; unit or mock: window-open handler denies and does not call `shell.openExternal` for rejected schemes; typecheck; lint | [ ] |
-| H6 | **Phase verify + docs + approval packet** | Run the full verification gate and document the hardening. Add a phase-complete DEVLOG entry, update README/security notes if needed, and leave this plan marked shipped only after all prompts are done. Include a short "approval packet" summary listing what changed, what was tested, and any residual risks. | `DEVLOG.md`, `README.md` or `CLAUDE.md` if needed, `PLANNING/LAMPREY_LIVE_AUDIT_HARDENING_PLAN.md` | `npm run typecheck`; `npm run lint`; `npm test`; `npm run build` or `npx electron-vite build`; user-verification-needed UI smoke if plugin trust UI cannot be fully exercised | [ ] |
+| H1 | **Shared isolation contract + escape probes** | Create a reusable isolation test/probe harness for workflow and hook JavaScript. Probes must cover `Function`, host function constructors, timers, `Date`, `log`, `console`, `Object.constructor`, `this.constructor`, `process`, `require`, dynamic import, and `child_process`. | New `electron/services/isolated-script-runner.ts` if useful; new `electron/services/isolated-script-runner.test.ts`; `electron/services/workflow-runner.test.ts`; `electron/services/hooks-runner.test.ts` | Unit escape probes fail; allowed binding fixture works; sync timeout still interrupts; typecheck; lint | [ ] |
+| H2 | **Workflow sandbox remediation** | Rewire `workflow-runner.ts` to the H1 isolation model. Replace raw timers and stdlib/host helpers with safe equivalents while preserving workflow features and deterministic guards. | `electron/services/workflow-runner.ts`, `electron/services/workflow-runner.test.ts`, H1 helper if created | Existing workflow tests pass; timer/host escape tests fail to reach `process`; agent/parallel/pipeline/memory/askUser/budget behavior intact; typecheck; lint; workflow test subset | [ ] |
+| H3 | **Hook sandbox remediation + copy alignment** | Rewire JS hooks to the same boundary. Replace raw `log`, `console`, `Date`, `JSON`, and `Math` exposure. Keep legacy shell hooks explicit and align Settings copy with the real isolation guarantee. | `electron/services/hooks-runner.ts`, `electron/services/hooks-runner.test.ts`, `src/components/settings/HooksSettings.tsx` | Existing hook tests pass; `log.constructor(...)`, `Date.constructor(...)`, and `console.log.constructor(...)` cannot reach `process`; `preToolUse` block semantics intact; typecheck; lint | [ ] |
+| H4 | **Plugin connector trust gate** | Treat plugin `connectors.json` entries as blocked/untrusted until the user explicitly trusts each connector. Enabling/importing a plugin must not auto-connect or spawn `stdio`. Add trust/revoke IPC and UI state. | `electron/services/mcp-manager.ts`, `electron/services/plugin-loader.ts`, `electron/ipc/mcp.ts` or `electron/ipc/plugins.ts`, `electron/preload.ts`, `src/components/customize/ConnectorsColumn.tsx`, `src/components/customize/PluginsColumn.tsx`, tests | Unit: plugin `stdio` connector does not instantiate `StdioClientTransport` before trust; trusted connector connects; revoke disconnects and blocks reconnect; passive skills still load; typecheck; lint | [ ] |
+| H5 | **Skill Import filesystem containment** | Validate and normalize every Skill Import source/destination slug and path. Ejected skills must stay under `<pluginRoot>/skills/<slug>` for source and `<userData>/skills/<slug>` for destination. Reject traversal, absolute paths, separators, symlink escapes, and destructive overwrite outside root. | `electron/services/cc-skill-importer.ts`, `electron/ipc/cc-skill-import.ts`, `src/stores/cc-import-store.ts` if return shape changes, `src/components/customize/SkillsColumn.tsx` if UX copy changes, tests | Unit: traversal `../`, absolute path, backslash/forward-slash, symlink escape, and overwrite-outside-root attempts are rejected; normal eject still works; import still copies supported skill trees; typecheck; lint | [ ] |
+| H6 | **External-open scheme hardening** | Add one main-process helper for OS external opens that accepts only parsed HTTP(S) URLs. Use it in `setWindowOpenHandler`, `shell:openExternal`, artifact/doc-link bridge paths, and GitHub/open-browser paths where appropriate without loosening GitHub-only checks. | `electron/main.ts`, optional new `electron/services/external-open.ts`, `electron/ipc/github.ts` if central helper is reused, tests | Helper accepts `http://` and `https://`; rejects `file:`, `javascript:`, `data:`, `view-source:`, custom schemes, malformed/empty URLs; popup handler denies without opening rejected schemes; typecheck; lint | [ ] |
+| H7 | **Phase verify + docs + approval packet** | Run the full gate, update DEVLOG and this plan, and prepare the user-facing approval packet with shipped changes, tests, and residual risks. Preserve Reasoning Audit behavior while proving hardening changes did not regress it. | `DEVLOG.md`, `PLANNING/LAMPREY_LIVE_AUDIT_HARDENING_PLAN.md`, README/CLAUDE only if behavior needs documentation | `npm run typecheck`; `npm run lint`; `npm test`; `npm run build`; user-verification-needed UI smoke for plugin trust/eject/external-open if not fully automatable | [ ] |
 
 ---
 
 ## 4. Prompt Details
 
-### H1 - Isolated script runner + escape probes
+### H1 - Shared isolation contract + escape probes
 
-**Goal.** Establish the shared safety contract before touching production callers.
+**Goal.** Establish a reusable proof harness before touching production callers.
 
 **Work.**
 
-- Add a reusable probe suite that can run against workflow and hook contexts.
-- Include the exact escape candidates found during the live audit:
+- Add shared escape probes that can run against both workflow and hook contexts.
+- Include the exact current high-risk probes:
   - `setTimeout.constructor("return typeof process")()`
   - `log.constructor("return typeof process")()`
   - `Date.constructor("return typeof process")()`
-- Include broader probes for:
+  - `console.log.constructor("return typeof process")()`
+- Include broader probes:
   - `Function("return process")`
-  - `this.constructor.constructor(...)`
-  - `Object.constructor(...)`
+  - `this.constructor.constructor("return process")()`
+  - `Object.constructor("return process")()`
   - `globalThis.process`
   - `require`
   - `import("node:child_process")`
-  - `constructor.constructor("return require")`
-- If a shared runner is created, its API should accept:
-  - script source
-  - filename/name for diagnostics
-  - timeout
-  - allowed bindings
-  - optional async completion
-- The helper must be usable by both workflows and hooks without introducing Electron imports into pure service tests.
+  - `constructor.constructor("return require")()`
+- If a shared runner is introduced, keep it pure service code with no Electron imports.
+- Make failures crisp: an escape probe may throw or return `undefined`; it must never return host `process`.
 
 **Acceptance.**
 
-- Escape probes fail with clear errors or return `undefined`, never host `process`.
-- Allowed bindings still work in a tiny fixture.
-- Timeout behavior is covered.
-- No production behavior is changed unless the helper is directly adopted in H1 with tests.
-
----
+- Shared fixture proves allowed data/functions can be called.
+- Escape probes fail against the shared runner.
+- Timeout test still interrupts a sync infinite loop.
+- H2/H3 can reuse the helper without reauthoring the probe list.
 
 ### H2 - Workflow sandbox remediation
 
@@ -170,96 +169,119 @@ Treat these as binding across all six prompts.
 
 **Work.**
 
-- Replace raw host timer exposure in `workflow-runner.ts`.
-- Keep workflow-visible delay behavior if possible. If direct timers cannot be safely exposed, provide a safe `sleep(ms)` workflow helper and migrate bundled workflows if any rely on `setTimeout`.
-- Keep deterministic blockers for `Date.now`, `new Date`, and `Math.random`.
-- Ensure `args` is either deep-cloned or clearly treated as input-only.
-- Keep `budget` frozen.
-- Add explicit tests that every workflow-exposed binding fails the H1 probes.
+- Replace raw `setTimeout`, `clearTimeout`, `setImmediate`, and `clearImmediate` exposure.
+- Replace raw stdlib constructors where needed. If the code keeps a subset such as `JSON` or `Math`, prove their constructors cannot escape.
+- Preserve workflow-visible delay behavior. If direct timers cannot be safely exposed, add a safe `sleep(ms)` helper and migrate references/tests accordingly.
+- Preserve:
+  - top-level async IIFE behavior
+  - `agent`, `parallel`, `pipeline`, `phase`
+  - `workflow`, `memory`, `askUser`
+  - `args`, frozen `budget`
+  - deterministic blocks for `Date.now`, `new Date`, and `Math.random`
+- Deep-clone or freeze input objects that should not leak mutations.
 
 **Acceptance.**
 
-- Existing workflow tests continue to pass.
-- The live-audit timer escape is closed.
-- Agent, parallel, nested workflow, memory, budget, askUser, abort, and timeout tests remain green.
+- Existing workflow tests remain green.
+- The timer escape class is closed.
+- Allowed workflow API calls still work.
+- Abort/timeout behavior is unchanged.
 
----
+### H3 - Hook sandbox remediation + copy alignment
 
-### H3 - Hook sandbox remediation + docs alignment
-
-**Goal.** Close the same host escape in hook JS and align UI wording with the actual guarantees.
+**Goal.** Close the same host escape class in JS hooks and keep user-facing copy honest.
 
 **Work.**
 
-- Replace raw `log` and `console.*` with safe wrappers that cannot expose host constructors.
-- Avoid exposing host `Date`, `JSON`, and `Math` raw if their constructors can escape. Prefer context-owned copies or a safe wrapper subset.
-- Confirm `args` mutations still do not escape the caller.
-- Keep `preToolUse` throwing behavior as the block mechanism.
-- Review shell-language hook support:
-  - Existing migrated rows can remain executable if explicitly labeled legacy.
-  - New UI-created hooks should remain JS-only unless a separate explicit shell-hook trust flow exists.
-- Update `HooksSettings.tsx` text to avoid saying "sandboxed vm" without qualification if Node `vm` remains part of the implementation.
+- Replace raw `log` and `console.*` with safe wrappers.
+- Avoid exposing raw `Date`, `JSON`, and `Math` if constructor probes can escape.
+- Keep `args` mutation isolation.
+- Keep `preToolUse` throws as the blocking mechanism.
+- Preserve legacy shell-hook execution only as explicit legacy executable behavior.
+- Keep UI-created hooks JS-only unless a separate shell-hook trust flow exists.
+- Update `HooksSettings.tsx` wording so it does not overpromise isolation.
 
 **Acceptance.**
 
 - Hook escape probes fail.
-- Existing hook behavior remains: logging works, args snapshot is read-only to caller, `preToolUse` throws can block, `postToolUse` cannot block.
-- Settings copy is accurate and understandable.
-
----
+- Logging still works.
+- `preToolUse` blocks; `postToolUse` does not block.
+- Settings copy matches behavior.
 
 ### H4 - Plugin connector trust gate
 
-**Goal.** Prevent plugin install/enable from implicitly executing local connector commands.
+**Goal.** Prevent plugin install, import, or enable from implicitly starting local connector processes.
 
 **Work.**
 
-- Add a trust state for plugin-owned MCP connectors, keyed by plugin id + connector id and stable across restarts.
-- Change `refreshPluginConnectors()` so untrusted plugin connectors are listed as blocked/untrusted and do not call `connectServer`.
+- Add persisted trust state keyed by plugin id + connector id.
+- Change plugin connector refresh so untrusted connectors are listed but not connected.
 - Add trust and revoke operations through IPC/preload.
 - Add UI affordances:
-  - blocked badge for untrusted plugin connectors
-  - "Trust and connect" action with clear warning that `stdio` starts a local process
+  - blocked/untrusted badge
+  - "Trust and connect" action
+  - warning that `stdio` starts a local process
   - "Revoke trust" action
-- Keep plugin skill/slash-command loading unchanged.
-- Consider whether SSE plugin connectors also require trust. The default should be yes for consistency, but `stdio` must be the highest-warning case.
+- Treat SSE plugin connectors as trust-required too unless a narrower policy is deliberately documented.
+- Keep passive plugin assets working: skills, slash commands, README, and imported CC skill bundles.
 
 **Acceptance.**
 
-- Installing a manifest that writes `connectors.json` does not spawn a process.
-- Enabling a plugin does not spawn a `stdio` process until trust is granted.
-- Trusting a connector connects it.
-- Revoking trust disconnects it and prevents reconnect.
-- Passive plugin assets still work.
+- Installing or enabling a plugin with `connectors.json` does not spawn a process.
+- Trusting connects.
+- Revoking disconnects and prevents reconnect.
+- Passive skills still load.
 
----
+### H5 - Skill Import filesystem containment
 
-### H5 - External-open scheme hardening
-
-**Goal.** Make every OS external-open path reject unsafe schemes.
+**Goal.** Make Skill Import ejection and copy paths robust against renderer-supplied traversal.
 
 **Work.**
 
-- Create a small helper if it keeps logic central, for example:
+- Add a slug validator for skill ids accepted over IPC:
+  - reject `..`
+  - reject absolute paths
+  - reject path separators
+  - reject empty/whitespace
+  - allow only the established skill-id character set
+- Resolve source and destination paths, then prove containment with path-boundary checks that distinguish sibling-prefix paths.
+- Before `rmSync`, prove the resolved target is inside the intended user-skill root.
+- Consider symlink behavior in `copyTree()`:
+  - reject symlinks, or
+  - resolve and prove both source and destination remain inside their intended roots before copying.
+- Return clear errors for rejected payloads.
+- Add tests for direct service calls and IPC-facing validation shape.
+
+**Acceptance.**
+
+- Normal eject from a plugin skill still works.
+- Traversal and overwrite-outside-root attempts are rejected before copy/remove.
+- Importer still handles CC skill trees with supporting files.
+
+### H6 - External-open scheme hardening
+
+**Goal.** Make every OS external-open path reject unsafe schemes through one helper.
+
+**Work.**
+
+- Add a small helper, for example:
   - `parseExternalHttpUrl(raw: string): URL | null`
   - `openExternalHttp(raw: string): Promise<boolean>`
 - Use it in:
   - `mainWindow.webContents.setWindowOpenHandler`
-  - `shell:openExternal` IPC
+  - `shell:openExternal`
   - artifact/doc-link external open paths if they bypass the IPC helper
-  - GitHub external browser open if it has a separate path
-- Deny and log unsafe schemes without throwing user-visible crashes.
-- Keep valid HTTP(S) URLs opening normally.
+  - GitHub open-in-browser path only if the helper composes with GitHub-only host validation
+- Deny unsafe schemes without crashing the renderer.
+- Log denied schemes at a low-noise level if useful.
 
 **Acceptance.**
 
 - `https://example.com` and `http://example.com` are allowed.
-- `file:///C:/Windows/win.ini`, `javascript:alert(1)`, `data:text/html,...`, `view-source:https://example.com`, and custom schemes are denied.
+- `file:///C:/Windows/win.ini`, `javascript:alert(1)`, `data:text/html,...`, `view-source:https://example.com`, `mailto:...`, custom schemes, and malformed URLs are denied.
 - Window popup handler no longer calls `shell.openExternal` for rejected schemes.
 
----
-
-### H6 - Phase verify + docs + approval packet
+### H7 - Phase verify + docs + approval packet
 
 **Goal.** Close the phase with evidence and a concise review packet.
 
@@ -269,38 +291,40 @@ Treat these as binding across all six prompts.
   - `npm run typecheck`
   - `npm run lint`
   - `npm test`
-  - `npm run build` or `npx electron-vite build`
-- Perform or request manual UI smoke:
-  - run a simple workflow
-  - run a JS hook test from Settings
-  - install or simulate a plugin connector and confirm it is blocked until trusted
-  - click an external HTTP(S) doc link
-  - try a non-HTTP(S) external link and confirm denial
-- Update `DEVLOG.md`.
-- Update README/CLAUDE only if user-facing behavior changed enough to document.
-- Mark this plan as shipped at the top only after H1-H6 are complete.
+  - `npm run build`
+- Run targeted tests introduced by H1-H6.
+- Add DEVLOG entries for all prompts.
+- Update this plan status only after prompts ship.
+- Update README/CLAUDE only if behavior changed enough to document.
+- Prepare the approval packet:
+  - changed behavior
+  - tests run
+  - residual risks
+  - user-verification-needed smoke items, if any
 
 **Acceptance.**
 
-- All six prompts are marked `[x]`.
+- All seven prompts are marked `[x]`.
 - Full gate is green.
-- DEVLOG has H1-H6 entries plus a phase-complete summary.
-- Residual risks are explicit and not hidden.
+- DEVLOG has H1-H7 entries plus a phase-complete summary.
+- Residual risks are explicit.
 
 ---
 
 ## 5. Phase Completion Criteria
 
-- All six prompts marked `[x]`.
-- Six commits on the phase branch, one per prompt.
+- All seven prompts marked `[x]`.
+- Seven commits on the phase branch, one per prompt.
 - `npm run typecheck` exits 0.
 - `npm run lint` exits 0.
 - `npm test` exits 0.
-- `npm run build` or `npx electron-vite build` exits 0.
-- Escape probes for workflow and hook contexts fail to reach host `process`.
-- Plugin `stdio` connector auto-spawn is impossible without explicit trust.
-- External-open helper denies non-HTTP(S) schemes in both IPC and popup-handler paths.
-- DEVLOG includes H1-H6 entries and a phase-complete summary.
+- `npm run build` exits 0.
+- Workflow and hook escape probes cannot reach host `process`.
+- Plugin connector auto-spawn is impossible without explicit trust.
+- Skill Import ejection cannot copy, write, or remove outside intended roots.
+- External-open helper denies non-HTTP(S) schemes in popup and IPC paths.
+- v0.8.0 Reasoning Audit behavior remains intact.
+- DEVLOG includes H1-H7 entries and a phase-complete summary.
 - User receives an approval packet summarizing changed behavior, tests run, and residual risks.
 
 ---
@@ -330,14 +354,34 @@ src/components/customize/PluginsColumn.tsx
 src/stores/plugins-store.ts
 ```
 
+### Skill Import containment
+
+```text
+electron/ipc/cc-skill-import.ts
+electron/services/cc-skill-importer.ts
+electron/services/cc-skill-discovery.ts
+src/stores/cc-import-store.ts
+src/components/customize/SkillsColumn.tsx
+```
+
 ### External URL opening
 
 ```text
 electron/main.ts
-electron/preload.ts
 electron/ipc/github.ts
+electron/preload.ts
 src/components/artifacts/MarkdownRenderer.tsx
 src/components/settings/*Settings.tsx
+```
+
+### Reasoning Audit regression guard
+
+```text
+electron/services/chat-history.ts
+electron/services/chat-history.test.ts
+electron/services/conversation-store.ts
+src/components/chat/MessageBubble.tsx
+src/components/settings/ReasoningAuditSettings.tsx
 ```
 
 ### Verification commands
@@ -349,4 +393,4 @@ npm test
 npm run build
 ```
 
-**End of draft plan.**
+**End of revised draft plan.**

@@ -14,6 +14,7 @@ lamprey.db-journal
 .tmp-test-user-data/
 SESSION-LOG/
 .claude/
+.cf/
 opencode.jsonc
 
 # Bucket pipeline — project-scoped secrets (NEVER commit)

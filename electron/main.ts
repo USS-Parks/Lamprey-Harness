@@ -225,7 +225,7 @@ function schedulePersistBounds(win: BrowserWindow): void {
 
 function resolveSplashPath(): string {
   if (app.isPackaged) return join(process.resourcesPath, 'splash.png')
-  return join(app.getAppPath(), 'ASSETS', 'Lamprey Desktop Icon-1.png')
+  return join(app.getAppPath(), 'ASSETS', 'LAMPREY LOGO RED AI.png')
 }
 
 function resolveAppIconPath(): string {

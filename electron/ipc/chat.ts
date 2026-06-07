@@ -28,9 +28,6 @@ import {
 } from '../services/async-event-bridge'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
-import { saveStageMetrics } from '../services/stage-metrics-store'
-import { approximateTokenCount } from '../services/multi-agent-run-tool'
-import { runGetConversationHistorySafe } from '../services/tool-conversation-history'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -683,10 +680,6 @@ export async function runChatRound(
   composerMode: AgenticComposerMode = 'auto',
   suppressDoneEvent: boolean = false,
   correlationId?: string,
-  // RT2 — wall-clock for the whole turn (passed through recursive tool rounds
-  // so the final assistant message's stage metric reflects total turn time,
-  // not just the last round's). Defaults to Date.now() at the outermost call.
-  roundStartedAt?: number,
   /** Reasoning Audit Phase R6 — cumulative reasoning trail. Pre-existing
    *  rounds' chain-of-thought; this round appends its own onDone.
    *  Threaded through recursion so the FINAL round (no tool calls + the
@@ -695,7 +688,6 @@ export async function runChatRound(
    *  the top-level call so callers don't need to pass it. */
   roundReasonings: string[] = []
 ): Promise<RunChatRoundResult> {
-  const turnStartedAt = roundStartedAt ?? Date.now()
   trace('runChatRound.enter', {
     conversationId,
     correlationId,
@@ -840,24 +832,6 @@ export async function runChatRound(
               documents,
               stage: finalStage
             })
-            // RT2 — per-stage token + duration metric for the assistant turn.
-            // suppressDoneEvent=true means the coder stage of the multi-agent
-            // pipeline is calling us; the pipeline writes its own
-            // stage='coder' row, so we skip the write here to avoid a double.
-            // suppressDoneEvent=false → single-agent path; record stage='single'.
-            if (!suppressDoneEvent) {
-              try {
-                saveStageMetrics(assistantMsg.id, {
-                  stage: 'single',
-                  model,
-                  promptTokens: null,
-                  completionTokens: approximateTokenCount(finalContent),
-                  durationMs: Date.now() - turnStartedAt
-                })
-              } catch (err) {
-                console.warn('[chat] saveStageMetrics(single) failed:', err)
-              }
-            }
             if (!suppressDoneEvent) {
               emitPhase(conversationId, 'done')
               emitChatEvent('chat:done', { conversationId, message: assistantMsg })
@@ -962,7 +936,6 @@ export async function runChatRound(
               composerMode,
               suppressDoneEvent,
               correlationId,
-              turnStartedAt,
               nextRoundReasonings
             )
             resolve(next)
@@ -1179,17 +1152,6 @@ async function resolveSingleToolCall(
       const entry = memStore.addMemory(args.content, conversationId)
       emitChatEvent('memory:added', entry)
       result = 'Saved to memory.'
-    } else if (toolName === 'get_conversation_history') {
-      // RT4 — read-only audit-shape access to prior turns in the active
-      // (or specified) conversation. The active conversation id is passed
-      // verbatim so the tool defaults to it.
-      const outcome = runGetConversationHistorySafe(args, conversationId)
-      if (outcome.ok) {
-        result = JSON.stringify(outcome.data)
-      } else {
-        result = `Error: ${outcome.error}`
-        explicitStatus = 'error'
-      }
     } else if (toolName === 'create_document') {
       const nameRaw = typeof args.name === 'string' ? args.name.trim() : ''
       const mimeRaw = typeof args.mimeType === 'string' ? args.mimeType.trim() : ''

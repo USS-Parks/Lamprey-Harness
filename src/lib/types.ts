@@ -76,23 +76,6 @@ export interface DocumentAttachment {
   createdAt: number
 }
 
-/** Reasoning-Trace RT2/RT3 — one row per (message, stage) for the per-stage
- *  token + duration audit surface. Multi-agent turns produce planner + coder
- *  rows on the coder message id and a reviewer row on the reviewer message id.
- *  Single-agent turns produce one row with stage='single'. */
-export type StageKey = 'planner' | 'coder' | 'reviewer' | 'single'
-
-export interface StageMetric {
-  id: string
-  messageId: string
-  stage: StageKey
-  model: string | null
-  promptTokens: number | null
-  completionTokens: number | null
-  durationMs: number | null
-  createdAt: number
-}
-
 export type ConversationKind = 'local' | 'cloud' | 'worktree'
 export type SeedSourceKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
 export type ForkWorkspaceMode = 'inherit' | 'current' | 'none'
@@ -895,6 +878,67 @@ export interface EventTimelineFilter {
   correlationId?: string
   automationId?: string
   limit?: number
+}
+
+// Read-only after-action report for one conversation. Built main-side from
+// messages, tool_calls, and the append-only event spine.
+export type AfterActionCauseSeverity = 'info' | 'warning' | 'error'
+
+export interface AfterActionCause {
+  severity: AfterActionCauseSeverity
+  title: string
+  detail: string
+}
+
+export interface AfterActionTimelineItem {
+  id: string
+  at: number
+  type: string
+  severity: AfterActionCauseSeverity
+  summary: string
+  correlationId?: string
+}
+
+export interface AfterActionToolItem {
+  id: string
+  name: string
+  status: string
+  startedAt: number
+  durationMs?: number
+  argsPreview: string
+  resultPreview?: string
+  errorPreview?: string
+}
+
+export interface AfterActionReport {
+  conversationId: string
+  title: string
+  model: string
+  generatedAt: number
+  createdAt: number
+  updatedAt: number
+  counts: {
+    messages: number
+    userPrompts: number
+    assistantTurns: number
+    emptyAssistantTurns: number
+    toolRequestTurns: number
+    toolResults: number
+    events: number
+    toolCalls: number
+    toolErrors: number
+    toolDenied: number
+    chatErrors: number
+    modelRequestsStarted: number
+    modelRequestsCompleted: number
+    modelRequestsFailed: number
+    approvals: number
+  }
+  latestUserPrompt?: string
+  latestAssistantText?: string
+  causes: AfterActionCause[]
+  timeline: AfterActionTimelineItem[]
+  recentTools: AfterActionToolItem[]
 }
 
 // ──────────────────── RAG (Local Retrieval) ────────────────────

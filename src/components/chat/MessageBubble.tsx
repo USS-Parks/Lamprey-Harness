@@ -8,7 +8,6 @@ import { ReasoningBlock } from './ReasoningBlock'
 import { MessageActions } from './MessageActions'
 import { WakeupPill } from './WakeupPill'
 import { DocumentCardRow } from './DocumentCardRow'
-import { StageTokenChips } from './StageTokenChips'
 import { ForkDialog } from './ForkDialog'
 import { PinDialog } from './PinDialog'
 import { SeedContextChip, parseSeedContext } from './SeedContextChip'
@@ -126,7 +125,6 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
             <MarkdownRenderer content={body} sourceMessageId={message.id} />
-            <StageTokenChips messageId={message.id} />
             {/* R7 — "Show pipeline trace ▾" toggle. Reveals the attached
                 Planner row (stage='planner', hidden in the main thread per
                 Invariant §2.9) as an inline collapsed panel with its own

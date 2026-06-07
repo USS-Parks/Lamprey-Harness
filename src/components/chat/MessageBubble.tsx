@@ -10,6 +10,7 @@ import { WakeupPill } from './WakeupPill'
 import { DocumentCardRow } from './DocumentCardRow'
 import { StageTokenChips } from './StageTokenChips'
 import { ForkDialog } from './ForkDialog'
+import { PinDialog } from './PinDialog'
 import { SeedContextChip, parseSeedContext } from './SeedContextChip'
 import { useChatStore } from '@/stores/chat-store'
 
@@ -44,6 +45,9 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
   const forkFromMessage = useChatStore((s) => s.forkFromMessage)
   const [saving, setSaving] = useState(false)
   const [forkOpen, setForkOpen] = useState(false)
+  // PS21 — pin-as-memory dialog state. Sits next to the Fork dialog so the
+  // adjacent MessageActions button isn't a "coming soon" stub anymore.
+  const [pinOpen, setPinOpen] = useState(false)
   // R7 — collapsed by default. Click "Show pipeline trace ▾" to expand
   // the inline panel showing the attached Planner row's reasoning + plan.
   const [traceOpen, setTraceOpen] = useState(false)
@@ -205,12 +209,41 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
       )}
       {!isUser && (
         <>
-          <MessageActions content={body || message.content} onFork={() => setForkOpen(true)} />
+          <MessageActions
+            content={body || message.content}
+            onFork={() => setForkOpen(true)}
+            onPin={() => setPinOpen(true)}
+          />
           <ForkDialog
             open={forkOpen}
             onClose={() => setForkOpen(false)}
             onConfirm={async (opts) => {
               await forkFromMessage(message.id, opts)
+            }}
+          />
+          <PinDialog
+            open={pinOpen}
+            onClose={() => setPinOpen(false)}
+            onConfirm={async ({ title, summary }) => {
+              // PS21 — invoke the existing chapters store via the IPC
+              // bridge. emitChatEvent('chat:chapter-marked') fires
+              // automatically from the main-process handler so any open
+              // chapter sidebar refreshes without polling.
+              if (!window.api?.session?.markChapter) {
+                toast.error('Chapters IPC unavailable')
+                return
+              }
+              const result = await window.api.session.markChapter({
+                conversationId: message.conversationId,
+                title,
+                summary,
+                anchorMessageId: message.id
+              })
+              if (result?.success) {
+                toast.success(`Pinned chapter: ${title}`)
+              } else {
+                toast.error(result?.error ?? 'Pin failed')
+              }
             }}
           />
         </>

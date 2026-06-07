@@ -33,6 +33,7 @@ import { useShellSignals } from '@/hooks/useShellSignals'
 import { useMediaQuery, NARROW_VIEWPORT_QUERY } from '@/hooks/useMediaQuery'
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { SecurityBanner } from '@/components/ui/SecurityBanner'
+import { IntegrityBanner } from '@/components/persistence/IntegrityBanner'
 import { AsyncEventToast } from '@/components/chat/AsyncEventToast'
 import { StatusLine } from '@/components/layout/StatusLine'
 import { AskUserModal } from '@/components/chat/AskUserModal'
@@ -415,6 +416,7 @@ function App(): React.ReactElement {
         <Sidebar />
 
         <div ref={chatWorkspaceRef} className="flex flex-1 flex-col">
+          <IntegrityBanner />
           <SecurityBanner />
           <UpdateBanner />
           <div className="flex flex-1 overflow-hidden bg-transparent p-2">

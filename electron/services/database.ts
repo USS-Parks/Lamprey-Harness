@@ -33,6 +33,17 @@ export function getDb(): Database.Database {
     // Future schema work (PS6/PS7/PS9/PS11) appends Migration entries to
     // the registry in `db-migrations.ts` instead of editing `initSchema`.
     runMigrations(db)
+    // PS4 — startup integrity check. Result is cached in module state +
+    // surfaced via runIntegrityCheck()'s last-result accessor; the IPC
+    // handler in electron/ipc/persistence.ts reads it so the renderer
+    // banner can show the latest verdict without re-running the (linear-
+    // time) scan on every render. A non-'ok' result here triggers the
+    // IntegrityBanner in the renderer.
+    try {
+      runIntegrityCheck(db)
+    } catch (err) {
+      console.warn('[db] startup integrity_check failed:', err)
+    }
   }
   return db
 }
@@ -912,6 +923,72 @@ export function withWriteRetry<T>(fn: () => T, opts: WriteRetryOpts = {}): T {
       attempt++
     }
   }
+}
+
+// PS4 — startup integrity check.
+//
+// `PRAGMA integrity_check` runs a full scan of the database (indexes,
+// row data, FK references) and returns either the string 'ok' or a
+// list of error rows describing the corruption. Cost on a healthy DB is
+// linear in size (a few hundred ms for tens of MB); cost on a corrupt
+// DB can be much higher. We run it at startup right after migrations
+// land, cache the result in module state, and expose it via
+// runIntegrityCheck() so PS10's Settings panel can re-run it on demand.
+export interface IntegrityCheckResult {
+  /** True iff PRAGMA integrity_check returned exactly 'ok'. */
+  ok: boolean
+  /** Raw rows from the pragma (joined by newline for display). */
+  result: string
+  /** When this check ran. */
+  ranAt: number
+  /** Wall-clock duration. */
+  durationMs: number
+}
+
+let lastIntegrityResult: IntegrityCheckResult | null = null
+
+export function runIntegrityCheck(
+  database?: Database.Database
+): IntegrityCheckResult {
+  const target = database ?? db
+  if (!target) {
+    return {
+      ok: false,
+      result: 'no database handle available',
+      ranAt: Date.now(),
+      durationMs: 0
+    }
+  }
+  const startedAt = performance.now()
+  let result: IntegrityCheckResult
+  try {
+    const rows = target.pragma('integrity_check') as Array<{
+      integrity_check: string
+    }>
+    const lines = rows
+      .map((r) => r?.integrity_check ?? '')
+      .filter((s) => s.length > 0)
+    const ok = lines.length === 1 && lines[0] === 'ok'
+    result = {
+      ok,
+      result: lines.join('\n'),
+      ranAt: Date.now(),
+      durationMs: Math.round(performance.now() - startedAt)
+    }
+  } catch (err: any) {
+    result = {
+      ok: false,
+      result: `integrity_check threw: ${err?.message ?? String(err)}`,
+      ranAt: Date.now(),
+      durationMs: Math.round(performance.now() - startedAt)
+    }
+  }
+  lastIntegrityResult = result
+  return result
+}
+
+export function getLastIntegrityResult(): IntegrityCheckResult | null {
+  return lastIntegrityResult
 }
 
 /**

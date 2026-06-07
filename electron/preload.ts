@@ -336,6 +336,17 @@ const api = {
     }) => ipcRenderer.invoke('tools:respondToApproval', response)
   },
 
+  persistence: {
+    // PS4–PS10 — read-write surface for the persistence floor.
+    getStatus: () => ipcRenderer.invoke('persistence:getStatus'),
+    runIntegrityCheck: () => ipcRenderer.invoke('persistence:runIntegrityCheck'),
+    forceCheckpoint: () => ipcRenderer.invoke('persistence:forceCheckpoint'),
+    createBackup: () => ipcRenderer.invoke('persistence:createBackup'),
+    listBackups: () => ipcRenderer.invoke('persistence:listBackups'),
+    restoreFromBackup: (backupPath: string) =>
+      ipcRenderer.invoke('persistence:restoreFromBackup', backupPath)
+  },
+
   permissions: {
     listGlobalPolicies: () => ipcRenderer.invoke('permissions:listGlobalPolicies'),
     setGlobalPolicy: (toolId: string, decision: 'allow' | 'deny' | null) =>

@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import BetterSqlite3 from 'better-sqlite3'
-import { mkdtempSync, rmSync, existsSync, statSync, writeFileSync, utimesSync } from 'fs'
+import { mkdirSync, mkdtempSync, rmSync, existsSync, statSync, writeFileSync, utimesSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
+let appPathForTest = '.'
+
 vi.mock('electron', () => ({
   app: {
-    getPath: () => {
-      throw new Error('electron app not available in test environment')
-    }
+    getPath: () => appPathForTest
   }
 }))
 
@@ -16,7 +16,8 @@ import {
   createBackup,
   listBackups,
   pruneOldBackups,
-  restoreFromBackup
+  restoreFromBackup,
+  startBackupRunner
 } from './backup-runner'
 
 const HAS_NATIVE_SQLITE: boolean = (() => {
@@ -36,6 +37,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'lamprey-ps5-'))
+    appPathForTest = tmpDir
     dbPath = join(tmpDir, 'lamprey.db')
     backupDir = join(tmpDir, 'backups')
 
@@ -78,7 +80,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
     // Stamp two files manually with distinct mtimes.
     const path1 = join(backupDir, 'lamprey-2026-01-01.db')
     const path2 = join(backupDir, 'lamprey-2026-06-01.db')
-    require('fs').mkdirSync(backupDir, { recursive: true })
+    mkdirSync(backupDir, { recursive: true })
     writeFileSync(path1, 'fake1')
     writeFileSync(path2, 'fake2')
     // Set mtimes deliberately.
@@ -95,7 +97,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
   })
 
   it('listBackups skips files that do not match the naming pattern', () => {
-    require('fs').mkdirSync(backupDir, { recursive: true })
+    mkdirSync(backupDir, { recursive: true })
     writeFileSync(join(backupDir, 'lamprey-2026-06-01.db'), 'ok')
     writeFileSync(join(backupDir, 'random.db'), 'no')
     writeFileSync(join(backupDir, 'lamprey-2026-06-01.db.bak'), 'no')
@@ -104,7 +106,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
   })
 
   it('pruneOldBackups deletes files older than retentionDays', () => {
-    require('fs').mkdirSync(backupDir, { recursive: true })
+    mkdirSync(backupDir, { recursive: true })
     const old = join(backupDir, 'lamprey-2020-01-01.db')
     const recent = join(backupDir, 'lamprey-2026-06-01.db')
     writeFileSync(old, 'old')
@@ -148,5 +150,35 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
     await expect(
       restoreFromBackup(dbPath, join(backupDir, 'lamprey-2026-06-01.db'))
     ).rejects.toThrowError(/backup file not found/)
+  })
+})
+
+describe('backup-runner timer lifecycle', () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'lamprey-ps5-timer-'))
+    appPathForTest = tmpDir
+  })
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('stop cancels the delayed first periodic backup tick', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const stop = startBackupRunner({ intervalMs: 60_000 })
+      stop()
+      await vi.advanceTimersByTimeAsync(30_001)
+      expect(warn).not.toHaveBeenCalledWith(
+        '[backup-runner] periodic backup failed:',
+        expect.anything()
+      )
+    } finally {
+      warn.mockRestore()
+      vi.useRealTimers()
+    }
   })
 })

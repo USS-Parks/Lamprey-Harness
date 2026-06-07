@@ -6,6 +6,9 @@ import {
   getLastCheckpointResult,
   runIntegrityCheck,
   getLastIntegrityResult,
+  closeDb,
+  isPersistenceReadOnlyMode,
+  setPersistenceReadOnlyMode,
   type CheckpointResult,
   type IntegrityCheckResult
 } from '../services/database'
@@ -38,6 +41,7 @@ export interface PersistenceStatus {
   dbBytes: number | null
   walBytes: number | null
   shmBytes: number | null
+  readOnlyMode: boolean
   lastCheckpoint: CheckpointResult | null
   lastIntegrity: IntegrityCheckResult | null
   backupDir: string
@@ -62,6 +66,7 @@ function getStatus(): PersistenceStatus {
     dbBytes: safeStatBytes(dbPath),
     walBytes: safeStatBytes(`${dbPath}-wal`),
     shmBytes: safeStatBytes(`${dbPath}-shm`),
+    readOnlyMode: isPersistenceReadOnlyMode(),
     lastCheckpoint: getLastCheckpointResult(),
     lastIntegrity: getLastIntegrityResult(),
     backupDir,
@@ -123,6 +128,8 @@ export function registerPersistenceHandlers(): void {
     }
     try {
       const dbPath = join(app.getPath('userData'), 'lamprey.db')
+      closeDb({ checkpoint: false })
+      setPersistenceReadOnlyMode(false)
       const info = await restoreFromBackup(dbPath, backupPath)
       return { success: true, data: info }
     } catch (err: any) {
@@ -144,6 +151,8 @@ export function registerPersistenceHandlers(): void {
       return { success: false, error: 'passphrase must be a non-empty string' }
     }
     try {
+      closeDb()
+      setPersistenceReadOnlyMode(false)
       const result = enableEncryption(passphrase)
       return { success: true, data: result }
     } catch (err: any) {
@@ -156,6 +165,8 @@ export function registerPersistenceHandlers(): void {
       return { success: false, error: 'passphrase must be a non-empty string' }
     }
     try {
+      closeDb()
+      setPersistenceReadOnlyMode(false)
       const result = disableEncryption(passphrase)
       return { success: true, data: result }
     } catch (err: any) {
@@ -170,6 +181,8 @@ export function registerPersistenceHandlers(): void {
         return { success: false, error: 'both passphrases must be strings' }
       }
       try {
+        closeDb()
+        setPersistenceReadOnlyMode(false)
         changePassphrase(oldPassphrase, newPassphrase)
         return { success: true, data: null }
       } catch (err: any) {
@@ -177,4 +190,13 @@ export function registerPersistenceHandlers(): void {
       }
     }
   )
+
+  ipcMain.handle('persistence:setReadOnlyMode', (_event, enabled: unknown) => {
+    try {
+      setPersistenceReadOnlyMode(enabled === true)
+      return { success: true, data: { readOnlyMode: isPersistenceReadOnlyMode() } }
+    } catch (err: any) {
+      return { success: false, error: err?.message ?? String(err) }
+    }
+  })
 }

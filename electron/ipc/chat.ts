@@ -17,7 +17,7 @@ import {
   type StoredDocument
 } from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
-import { createChapter } from '../services/chapters-store'
+import { buildChaptersBlock, createChapter } from '../services/chapters-store'
 import {
   compressOldestMessages,
   getEffectiveMessages
@@ -426,6 +426,7 @@ export function registerChatHandlers(): void {
       const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
       const activeWorkspace = getActiveWorkspace()
       const agentsMd = readAgentsMd(activeWorkspace)
+      const chaptersBlock = buildChaptersBlock(conversationId)
       const systemPrompt = buildSystemPrompt(
         skillContents,
         memoryBlock,
@@ -437,7 +438,8 @@ export function registerChatHandlers(): void {
         // shapes match pre-Prompt-14.
         agentic.mode ? 'coding' : undefined,
         memoryIndexBlock,
-        taskNotificationsBlock
+        taskNotificationsBlock,
+        chaptersBlock
       )
 
       // Tools come from the unified registry — natives (memory_add today) plus
@@ -494,7 +496,8 @@ export function registerChatHandlers(): void {
           coderRoster.coder,
           'coding',
           memoryIndexBlock,
-          taskNotificationsBlock
+          taskNotificationsBlock,
+          chaptersBlock
         )
         const priorWithoutLatestUser = apiMessages.filter(
           (m, idx) => idx !== 0 // drop the system entry; pipeline owns it

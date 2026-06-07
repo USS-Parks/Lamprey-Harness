@@ -1,11 +1,20 @@
 import { ipcMain } from 'electron'
-import { randomUUID } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import * as store from '../services/conversation-store'
 import { chatOnce } from '../services/providers/registry'
 import { listStageMetrics } from '../services/stage-metrics-store'
 import { getActiveWorkspace } from '../services/workspace-state'
-import { copyAttachments } from '../services/rag/store'
+import { ensureConversationCollection } from '../services/conversation-rag'
+import {
+  addAttachment,
+  copyAttachments,
+  insertChunks,
+  insertDocument,
+  updateDocument
+} from '../services/rag/store'
+import { chunk as chunkText } from '../services/rag/chunker'
 import { readSettings } from '../services/settings-helper'
+import { recordEvent } from '../services/event-log'
 
 type SeedKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
 type WorkspaceMode = 'inherit' | 'current' | 'none'
@@ -104,19 +113,157 @@ function seedBudget(): number {
   return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : 8192
 }
 
-function seedTurnBody(params: ForkParams, content: string): { body: string; truncated: boolean } {
-  const limit = seedBudget()
-  if (content.length <= limit) {
-    return { body: buildSeedTurn(params, content), truncated: false }
+interface SeedTurnResult {
+  body: string
+  truncated: boolean
+  seedBytes: number
+  attachedDocumentId?: string
+  threshold: number
+}
+
+function attachSeedAsRagDocument(
+  conversationId: string,
+  params: ForkParams,
+  content: string
+): { documentId: string; collectionId: string; chunkCount: number } {
+  const collection = ensureConversationCollection(conversationId)
+  addAttachment({ conversationId, collectionId: collection.id })
+  const bytes = Buffer.byteLength(content, 'utf8')
+  const displayName = params.sourceMessageId
+    ? `Seed from message ${params.sourceMessageId}`
+    : `Seed from conversation ${params.sourceConversationId}`
+  const doc = insertDocument({
+    collectionId: collection.id,
+    sourceKind: 'paste',
+    displayName,
+    mime: 'text/plain',
+    bytes,
+    hashSha256: createHash('sha256').update(content).digest('hex'),
+    status: 'chunking'
+  })
+  const chunks = chunkText(
+    { text: content, sourceKind: 'paste', mime: 'text/plain', extension: '.txt' },
+    { chunkSize: collection.chunkSize, chunkOverlap: collection.chunkOverlap }
+  )
+  insertChunks(
+    chunks.map((c) => ({
+      documentId: doc.id,
+      collectionId: collection.id,
+      chunkIndex: c.index,
+      startOffset: c.startOffset,
+      endOffset: c.endOffset,
+      text: c.text,
+      headingPath: c.headingPath,
+      page: c.page,
+      lineStart: c.lineStart,
+      lineEnd: c.lineEnd
+    }))
+  )
+  updateDocument(doc.id, {
+    status: 'ready',
+    chunkCount: chunks.length,
+    ingestedAt: Date.now(),
+    statusDetail: chunks.length === 0 ? 'no extractable content' : null
+  })
+  return { documentId: doc.id, collectionId: collection.id, chunkCount: chunks.length }
+}
+
+function seedTurnBody(
+  conversationId: string,
+  params: ForkParams,
+  content: string
+): SeedTurnResult {
+  const threshold = seedBudget()
+  const seedBytes = Buffer.byteLength(content, 'utf8')
+  if (content.length <= threshold) {
+    return {
+      body: buildSeedTurn(params, content),
+      truncated: false,
+      seedBytes,
+      threshold
+    }
   }
   const estimatedTokens = Math.ceil(content.length / 4)
-  return {
-    truncated: true,
-    body: buildSeedTurn(
-      params,
-      `Seed attached as document (${estimatedTokens} estimated tokens, ${content.length} chars). ` +
-        `Inline seed budget is ${limit} chars.`
-    )
+  try {
+    const attached = attachSeedAsRagDocument(conversationId, params, content)
+    return {
+      truncated: true,
+      seedBytes,
+      threshold,
+      attachedDocumentId: attached.documentId,
+      body: buildSeedTurn(
+        params,
+        `Seed attached as document (${estimatedTokens} estimated tokens, ${content.length} chars). ` +
+          `Inline seed budget is ${threshold} chars.`
+      )
+    }
+  } catch (err) {
+    const preview = content.slice(0, threshold)
+    const message = err instanceof Error ? err.message : String(err)
+    return {
+      truncated: true,
+      seedBytes,
+      threshold,
+      body: buildSeedTurn(
+        params,
+        `${preview}\n\n[Seed truncated at ${threshold} chars because RAG attachment failed: ${message}]`
+      )
+    }
+  }
+}
+
+function emitConversationForked(params: ForkParams, args: {
+  conversationId: string
+  seedBytes: number
+  workspaceMode: WorkspaceMode
+  copiedAttachmentCount: number
+}): void {
+  try {
+    recordEvent({
+      type: 'conversation.forked',
+      actorKind: 'user',
+      conversationId: args.conversationId,
+      entityKind: 'conversation',
+      entityId: args.conversationId,
+      payload: {
+        sourceConversationId: params.sourceConversationId,
+        sourceMessageId: params.sourceMessageId,
+        seedKind: params.seedKind,
+        seedBytes: args.seedBytes,
+        workspaceMode: args.workspaceMode,
+        includeRagAttachments: params.includeRagAttachments !== false,
+        copiedAttachmentCount: args.copiedAttachmentCount
+      }
+    })
+  } catch (err) {
+    console.error('[conversation] conversation.forked event failed:', err)
+  }
+}
+
+function emitSeedEvent(
+  conversationId: string,
+  params: ForkParams,
+  seed: SeedTurnResult
+): void {
+  try {
+    recordEvent({
+      type: seed.truncated ? 'conversation.seed.truncated' : 'conversation.seed.attached',
+      actorKind: 'user',
+      conversationId,
+      entityKind: seed.attachedDocumentId ? 'rag-document' : 'conversation',
+      entityId: seed.attachedDocumentId ?? conversationId,
+      severity: seed.truncated ? 'warning' : 'info',
+      payload: {
+        conversationId,
+        seedKind: params.seedKind,
+        seedBytes: seed.seedBytes,
+        threshold: seed.truncated ? seed.threshold : undefined,
+        attachedDocumentId: seed.attachedDocumentId
+      },
+      redaction: 'metadata'
+    })
+  } catch (err) {
+    console.error('[conversation] seed event failed:', err)
   }
 }
 
@@ -306,21 +453,30 @@ export function registerConversationHandlers(): void {
               }
       })
 
-      if (params.includeRagAttachments) {
-        copyAttachments(params.sourceConversationId, next.id)
-      }
+      const copiedAttachmentCount = params.includeRagAttachments
+        ? copyAttachments(params.sourceConversationId, next.id)
+        : 0
 
+      let seedBytes = seedContent ? Buffer.byteLength(seedContent, 'utf8') : 0
       if (seedContent && params.seedKind !== 'none') {
-        const seedTurn = seedTurnBody(params, seedContent)
+        const seedTurn = seedTurnBody(next.id, params, seedContent)
+        seedBytes = seedTurn.seedBytes
         store.saveMessage({
           id: randomUUID(),
           conversationId: next.id,
           role: 'user',
           content: seedTurn.body
         })
+        emitSeedEvent(next.id, params, seedTurn)
       }
       const title = params.titleOverride ?? (src.title ? `${src.title} (fork)` : null)
       if (title) store.updateConversationTitle(next.id, title)
+      emitConversationForked(params, {
+        conversationId: next.id,
+        seedBytes,
+        workspaceMode: params.workspaceMode ?? 'current',
+        copiedAttachmentCount
+      })
       return { success: true, data: { conversationId: next.id } }
     } catch (err: any) {
       return { success: false, error: err.message }

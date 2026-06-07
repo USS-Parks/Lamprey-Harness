@@ -71,6 +71,15 @@ export function IntegrityBanner(): React.ReactElement | null {
   const lastIntegrity = status.lastIntegrity
   const latestBackup = status.latestBackup
 
+  const handleReadOnly = async (): Promise<void> => {
+    const result = await window.api.persistence.setReadOnlyMode(true)
+    if (!result.success) {
+      setError(result.error ?? 'Could not enter read-only mode.')
+      return
+    }
+    setReadOnlyMode(true)
+  }
+
   const handleRestore = async (): Promise<void> => {
     if (!latestBackup) {
       setError(
@@ -132,7 +141,7 @@ export function IntegrityBanner(): React.ReactElement | null {
           {restoring ? 'Restoring…' : 'Restore from backup'}
         </button>
         <button
-          onClick={() => setReadOnlyMode(true)}
+          onClick={handleReadOnly}
           className="rounded border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
         >
           Continue read-only

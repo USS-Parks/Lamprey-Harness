@@ -5,14 +5,43 @@ import { loadSqliteVec } from './rag/vec-loader'
 import { runMigrations } from './db-migrations'
 import { initLegacySchema } from './schema-init'
 import { recordEvent } from './event-log'
+import {
+  isDatabaseEncrypted,
+  openEncryptedDatabase,
+  readStoredPassphrase
+} from './db-encryption'
 
 let db: Database.Database | null = null
+let persistenceReadOnlyMode = false
+
+function openDatabaseHandle(dbPath: string): Database.Database {
+  if (!isDatabaseEncrypted()) {
+    return new Database(
+      dbPath,
+      persistenceReadOnlyMode ? { readonly: true, fileMustExist: true } : undefined
+    )
+  }
+  const passphrase = readStoredPassphrase()
+  if (!passphrase) {
+    throw new Error('database is encrypted but no stored passphrase is available')
+  }
+  const handle = openEncryptedDatabase(passphrase, dbPath, {
+    readonly: persistenceReadOnlyMode,
+    fileMustExist: true
+  })
+  if (!handle) {
+    throw new Error('database is encrypted but SQLCipher binding is unavailable')
+  }
+  return handle as unknown as Database.Database
+}
 
 export function getDb(): Database.Database {
   if (!db) {
     const dbPath = join(app.getPath('userData'), 'lamprey.db')
-    db = new Database(dbPath)
-    db.pragma('journal_mode = WAL')
+    db = openDatabaseHandle(dbPath)
+    if (!persistenceReadOnlyMode) {
+      db.pragma('journal_mode = WAL')
+    }
     db.pragma('foreign_keys = ON')
     // PS3 — back off on SQLITE_BUSY for up to 5 seconds before giving up.
     // The single-instance lock (HX1) covers most GUI-vs-GUI contention,
@@ -34,13 +63,17 @@ export function getDb(): Database.Database {
     // dispatched into named per-domain segments. Order is preserved by
     // construction; future schema work lands as a PS1 Migration entry in
     // `db-migrations.ts`, not as a new segment here.
-    initLegacySchema(db)
+    if (!persistenceReadOnlyMode) {
+      initLegacySchema(db)
+    }
     // PS1 — versioned migration ledger gated by PRAGMA user_version. Runs
     // after the legacy schema bootstrap so the baseline tables exist for
     // the v1 stamp.
     // Future schema work (PS6/PS7/PS9/PS11) appends Migration entries to
     // the registry in `db-migrations.ts` instead of editing `initSchema`.
-    runMigrations(db)
+    if (!persistenceReadOnlyMode) {
+      runMigrations(db)
+    }
     // PS4 — startup integrity check. Result is cached in module state +
     // surfaced via runIntegrityCheck()'s last-result accessor; the IPC
     // handler in electron/ipc/persistence.ts reads it so the renderer
@@ -330,6 +363,16 @@ export function getLastIntegrityResult(): IntegrityCheckResult | null {
   return lastIntegrityResult
 }
 
+export function setPersistenceReadOnlyMode(enabled: boolean): void {
+  if (persistenceReadOnlyMode === enabled) return
+  closeDb({ checkpoint: false })
+  persistenceReadOnlyMode = enabled
+}
+
+export function isPersistenceReadOnlyMode(): boolean {
+  return persistenceReadOnlyMode
+}
+
 /**
  * PS8 — run `fn` inside a single SQLite transaction on the cached DB
  * connection. better-sqlite3 transactions are synchronous; nothing
@@ -363,16 +406,18 @@ export function transactional<T>(fn: () => T): T {
   return result
 }
 
-export function closeDb(): void {
+export function closeDb(opts?: { checkpoint?: boolean }): void {
   if (db) {
     // PS2 — TRUNCATE the WAL before closing so the next launch starts
     // with a small WAL footprint. On an ungraceful exit we lose this,
     // and the WAL recovery on next open handles that case correctly —
     // the periodic checkpoint exists precisely to bound the worst case.
-    try {
-      checkpoint(db)
-    } catch (err) {
-      console.warn('[db] checkpoint on close failed:', err)
+    if (opts?.checkpoint !== false && !persistenceReadOnlyMode) {
+      try {
+        checkpoint(db)
+      } catch (err) {
+        console.warn('[db] checkpoint on close failed:', err)
+      }
     }
     // Stop the periodic timer if it was running — closing the DB while
     // the interval is live would have the next tick fail.

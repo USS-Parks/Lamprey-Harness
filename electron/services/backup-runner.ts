@@ -231,7 +231,8 @@ export async function restoreFromBackup(
       renameSync(dbPath, corruptPath)
     } catch (err: any) {
       throw new Error(
-        `restoreFromBackup: failed to move current DB aside: ${err?.message ?? err}`
+        `restoreFromBackup: failed to move current DB aside: ${err?.message ?? err}`,
+        { cause: err }
       )
     }
     // Also move the WAL + SHM aside so SQLite doesn't try to replay
@@ -289,6 +290,7 @@ export async function restoreFromBackup(
 // and on a 24h interval. Idempotent: same-day backup overwrites; second
 // startup call rebinds the timer.
 let backupTimer: NodeJS.Timeout | null = null
+let initialBackupTimer: NodeJS.Timeout | null = null
 
 export function startBackupRunner(opts?: {
   intervalMs?: number
@@ -296,7 +298,12 @@ export function startBackupRunner(opts?: {
 }): () => void {
   if (backupTimer) {
     const live = backupTimer
+    const initial = initialBackupTimer
     return () => {
+      if (initialBackupTimer === initial && initialBackupTimer) {
+        clearTimeout(initialBackupTimer)
+        initialBackupTimer = null
+      }
       if (backupTimer === live) {
         clearInterval(live)
         backupTimer = null
@@ -318,10 +325,18 @@ export function startBackupRunner(opts?: {
   }
   // Fire the first tick after a 30s delay so startup isn't slowed and
   // the first backup happens once the app is settled.
-  setTimeout(tick, 30_000)
+  initialBackupTimer = setTimeout(() => {
+    initialBackupTimer = null
+    tick()
+  }, 30_000)
+  initialBackupTimer.unref?.()
   backupTimer = setInterval(tick, intervalMs)
   backupTimer.unref?.()
   return () => {
+    if (initialBackupTimer) {
+      clearTimeout(initialBackupTimer)
+      initialBackupTimer = null
+    }
     if (backupTimer) {
       clearInterval(backupTimer)
       backupTimer = null

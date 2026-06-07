@@ -155,6 +155,25 @@ describe('buildSystemPrompt — default base', () => {
     expect(notifyIdx).toBeGreaterThan(memoryIndexIdx)
     expect(skillIdx).toBeGreaterThan(notifyIdx)
   })
+
+  it('places chapters after task notifications and before skills', () => {
+    const out = buildSystemPrompt(
+      [{ name: 'test-skill', content: 'skill body' }],
+      '<memory>fact</memory>',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '<memory_index>\n- [a](a.md) - A\n</memory_index>',
+      '<task-notifications>\n- done\n</task-notifications>',
+      '<chapters>\n- Schema migration\n</chapters>'
+    )
+    const notifyIdx = out.indexOf('<task-notifications>')
+    const chaptersIdx = out.indexOf('<chapters>')
+    const skillIdx = out.indexOf('<skill name="test-skill">')
+    expect(chaptersIdx).toBeGreaterThan(notifyIdx)
+    expect(skillIdx).toBeGreaterThan(chaptersIdx)
+  })
 })
 
 describe('buildSystemPrompt — override path', () => {

@@ -84,6 +84,25 @@ export function listChapters(conversationId: string): Chapter[] {
   return rows.map(fromRow)
 }
 
+function escapeBlockText(value: string): string {
+  return value.replace(/<\/chapters>/gi, '< /chapters>')
+}
+
+export function buildChaptersBlock(conversationId: string, limit = 24): string {
+  const chapters = listChapters(conversationId).slice(-limit)
+  if (chapters.length === 0) return ''
+  const lines = ['<chapters>']
+  for (const chapter of chapters) {
+    lines.push(
+      `- ${escapeBlockText(chapter.title)}${
+        chapter.summary ? `: ${escapeBlockText(chapter.summary)}` : ''
+      } (anchor: ${chapter.anchorMessageId})`
+    )
+  }
+  lines.push('</chapters>')
+  return lines.join('\n')
+}
+
 export function getChapter(id: string): Chapter | undefined {
   const db = getDb()
   const row = db.prepare('SELECT * FROM chapters WHERE id = ?').get(id) as

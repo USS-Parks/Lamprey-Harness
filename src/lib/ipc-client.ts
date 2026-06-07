@@ -16,7 +16,8 @@ import type {
   ModelInfo,
   AppSettings,
   ArtifactBounds,
-  ArtifactType
+  ArtifactType,
+  ForkParams
 } from './types'
 
 const api = window.api
@@ -42,7 +43,11 @@ export const conversation = {
   delete: (id: string): Promise<IpcResponse<void>> => api.conversation.delete(id),
   updateTitle: (id: string, title: string): Promise<IpcResponse<void>> =>
     api.conversation.updateTitle(id, title),
-  getMessages: (id: string): Promise<IpcResponse<Message[]>> => api.conversation.getMessages(id)
+  getMessages: (id: string): Promise<IpcResponse<Message[]>> => api.conversation.getMessages(id),
+  fork: (input: ForkParams | string): Promise<IpcResponse<{ conversationId: string }>> =>
+    api.conversation.fork(input),
+  lineage: (conversationId: string): Promise<IpcResponse<Conversation[]>> =>
+    api.conversation.lineage(conversationId)
 }
 
 export const settings = {

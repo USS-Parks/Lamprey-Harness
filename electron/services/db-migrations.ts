@@ -103,6 +103,35 @@ export const MIGRATIONS: Migration[] = [
         );
       `)
     }
+  },
+  {
+    version: 11,
+    description: 'PS11 fork lineage and seed metadata columns',
+    up(db) {
+      // Idempotent column adds via local safeAddColumn helper —
+      // db-migrations.ts owns its own safeAddColumn since schema-init.ts
+      // (PS6's owner) is the legacy bootstrap and migrations are the
+      // canonical path for new columns going forward.
+      const safeAddColumn = (table: string, ddl: string): void => {
+        try {
+          db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl};`)
+        } catch (err: any) {
+          const msg = String(err?.message ?? err)
+          if (!/duplicate column name/i.test(msg)) throw err
+        }
+      }
+      safeAddColumn('conversations', 'forked_from_id TEXT')
+      safeAddColumn('conversations', 'forked_from_message_id TEXT')
+      safeAddColumn('conversations', 'seed_blob TEXT')
+      safeAddColumn(
+        'conversations',
+        "seed_source_kind TEXT NOT NULL DEFAULT 'none' CHECK(seed_source_kind IN ('none','message','block','transcript-range','custom'))"
+      )
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_conversations_forked_from
+          ON conversations(forked_from_id, created_at DESC);
+      `)
+    }
   }
 ]
 
@@ -199,4 +228,13 @@ function writeUserVersion(db: Database, value: number): void {
     throw new Error(`db-migrations: refusing to write invalid user_version ${value}`)
   }
   db.pragma(`user_version = ${value}`)
+}
+
+function safeAddColumn(db: Database, table: string, ddl: string): void {
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl};`)
+  } catch (err: any) {
+    const msg = String(err?.message ?? err)
+    if (!/duplicate column name/i.test(msg)) throw err
+  }
 }

@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Mechanical Proof Harness - Prompt M8] Failure-mode reviewer contract - 2026-06-07
+
+**Files changed:** `electron/services/reviewer-output-validator.ts`, `electron/services/reviewer-output-validator.test.ts`, `electron/services/agent-pipeline.ts`, `electron/services/agent-pipeline.test.ts`, `electron/services/system-prompt-builder.ts`, `electron/services/system-prompt-builder.test.ts`, `skills/review/SKILL.md`, `resources/skills/review/SKILL.md`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest `electron/services/reviewer-output-validator.test.ts electron/services/agent-pipeline.test.ts electron/services/system-prompt-builder.test.ts` OK
+- build/smoke/user-verification-needed: not applicable
+
+**Proof receipt:** not applicable
+**Notes:** Adds a reviewer output validator that rejects rubber-stamp reviews without checked failure modes and evidence references, accepts no-issue reviews when they name checked risks and evidence, and retries the Reviewer once with a correction prompt before marking the stage invalid. Reviewer prompts and review skills now require checked failure modes, consulted evidence, unchecked gaps, and a final `SHIP` or `CHANGES` verdict.
+
+**Commit:** _this commit_
+
 ## [Mechanical Proof Harness - Prompt M7] Independent reviewer evidence packet - 2026-06-07
 
 **Files changed:** `electron/services/review-evidence-packet.ts`, `electron/services/review-evidence-packet.test.ts`, `electron/services/agent-pipeline.ts`, `electron/services/agent-pipeline.test.ts`

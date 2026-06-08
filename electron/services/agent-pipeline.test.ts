@@ -71,6 +71,15 @@ const coder = KNOWN_MODELS[1] ?? KNOWN_MODELS[0]
 const reviewer = KNOWN_MODELS[2] ?? KNOWN_MODELS[0]
 const validRoster: AgentRoster = { planner, coder, reviewer }
 
+function validReviewText(verdict: 'SHIP' | 'CHANGES' = 'SHIP'): string {
+  return [
+    'Checked failure modes: stale proof, missing waiver persistence, and scope drift.',
+    'Evidence consulted: electron/services/agent-pipeline.ts:1 and receipt prf_1.',
+    'Unchecked gaps: none.',
+    verdict
+  ].join('\n')
+}
+
 interface StatusEntry {
   role: string
   state: 'running' | 'done' | 'error'
@@ -155,7 +164,7 @@ describe('runAgentPipeline — happy path', () => {
       if (calls.filter((c) => c === `sub:${modelId}`).length === 1 && modelId === planner) {
         return 'plan-text-output'
       }
-      return 'review-text-output'
+      return validReviewText()
     }
     const coderMessageBody = { content: 'coder reply body', model: coder }
     const coderRunner = vi.fn(async () => {
@@ -201,7 +210,7 @@ describe('runAgentPipeline — happy path', () => {
     expect(done[0].message).toBe(coderMessageBody)
     expect(done[1].message).toMatchObject({
       role: 'assistant',
-      content: 'review-text-output',
+      content: validReviewText(),
       model: reviewer
     })
     // The Planner output is captured on the planner:done status entry.
@@ -209,7 +218,7 @@ describe('runAgentPipeline — happy path', () => {
     expect(plannerDone?.output).toBe('plan-text-output')
     // The Reviewer output is on both reviewer:done AND persisted as a row.
     const reviewerDone = status.find((s) => s.role === 'reviewer' && s.state === 'done')
-    expect(reviewerDone?.output).toBe('review-text-output')
+    expect(reviewerDone?.output).toBe(validReviewText())
     // R4 + R5: pipeline now saves Planner + Reviewer rows; each carries
     // its own `stage` discriminator + reasoning (when the sub-agent runner
     // returned reasoning; here the runner returned plain strings so both
@@ -224,7 +233,7 @@ describe('runAgentPipeline — happy path', () => {
       },
       {
         role: 'assistant',
-        content: 'review-text-output',
+        content: validReviewText(),
         model: reviewer,
         stage: 'reviewer',
         reasoning: undefined
@@ -242,7 +251,7 @@ describe('runAgentPipeline — happy path', () => {
       if (modelId === reviewer) {
         const user = messages.find((m) => m.role === 'user')
         reviewerContexts.push(String(user?.content ?? ''))
-        return 'review-text-output'
+        return validReviewText()
       }
       return 'plan-text-output'
     }
@@ -288,6 +297,56 @@ describe('runAgentPipeline — happy path', () => {
     expect(reviewerContexts[0]).not.toContain('I fixed it')
   })
 
+  it('M8: retries a vague reviewer output once and saves the corrected review', async () => {
+    let reviewerCalls = 0
+    const subAgentRunner: SubAgentRunner = async (_messages, modelId) => {
+      if (modelId !== reviewer) return 'plan-text-output'
+      reviewerCalls += 1
+      if (reviewerCalls === 1) return 'Reviewed everything, looks good.\nSHIP'
+      return [
+        'Checked failure modes: stale proof and missing waiver event.',
+        'Evidence consulted: electron/services/change-contract-store.ts:10 and receipt prf_1.',
+        'Unchecked gaps: none.',
+        'SHIP'
+      ].join('\n')
+    }
+    const coderRunner = vi.fn(async () => ({ message: { content: 'coder reply' } }))
+    const { emitter, status } = makeEmitter()
+    const signal = new AbortController().signal
+
+    await runAgentPipeline({
+      conversationId: 'c1',
+      roster: validRoster,
+      userContent: 'fix proof UI',
+      systemPrompt: '<system>',
+      priorMessages: [],
+      tools: undefined,
+      workspacePath: '/tmp/proj',
+      signal,
+      subAgentRunner,
+      coderRunner,
+      emitter,
+      buildReviewEvidencePacket: async (input) => ({
+        kind: 'review_evidence_packet',
+        version: 1,
+        conversationId: input.conversationId,
+        workspacePath: input.workspacePath,
+        generatedAt: 1,
+        contract: null,
+        git: { changedFiles: [], diffSummary: '', snippets: [] },
+        proof: { receipts: [], failedCommands: [], skippedCommands: [], staleGreenWarnings: [] },
+        toolCalls: [],
+        omissions: []
+      })
+    })
+
+    expect(reviewerCalls).toBe(2)
+    const reviewerDone = status.find((s) => s.role === 'reviewer' && s.state === 'done')
+    expect(reviewerDone?.output).toContain('Checked failure modes')
+    const reviewerRow = recorded.savedMessages.find((m) => m.stage === 'reviewer')
+    expect(reviewerRow?.content).toContain('receipt prf_1')
+  })
+
   it('R4: persists Planner reasoning when the sub-agent returns the object form', async () => {
     const subAgentRunner: SubAgentRunner = async (_m, modelId) => {
       if (modelId === planner) {
@@ -296,7 +355,7 @@ describe('runAgentPipeline — happy path', () => {
           reasoning: 'I considered three approaches and picked the simplest'
         }
       }
-      return 'review-text-output'
+      return validReviewText()
     }
     const coderRunner = vi.fn(async () => ({ message: { content: 'coder reply' } }))
     const { emitter } = makeEmitter()
@@ -332,7 +391,7 @@ describe('runAgentPipeline — happy path', () => {
       if (modelId === planner) return 'plan-output'
       // Reviewer emits both body + native reasoning
       return {
-        output: 'PASS: looks correct',
+        output: validReviewText(),
         reasoning: "I checked the diff against the user's intent, no regressions"
       }
     }
@@ -356,7 +415,7 @@ describe('runAgentPipeline — happy path', () => {
 
     const reviewerRow = recorded.savedMessages.find((m) => m.stage === 'reviewer')
     expect(reviewerRow).toBeDefined()
-    expect(reviewerRow?.content).toBe('PASS: looks correct')
+    expect(reviewerRow?.content).toBe(validReviewText())
     expect(reviewerRow?.reasoning).toBe(
       "I checked the diff against the user's intent, no regressions"
     )
@@ -369,7 +428,7 @@ describe('runAgentPipeline — happy path', () => {
   it('R5: persists Reviewer reasoning from inline <think> blocks', async () => {
     const subAgentRunner: SubAgentRunner = async (_m, modelId) => {
       if (modelId === planner) return 'plan-output'
-      return '<think>I weighed the trade-offs</think>PASS: ship it'
+      return `<think>I weighed the trade-offs</think>${validReviewText()}`
     }
     const coderRunner = vi.fn(async () => ({ message: { content: 'coder reply' } }))
     const { emitter } = makeEmitter()
@@ -398,13 +457,13 @@ describe('runAgentPipeline — happy path', () => {
     // the body got through to the recorder.
     const reviewerRow = recorded.savedMessages.find((m) => m.stage === 'reviewer')
     expect(reviewerRow).toBeDefined()
-    expect(reviewerRow?.content).toBe('<think>I weighed the trade-offs</think>PASS: ship it')
+    expect(reviewerRow?.content).toBe(`<think>I weighed the trade-offs</think>${validReviewText()}`)
   })
 
   it('emits reviewer:running BEFORE the first chat:done so the renderer keeps the banner up', async () => {
     const eventLog: string[] = []
     const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
-      modelId === planner ? 'plan' : 'review'
+      modelId === planner ? 'plan' : validReviewText()
     const coderRunner = async () => ({ message: { content: 'coder' } })
     const emitter: PipelineEmitter = {
       status: (p) => eventLog.push(`status:${p.role}:${p.state}`),
@@ -467,7 +526,7 @@ describe('runAgentPipeline — happy path', () => {
   it('passes the planner output to the Coder as a <plan> block in the rewritten user message', async () => {
     let coderUserMessage: string | null = null
     const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
-      modelId === planner ? 'NUMBERED PLAN\n1. step A\n2. step B' : 'review'
+      modelId === planner ? 'NUMBERED PLAN\n1. step A\n2. step B' : validReviewText()
     const coderRunner = async (params: { messages: { role: string; content?: unknown }[] }) => {
       const lastUser = [...params.messages].reverse().find((m) => m.role === 'user')
       coderUserMessage = typeof lastUser?.content === 'string' ? lastUser.content : null
@@ -726,7 +785,8 @@ describe('runAgentPipeline — coexistence with multi_agent_run', () => {
   it('does not import or assume the multi_agent_run TOOL is registered (the pipeline is an independent caller of executeMultiAgentRun)', async () => {
     // Smoke: the pipeline body completes without consulting a tool
     // registry. If a future refactor changes that, this test breaks.
-    const subAgentRunner: SubAgentRunner = async () => 'output'
+    const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
+      modelId === planner ? 'output' : validReviewText()
     const coderRunner = async () => ({ message: { content: 'coder' } })
     const { emitter, done } = makeEmitter()
     await runAgentPipeline({
@@ -747,7 +807,8 @@ describe('runAgentPipeline — coexistence with multi_agent_run', () => {
 
   it('threads tools through to the Coder runner (so multi_agent_run remains callable mid-turn)', async () => {
     let seenTools: unknown = 'untouched'
-    const subAgentRunner: SubAgentRunner = async () => 'x'
+    const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
+      modelId === planner ? 'x' : validReviewText()
     const coderRunner = async (params: { tools: unknown }) => {
       seenTools = params.tools
       return { message: { content: 'coder' } }
@@ -779,7 +840,7 @@ describe('runAgentPipeline — per-stage wall-clock budgets (T3)', () => {
     __setStageBudgetsForTesting({ planner: 0, coder: 80, reviewer: 0 })
 
     const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
-      modelId === planner ? 'plan' : 'review'
+      modelId === planner ? 'plan' : validReviewText()
 
     // Coder runner that watches its passed signal: never resolves on its own,
     // throws an AbortError if the signal fires (so we can prove the budget
@@ -825,7 +886,7 @@ describe('runAgentPipeline — per-stage wall-clock budgets (T3)', () => {
     __setStageBudgetsForTesting({ planner: 0, coder: 5_000, reviewer: 0 })
 
     const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
-      modelId === planner ? 'plan' : 'review'
+      modelId === planner ? 'plan' : validReviewText()
 
     const coderRunner = async () => {
       // Returns immediately — budget should never trigger.
@@ -856,7 +917,7 @@ describe('runAgentPipeline — per-stage wall-clock budgets (T3)', () => {
     __setStageBudgetsForTesting({ planner: 0, coder: 0, reviewer: 0 })
 
     const subAgentRunner: SubAgentRunner = async (_m, modelId) =>
-      modelId === planner ? 'plan' : 'review'
+      modelId === planner ? 'plan' : validReviewText()
 
     let abortFired = false
     const coderRunner = async (params: { signal: AbortSignal }) => {
@@ -907,7 +968,7 @@ describe('runAgentPipeline — R9 reasoning trail end-to-end', () => {
       // inline emitters at the conversation-store layer (the recorder
       // sees the raw save input here).
       return {
-        output: 'PASS: ship it',
+        output: validReviewText(),
         reasoning: 'Reviewer found no regressions'
       }
     }
@@ -949,7 +1010,7 @@ describe('runAgentPipeline — R9 reasoning trail end-to-end', () => {
     expect(planner_row?.model).toBe(planner)
 
     expect(reviewer_row).toBeDefined()
-    expect(reviewer_row?.content).toBe('PASS: ship it')
+    expect(reviewer_row?.content).toBe(validReviewText())
     expect(reviewer_row?.reasoning).toBe('Reviewer found no regressions')
     expect(reviewer_row?.model).toBe(reviewer)
   })

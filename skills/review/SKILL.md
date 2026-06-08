@@ -13,8 +13,10 @@ Inspect the diff and nearby code before judging. Focus on correctness, security,
 
 Use `workspace_context` when repository state or likely checks are unknown. Use read-only searches freely. Do not edit files unless the user changes the request from review to fix.
 
-Output findings first, ordered by severity. For each finding, include severity, file/line, what can go wrong, and the smallest fix. If no issues are found, say that clearly and list any verification gap that remains.
+Before the verdict, list the failure modes or risks you checked and the evidence consulted for each one: files, diffs, receipts, contracts, tool metadata, or commands actually observed. Also name any unchecked gaps. If no issues are found, say that clearly without inventing one, but still show what you checked.
 
-End with one verdict line: `SHIP` when no blocking issues remain, or `LIST-OF-CHANGES` followed by the minimum required edits.
+Output findings first, ordered by severity. For each finding, include severity, file/line, what can go wrong, and the smallest fix.
+
+End with one verdict line: `SHIP` when no blocking issues remain, or `CHANGES` when fixes are required.
 
 Stop when the user has enough evidence to merge, revise, or ask for fixes.

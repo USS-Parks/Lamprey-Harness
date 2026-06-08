@@ -236,6 +236,58 @@ describe('runAgentPipeline — happy path', () => {
   // object form `{output, reasoning}` per R3) must land on the saved
   // Planner row's `reasoning` field so MessageBubble can render the
   // pill inside the "Show pipeline trace" toggle on the Coder bubble.
+  it('M7: sends an evidence packet to Reviewer without coder narrative', async () => {
+    const reviewerContexts: string[] = []
+    const subAgentRunner: SubAgentRunner = async (messages, modelId) => {
+      if (modelId === reviewer) {
+        const user = messages.find((m) => m.role === 'user')
+        reviewerContexts.push(String(user?.content ?? ''))
+        return 'review-text-output'
+      }
+      return 'plan-text-output'
+    }
+    const coderRunner = vi.fn(async () => ({
+      message: { content: 'CODER NARRATIVE: I fixed it, no need to inspect.' }
+    }))
+    const { emitter } = makeEmitter()
+    const signal = new AbortController().signal
+
+    await runAgentPipeline({
+      conversationId: 'c1',
+      correlationId: 'corr-1',
+      roster: validRoster,
+      userContent: 'fix proof UI',
+      systemPrompt: '<system>',
+      priorMessages: [],
+      tools: undefined,
+      workspacePath: '/tmp/proj',
+      signal,
+      subAgentRunner,
+      coderRunner,
+      emitter,
+      buildReviewEvidencePacket: async (input) => ({
+        kind: 'review_evidence_packet',
+        version: 1,
+        conversationId: input.conversationId,
+        correlationId: input.correlationId,
+        workspacePath: input.workspacePath,
+        generatedAt: 1,
+        userGoal: input.userGoal,
+        contract: null,
+        git: { changedFiles: [], diffSummary: '', snippets: [] },
+        proof: { receipts: [], failedCommands: [], skippedCommands: [], staleGreenWarnings: [] },
+        toolCalls: [],
+        omissions: []
+      })
+    })
+
+    expect(reviewerContexts).toHaveLength(1)
+    expect(reviewerContexts[0]).toContain('"kind":"review_evidence_packet"')
+    expect(reviewerContexts[0]).toContain('"userGoal":"fix proof UI"')
+    expect(reviewerContexts[0]).not.toContain('CODER NARRATIVE')
+    expect(reviewerContexts[0]).not.toContain('I fixed it')
+  })
+
   it('R4: persists Planner reasoning when the sub-agent returns the object form', async () => {
     const subAgentRunner: SubAgentRunner = async (_m, modelId) => {
       if (modelId === planner) {

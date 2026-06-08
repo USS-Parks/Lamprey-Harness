@@ -1,6 +1,7 @@
 import { getConversation, getMessages } from './conversation-store'
 import { listChangeContracts, type ChangeContract } from './change-contract-store'
 import { listTimeline, type EventRecord } from './event-log'
+import { listProofReceipts, type ProofReceiptRecord } from './proof-receipts'
 import { listToolCallsForConversation } from './tool-calls-store'
 
 type CauseSeverity = 'info' | 'warning' | 'error'
@@ -29,6 +30,18 @@ export interface AfterActionToolItem {
   argsPreview: string
   resultPreview?: string
   errorPreview?: string
+}
+
+export interface AfterActionProofReceiptItem {
+  id: string
+  kind: string
+  status: string
+  command: string
+  finishedAt: number
+  durationMs: number
+  exitCode?: number
+  contractId?: string
+  metrics: Record<string, unknown>
 }
 
 export interface AfterActionReport {
@@ -66,6 +79,10 @@ export interface AfterActionReport {
     gateFailed: number
     gateWaived: number
     latestFailureReason?: string
+    receipts: AfterActionProofReceiptItem[]
+    failedCommands: string[]
+    skippedCommands: string[]
+    reviewerCheckedModes: string[]
   }
 }
 
@@ -103,6 +120,33 @@ function payloadPreview(e: EventRecord): string {
 function summarizeEvent(e: EventRecord): string {
   const detail = payloadPreview(e)
   return detail ? `${e.type}: ${preview(detail, 180)}` : e.type
+}
+
+function proofReceiptItem(receipt: ProofReceiptRecord): AfterActionProofReceiptItem {
+  return {
+    id: receipt.id,
+    kind: receipt.kind,
+    status: receipt.status,
+    command: receipt.command,
+    finishedAt: receipt.finishedAt,
+    durationMs: receipt.durationMs,
+    exitCode: receipt.exitCode,
+    contractId: receipt.contractId,
+    metrics: receipt.parsedMetrics
+  }
+}
+
+function extractReviewerCheckedModes(messages: ReturnType<typeof getMessages>): string[] {
+  return messages
+    .filter((m) => m.role === 'assistant' && m.stage === 'reviewer')
+    .slice(-3)
+    .flatMap((m) =>
+      m.content
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => /checked failure modes|checked risks|evidence consulted|unchecked gaps/i.test(line))
+    )
+    .slice(-8)
 }
 
 function terminalModelCounts(events: EventRecord[]): {
@@ -167,6 +211,10 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
   const proofGatePassed = events.filter((e) => e.type === 'proof.gate.passed')
   const proofGateFailed = events.filter((e) => e.type === 'proof.gate.failed')
   const proofGateWaived = events.filter((e) => e.type === 'proof.gate.waived')
+  const proofReceipts = listProofReceipts({
+    conversationId,
+    limit: 20
+  })
   const activeContracts = listChangeContracts({
     conversationId,
     status: 'active',
@@ -321,7 +369,15 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
       gatePassed: proofGatePassed.length,
       gateFailed: proofGateFailed.length,
       gateWaived: proofGateWaived.length,
-      latestFailureReason: preview(proofGateFailed.at(-1)?.payload?.reason, 280) || undefined
+      latestFailureReason: preview(proofGateFailed.at(-1)?.payload?.reason, 280) || undefined,
+      receipts: proofReceipts.map(proofReceiptItem),
+      failedCommands: proofReceipts
+        .filter((receipt) => receipt.status === 'failed')
+        .map((receipt) => receipt.command),
+      skippedCommands: proofReceipts
+        .filter((receipt) => receipt.status === 'skipped')
+        .map((receipt) => receipt.command),
+      reviewerCheckedModes: extractReviewerCheckedModes(messages)
     }
   }
 }

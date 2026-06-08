@@ -939,6 +939,18 @@ export interface AfterActionToolItem {
   errorPreview?: string
 }
 
+export interface AfterActionProofReceiptItem {
+  id: string
+  kind: string
+  status: string
+  command: string
+  finishedAt: number
+  durationMs: number
+  exitCode?: number
+  contractId?: string
+  metrics: Record<string, unknown>
+}
+
 export interface AfterActionReport {
   conversationId: string
   title: string
@@ -974,6 +986,10 @@ export interface AfterActionReport {
     gateFailed: number
     gateWaived: number
     latestFailureReason?: string
+    receipts: AfterActionProofReceiptItem[]
+    failedCommands: string[]
+    skippedCommands: string[]
+    reviewerCheckedModes: string[]
   }
 }
 

@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Mechanical Proof Harness - Prompt M9] Proof packet panel and final answer receipts - 2026-06-07
+
+**Files changed:** `electron/services/final-response-composer.ts`, `electron/services/final-response-composer.test.ts`, `electron/ipc/chat.ts`, `electron/services/after-action-report.ts`, `src/components/tools/panels/AfterActionPanel.tsx`, `src/lib/types.ts`, `electron/services/system-prompt-builder.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest `electron/services/final-response-composer.test.ts` OK
+- build/smoke/user-verification-needed: not applicable
+
+**Proof receipt:** not applicable
+**Notes:** Extends the After Action proof section into a proof packet with receipt ids, parsed metrics, failed/skipped command gaps, active contracts, and reviewer checked-mode lines. The final response composer now receives persisted proof receipt summaries from chat, cites receipt ids and metrics from those receipts, and explicitly tells the model to say proof is missing rather than inventing verification counts.
+
+**Commit:** _this commit_
+
 ## [Mechanical Proof Harness - Prompt M8] Failure-mode reviewer contract - 2026-06-07
 
 **Files changed:** `electron/services/reviewer-output-validator.ts`, `electron/services/reviewer-output-validator.test.ts`, `electron/services/agent-pipeline.ts`, `electron/services/agent-pipeline.test.ts`, `electron/services/system-prompt-builder.ts`, `electron/services/system-prompt-builder.test.ts`, `skills/review/SKILL.md`, `resources/skills/review/SKILL.md`

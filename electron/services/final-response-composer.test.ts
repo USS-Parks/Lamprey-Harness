@@ -110,14 +110,40 @@ describe('buildComposerPrompt', () => {
           resultPreview: 'tests passed'
         }
       ],
+      proofReceipts: [
+        {
+          id: 'prf_123',
+          kind: 'verify',
+          status: 'passed',
+          command: 'npm test',
+          parsedMetrics: { passed: 2140, failed: 0 },
+          exitCode: 0
+        }
+      ],
       draftReply: 'Done'
     })
     expect(prompt.system).toContain('## What I did')
     expect(prompt.system).toContain("## What's left")
+    expect(prompt.system).toContain('cite receipt ids and parsed metrics')
     expect(prompt.user).toContain('fix the thing')
     expect(prompt.user).toContain('Run check')
     expect(prompt.user).toContain('PASS: verify_workspace')
     expect(prompt.user).toContain('tests passed')
+    expect(prompt.user).toContain('verify receipt prf_123')
+    expect(prompt.user).toContain('"passed":2140')
+    expect(prompt.user).toContain('"failed":0')
+  })
+
+  it('makes missing proof explicit', () => {
+    const prompt = buildComposerPrompt({
+      userGoal: 'fix the thing',
+      toolCalls: [],
+      proofReceipts: [],
+      draftReply: 'Done'
+    })
+
+    expect(prompt.user).toContain('Proof receipts:')
+    expect(prompt.user).toContain('say proof is missing')
   })
 })
 
@@ -129,6 +155,7 @@ describe('composeFinalResponse', () => {
       summary: {
         userGoal: 'goal',
         toolCalls: [],
+        proofReceipts: [],
         draftReply: 'draft'
       },
       runner: async (messages, model) => {
@@ -152,7 +179,7 @@ describe('composeFinalResponse', () => {
   it('preserves composer reasoning on the result', async () => {
     const out = await composeFinalResponse({
       model: 'model-b',
-      summary: { userGoal: 'goal', toolCalls: [], draftReply: 'draft' },
+      summary: { userGoal: 'goal', toolCalls: [], proofReceipts: [], draftReply: 'draft' },
       runner: async () => ({
         content: 'composed body',
         reasoning: 'rewrote the draft to lead with the answer'

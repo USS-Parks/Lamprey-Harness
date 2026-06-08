@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import type {
   AfterActionCauseSeverity,
+  AfterActionProofReceiptItem,
   AfterActionReport,
   AfterActionTimelineItem,
   AfterActionToolItem
@@ -69,6 +70,36 @@ function ContractRow({
         {contract.verificationCommands.length > 0
           ? contract.verificationCommands.join(' - ')
           : contract.id}
+      </div>
+    </li>
+  )
+}
+
+function ReceiptRow({ receipt }: { receipt: AfterActionProofReceiptItem }) {
+  const tone =
+    receipt.status === 'failed'
+      ? 'text-[var(--error)]'
+      : receipt.status === 'skipped'
+        ? 'text-[var(--warning)]'
+        : 'text-[var(--success)]'
+  const metrics = Object.keys(receipt.metrics ?? {}).length > 0
+    ? JSON.stringify(receipt.metrics)
+    : ''
+  return (
+    <li className="border-b border-[var(--panel-border)] px-3 py-2 last:border-b-0">
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text-primary)]">
+          {receipt.kind} receipt {receipt.id}
+        </span>
+        <span className={`shrink-0 font-mono text-[10px] ${tone}`}>{receipt.status}</span>
+      </div>
+      <div className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
+        {receipt.command}
+      </div>
+      <div className="mt-0.5 flex gap-2 overflow-hidden font-mono text-[10px] text-[var(--text-muted)]">
+        {receipt.exitCode !== undefined && <span>exit {receipt.exitCode}</span>}
+        <span>{formatDuration(receipt.durationMs)}</span>
+        {metrics && <span className="truncate">{metrics}</span>}
       </div>
     </li>
   )
@@ -275,6 +306,36 @@ export function AfterActionPanel(): React.ReactElement {
                 <ul className="mt-1.5 overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
                   {report.proof.activeContracts.map((contract) => (
                     <ContractRow key={contract.id} contract={contract} />
+                  ))}
+                </ul>
+              )}
+              {report.proof.receipts.length > 0 && (
+                <ul className="mt-1.5 overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
+                  {report.proof.receipts.slice(0, 12).map((receipt) => (
+                    <ReceiptRow key={receipt.id} receipt={receipt} />
+                  ))}
+                </ul>
+              )}
+              {(report.proof.failedCommands.length > 0 ||
+                report.proof.skippedCommands.length > 0) && (
+                <div className="mt-1.5 rounded-md border border-[var(--warning)]/35 bg-[var(--bg-primary)] px-3 py-2 text-[12px] leading-snug text-[var(--text-secondary)]">
+                  {report.proof.failedCommands.length > 0 && (
+                    <div>Failed: {report.proof.failedCommands.join(', ')}</div>
+                  )}
+                  {report.proof.skippedCommands.length > 0 && (
+                    <div>Skipped: {report.proof.skippedCommands.join(', ')}</div>
+                  )}
+                </div>
+              )}
+              {report.proof.reviewerCheckedModes.length > 0 && (
+                <ul className="mt-1.5 overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
+                  {report.proof.reviewerCheckedModes.map((line, idx) => (
+                    <li
+                      key={`${idx}-${line}`}
+                      className="border-b border-[var(--panel-border)] px-3 py-1.5 text-[11px] leading-snug text-[var(--text-secondary)] last:border-b-0"
+                    >
+                      {line}
+                    </li>
                   ))}
                 </ul>
               )}

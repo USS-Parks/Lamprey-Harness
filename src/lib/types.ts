@@ -968,6 +968,13 @@ export interface AfterActionReport {
   causes: AfterActionCause[]
   timeline: AfterActionTimelineItem[]
   recentTools: AfterActionToolItem[]
+  proof: {
+    activeContracts: ChangeContract[]
+    gatePassed: number
+    gateFailed: number
+    gateWaived: number
+    latestFailureReason?: string
+  }
 }
 
 // ──────────────────── RAG (Local Retrieval) ────────────────────

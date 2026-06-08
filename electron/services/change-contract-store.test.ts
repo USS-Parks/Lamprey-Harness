@@ -21,10 +21,13 @@ import {
   updateChangeContract,
   waiveChangeContract
 } from './change-contract-store'
+import { __forceMemoryFallback, __resetEventLog, listTimeline } from './event-log'
 
 beforeEach(() => {
   __resetChangeContractStore()
   __forceChangeContractMemoryFallback()
+  __resetEventLog()
+  __forceMemoryFallback()
 })
 
 describe('change contract store', () => {
@@ -141,6 +144,22 @@ describe('change contract store', () => {
     expect(waived.waiverReason).toBe('manual Electron smoke covered this')
     expect(waived.waivedBy).toBe('user')
     expect(waived.waivedAt).toBeGreaterThan(0)
+
+    const events = listTimeline({ conversationId: 'conv-1' })
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      type: 'proof.gate.waived',
+      severity: 'warning',
+      actorKind: 'user',
+      actorId: 'user',
+      entityKind: 'change_contract',
+      entityId: contract.id
+    })
+    expect(events[0].payload).toMatchObject({
+      contractId: contract.id,
+      reason: 'manual Electron smoke covered this',
+      waivedBy: 'user'
+    })
   })
 
   it('creates contracts from plan goals without a model call', () => {

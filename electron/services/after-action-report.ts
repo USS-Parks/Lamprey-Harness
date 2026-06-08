@@ -1,4 +1,5 @@
 import { getConversation, getMessages } from './conversation-store'
+import { listChangeContracts, type ChangeContract } from './change-contract-store'
 import { listTimeline, type EventRecord } from './event-log'
 import { listToolCallsForConversation } from './tool-calls-store'
 
@@ -59,6 +60,13 @@ export interface AfterActionReport {
   causes: AfterActionCause[]
   timeline: AfterActionTimelineItem[]
   recentTools: AfterActionToolItem[]
+  proof: {
+    activeContracts: ChangeContract[]
+    gatePassed: number
+    gateFailed: number
+    gateWaived: number
+    latestFailureReason?: string
+  }
 }
 
 const PREVIEW_CHARS = 280
@@ -156,6 +164,14 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
   const toolErrors = tools.filter((t) => t.status === 'error')
   const toolDenied = tools.filter((t) => t.status === 'denied')
   const chatErrors = events.filter((e) => e.type === 'chat.error')
+  const proofGatePassed = events.filter((e) => e.type === 'proof.gate.passed')
+  const proofGateFailed = events.filter((e) => e.type === 'proof.gate.failed')
+  const proofGateWaived = events.filter((e) => e.type === 'proof.gate.waived')
+  const activeContracts = listChangeContracts({
+    conversationId,
+    status: 'active',
+    limit: 5
+  })
   const approvals = events.filter(
     (e) => e.type === 'tool.call.approved' || e.type === 'tool.call.denied'
   )
@@ -194,6 +210,33 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
       severity: 'error',
       title: 'Chat orchestration errors',
       detail: `${chatErrors.length} chat error event(s) were recorded in this conversation.`
+    })
+  }
+  if (proofGateFailed.length > 0) {
+    const latest = proofGateFailed.at(-1)
+    causes.push({
+      severity: 'warning',
+      title: 'Untrusted proof gate',
+      detail:
+        `${proofGateFailed.length} proof gate failure event(s) were recorded. ` +
+        `${preview(latest?.payload?.reason, 220)}`
+    })
+  }
+  if (proofGateWaived.length > 0) {
+    causes.push({
+      severity: 'warning',
+      title: 'Proof gate waived',
+      detail:
+        `${proofGateWaived.length} waiver event(s) were recorded. ` +
+        'The contract was closed by explicit user waiver instead of fresh verification.'
+    })
+  }
+  if (activeContracts.length > 0) {
+    causes.push({
+      severity: 'info',
+      title: 'Active change contract',
+      detail:
+        `${activeContracts.length} active contract(s) still require proof before a trusted completion.`
     })
   }
   if (modelCounts.openByCorrelation.length > 0) {
@@ -272,6 +315,13 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
       argsPreview: preview(t.args),
       resultPreview: t.result ? preview(t.result) : undefined,
       errorPreview: t.error ? preview(t.error) : undefined
-    }))
+    })),
+    proof: {
+      activeContracts,
+      gatePassed: proofGatePassed.length,
+      gateFailed: proofGateFailed.length,
+      gateWaived: proofGateWaived.length,
+      latestFailureReason: preview(proofGateFailed.at(-1)?.payload?.reason, 280) || undefined
+    }
   }
 }

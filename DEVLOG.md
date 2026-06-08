@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Mechanical Proof Harness - Prompt M6] Proof UI and waiver path - 2026-06-07
+
+**Files changed:** `src/components/chat/ProofGateBanner.tsx`, `src/components/chat/proof-gate-notice.ts`, `src/components/chat/ProofGateBanner.test.ts`, `src/components/chat/MessageBubble.tsx`, `src/components/tools/panels/AfterActionPanel.tsx`, `src/lib/types.ts`, `electron/services/after-action-report.ts`, `electron/services/change-contract-store.ts`, `electron/services/change-contract-store.test.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest `electron/services/change-contract-store.test.ts src/components/chat/ProofGateBanner.test.ts` OK
+- build/smoke/user-verification-needed: not applicable
+
+**Proof receipt:** not applicable
+**Notes:** Adds an in-chat untrusted completion banner for proof gate failures, strips the raw proof notice out of assistant text, provides an explicit reason-required waiver path through the existing contracts IPC, records `proof.gate.waived`, and adds proof pass/fail/waive counts plus active contracts to after-action reports. Plan checkbox update is still pending because the planning file is locked by an adjacent editor temp file.
+
+**Commit:** _this commit_
+
 ## [Mechanical Proof Harness - Prompt M5] Pre-final proof gate - 2026-06-07
 
 **Files changed:** `electron/services/proof-gate.ts`, `electron/services/proof-gate.test.ts`, `electron/ipc/chat.ts`

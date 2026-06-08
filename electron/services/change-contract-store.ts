@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { getDb } from './database'
+import { recordEvent } from './event-log'
 import type { Goal } from './plan-goal-store'
 
 export type ChangeContractStatus = 'active' | 'closed' | 'waived'
@@ -523,13 +524,31 @@ export function waiveChangeContract(input: {
   if (!reason) throw new Error('waiveChangeContract: reason is required')
   if (!waivedBy) throw new Error('waiveChangeContract: waivedBy is required')
   const waivedAt = monoNow()
-  return transitionContract(input.id, {
+  const waived = transitionContract(input.id, {
     status: 'waived',
     closedAt: waivedAt,
     waiverReason: reason,
     waivedBy,
     waivedAt
   })
+  recordEvent({
+    type: 'proof.gate.waived',
+    severity: 'warning',
+    actorKind: 'user',
+    actorId: waivedBy,
+    conversationId: waived.conversationId,
+    correlationId: waived.correlationId,
+    entityKind: 'change_contract',
+    entityId: waived.id,
+    payload: {
+      contractId: waived.id,
+      reason,
+      waivedBy,
+      waivedAt
+    },
+    redaction: 'preview'
+  })
+  return waived
 }
 
 export function __resetChangeContractStore(): void {

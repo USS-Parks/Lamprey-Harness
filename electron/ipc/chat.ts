@@ -60,6 +60,7 @@ import {
   summarizeRun
 } from '../services/final-response-composer'
 import { evaluateProofGate, proofGateNotice } from '../services/proof-gate'
+import { listProofReceipts } from '../services/proof-receipts'
 import { getPlanSnapshot } from '../services/plan-goal-store'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
@@ -764,7 +765,21 @@ export async function runChatRound(
                   messages as any,
                   getPlanSnapshot(conversationId),
                   toolRegistry.getCallsForConversation(conversationId, 50),
-                  fullContent
+                  fullContent,
+                  listProofReceipts({
+                    conversationId,
+                    correlationId,
+                    workspacePath,
+                    limit: 20
+                  }).map((receipt) => ({
+                    id: receipt.id,
+                    kind: receipt.kind,
+                    status: receipt.status,
+                    command: receipt.command,
+                    parsedMetrics: receipt.parsedMetrics,
+                    exitCode: receipt.exitCode,
+                    durationMs: receipt.durationMs
+                  }))
                 )
                 const composed = await composeFinalResponse({
                   summary,

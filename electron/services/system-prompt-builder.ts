@@ -175,6 +175,7 @@ export const COMPOSER_SYSTEM = [
   '- one-line per open item, or "Nothing - task complete." when empty',
   '',
   'After those sections, add the actual direct answer only if the wrap-up alone does not cover the user request.',
+  'When proof receipts are supplied, cite receipt ids and parsed metrics exactly from the summary. If no receipt exists for relevant verification, say proof is missing; never invent counts.',
   'Do not invent files, commands, checks, or outcomes. If verification is absent, say SKIPPED or list it under what is left.',
   'Keep it short and concrete.',
   PSEUDO_TAG_GUARD

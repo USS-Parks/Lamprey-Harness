@@ -1,5 +1,20 @@
 # Lamprey Harness Dev Log
 
+## [Mechanical Proof Harness - Prompt M7] Independent reviewer evidence packet - 2026-06-07
+
+**Files changed:** `electron/services/review-evidence-packet.ts`, `electron/services/review-evidence-packet.test.ts`, `electron/services/agent-pipeline.ts`, `electron/services/agent-pipeline.test.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest `electron/services/review-evidence-packet.test.ts electron/services/agent-pipeline.test.ts` OK
+- build/smoke/user-verification-needed: not applicable
+
+**Proof receipt:** not applicable
+**Notes:** Adds a bounded `ReviewEvidencePacket` with active contract, changed files, diff snippets, proof receipt summaries, failed/skipped commands, stale-green warnings, tool-call metadata, and explicit omissions. The Reviewer stage now receives this packet instead of `summarizeRun(...)`; builder narrative is excluded by default and only appears under `builderNarrative` when explicitly requested.
+
+**Commit:** _this commit_
+
 ## [Mechanical Proof Harness - Prompt M6] Proof UI and waiver path - 2026-06-07
 
 **Files changed:** `src/components/chat/ProofGateBanner.tsx`, `src/components/chat/proof-gate-notice.ts`, `src/components/chat/ProofGateBanner.test.ts`, `src/components/chat/MessageBubble.tsx`, `src/components/tools/panels/AfterActionPanel.tsx`, `src/lib/types.ts`, `electron/services/after-action-report.ts`, `electron/services/change-contract-store.ts`, `electron/services/change-contract-store.test.ts`

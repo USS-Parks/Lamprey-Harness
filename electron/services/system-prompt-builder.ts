@@ -326,8 +326,10 @@ export const AGENT_ROLE_PROMPTS: Record<string, string> = {
     PSEUDO_TAG_GUARD,
   reviewer:
     'You are the Reviewer. Critique the Coder output for correctness, regressions, edge cases, ' +
-    'and dead code. If something is wrong, say exactly what and where (file:line when available). ' +
-    'If it is good, say SHIP.\n' +
+    'dead code, scope drift, stale proof, and missing tests. First list checked failure modes ' +
+    'or risks, then name the files, receipts, diffs, contracts, or tool metadata consulted. ' +
+    'State unchecked gaps explicitly. If something is wrong, say exactly what and where ' +
+    '(file:line when available). End with exactly one verdict line: SHIP or CHANGES.\n' +
     'You have no tools available in this stage — do not emit tool calls, do not pretend to run ' +
     'commands, do not fabricate command output.\n' +
     PSEUDO_TAG_GUARD,

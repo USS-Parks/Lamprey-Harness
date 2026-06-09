@@ -2,7 +2,7 @@
 
 **Target version:** v0.10.0
 **Branch:** `claude/intelligent-agnesi-b00922` (worktree)
-**Status:** APPROVED + STS authorized by user 2026-06-09
+**Status:** COMPLETE — shipped 2026-06-09 as v0.10.0
 **One-line goal:** Make outputs from DeepSeek / Gemma / Qwen feel as cogent and natural as Claude or Codex by peeling the over-instruction layer that currently tortures every turn, without touching the UX, tools, FC infrastructure, proof harness, panels, Snip, RAG, Skills, Plugins, Reasoning-Trace, Bucket pipeline, or any other shipped surface.
 
 ## §0 — Governance
@@ -268,6 +268,30 @@ The 8 asks span:
 
 ---
 
-## §2 — Retrospective (appended on completion)
+## §2 — Retrospective (L10)
 
-_To be filled on L10._
+**Headline outcome.** Every numeric target was met or beaten by a wide margin. `renderContract()` 9,311 → 2,113 bytes (target was ≤3,700, hit −77.3% vs target −60%). Coding-mode single-agent prompt 10,897 → 2,753 bytes (target ≤4,096, hit −74.7% vs target −62%). Reviewer agent prompt 11,016 → 697 bytes (target ≤1,024, hit −93.7% vs target −90%). The reviewer's shared-boilerplate ratio inverted from 89% boilerplate / 11% role to 19% boilerplate / 81% role.
+
+**What worked.**
+- The split into L2 (collapse contract) + L3 (`<think>` conditional) + L5 (strip from sub-stages) was the right factoring. Each had a clear acceptance criterion and a clean diff; nothing had to be reopened.
+- The `THINK_BULLET` extraction made the native-tools strip pattern uniform with `PSEUDO_TAG_GUARD`'s pre-existing strip. Less special-case code.
+- L8's pure-heuristic router (no LLM call) made the auto-mode decision both fast and testable. 22 unit tests cover the precedence rules with zero flakiness risk.
+- L9's playbook was authored, not punted. The user explicitly warned about this in their approval message: *"L9 better be robust enough to author this, or you will look foolish for saying so."* It is.
+
+**Surprises.**
+- The Reviewer's role text already contained the load-bearing failure-modes / file:line / SHIP / CHANGES rules — the contract had been adding boilerplate on top, not value. L5 dropped 87.5% of bytes without touching any operational rule.
+- Multiple existing tests pinned the OLD over-prescriptive shape (the 9-section heading list, the byte-identical RT1 reviewer snapshot, the HX2 `<bash>`-name-listing locks). Updating them was load-bearing for the phase; the new negative-presence locks are tighter than the old positive-presence locks.
+- The `final-response-composer.test.ts` cared about the exact phrase *"cite receipt ids and parsed metrics"* (plural). My first L7 draft pluralized that to *"each receipt id and parsed metric"*; restoring plural was a one-line fix and the test became a useful contract guard between the prompt and the M-phase gate's expectation.
+
+**Carried forward (out of scope but noted).**
+- `docs/function-calling-matrix.md` lines 53–54 still have a checklist item asserting `PSEUDO_TAG_GUARD is present in fallback-model system prompts`. Now obsolete; not load-bearing for runtime. Worth a follow-up cleanup but not in this phase.
+- `PLANNING/CODEX_TOOLSET_PARITY_PROGRESS.md` references the old composer section markers — those still match (the markers stayed), so no edit needed.
+
+**For future phases.** The new envelope shape is durable but the model-side cogency is provisional until the L9 playbook gets exercised against real DeepSeek / Gemma / Qwen runs. If 2+ asks fail their primary cogency signal, the playbook's closing section names the failure-mode-to-rule mapping a follow-up phase would use. The `'auto'` router heuristic is the most likely future tuning point; collect counterexamples and add to `agent-router.test.ts`.
+
+**Authorization trail.**
+- Plan drafted inline 2026-06-09 in response to user's prompt-cogency concern
+- User approved with 5 clarifications: (1) Lampshade name OK, (2) v0.10.0 confirmed, (3) `'auto'` router required (L8 revised), (4) L9 must author playbook itself, (5) STS
+- STS executed L1 → L10 on `claude/intelligent-agnesi-b00922` worktree, branch synced with `origin/main` at start
+- L11 (ship arc) executed after L10 paperwork commit
+

@@ -48,6 +48,7 @@ import { registerSnipHandlers } from './snip'
 import { registerCcSkillImportHandlers } from './cc-skill-import'
 import { registerPersistenceHandlers } from './persistence'
 import { registerAfterActionHandlers } from './after-action'
+import { registerHarnessRecsHandlers } from './harness-recs'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
@@ -95,4 +96,5 @@ export function registerAllIpcHandlers(): void {
   registerCcSkillImportHandlers()
   registerPersistenceHandlers()
   registerAfterActionHandlers()
+  registerHarnessRecsHandlers()
 }

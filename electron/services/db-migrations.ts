@@ -1,6 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { applyChangeContractSchema } from './change-contract-schema'
 import { applyProofReceiptSchema } from './proof-receipt-schema'
+import { applyFailureLedgerSchema } from './failure-ledger-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -147,6 +148,13 @@ export const MIGRATIONS: Migration[] = [
     description: 'Mechanical proof M2 scoped change contracts',
     up(db) {
       applyChangeContractSchema(db)
+    }
+  },
+  {
+    version: 14,
+    description: 'Mechanical proof M11 failure ledger and replay seeds',
+    up(db) {
+      applyFailureLedgerSchema(db)
     }
   }
 ]

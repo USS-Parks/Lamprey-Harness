@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { getDb } from './database'
 import { recordEvent } from './event-log'
+import { handleProofEvent } from './failure-ledger'
 import type { Goal } from './plan-goal-store'
 
 export type ChangeContractStatus = 'active' | 'closed' | 'waived'
@@ -548,6 +549,18 @@ export function waiveChangeContract(input: {
     },
     redaction: 'preview'
   })
+
+  // Promote waived gates into the failure ledger (M11).
+  try {
+    handleProofEvent({
+      type: 'proof.gate.waived',
+      contractId: waived.id,
+      conversationId: waived.conversationId,
+      correlationId: waived.correlationId ?? undefined,
+      message: reason
+    })
+  } catch { /* best-effort */ }
+
   return waived
 }
 

@@ -5,6 +5,7 @@ import {
   listProofReceipts,
   type ProofReceiptRecord
 } from './proof-receipts'
+import { handleProofEvent } from './failure-ledger'
 import type { LampreyToolCall, LampreyToolDescriptor } from './tool-registry'
 
 export type ProofGateStatus = 'not_required' | 'passed' | 'failed'
@@ -190,6 +191,19 @@ function emitGateEvent(
     },
     redaction: 'metadata'
   })
+
+  // Promote gate failures into the failure ledger (M11).
+  if (result.status === 'failed') {
+    try {
+      handleProofEvent({
+        type: 'proof.gate.failed',
+        contractId: result.contractId,
+        conversationId: input.conversationId,
+        correlationId: input.correlationId,
+        message: result.reason
+      })
+    } catch { /* best-effort */ }
+  }
 }
 
 export function proofGateNotice(result: ProofGateResult): string {

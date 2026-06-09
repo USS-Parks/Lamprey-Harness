@@ -123,7 +123,9 @@ export const EVENT_TYPES = [
   'proof.receipt.failed',
   'proof.gate.passed',
   'proof.gate.failed',
-  'proof.gate.waived'
+  'proof.gate.waived',
+  'failure_ledger.recorded',
+  'failure_ledger.repeated'
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

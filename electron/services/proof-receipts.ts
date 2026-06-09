@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'crypto'
 import type { Database } from 'better-sqlite3'
 import { getDb } from './database'
 import { recordEvent, type RecordEventInput } from './event-log'
+import { handleProofEvent } from './failure-ledger'
 
 export type ProofReceiptStatus = 'passed' | 'failed' | 'skipped'
 export type ProofReceiptCreatedBy = 'agent' | 'system' | 'user' | 'ci'
@@ -463,6 +464,21 @@ export function createProofReceipt(
     },
     options
   )
+
+  // Promote failed receipts into the failure ledger (M11).
+  if (record.status === 'failed') {
+    try {
+      handleProofEvent({
+        type: 'proof.receipt.failed',
+        receiptId: record.id,
+        contractId: record.contractId,
+        conversationId: record.conversationId,
+        correlationId: record.correlationId,
+        command: record.command,
+        diffHash: record.diffHash
+      })
+    } catch { /* best-effort; ledger table may not exist yet */ }
+  }
 
   return record
 }

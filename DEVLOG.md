@@ -1,3 +1,46 @@
+## [Lampshade Phase — Complete] L1 through L11 shipped end-to-end — 2026-06-09
+
+11-prompt prompt-cogency phase shipped on `claude/intelligent-agnesi-b00922`. v0.9.1 → **v0.10.0** minor release.
+
+**Final gate:**
+- tsc node OK
+- tsc web OK
+- vitest 2222 passed / 123 skipped (no new failures)
+- `verify:proof -- --no-tests` exits 0
+- `lint` clean (via verify:proof)
+- build OK (electron-vite)
+
+**Headline numbers (L1 baseline → L9 after, before L10 paperwork):**
+- `renderContract()`: 9,311 → 2,113 bytes (**−77.3%**)
+- `buildSystemPrompt()` coding role: 10,897 → 2,753 bytes (**−74.7%**)
+- `buildSystemPrompt()` coding + native tools: 10,897 → 2,431 bytes (**−77.7%**)
+- `buildAgentSystemPrompt('reviewer')`: 11,016 → 697 bytes (**−93.7%**)
+- `buildAgentSystemPrompt('planner')`: 10,630 → 311 bytes (**−97.1%**)
+- `buildAgentSystemPrompt('coder')`: 10,604 → 518 bytes (**−95.1%**)
+- `buildAgentSystemPrompt('coworker')`: 10,621 → 302 bytes (**−97.2%**)
+- `COMPOSER_SYSTEM`: 1,930 → 774 bytes (**−59.9%**)
+
+Reviewer's shared-boilerplate ratio inverted from 89% boilerplate / 11% role text to 19% / 81%.
+
+**Per-prompt commits (post-rebase, fingerprints will shift):**
+- L1 — Baseline measurement + `LL_BASELINE.md`
+- L2 — Collapse 52-bullet contract to single operating block
+- L3 — Make think-block conditional, drop every-turn mandate
+- L4 — Slim role fragments to tight imperatives
+- L5 — Strip full contract from agent sub-stage prompts
+- L6 — Drop pseudo-tag guard from prompts; sanitizer keeps safety
+- L7 — Slim composer system, keep proof-receipt rule
+- L8 — Add adaptive 'auto' agent-mode router, default new users to auto
+- L9 — Snapshot the new envelope + ship smoke playbook
+- L10 — Paperwork: DEVLOG wrap, README, CLAUDE.md, v0.10.0 bump, `LL_AFTER.md`, plan COMPLETE flip + retrospective
+- L11 — Ship arc (build + tag + Bucket)
+
+**The fix in one paragraph.** Every coding-mode turn was shipping ~2,725 tokens of operator instruction before the user message was read; the multi-agent pipeline was shipping ~32 KB across stages of mostly-identical contract boilerplate. The fix is to scope each layer correctly: the operating contract is for the primary single-agent path (now 13 tight imperatives, not 52 bullets in 9 sections); the sub-agent stages receive only their role text plus (coder only) a 3-line operating-principles excerpt; `<think>` is conditional rather than mandatory and is dropped entirely for models with a captured `reasoning_content` channel; `PSEUDO_TAG_GUARD` is gone from prompts entirely (the persist-side `sanitizePseudoTags` is the safety net); a new `'auto'` `AgentMode` decides single-vs-multi per turn via a pure heuristic so the user doesn't have to pre-pick the dispatch path. No tools, UX surfaces, function-calling infrastructure, mechanical-proof gate, panels, RAG, Snip, Skills, Plugins, Reasoning-Trace Viewer, or Bucket pipeline were touched.
+
+**Plan + baseline + after:** `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`, `PLANNING/LL_BASELINE.md`, `PLANNING/LL_AFTER.md`. **Playbook:** `PLANNING/LL_SMOKE_PLAYBOOK.md` (8 canonical asks).
+
+---
+
 ## [Schema Bootstrap Hotfix] — 2026-06-09 — v0.9.2
 
 P0 hotfix for v0.9.1: every chat send returned `table messages has no column named proof_status`.
@@ -86,6 +129,14 @@ The diagnostic plumbing (`PRAGMA user_version`, the migration ledger, the integr
 User direction: outputs from DeepSeek / Gemma / Qwen feel "tortured" rather than cogent. After investigation, the cause is the 52-bullet contract + mandatory-every-turn `<think>` mandate + role fragments shipped as paragraphs + agent sub-stages each receiving the full identity + contract. Baseline measurement at L1 confirms: every coding-mode turn ships ~2,725 tokens of operator instruction; the Reviewer stage ships 11,016 bytes for what should produce a one-line verdict, with ~89% of those bytes shared boilerplate.
 
 Plan: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`. Approved + STS authorized by user 2026-06-09. Target: v0.10.0.
+
+### L10 — Paperwork pass
+- `package.json` — version bump 0.9.1 → 0.10.0.
+- `README.md` — Download heading + table URLs flipped to v0.10.0; new "New in v0.10.0 — Lampshade Phase" paragraph at the top of the New In stack; Quick start link version 0.8.4 → 0.10.0; new Roadmap entry under "Built and shipped (v0.10.x)" with the Lampshade summary; added the Wiring Closure entry under v0.9.x which was missing.
+- `CLAUDE.md` — appended Lampshade Phase complete bullet at the end of the State list with full per-prompt summary + numbers; updated the reference-only plan list to include Lampshade.
+- `PLANNING/LAMPREY_LAMPSHADE_PLAN.md` — flipped APPROVED → COMPLETE; appended §2 Retrospective covering headline outcome, what worked, surprises, items carried forward (out of scope), guidance for future phases, and the authorization trail.
+- New: `PLANNING/LL_AFTER.md` — same shape as `LL_BASELINE.md` with the L9 numbers and before/after diff table, full before/after of the rendered single-agent coding prompt + reviewer prompt for visual comparison.
+- Verify: tsc node + web clean, `npm run verify:proof -- --no-tests` exits 0.
 
 ### L1 — Baseline measurement
 - New: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`, `PLANNING/LL_BASELINE.md`

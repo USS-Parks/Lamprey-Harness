@@ -42,6 +42,9 @@ import { permissionsService, descriptorNeedsApproval } from '../services/permiss
 import { inferPhaseFromDescriptor, type AgentRunPhase } from '../services/agent-run-phase'
 import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
+import { validateToolArguments } from '../services/tool-schema-validator'
+import { parseFallbackToolCalls } from '../services/fallback-tool-parser'
+import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { dispatchNativeTool } from '../services/native-dispatch'
 import { emitChatEvent } from '../services/chat-events'
 import { readDeepResearchSettings } from '../services/research/adapter-cascade'
@@ -426,6 +429,7 @@ export function registerChatHandlers(): void {
       const activeWorkspace = getActiveWorkspace()
       const agentsMd = readAgentsMd(activeWorkspace)
       const chaptersBlock = buildChaptersBlock(conversationId)
+      const supportsTools = resolveModel(model).supportsTools
       const systemPrompt = buildSystemPrompt(
         skillContents,
         memoryBlock,
@@ -438,7 +442,8 @@ export function registerChatHandlers(): void {
         agentic.mode ? 'coding' : undefined,
         memoryIndexBlock,
         taskNotificationsBlock,
-        chaptersBlock
+        chaptersBlock,
+        supportsTools
       )
 
       // Tools come from the unified registry — natives (memory_add today) plus
@@ -713,7 +718,11 @@ export async function runChatRound(
   }
 
   const descriptor = resolveModel(model)
-  const effectiveTools = descriptor.supportsTools ? tools : undefined
+  // FC-10 — when the capability tracker has downgraded this model for this
+  // conversation, treat it as supportsTools: false going forward. The
+  // fallback parser (FC-6/FC-8) handles tool invocation from text.
+  const actuallySupportsTools = descriptor.supportsTools && !isDowngraded(conversationId, model)
+  const effectiveTools = actuallySupportsTools ? tools : undefined
 
   const audit: ModelRequestAudit | undefined = correlationId
     ? { correlationId, conversationId, purpose: 'main' }
@@ -749,7 +758,66 @@ export async function runChatRound(
             reasoningLen: fullReasoning?.length ?? 0,
             toolCallsCount: toolCalls?.length ?? 0
           })
-          if (!toolCalls || toolCalls.length === 0) {
+
+          // FC-10 — capability mismatch detection. When the model is flagged
+          // supportsTools but returns tool-like text without tool_calls,
+          // track consecutive mismatches. Downgraded models bypass future
+          // native-tool attempts and go straight to fallback parsing.
+          if (descriptor.supportsTools) {
+            const gotToolCalls = !!(toolCalls && toolCalls.length > 0)
+            const toolsWereSent = effectiveTools !== undefined
+            const warning = recordCapabilityCheck(
+              conversationId,
+              model,
+              toolsWereSent,
+              gotToolCalls,
+              fullContent
+            )
+            if (warning) {
+              trace('runChatRound.capability-mismatch', {
+                conversationId,
+                model,
+                warning
+              })
+              // Log but don't block — the user's current turn proceeds normally
+            }
+          }
+
+          // FC-8 — when the model does not support native tool calling
+          // (toolCalls is empty/null), attempt fallback parsing from the
+          // text content. Fallback models are instructed to output JSON
+          // following the fallback contract. If a valid fallback call is
+          // found, convert it to the native toolCalls format and dispatch
+          // through the same pathway.
+          //
+          // FC-10 — also run capability mismatch detection. When a native
+          // model returns tool-like syntax but no tool_calls, track
+          // consecutive mismatches. After 3, temporarily downgrade to
+          // fallback mode so the user's turn isn't wasted.
+          let effectiveToolCalls = toolCalls
+          // Fallback parsing triggers when: (a) model doesn't support tools
+          // natively, OR (b) model has been downgraded due to capability mismatch.
+          const needsFallbackParsing = !descriptor.supportsTools || isDowngraded(conversationId, model)
+          if ((!effectiveToolCalls || effectiveToolCalls.length === 0) && needsFallbackParsing) {
+            const descriptors = toolRegistry.getDescriptors()
+            const fallbackResult = parseFallbackToolCalls(fullContent, descriptors)
+            if (fallbackResult && !fallbackResult.isFinalAnswer && fallbackResult.calls.length > 0) {
+              // Convert fallback ToolCallRequest[] to ProviderToolCall[]
+              effectiveToolCalls = fallbackResult.calls.map((fc) => ({
+                id: fc.id,
+                type: 'function' as const,
+                function: { name: fc.name, arguments: JSON.stringify(fc.arguments) }
+              }))
+              trace('runChatRound.fallback-parsed', {
+                conversationId,
+                round,
+                callCount: effectiveToolCalls.length,
+                provenance: 'fallback'
+              })
+            }
+          }
+
+          if (!effectiveToolCalls || effectiveToolCalls.length === 0) {
             let finalContent = fullContent
             let draft: string | undefined
             let composerReasoning: string | undefined
@@ -869,7 +937,7 @@ export async function runChatRound(
             return
           }
 
-          const persistedToolCalls = toolCalls.map((tc) => ({
+          const persistedToolCalls = effectiveToolCalls.map((tc) => ({
             id: tc.id,
             type: 'function' as const,
             function: { name: tc.function.name, arguments: tc.function.arguments }
@@ -896,8 +964,8 @@ export async function runChatRound(
           // calls run one at a time. The final tool-role messages are pushed
           // in tool_call array order regardless of completion order so the
           // next API round sees a consistent sequence.
-          const resolved: ResolvedToolCall[] = new Array(toolCalls.length)
-          const windows = partitionToolCallWindows(toolCalls, (id) =>
+          const resolved: ResolvedToolCall[] = new Array(effectiveToolCalls.length)
+          const windows = partitionToolCallWindows(effectiveToolCalls, (id) =>
             toolRegistry.getById(id)
           )
           for (const win of windows) {
@@ -905,7 +973,7 @@ export async function runChatRound(
               const settled = await Promise.all(
                 win.indices.map((idx) =>
                   resolveSingleToolCall(
-                    toolCalls[idx],
+                    effectiveToolCalls[idx],
                     conversationId,
                     model,
                     workspacePath,
@@ -919,7 +987,7 @@ export async function runChatRound(
               }
             } else {
               resolved[win.index] = await resolveSingleToolCall(
-                toolCalls[win.index],
+                effectiveToolCalls[win.index],
                 conversationId,
                 model,
                 workspacePath,
@@ -1074,6 +1142,36 @@ async function resolveSingleToolCall(
     args = {}
   }
 
+  // FC-5 — Validate arguments against the tool's inputSchema before
+  // dispatching. If the model produced invalid arguments (wrong types,
+  // missing required fields, extra properties), return a corrective
+  // tool-result message instead of executing. This lets the model
+  // correct its call on the next turn rather than getting a cryptic
+  // handler error or worse, silent wrong behavior.
+  const descriptor = toolRegistry.getById(toolName)
+  if (descriptor?.inputSchema) {
+    const validation = validateToolArguments(toolName, args, descriptor.inputSchema)
+    if (!validation.valid) {
+      const errorDetail = validation.errors.join('; ')
+      trace('resolveToolCall.validation-failed', {
+        callId: tc.id,
+        conversationId,
+        toolName,
+        errors: validation.errors
+      })
+      return {
+        callId: tc.id,
+        result: JSON.stringify({
+          error: 'argument_validation_failed',
+          details: validation.errors,
+          hint: 'Check the tool schema and retry with corrected arguments.'
+        })
+      }
+    }
+    // Use the parsed (and potentially normalized) args from the validator
+    args = validation.parsed
+  }
+
   const startTime = Date.now()
   trace('resolveToolCall.enter', {
     callId: tc.id,
@@ -1112,7 +1210,6 @@ async function resolveSingleToolCall(
   let result: string
   let explicitStatus: 'done' | 'error' | 'denied' | undefined
 
-  const descriptor = toolRegistry.getById(toolName)
   if (descriptor) {
     emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
   }
@@ -1133,6 +1230,11 @@ async function resolveSingleToolCall(
   // tools do not honour the flag.
   const isDangerousShellBypass =
     toolName === 'shell_command' && args?.dangerously_disable_sandbox === true
+  // FC-9 — fallback-provenance calls (from text parsing, not native
+  // tool_calls) carry degraded trust. Mutating fallback calls skip any
+  // persisted "always allow" policy and always re-prompt the user.
+  const isFallbackProvenance = tc.id.startsWith('fb_')
+  const isFallbackMutating = isFallbackProvenance && isMutatingDescriptor(descriptor)
   const callRisks = isDangerousShellBypass && descriptor
     ? [...descriptor.risks, 'sandboxBypass' as const]
     : descriptor?.risks
@@ -1148,7 +1250,7 @@ async function resolveSingleToolCall(
           args,
           conversationId,
           correlationId,
-          dangerous: isDangerousShellBypass ? true : undefined
+          dangerous: (isDangerousShellBypass || isFallbackMutating) ? true : undefined
         })
       : { decision: 'allow' as const, source: 'none' }
   const approvalDecision = approvalOutcome.decision

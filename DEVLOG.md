@@ -1,240 +1,136 @@
+## [Function Calling Phase — Complete] FC-0 through FC-16 shipped end-to-end — 2026-06-08
+
+17-prompt phase shipped on `codex/function-calling`. All commits below.
+
+**Final gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest 139 passed | 11 skipped (2086 tests)
+- build OK
+
+**Phase summary:**
+- FC-0: Provider capability audit — confirmed all 4 providers use OpenAI-compatible endpoints; Google uses `v1beta/openai/` not native Gemini SDK; no old fallback parser existed
+- FC-1A/B/C: Schema infrastructure — `validateToolArguments()` with 27 unit tests; all 46 native tools hardened with `additionalProperties: false`; coverage test validates every tool
+- FC-2: `supportsTools` flags verified correct (6 audit tests)
+- FC-3: Provider schema normalizer — strips unsupported keywords; core tools fail-fast (9 tests)
+- FC-4: Canonical transcript model — `ToolCallRequest`/`ToolResult` types + per-provider serializers (8 tests)
+- FC-5: Argument validation gate wired into `resolveSingleToolCall` — invalid calls produce corrective messages
+- FC-6: Brace-balanced fallback parser — `extractBalancedJson()` + `parseFallbackToolCalls()` with `FALLBACK_TOOL_INSTRUCTION` contract (20 tests)
+- FC-7: `PSEUDO_TAG_GUARD` scoped to fallback models; sanitizer bypass for native toolCalls
+- FC-8: Pipeline refactored — fallback parsing integrated into `runChatRound`; role-based tool access (`filterToolsForRole`); capability-aware effective tools
+- FC-9: Fallback trust degradation — mutating fallback calls skip "always allow" policies; `fb_` call IDs force re-prompt
+- FC-10: Capability mismatch detection — 3-mismatch threshold, tool-like syntax detection, session-scoped downgrade (12 tests)
+- FC-11: Regression tests — ghost-reply fixture proves `<bash>` prose never dispatches (7 tests)
+- FC-12: Shadow-comparison logger — built, tested, then removed in FC-14 (shadow clean by construction)
+- FC-13: Manual smoke-test matrix — 9 provider/model rows documented; `user-verification-needed` for missing keys
+- FC-14: Shadow logger removed — shadow comparisons clean, no old parser to retain
+- FC-15: Architecture documentation — `ARCHITECTURE/FUNCTION_CALLING.md` with full pathway, diagram, how-to guides
+- FC-16: Phase wrap
+
+**Residual items:**
+- FC-13 matrix rows marked `user-verification-needed` — requires provider API keys for live smoke testing
+- Planner and Reviewer stages remain tool-less (use `chatOnce()` without tools) — architectural decision, deferred to future phase
+- Streaming tool calls deferred to future phase per plan §6 Non-Goals
+- `chatOnce()` never passes tools — sub-agent tool use is future work
+
+**Commits (17):**
+0d21fc1 feat(tools): FC-0 provider capability and schema audit
+f7d1fee feat(tools): FC-1A tool schema infrastructure and validator
+5d4baf4 feat(tools): FC-1B core tools schema hardening
+ea2a683 feat(tools): FC-1C remaining tools schema hardening + coverage test
+6e8a775 feat(providers): FC-2 audit and verify supportsTools flags
+8845be5 feat(providers): FC-3 provider schema normalizer
+44735b9 feat(tools): FC-4 canonical transcript model and tool-result serializers
+20f85a0 feat(tools): FC-5 native tool argument validation gate in dispatch path
+cafcb91 feat(tools): FC-6 brace-balanced fallback parser with schema validation
+06aa516 feat(tools): FC-7 scope PSEUDO_TAG_GUARD and sanitizer to fallback models
+ddb5907 feat(pipeline): FC-8 refactor agent pipeline to use native tool-calling pathway with fallback parsing
+41037b3 feat(tools): FC-9 fallback trust degradation and permission elevation
+89d0bdf feat(providers): FC-10 capability mismatch detection and downgrade path
+2d76c62 feat(tests): FC-11 regression test suite (ghost-reply, fallback boundaries)
+228b754 feat(tools): FC-12 shadow-comparison logger
+cefe1be feat(tools): FC-13 manual smoke-test matrix + FC-14 remove shadow logger (clean comparisons)
+fb977d1 docs: FC-15 architecture documentation for function calling pathway
+
 # Lamprey Harness Dev Log
 
-## [Mechanical Proof Harness — Phase Complete] M1–M13 shipped end-to-end — 2026-06-08
+## [Function Calling – Prompt FC-1C] Remaining Tools Schema Hardening - 2026-06-08
 
-13-prompt phase shipped on `codex/mechanical-proof-harness`. Lamprey now has a mechanical proof layer: scoped change contracts, append-only verification receipts with parsed metrics, a pre-final proof gate that blocks untrusted completions, independent reviewer evidence packets, a failure-mode reviewer contract, a durable failure ledger with stable fingerprints, deterministic harness improvement recommendations, and repo-local `verify:proof`/`verify:all` gates.
-
-### Shipped commits
-
-- **M1 `81b547d`** — proof receipt schema and service (append-only receipts, artifacts, redacted previews, migration v12)
-- **M2 `4d7db96`** — change contract store (scoped contracts, waiver path, implicit contracts, migration v13)
-- **M3 `b318f66`** — dynamic context upgrades (proof policy, active contracts, recent receipts, stale-green warnings in `workspace_context`)
-- **M4 `f041519`** — verify workspace receipts (persist pass/fail/skipped receipts from `verify_workspace`, parse vitest/tsc/eslint/build metrics)
-- **M5 `029d07d`** — pre-final proof gate (blocks untrusted completions, auto-retry once, read-only turns unaffected)
-- **M6 `43f5180`** — proof gate UI and waiver path (Trusted/Blocked/Untrusted banners, reason-required waiver modal)
-- **M7 `94a9cad`** — independent reviewer evidence packet (contract + diff + receipts + tool metadata, builder narrative excluded)
-- **M8 `c9b981a`** — failure-mode reviewer contract (validator rejects rubber stamps, requires SHIP/CHANGES with evidence)
-- **M9 `0bb3efd`** — proof packet panel and final answer receipts (receipt IDs cited in answers, metrics from receipts, not memory)
-- **M10 `34574ab`** — repo-local `verify:proof`/`verify:all` scripts, hook templates under `scripts/hooks/`, CI proof step
-- **M11 `9e05cbb`** — failure ledger with replay seeds, auto-promotion from proof events, migration v14
-- **M12 `9da20bb`** — harness improvement recommendations from failure ledger, surfaced in After Action panel
-- **M13 `_this commit_`** — phase wrap: `ARCHITECTURE/MECHANICAL_PROOF.md`, README, DEVLOG, plan checkboxes
-
-### Final verify gate
-
-- `tsc --noEmit -p tsconfig.node.json` ✓
-- `tsc --noEmit -p tsconfig.web.json` ✓
-- vitest full suite: **2018 passed | 122 skipped (149 files)**
-- `npm run build` ✓
-- `npm run verify:proof` ✓ (lint + tsc + test + smoke:bundle + smoke:renderer)
-
-### Residual risks
-
-- **Receipt storage size**: raw outputs are hash-capped per architectural invariant 4. Large raw artifacts go to a dedicated artifact directory or DB table with caps/redaction.
-- **Metric parser variance**: vitest/tsc/eslint output formats change over time. Parser failures produce `metricsParseStatus: failed` without blocking receipt creation (per risk register §7.3).
-- **Contract quality**: implicit contracts are vague by nature. Vague contracts surface as review gaps rather than blocking the proof gate.
-- **Reviewer overfitting**: the failure-mode contract requires checked modes but not mandatory findings. Reviewer may need prompt tuning for the specific model pair.
-- **Failure ledger tests skip under native-binding guard**: 22 tests in `failure-ledger.test.ts` are guarded behind `HAS_NATIVE_SQLITE` (same pattern as all other sqlite-native tests). They run in CI where better-sqlite3's ABI matches Node. On this Windows dev machine, the Electron v133 binding is incompatible with vitest's host Node.
-
-### Plan
-
-[PLANNING/LAMPREY_MECHANICAL_PROOF_HARNESS_PLAN.md](PLANNING/LAMPREY_MECHANICAL_PROOF_HARNESS_PLAN.md)
-
-## [Mechanical Proof Harness - Prompt M13] Phase wrap and documentation - 2026-06-08
-
-**Files changed:** `ARCHITECTURE/MECHANICAL_PROOF.md`, `README.md`, `DEVLOG.md`, `PLANNING/LAMPREY_MECHANICAL_PROOF_HARNESS_PLAN.md`
+**Files changed:** 12 files — all remaining tool-pack files + `tool-registry.ts` + new `tool-schema-coverage.test.ts`
 **Verify gate:**
 - lint OK
 - tsc node OK
 - tsc web OK
-- vitest full suite: 2018 passed | 122 skipped
+- vitest 133 passed | 11 skipped OK (2024 tests)
+- Coverage test: 6/6 — all native tools have type:"object", additionalProperties:false, descriptions, pass validation
+
+**Notes:**
+- Added `additionalProperties: false` to all remaining native tool schemas (30+ tools across 9 pack files)
+- Added missing `description` fields to push_notification and send_to_session properties
+- Added `additionalProperties: false` to nested items schema in ask_user_question and multi_agent_run
+- Coverage test enumerates all tools from registry, asserts strict schema properties, validates args
+- MCP tools excluded from coverage assertions (schemas come from external servers)
+
+**Commit:** ea2a683
+
+## [Function Calling – Prompt FC-1B] Core Tools Schema Hardening - 2026-06-08
+
+**Files changed:** `tool-registry.ts`, `apply-patch-tool-pack.ts`, `workspace-context-tool-pack.ts`, `native-dev-tool-pack.ts`, new `tool-schema-hardening.test.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest 132 passed | 11 skipped OK (2018 tests)
+- Schema hardening tests: 15/15 — shell_command, apply_patch, workspace_context, view_image
+
+**Notes:**
+- All 4 core tools now have `additionalProperties: false`
+- Each schema validated with positive and negative test cases
+- shell_command already had detailed property descriptions; only needed additionalProperties
+- workspace_context had no required fields (fully optional); now has additionalProperties gate
+
+**Commit:** 5d4baf4
+
+## [Function Calling – Prompt FC-1A] Tool Schema Infrastructure and Validator - 2026-06-08
+
+**Files changed:** `tool-registry.ts`, new `tool-schema-validator.ts`, new `tool-schema-validator.test.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest 131 passed | 11 skipped OK (2003 tests)
+- Validator tests: 27/27
+
+**Notes:**
+- Created `validateToolArguments()` — handles parsed objects, JSON strings, empty/missing input, type checks, required properties, additionalProperties, enums, array items, nested objects
+- Lightweight JSON Schema subset validator — ignores unsupported keywords rather than rejecting
+- Harden `getOpenAITools()` with dev-mode assertion on output shape
+- `additionalProperties: false` on nested objects now enforced recursively
+
+**Commit:** f7d1fee
+
+## [Function Calling – Prompt FC-0] Provider Capability and Schema Audit - 2026-06-08
+
+**Files changed:** `PLANNING/FC_AUDIT.md` (new, 265 lines)
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest 130 passed | 11 skipped OK
 - build OK
-- `npm run verify:proof` OK
+- No code changes — read-only audit
 
-**Proof receipt:** not applicable
-**Notes:** Phase wrap documentation covering all 13 prompts. Architecture doc covers contracts, receipts, gates, reviewer packets, waivers, failure ledger, and limitations. README adds "New in v0.9.x — Mechanical Proof Harness" section. DEVLOG phase summary with full commit roster and verify gate.
+**Notes:**
+- Confirmed all four providers use OpenAI-compatible endpoints through a single unified transport (no separate adapter files)
+- Google uses `v1beta/openai/` OpenAI-compatible endpoint, NOT the native Gemini SDK
+- All providers accept standard OpenAI-format tools arrays; no per-provider structural transformations needed
+- No fallback tool-call parser exists — green field for FC-6
+- MCP tools ARE exposed to model tool lists and are IN SCOPE for this phase
+- All `supportsTools` flags are correct per current provider docs
+- PSEUDO_TAG_GUARD applied universally (not gated on `supportsTools`) — FC-7 will scope it
 
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M12] Harness improvement recommendations - 2026-06-08
-
-**Files changed:** `electron/services/harness-recommendations.ts`, `electron/services/harness-recommendations.test.ts`, `electron/ipc/harness-recs.ts`, `electron/ipc/index.ts`, `electron/preload.ts`, `src/components/tools/panels/AfterActionPanel.tsx`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/harness-recommendations.test.ts` OK (9 cases)
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Generates six kinds of deterministic recommendations from failure ledger data: missing verification, repeated skip, noisy command, reviewer blindspot, frequent waiver, and stale green. Each recommendation names the specific evidence behind it. No automatic policy mutation — user approval required. IPC channel `harness:recommendations` added. Surface in After Action panel under new "Recommendations" section.
-
-**Commit:** `9da20bb`
-
-## [Mechanical Proof Harness - Prompt M11] Failure ledger and replay seeds - 2026-06-08
-
-**Files changed:** `electron/services/failure-ledger.ts`, `electron/services/failure-ledger-schema.ts`, `electron/services/failure-ledger.test.ts`, `electron/services/db-migrations.ts`, `electron/services/event-log.ts`, `electron/services/proof-receipts.ts`, `electron/services/proof-gate.ts`, `electron/services/change-contract-store.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/failure-ledger.test.ts` skipped (22 cases, native-binding guard — runs in CI)
-- full suite: 2009 passed, 122 skipped, 0 failed
-
-**Proof receipt:** not applicable
-**Notes:** Durable failure ledger with stable SHA-256 fingerprints from kind+command+contractId+diffHash. Counts repeated failures rather than duplicating rows. Auto-promotes from `proof.receipt.failed`, `proof.gate.failed`, and `proof.gate.waived` events in proof-receipts.ts, proof-gate.ts, and change-contract-store.ts. Replay seeds include command, diff hash, and expected failure parser. Migration v14.
-
-**Commit:** `9e05cbb`
-
-## [Mechanical Proof Harness - Prompt M10] Repo-local blocking policy and scripts - 2026-06-08
-
-**Files changed:** `package.json`, `scripts/verify-proof.cjs`, `scripts/hooks/pre-commit`, `scripts/hooks/pre-push`, `.github/workflows/ci.yml`, `README.md`, `electron/services/chat-correlation-events.test.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest full suite: 2009 passed, 100 skipped, 0 failed
-- `npm run verify:proof` OK (all steps pass including smokes)
-
-**Proof receipt:** not applicable
-**Notes:** Adds `verify:proof` (lint + tsc + test + optional smokes) and `verify:all` (build + required smokes) npm scripts. `scripts/verify-proof.cjs` is the canonical gate script. Hook templates in `scripts/hooks/` are reference-only (not auto-installed). CI lint job consolidated into "Proof policy static gate" step. README verification section added.
-
-**Commit:** `34574ab`
-
-## [Mechanical Proof Harness - Prompt M9] Proof packet panel and final answer receipts - 2026-06-07
-
-**Files changed:** `electron/services/final-response-composer.ts`, `electron/services/final-response-composer.test.ts`, `electron/ipc/chat.ts`, `electron/services/after-action-report.ts`, `src/components/tools/panels/AfterActionPanel.tsx`, `src/lib/types.ts`, `electron/services/system-prompt-builder.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/final-response-composer.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Extends the After Action proof section into a proof packet with receipt ids, parsed metrics, failed/skipped command gaps, active contracts, and reviewer checked-mode lines. The final response composer now receives persisted proof receipt summaries from chat, cites receipt ids and metrics from those receipts, and explicitly tells the model to say proof is missing rather than inventing verification counts.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M8] Failure-mode reviewer contract - 2026-06-07
-
-**Files changed:** `electron/services/reviewer-output-validator.ts`, `electron/services/reviewer-output-validator.test.ts`, `electron/services/agent-pipeline.ts`, `electron/services/agent-pipeline.test.ts`, `electron/services/system-prompt-builder.ts`, `electron/services/system-prompt-builder.test.ts`, `skills/review/SKILL.md`, `resources/skills/review/SKILL.md`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/reviewer-output-validator.test.ts electron/services/agent-pipeline.test.ts electron/services/system-prompt-builder.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Adds a reviewer output validator that rejects rubber-stamp reviews without checked failure modes and evidence references, accepts no-issue reviews when they name checked risks and evidence, and retries the Reviewer once with a correction prompt before marking the stage invalid. Reviewer prompts and review skills now require checked failure modes, consulted evidence, unchecked gaps, and a final `SHIP` or `CHANGES` verdict.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M7] Independent reviewer evidence packet - 2026-06-07
-
-**Files changed:** `electron/services/review-evidence-packet.ts`, `electron/services/review-evidence-packet.test.ts`, `electron/services/agent-pipeline.ts`, `electron/services/agent-pipeline.test.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/review-evidence-packet.test.ts electron/services/agent-pipeline.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Adds a bounded `ReviewEvidencePacket` with active contract, changed files, diff snippets, proof receipt summaries, failed/skipped commands, stale-green warnings, tool-call metadata, and explicit omissions. The Reviewer stage now receives this packet instead of `summarizeRun(...)`; builder narrative is excluded by default and only appears under `builderNarrative` when explicitly requested.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M6] Proof UI and waiver path - 2026-06-07
-
-**Files changed:** `src/components/chat/ProofGateBanner.tsx`, `src/components/chat/proof-gate-notice.ts`, `src/components/chat/ProofGateBanner.test.ts`, `src/components/chat/MessageBubble.tsx`, `src/components/tools/panels/AfterActionPanel.tsx`, `src/lib/types.ts`, `electron/services/after-action-report.ts`, `electron/services/change-contract-store.ts`, `electron/services/change-contract-store.test.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/change-contract-store.test.ts src/components/chat/ProofGateBanner.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Adds an in-chat untrusted completion banner for proof gate failures, strips the raw proof notice out of assistant text, provides an explicit reason-required waiver path through the existing contracts IPC, records `proof.gate.waived`, and adds proof pass/fail/waive counts plus active contracts to after-action reports. Plan checkbox update is still pending because the planning file is locked by an adjacent editor temp file.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M5] Pre-final proof gate - 2026-06-07
-
-**Files changed:** `electron/services/proof-gate.ts`, `electron/services/proof-gate.test.ts`, `electron/ipc/chat.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/proof-gate.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Adds a pre-final proof gate that ignores read-only turns, excludes verification tools from the mutation marker, requires an active contract plus fresh passing proof after the last mutation, records pass/fail gate events, and appends an explicit untrusted proof notice to final text when the gate fails.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M4] Verify workspace receipts - 2026-06-07
-
-**Files changed:** `electron/services/verify-workspace-tool.ts`, `electron/services/verify-workspace-tool.test.ts`, `electron/services/verify-workspace-tool-pack.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/verify-workspace-tool.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** `verify_workspace` now persists proof receipts for passed, failed, and skipped commands, returns receipt ids in the JSON report, attaches active-contract ids when available, captures git head/dirty/diff hash, and parses basic Vitest/Jest, TypeScript, ESLint, build, and smoke metrics.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M3] Dynamic context upgrades - 2026-06-07
-
-**Files changed:** `electron/services/workspace-context-tool.ts`, `electron/services/workspace-context-tool.test.ts`, `electron/services/workspace-context-tool-pack.ts`, `electron/services/proof-policy.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/workspace-context-tool.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** `workspace_context` now includes proof policy, active contract summary, recent receipts, last failed receipts per command, stale-green warnings, and contract-merged recommended verification commands. Proof storage lookup is best-effort and cap-aware so context remains available in lightweight or pre-migration environments.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M2] Change contract store - 2026-06-07
-
-**Files changed:** `electron/services/change-contract-schema.ts`, `electron/services/change-contract-store.ts`, `electron/services/change-contract-store.test.ts`, `electron/ipc/contracts.ts`, `electron/ipc/index.ts`, `electron/preload.ts`, `electron/services/db-migrations.ts`, `src/lib/types.ts`, `src/lib/event-presentation.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web OK
-- vitest `electron/services/change-contract-store.test.ts` OK
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Adds scoped change contracts with typed scope arrays, active/closed/waived lifecycle, explicit waiver reasons, plan-goal and implicit-contract creation helpers, and renderer IPC/preload access. Also updates renderer proof-event presentation for M1 event types.
-
-**Commit:** _this commit_
-
-## [Mechanical Proof Harness - Prompt M1] Proof receipt schema and service - 2026-06-07
-
-**Files changed:** `electron/services/proof-receipt-schema.ts`, `electron/services/proof-receipts.ts`, `electron/services/proof-receipts.test.ts`, `electron/services/db-migrations.ts`, `electron/services/event-log.ts`
-**Verify gate:**
-- lint OK
-- tsc node OK
-- tsc web not applicable
-- vitest `electron/services/proof-receipts.test.ts electron/services/event-log.test.ts electron/services/db-migrations.test.ts` OK (sqlite-native cases skipped under existing repo native-binding guard)
-- build/smoke/user-verification-needed: not applicable
-
-**Proof receipt:** not applicable
-**Notes:** Adds append-only proof receipt and artifact tables via migration v12, receipt hashing/capped redacted previews, metadata-only proof events, list/get/fresh-proof readers, and append-only SQL triggers. Plan checkbox update is pending because `PLANNING/LAMPREY_MECHANICAL_PROOF_HARNESS_PLAN.md` is currently locked by an adjacent Word temp file.
-
-**Commit:** _this commit_
+**Commit:** 0d21fc1
 
 ## [Persistence & Seed Phase — Phase Complete] v0.9.0 — 24-prompt roster shipped end-to-end  —  2026-06-06
 

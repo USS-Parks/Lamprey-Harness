@@ -471,18 +471,48 @@ class ToolRegistry {
    * OpenAI Chat Completions-compatible tool array, built from the current
    * descriptor set. Tool names match descriptor ids so chat.ts can route
    * results by exact match.
+   *
+   * FC-1A — output is now dev-mode asserted for strictness. Every tool's
+   * parameters object must include `type: "object"` at minimum; descriptors
+   * with missing or non-object `inputSchema` get a minimal fallback.
    */
   getOpenAITools(): ChatCompletionTool[] {
-    return this.getDescriptors().map((d) => ({
-      type: 'function' as const,
-      function: {
-        name: d.name,
-        description: d.description,
-        parameters:
-          (d.inputSchema as Record<string, unknown>) ||
-          { type: 'object', properties: {} }
+    const descriptors = this.getDescriptors()
+    const tools: ChatCompletionTool[] = []
+    for (const d of descriptors) {
+      let parameters = d.inputSchema as Record<string, unknown> | undefined
+      if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) {
+        parameters = { type: 'object', properties: {} }
+      } else if (!parameters.type) {
+        parameters = { ...parameters, type: 'object' }
       }
-    }))
+      tools.push({
+        type: 'function' as const,
+        function: {
+          name: d.name,
+          description: d.description,
+          parameters
+        }
+      })
+    }
+    // Dev-mode assertion — validate every tool entry conforms.
+    // Skipped in production builds (process.env.NODE_ENV check) to avoid
+    // runtime overhead. The assertion catches schema regressions early.
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+      for (const t of tools) {
+        const fn = (t as { function?: { name?: string; parameters?: unknown } }).function
+        if (t.type !== 'function') {
+          console.error('[tool-registry] getOpenAITools: tool entry missing type="function"', t)
+        }
+        if (!fn?.name || typeof fn.name !== 'string') {
+          console.error('[tool-registry] getOpenAITools: tool entry missing function.name', t)
+        }
+        if (!fn?.parameters || typeof fn.parameters !== 'object') {
+          console.error('[tool-registry] getOpenAITools: tool entry missing function.parameters', t)
+        }
+      }
+    }
+    return tools
   }
 
   recordCallStart(
@@ -649,7 +679,8 @@ toolRegistry.registerNative({
     properties: {
       content: { type: 'string', description: 'The fact to remember' }
     },
-    required: ['content']
+    required: ['content'],
+    additionalProperties: false
   },
   risks: ['write'],
   requiresApproval: false,
@@ -745,10 +776,11 @@ toolRegistry.registerNative(
         bypass_snip: {
           type: 'boolean',
           description:
-            'Opt out of the snip token-reducing filter for this single call. When true, the raw shell output reaches the model even when a matching filter exists (mirrors rtk\'s `rtk proxy <cmd>`). Use for forensic / debugging shell calls where the verbose output IS the signal — e.g. when you specifically want a full git log body that the filter would normally compress.'
+            'Opt out of the snip token-reducing filter for this single call. When true, the raw shell output reaches the model even when a matching filter exists.'
         }
       },
-      required: ['command']
+      required: ['command'],
+      additionalProperties: false
     },
     risks: ['write', 'network'],
     requiresApproval: true,
@@ -1025,6 +1057,7 @@ toolRegistry.registerNative({
       },
       options: {
         type: 'array',
+        description: '2-4 mutually-exclusive options for the user to pick from.',
         minItems: 2,
         maxItems: 4,
         items: {
@@ -1034,7 +1067,8 @@ toolRegistry.registerNative({
             description: { type: 'string', description: 'Brief explanation of this choice.' },
             preview: { type: 'string', description: 'Optional markdown preview when focused.' }
           },
-          required: ['label']
+          required: ['label'],
+          additionalProperties: false
         }
       },
       multiSelect: {
@@ -1046,7 +1080,8 @@ toolRegistry.registerNative({
         description: 'Timeout in milliseconds. Defaults to 30000.'
       }
     },
-    required: ['question', 'header', 'options']
+    required: ['question', 'header', 'options'],
+    additionalProperties: false
   },
   risks: [],
   requiresApproval: false,

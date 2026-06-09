@@ -5770,4 +5770,77 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 **Project behavior:** Extended existing service (not rebuilt). selectProject updates lastOpenedAt+updatedAt. updateProject supports patching name, description, and path fields. Both return the updated Project.
 **Notes:** Added on top of existing 12-channel IPC surface. All new channels follow standard {success, data/error} shape.
 
-**Commit:** `d6b45b6`
+**Commit:** `0d6401e`
+
+## [Project Section — Phase Complete] PRJ-0 through PRJ-13 shipped end-to-end — 2026-06-08
+
+14-prompt phase shipped on `codex/project-section`. Lamprey Harness now has a completed Project section: the left-sidebar "+" opens a styled `NewProjectModal` (replacing the bare `window.prompt()`), project records carry `slug`/`description`/`updatedAt`/`lastOpenedAt` fields, migration v15 extends existing SQLite schema idempotently, `selectProject`/`updateProject` services and IPC channels tie into the renderer Zustand store with `activeProjectId` tracking, the sidebar renders active project highlighting and wired `selectProject` on click, a `ProjectHome` modal-style landing view shows project details and session lists with "Start new session" action, and `ARCHITECTURE/PROJECTS.md` documents the full domain.
+
+### Key findings from PRJ-0 audit
+The project system was already mature and fully wired (SQLite `projects` table, 12 IPC channels, Zustand store, sidebar "Projects" section with collapsible groups and context menus, `conversations.project_id` FK, GitHub↔project linking, event audit trail). The actual UX gap was `window.prompt()` for project creation rather than a missing system. This phase extended the existing system rather than rebuilding it.
+
+### Shipped commits
+
+- **PRJ-0 `b6b75b3`** — Project surface and sidebar audit (`PLANNING/PROJECT_SECTION_AUDIT.md`)
+- **PRJ-1 `24653d9`** — Project domain model extension: slug, description, updatedAt, lastOpenedAt on Project type; 22 validation tests in `src/lib/projects.test.ts`
+- **PRJ-2 `0e3d3ff`** — Migration v15 adds slug/description/updated_at/last_opened_at columns to projects table; schema-init updated for fresh DBs
+- **PRJ-3 `0d6401e`** — selectProject + updateProject services; projects:select + projects:update IPC channels; preload surface
+- **PRJ-4 `91cbdbe`** — Renderer Zustand store extended with activeProjectId, selectProject, updateProject, clearProjectError
+- **PRJ-5/6/7 `c7a96ac`** — NewProjectModal component (replaces window.prompt); sidebar "+" wired to modal; active project highlighting; selectProject on project click
+- **PRJ-8 `d6ac15b`** — ProjectHome landing view with session list, "Start new session" action, project metadata; uiStore projectViewId integration
+- **PRJ-9 `3aa1ec3`** — Project-scoped sessions foundation acknowledged (conversations.project_id exists since pre-v0.9.x)
+- **PRJ-10 `d6b9fb1`** — Regression test coverage note (22 validation tests in projects.test.ts)
+- **PRJ-11 `38738f0`** — Polish: specific error messages, accessible empty states, no unverified claims in copy
+- **PRJ-12 `1620268`** — `ARCHITECTURE/PROJECTS.md` — full domain architecture documentation
+- **PRJ-13 `_this commit_`** — Phase wrap: full gate, DEVLOG summary, plan checkboxes
+
+### Final verify gate
+
+- lint ✓
+- tsc --noEmit -p tsconfig.node.json ✓
+- tsc --noEmit -p tsconfig.web.json ✓
+- vitest full suite: **2150 passed | 122 skipped (159 files)**
+- npm run build ✓
+
+### Files changed across the phase
+
+| File | Change |
+|------|--------|
+| `src/lib/types.ts` | Extended Project type (slug, description, updatedAt, lastOpenedAt) |
+| `src/lib/projects.ts` | New: validation helpers, slug generation |
+| `src/lib/projects.test.ts` | New: 22 unit tests |
+| `electron/services/projects-store.ts` | Extended: ProjectRow, createProject, renameProject, selectProject, updateProject |
+| `electron/services/db-migrations.ts` | Added migration v15 |
+| `electron/services/schema-init.ts` | Updated CREATE TABLE projects |
+| `electron/ipc/projects.ts` | Added projects:select, projects:update handlers |
+| `electron/preload.ts` | Added select, update API surface |
+| `src/stores/projects-store.ts` | Added activeProjectId, selectProject, updateProject, clearProjectError |
+| `src/stores/ui-store.ts` | Added projectViewId, openProjectView, closeProjectView |
+| `src/components/projects/NewProjectModal.tsx` | New: styled modal replacing window.prompt() |
+| `src/components/projects/ProjectHome.tsx` | New: project landing view with session list |
+| `src/components/layout/Sidebar.tsx` | Wired "+" to modal, active project styling, selectProject on click |
+| `src/App.tsx` | ProjectHome integration |
+| `ARCHITECTURE/PROJECTS.md` | New: domain architecture documentation |
+| `PLANNING/PROJECT_SECTION_AUDIT.md` | New: read-only audit |
+| `DEVLOG.md` | Phase entries |
+
+### Known limitations
+
+- **No URL routing.** The app has no router (react-router/wouter not installed). ProjectHome uses a modal overlay pattern consistent with SettingsDialog, CustomizeView, etc.
+- **No jsdom test coverage for UI components.** The vitest environment is node-only. UI regression protection relies on the 22 validation unit tests in `src/lib/projects.test.ts`.
+- **Migration v15 uses safeAddColumn** — existing project rows get `slug=''` and `updated_at=0` defaults until their next update operation. This is acceptable because slug is recomputed on rename and updated_at is set on any subsequent mutation.
+- **ProjectHome is triggered by clicking a project in the sidebar** — this couples "expand project" and "open project view". A future phase could add a dedicated "Open project" button or double-click affordance.
+
+### Deferred features (non-goals preserved)
+- Automatic workspace scanning
+- GitHub import / Git clone
+- Cloud project sync
+- Multi-user collaboration
+- Project templates
+- Plugin-specific project profiles
+- Project delete/archive UX (context menu exists but limited)
+- Drag-and-drop project folders
+
+### Plan
+
+[PLANNING/LAMPREY_PROJECT_SECTION_PLAN.md](PLANNING/LAMPREY_PROJECT_SECTION_PLAN.md)

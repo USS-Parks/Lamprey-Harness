@@ -59,15 +59,24 @@ const CONTRACT_SECTIONS: ContractSection[] = [
   }
 ]
 
-// Universal anti-hallucination clause. RT1 introduced this on the Reviewer
-// only; HX2 (Robustness Hotfix, v0.8.4) generalises it because the
-// bash-as-prose defect surfaced on `coder` too. Models that emit
-// `<bash>find …</bash>` (or `<tool>`, `<run>`, `<shell>`, `<execute>`,
-// `<command>`, `<terminal>`, `<output>`, `<result>`, `<stdout>`, `<stderr>`)
-// as a *substitute* for an actual tool invocation produce a ghosted turn:
-// the bubble renders the pseudo-XML as literal text and the user has to
-// re-prompt. The persist-side sanitizer in HX3/HX4 is the belt-and-braces;
-// this string is the suspenders.
+/**
+ * @deprecated since L6 (Lampshade Phase, 2026-06-09). The constant is kept
+ * exported for backward compatibility but is **no longer injected into any
+ * prompt** — listing forbidden tokens in the system prompt was both a
+ * known prompting anti-pattern (it primes the model to think about exactly
+ * those tokens) and ~700 redundant bytes per stage.
+ *
+ * The pseudo-tag failure mode (DeepSeek / Gemma / Qwen emitting `<bash>…</bash>`
+ * as a substitute for an actual tool call) is now caught entirely on the
+ * persist path by `sanitizePseudoTags()` in `sanitize-pseudo-tags.ts` (HX3/HX4),
+ * which rewrites stray pseudo-tags into fenced markdown before the bubble
+ * renders. The verbatim original is preserved in `messages.content_raw`.
+ *
+ * Pre-L6 history:
+ * - RT1 (v0.8.1) introduced this on the Reviewer only.
+ * - HX2 (v0.8.4) generalised it to planner/coder/reviewer/coworker + COMPOSER_SYSTEM.
+ * - L6 (v0.10.0) removed all injection sites. Sanitizer remains the safety net.
+ */
 export const PSEUDO_TAG_GUARD =
   'Output format: plain Markdown only. Never wrap commentary in pseudo-XML or angle-bracketed ' +
   'pseudo-tags such as <bash>, <tool>, <run>, <shell>, <execute>, <command>, <terminal>, ' +
@@ -97,8 +106,11 @@ export const COMPOSER_SYSTEM = [
   'After those sections, add the actual direct answer only if the wrap-up alone does not cover the user request.',
   'When proof receipts are supplied, cite receipt ids and parsed metrics exactly from the summary. If no receipt exists for relevant verification, say proof is missing; never invent counts.',
   'Do not invent files, commands, checks, or outcomes. If verification is absent, say SKIPPED or list it under what is left.',
-  'Keep it short and concrete.',
-  PSEUDO_TAG_GUARD
+  'Keep it short and concrete.'
+  // L6 (Lampshade Phase, 2026-06-09) — removed `PSEUDO_TAG_GUARD` injection
+  // here; sanitizePseudoTags (HX3/HX4) catches stray pseudo-tags on persist.
+  // L7 will additionally drop the mandatory <think> line above and slim the
+  // `Use exactly this structure` mandate.
 ].join('\n')
 
 export function buildComposerSystemPrompt(): string {
@@ -258,15 +270,18 @@ export function buildSystemPrompt(
 // model but can fan out into parallel agentic sub-tasks (planner thinking +
 // coder editing + reviewer checking, same model, concurrent). These role
 // prompts compose with the base contract via buildAgentSystemPrompt below.
+// L6 (Lampshade Phase, 2026-06-09) — every `PSEUDO_TAG_GUARD` injection
+// was removed. Naming forbidden tokens in the prompt is a known anti-pattern
+// and shipped ~700 bytes of redundant text per stage. The persist-side
+// `sanitizePseudoTags` (HX3/HX4) catches stray pseudo-tags on save and the
+// verbatim original is preserved in `messages.content_raw`.
 export const AGENT_ROLE_PROMPTS: Record<string, string> = {
   planner:
     'You are the Planner. Decompose the user request into an ordered, minimal set of steps. ' +
-    'Identify which files and tools are involved. Output a short numbered plan only — no code.\n' +
-    PSEUDO_TAG_GUARD,
+    'Identify which files and tools are involved. Output a short numbered plan only — no code.',
   coder:
     'You are the Coder. Execute the plan from the Planner. Produce exact diffs or file contents. ' +
-    'Prefer the smallest correct change. Use tools when they exist.\n' +
-    PSEUDO_TAG_GUARD,
+    'Prefer the smallest correct change. Use tools when they exist.',
   reviewer:
     'You are the Reviewer. Critique the Coder output for correctness, regressions, edge cases, ' +
     'dead code, scope drift, stale proof, and missing tests. First list checked failure modes ' +
@@ -274,12 +289,10 @@ export const AGENT_ROLE_PROMPTS: Record<string, string> = {
     'State unchecked gaps explicitly. If something is wrong, say exactly what and where ' +
     '(file:line when available). End with exactly one verdict line: SHIP or CHANGES.\n' +
     'You have no tools available in this stage — do not emit tool calls, do not pretend to run ' +
-    'commands, do not fabricate command output.\n' +
-    PSEUDO_TAG_GUARD,
+    'commands, do not fabricate command output.',
   coworker:
     'You are the Co-worker. You collaborate with the human in real time on the active workspace. ' +
-    'Be terse, suggest the next concrete action, and avoid restating the obvious.\n' +
-    PSEUDO_TAG_GUARD,
+    'Be terse, suggest the next concrete action, and avoid restating the obvious.',
   reader:
     'You are the Reader. Extract and summarise the facts needed from the supplied context. ' +
     'Do not speculate beyond the text. If a question is unanswerable from the context, say so. ' +

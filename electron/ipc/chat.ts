@@ -44,6 +44,7 @@ import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
 import { validateToolArguments } from '../services/tool-schema-validator'
 import { parseFallbackToolCalls } from '../services/fallback-tool-parser'
+import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { dispatchNativeTool } from '../services/native-dispatch'
 import { emitChatEvent } from '../services/chat-events'
 import { readDeepResearchSettings } from '../services/research/adapter-cascade'
@@ -714,7 +715,11 @@ export async function runChatRound(
   }
 
   const descriptor = resolveModel(model)
-  const effectiveTools = descriptor.supportsTools ? tools : undefined
+  // FC-10 — when the capability tracker has downgraded this model for this
+  // conversation, treat it as supportsTools: false going forward. The
+  // fallback parser (FC-6/FC-8) handles tool invocation from text.
+  const actuallySupportsTools = descriptor.supportsTools && !isDowngraded(conversationId, model)
+  const effectiveTools = actuallySupportsTools ? tools : undefined
 
   const audit: ModelRequestAudit | undefined = correlationId
     ? { correlationId, conversationId, purpose: 'main' }
@@ -751,14 +756,46 @@ export async function runChatRound(
             toolCallsCount: toolCalls?.length ?? 0
           })
 
+          // FC-10 — capability mismatch detection. When the model is flagged
+          // supportsTools but returns tool-like text without tool_calls,
+          // track consecutive mismatches. Downgraded models bypass future
+          // native-tool attempts and go straight to fallback parsing.
+          if (descriptor.supportsTools) {
+            const gotToolCalls = !!(toolCalls && toolCalls.length > 0)
+            const toolsWereSent = effectiveTools !== undefined
+            const warning = recordCapabilityCheck(
+              conversationId,
+              model,
+              toolsWereSent,
+              gotToolCalls,
+              fullContent
+            )
+            if (warning) {
+              trace('runChatRound.capability-mismatch', {
+                conversationId,
+                model,
+                warning
+              })
+              // Log but don't block — the user's current turn proceeds normally
+            }
+          }
+
           // FC-8 — when the model does not support native tool calling
           // (toolCalls is empty/null), attempt fallback parsing from the
           // text content. Fallback models are instructed to output JSON
           // following the fallback contract. If a valid fallback call is
           // found, convert it to the native toolCalls format and dispatch
           // through the same pathway.
+          //
+          // FC-10 — also run capability mismatch detection. When a native
+          // model returns tool-like syntax but no tool_calls, track
+          // consecutive mismatches. After 3, temporarily downgrade to
+          // fallback mode so the user's turn isn't wasted.
           let effectiveToolCalls = toolCalls
-          if ((!effectiveToolCalls || effectiveToolCalls.length === 0) && !descriptor.supportsTools) {
+          // Fallback parsing triggers when: (a) model doesn't support tools
+          // natively, OR (b) model has been downgraded due to capability mismatch.
+          const needsFallbackParsing = !descriptor.supportsTools || isDowngraded(conversationId, model)
+          if ((!effectiveToolCalls || effectiveToolCalls.length === 0) && needsFallbackParsing) {
             const descriptors = toolRegistry.getDescriptors()
             const fallbackResult = parseFallbackToolCalls(fullContent, descriptors)
             if (fallbackResult && !fallbackResult.isFinalAnswer && fallbackResult.calls.length > 0) {

@@ -1,3 +1,18 @@
+## [Wiring Closure — Prompt WC-9] Architecture doc accuracy sweep - 2026-06-09
+
+**Files changed:** `ARCHITECTURE/FUNCTION_CALLING.md`, `ARCHITECTURE/MECHANICAL_PROOF.md`, `ARCHITECTURE/PROJECTS.md`
+**Verify gate:**
+- lint OK
+- vitest 2193 passed | 123 skipped (no change — docs only)
+
+**Live wiring proof:** Each architectural invariant that this phase closed now carries an `**Invoked from:** <file>:<line>` citation backed by grep. `ARCHITECTURE/FUNCTION_CALLING.md` §2 key files table cites `tool-registry.ts:530` (normalizer) and `:541` (role filter); §5 + §10 add invocation paragraphs naming the WC-1 / WC-2 closures. `ARCHITECTURE/MECHANICAL_PROOF.md` §2 + §3 + §7 + §10 cite the WC-3 / WC-4 / WC-5 / WC-6 / WC-7 closure sites (implicit contract synthesis, persisted trust column, banner state helper, composer footer, CI invocation). `ARCHITECTURE/PROJECTS.md` adds a "Regression Coverage" section citing the WC-8 regression test.
+
+**Notes:** No source code changes — pure documentation accuracy pass. All cited file:line anchors are stable function or section names, not just raw line numbers (the line number is descriptive). Each "Invoked from" claim was verified by grep before being written. The drift identified in the FC audit (lines 25, 31, 96, 204) is now resolved.
+
+**Commit:** (pending)
+
+---
+
 ## [Wiring Closure — Prompt WC-8] PRJ-10 end-to-end regression test - 2026-06-09
 
 **Files changed:** `src/components/layout/Sidebar.project-flow.test.ts` (new)
@@ -10,7 +25,7 @@
 
 **Notes:** Vitest runs node-only in this repo (no jsdom/RTL — confirmed via `vitest.config.ts:14`). A full component-render test would require infra changes outside this phase's scope. The source-reading wiring-contract pattern is the pragmatic alternative: it catches the original defect class deterministically. The negative assertion `expect(sidebar).not.toMatch(/window\.prompt\(/)` would have failed against the pre-`c7a96ac` code, and the imported/rendered/aria-labeled chain catches the post-merge bugs (`8f33b60`, `29cd818`) that escaped the original PRJ verify gate. 13 assertions in two `describe` blocks.
 
-**Commit:** (pending)
+**Commit:** 1a3fcb0
 
 ---
 

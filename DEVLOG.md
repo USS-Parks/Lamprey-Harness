@@ -5708,3 +5708,19 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 **Notes:** Added a sidebar-mounted operational activity dashboard with normalized chat, workflow, subagent, cron, loop, and hook nodes. The store polls persisted task/loop/automation/hook surfaces and listens to workflow, task, and loop events for live refresh. Workflow child agents are folded under their workflow run while standalone background agents stay top-level. Pin state and collapse state persist in localStorage.
 
 **Commit:** see git log on `feat/fluidity-phase`
+
+## [Project Section – Prompt PRJ-0] Project surface and sidebar audit - 2026-06-08
+
+**Files changed:** `PLANNING/PROJECT_SECTION_AUDIT.md` (new, 303 lines)
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest baseline unchanged (2018 passed | 122 skipped)
+- build baseline unchanged
+- No code changes made (read-only audit)
+
+**Project behavior:** Audit reveals the project system is already mature and fully wired — `window.prompt()` is the functional but poor-ux creation flow. Key findings: SQLite `projects` table exists with 7 fields, 12 IPC channels active, Zustand renderer store with full CRUD, sidebar "Projects" section with collapsible groups and context menus, `conversations.project_id` FK, GitHub↔project linking, event audit trail. The actual gap is the lack of a styled New Project modal (currently uses bare `window.prompt()`), no project landing view, and no `activeProjectId` in state.
+**Notes:** Original plan drafted under incorrect assumption that project system was missing. Adjusted prompt strategy documented in audit §9. Implementation will extend existing system, not rebuild.
+
+**Commit:** `08837aa`

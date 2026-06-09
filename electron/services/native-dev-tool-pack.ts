@@ -41,7 +41,8 @@ toolRegistry.registerNative(
           description: 'Optional caption describing what the image shows.'
         }
       },
-      required: ['path']
+      required: ['path'],
+      additionalProperties: false
     },
     risks: ['read'],
     requiresApproval: false,

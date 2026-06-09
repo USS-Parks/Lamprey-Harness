@@ -93,6 +93,13 @@ Plan: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`. Approved + STS authorized by user 20
 - Headline: `renderContract()` = 9,311 bytes / 2,328 ~tokens; coding-mode single-agent = 10,897 bytes / 2,725 ~tokens; Reviewer agent prompt = 11,016 bytes / 2,754 ~tokens
 - Verify: tsc node + web clean
 
+### L4 — Slim `ROLE_FRAGMENTS` to 2–3 imperatives each
+- `electron/services/system-prompt-builder.ts` — rewrote all six fragments. Pre-L4 sizes were 1,157 / 597 / 626 / 939 / 555 / 624 bytes; post-L4 sizes are 187 / 240 / 222 / 257 / 220 / 245 bytes (averages dropped from ~750 to ~228 bytes, ~70% drop).
+- Load-bearing keywords retained: `coding`→`apply_patch`+`verify_workspace`, `review`→`SHIP`/`CHANGES`+`file:line`, `frontend`→`browser_screenshot`+`typecheck`+`frontend_qa`, `non_technical_user`→`jargon`+`tsc`. Test invariants for each still pass.
+- Cut from the rendered prompt: 750-char `update_plan` UI implementation paragraph in `coding`, the "Use shell_command sparingly" meta-explanation, the document-format enumeration in `document`, the "describe risk in everyday language — for example…" worked example in `non_technical_user`.
+- Updated one test that asserted the old "You are in coding mode." opener; new opener is "You are writing code." Added an L4 size lock: every fragment must stay under 280 bytes.
+- Verify: tsc node + web clean, vitest 47/47 builder tests pass.
+
 ### L3 — `<think>` becomes conditional, not mandatory
 - `electron/services/system-prompt-builder.ts` — extracted the L2 think bullet into an exported `THINK_BULLET` constant; rewrote the wording to *"When the answer involves planning, multiple options, or a non-obvious decision, work through it inside a `<think>…</think>` block before the visible reply. Skip the block for one-line acknowledgements, simple confirmations, and direct factual answers."* (was: "Begin each turn that produces visible output or tool calls with a `<think>` block").
 - Widened the `supportsNativeTools` strip in both `buildSystemPrompt` and `buildAgentSystemPrompt` to remove the `THINK_BULLET` line as well as `PSEUDO_TAG_GUARD` for native-reasoning models. Their captured `reasoning_content` channel makes the in-prose block redundant.

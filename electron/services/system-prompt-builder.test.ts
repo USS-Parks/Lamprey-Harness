@@ -246,7 +246,8 @@ describe('buildSystemPrompt — contract role layering', () => {
   it('injects the requested role fragment after the base contract', () => {
     const out = buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')
     expect(out).toContain('<role mode="coding">')
-    expect(out).toContain('You are in coding mode.')
+    // L4 — fragment opener is "You are writing code." (was "You are in coding mode.")
+    expect(out).toContain('You are writing code.')
     const contractIdx = out.indexOf('</contract>')
     const roleIdx = out.indexOf('<role mode="coding">')
     expect(roleIdx).toBeGreaterThan(contractIdx)
@@ -277,6 +278,15 @@ describe('getRoleFragment', () => {
     for (const role of ALL_ROLES) {
       const text = getRoleFragment(role)
       expect(text.length, `role "${role}" should have a fragment`).toBeGreaterThan(40)
+    }
+  })
+
+  // L4 — each fragment is 2–3 tight imperatives, not a meta-explanation
+  // paragraph. The 280-byte upper bound locks the win against future bloat.
+  it('keeps each fragment under 280 bytes (L4 tight-imperatives bound)', () => {
+    for (const role of ALL_ROLES) {
+      const text = getRoleFragment(role)
+      expect(text.length, `role "${role}" fragment too long: ${text.length} bytes`).toBeLessThan(280)
     }
   })
 

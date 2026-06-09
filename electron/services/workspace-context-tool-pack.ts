@@ -25,7 +25,8 @@ toolRegistry.registerNative(
           type: 'number',
           description: 'Optional output size cap in bytes. Default 8192, max 32768.'
         }
-      }
+      },
+      additionalProperties: false
     },
     risks: ['read'],
     requiresApproval: false,

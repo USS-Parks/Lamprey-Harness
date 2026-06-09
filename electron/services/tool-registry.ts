@@ -775,10 +775,11 @@ toolRegistry.registerNative(
         bypass_snip: {
           type: 'boolean',
           description:
-            'Opt out of the snip token-reducing filter for this single call. When true, the raw shell output reaches the model even when a matching filter exists (mirrors rtk\'s `rtk proxy <cmd>`). Use for forensic / debugging shell calls where the verbose output IS the signal — e.g. when you specifically want a full git log body that the filter would normally compress.'
+            'Opt out of the snip token-reducing filter for this single call. When true, the raw shell output reaches the model even when a matching filter exists.'
         }
       },
-      required: ['command']
+      required: ['command'],
+      additionalProperties: false
     },
     risks: ['write', 'network'],
     requiresApproval: true,

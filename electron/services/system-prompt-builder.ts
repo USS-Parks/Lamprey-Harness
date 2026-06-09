@@ -186,7 +186,7 @@ function defaultBaseFor(modelId?: string): string {
 }
 
 export function buildSystemPrompt(
-  activeSkillContents: { name: string; content: string; allowedTools?: string[] }[],
+  activeSkillContents: { name: string; content: string; allowedTools?: string[]; description?: string }[],
   memoryBlock: string,
   systemPromptOverride?: string,
   agentsMd?: string,
@@ -203,7 +203,11 @@ export function buildSystemPrompt(
   // FC-7 — when true (model has native function calling), the
   // PSEUDO_TAG_GUARD is stripped from the resulting prompt. Native
   // models use structured tool_calls and don't need the guard.
-  supportsNativeTools?: boolean
+  supportsNativeTools?: boolean,
+  // HY4 — when true, active skills are injected as name+description STUBS;
+  // the model loads a skill's full body on demand via `skill_open(name)`.
+  // Default (false) injects the full body, as before.
+  lazySkillBodies?: boolean
 ): string {
   // A non-empty override fully replaces the default base (identity + contract).
   // Power users who set a custom prompt are opting out of the contract on
@@ -247,7 +251,21 @@ export function buildSystemPrompt(
     if (skill.allowedTools && skill.allowedTools.length) {
       attrs.push(`allowed-tools="${skill.allowedTools.join(',')}"`)
     }
-    parts.push(`<skill ${attrs.join(' ')}>\n${skill.content}\n</skill>`)
+    if (lazySkillBodies) {
+      // HY4 — stub: name + description only. The full instructions load when
+      // the model calls skill_open("name"). Falls back to a derived one-liner
+      // when no description is set, and to the full body if the skill is tiny.
+      const desc =
+        skill.description?.trim() ||
+        skill.content.split('\n').find((l) => l.trim())?.trim() ||
+        '(no description)'
+      parts.push(
+        `<skill ${attrs.join(' ')} status="available">\n${desc}\n` +
+          `Call skill_open("${skill.name}") to load the full instructions before using this skill.\n</skill>`
+      )
+    } else {
+      parts.push(`<skill ${attrs.join(' ')}>\n${skill.content}\n</skill>`)
+    }
   }
 
   let result = parts.join('\n\n')

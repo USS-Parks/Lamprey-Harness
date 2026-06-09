@@ -33,7 +33,9 @@ export const CORE_TOOL_NAMES: readonly string[] = [
   'exit_plan_mode',
   'get_goal',
   // HY3 — always available so the model can page back into any spilled result.
-  'read_tool_result'
+  'read_tool_result',
+  // HY4 — always available so the model can load a skill stub's full body.
+  'skill_open'
 ]
 
 export const TOOL_SEARCH_TOOL_NAME = 'tool_search'

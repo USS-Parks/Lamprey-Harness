@@ -2,6 +2,14 @@
 
 > A multi-provider, multi-agent coding harness with a Codex-class IDE on top of DeepSeek, Google Gemma, Alibaba Qwen, and OpenRouter.
 
+## Verification
+
+Run `npm run verify:proof` before handing off a coding change. It runs lint, both TypeScript projects, tests, and smoke checks when build output already exists.
+
+Run `npm run verify:all` for the release-grade local gate: build first, then run the proof gate with smoke checks required.
+
+Optional hook templates live in `scripts/hooks/`. They are not installed automatically.
+
 <p align="center">
   <img src="ASSETS/LAMPREY%20MAI%20LOGO%20FINAL.png" alt="Lamprey" width="220" />
 </p>

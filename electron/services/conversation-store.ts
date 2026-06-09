@@ -737,6 +737,24 @@ export function saveMessage(msg: {
   }
 }
 
+/**
+ * WC-5 — Flip a message's persisted proof_status. Used by the waiver
+ * flow after the user explicitly waives a proof gate via the
+ * `contracts:waive` IPC. Returns the new status on success, or null if
+ * the message row does not exist.
+ */
+export function setMessageProofStatus(
+  messageId: string,
+  status: ProofStatus | null
+): ProofStatus | null {
+  const db = getDb()
+  const result = db
+    .prepare('UPDATE messages SET proof_status = ? WHERE id = ?')
+    .run(status ?? null, messageId)
+  if (result.changes === 0) return null
+  return status
+}
+
 export function getMessages(conversationId: string) {
   const db = getDb()
   const rows = db.prepare(

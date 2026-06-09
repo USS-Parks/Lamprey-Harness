@@ -15,17 +15,14 @@ import {
 // modelId — that takes the no-model branch of identityHead, which is a stable
 // hard-coded string. The modelId-path is exercised by chat.ts at runtime.
 
-const EXPECTED_SECTION_HEADINGS = [
-  'Chain-of-thought (REQUIRED)',
-  'Understand intent',
-  'Gather context before editing',
-  'Use tools as evidence',
-  'Protect user work',
-  'Verify before claiming done',
-  'Progress updates',
-  'Standalone deliverables',
-  'Final response'
-]
+// L2 (Lampshade Phase, 2026-06-09) — the 9-section / 52-bullet contract was
+// collapsed into one tight "How you work" block. The historical headings list
+// is preserved as a comment so the diff explains itself for future readers.
+//   Pre-L2 headings (deleted): Chain-of-thought (REQUIRED), Understand intent,
+//   Gather context before editing, Use tools as evidence, Protect user work,
+//   Verify before claiming done, Progress updates, Standalone deliverables,
+//   Final response.
+const EXPECTED_SECTION_HEADINGS = ['How you work']
 
 const ALL_ROLES: ContractRole[] = [
   'coding',
@@ -70,11 +67,18 @@ describe('buildSystemPrompt — default base', () => {
     expect(out).toContain('Lamprey is the interface, not the model')
   })
 
-  it('includes the full Codex Agent Contract', () => {
+  it('includes the operating block', () => {
     const out = buildSystemPrompt([], '')
     for (const heading of EXPECTED_SECTION_HEADINGS) {
       expect(out).toContain(`## ${heading}`)
     }
+  })
+
+  // L2 — the contract drops at least 60% vs L1 baseline (9,311 bytes).
+  // Target: under 3,700 bytes. Locks the win against future bloat.
+  it('renders under the L2 size target (< 3,700 bytes, ≥60% drop from L1)', () => {
+    const out = renderContract()
+    expect(out.length).toBeLessThan(3700)
   })
 
   it('places AGENTS.md after the base contract', () => {

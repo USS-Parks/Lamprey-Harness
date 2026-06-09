@@ -1095,6 +1095,10 @@ const api = {
     get: (conversationId: string) => ipcRenderer.invoke('after-action:get', conversationId)
   },
 
+  harnessRecs: {
+    list: (conversationId?: string) => ipcRenderer.invoke('harness:recommendations', conversationId)
+  },
+
   // Local RAG (Lamprey RAG Plan, R1+). R1 ships collection CRUD; R2 adds the
   // embedder catalogue + active-id surface. Document / query / attachment
   // namespaces arrive in R5-R12. `embed()` is intentionally NOT exposed —

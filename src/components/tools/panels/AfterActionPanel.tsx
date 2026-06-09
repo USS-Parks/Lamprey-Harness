@@ -8,6 +8,16 @@ import type {
   AfterActionToolItem
 } from '@/lib/types'
 
+interface HarnessRecItem {
+  id: string
+  kind: string
+  title: string
+  description: string
+  severity: 'info' | 'warning' | 'error'
+  evidence: Array<{ type: string; id: string }>
+  suggestion: string
+}
+
 interface IpcEnvelope<T> {
   success: boolean
   data?: T
@@ -167,12 +177,14 @@ function ToolRow({ tool }: { tool: AfterActionToolItem }) {
 export function AfterActionPanel(): React.ReactElement {
   const conversationId = useChatStore((s) => s.activeConversationId)
   const [report, setReport] = useState<AfterActionReport | null>(null)
+  const [recs, setRecs] = useState<HarnessRecItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
     if (!conversationId) {
       setReport(null)
+      setRecs([])
       return
     }
     setLoading(true)
@@ -187,6 +199,16 @@ export function AfterActionPanel(): React.ReactElement {
         setReport(null)
         setError(result.error ?? 'Could not build after-action report')
       }
+
+      // Load harness recommendations alongside (M12).
+      try {
+        const recsResult = (await window.api.harnessRecs.list(
+          conversationId
+        )) as IpcEnvelope<HarnessRecItem[]>
+        if (recsResult.success && recsResult.data) {
+          setRecs(recsResult.data)
+        }
+      } catch { /* best-effort */ }
     } finally {
       setLoading(false)
     }
@@ -340,6 +362,35 @@ export function AfterActionPanel(): React.ReactElement {
                 </ul>
               )}
             </section>
+
+            {recs.length > 0 && (
+              <section>
+                <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                  Recommendations
+                </div>
+                <ul className="overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
+                  {recs.map((rec) => (
+                    <li
+                      key={rec.id}
+                      className="flex gap-2 border-b border-[var(--panel-border)] px-3 py-2 last:border-b-0"
+                    >
+                      <SeverityDot severity={rec.severity} />
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-medium text-[var(--text-primary)]">
+                          {rec.title}
+                        </div>
+                        <div className="mt-0.5 text-[12px] leading-snug text-[var(--text-secondary)]">
+                          {rec.description}
+                        </div>
+                        <div className="mt-1 text-[11px] leading-snug text-[var(--accent)]">
+                          {rec.suggestion}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {(report.latestUserPrompt || report.latestAssistantText) && (
               <section>

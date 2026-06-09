@@ -81,6 +81,20 @@ The diagnostic plumbing (`PRAGMA user_version`, the migration ledger, the integr
 
 ---
 
+## 2026-06-09 — Lampshade Phase (L1–L11) — peel the over-instruction layer
+
+User direction: outputs from DeepSeek / Gemma / Qwen feel "tortured" rather than cogent. After investigation, the cause is the 52-bullet contract + mandatory-every-turn `<think>` mandate + role fragments shipped as paragraphs + agent sub-stages each receiving the full identity + contract. Baseline measurement at L1 confirms: every coding-mode turn ships ~2,725 tokens of operator instruction; the Reviewer stage ships 11,016 bytes for what should produce a one-line verdict, with ~89% of those bytes shared boilerplate.
+
+Plan: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`. Approved + STS authorized by user 2026-06-09. Target: v0.10.0.
+
+### L1 — Baseline measurement
+- New: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`, `PLANNING/LL_BASELINE.md`
+- Temp `lampshade-baseline.test.ts` rendered each canonical builder; numbers extracted into `LL_BASELINE.md`; temp test deleted
+- Headline: `renderContract()` = 9,311 bytes / 2,328 ~tokens; coding-mode single-agent = 10,897 bytes / 2,725 ~tokens; Reviewer agent prompt = 11,016 bytes / 2,754 ~tokens
+- Verify: tsc node + web clean
+
+---
+
 ## [Wiring Closure Phase — Complete] WC-0 through WC-11 shipped end-to-end — 2026-06-09
 
 12-prompt closure phase shipped on `claude/vigorous-nightingale-5697db`. v0.9.0 → **v0.9.1** patch release.

@@ -21,12 +21,28 @@ interface ContractSection {
   bullets: string[]
 }
 
+// L3 — the conditional chain-of-thought bullet. Held as an exported const so
+// the native-tools strip in buildSystemPrompt / buildAgentSystemPrompt can
+// remove it cleanly when `supportsNativeTools` is true (those models have a
+// captured reasoning_content channel; this bullet would just confuse them).
+// For every other model, the bullet stays — but no longer mandates a block
+// on every turn.
+export const THINK_BULLET =
+  'When the answer involves planning, multiple options, or a non-obvious decision, work through it inside a <think>…</think> block before the visible reply. Skip the block for one-line acknowledgements, simple confirmations, and direct factual answers. Close </think> cleanly before any tool call, code, or final answer.'
+
 const CONTRACT_SECTIONS: ContractSection[] = [
   {
     key: 'how_you_work',
     heading: 'How you work',
     bullets: [
-      'Begin each turn that produces visible output or tool calls with a <think>…</think> block. Close it cleanly before the visible reply. Keep it concrete — files, line numbers, the alternatives you weighed.',
+      // L3 — conditional <think> bullet. See `THINK_BULLET` constant below.
+      // For models with `supportsNativeTools`, this bullet is stripped from
+      // the rendered prompt entirely (their reasoning_content channel is
+      // already captured by the harness; the in-prose <think> wrapper would
+      // double-emit). For non-native models, the bullet is present but no
+      // longer mandatory on every turn — the L2 pre-image was: "Begin each
+      // turn that produces visible output or tool calls with a <think> block…"
+      THINK_BULLET,
       "Read the user's full message before acting. If a search returns zero matches in your current scope, you are probably in the wrong scope — ask which project, layer, or directory the user means before concluding the problem does not exist.",
       'Open the file you intend to change before changing it. Skim nearby code for conventions. Search for call sites before introducing new patterns or names.',
       'Treat tool output as your primary evidence. If a tool can verify reality, call it instead of speculating from memory.',
@@ -219,11 +235,15 @@ export function buildSystemPrompt(
 
   let result = parts.join('\n\n')
 
-  // FC-7 — when the model supports native function calling, strip the
-  // PSEUDO_TAG_GUARD from the prompt. Native models use structured
-  // tool_calls arrays and don't need pseudo-XML protection.
+  // FC-7 + L3 — when the model supports native function calling, strip the
+  // PSEUDO_TAG_GUARD and the L3 conditional <think> bullet from the prompt.
+  // Native models use structured tool_calls arrays (no pseudo-XML needed)
+  // and emit reasoning via reasoning_content (no in-prose <think> needed).
   if (supportsNativeTools) {
-    result = result.replace(PSEUDO_TAG_GUARD, '').replace(/\n{3,}/g, '\n\n')
+    result = result
+      .replace(PSEUDO_TAG_GUARD, '')
+      .replace(`- ${THINK_BULLET}\n`, '')
+      .replace(/\n{3,}/g, '\n\n')
   }
 
   return result
@@ -276,7 +296,10 @@ export function buildAgentSystemPrompt(
   const role_block = AGENT_ROLE_PROMPTS[role] || ''
   let result = `${head}\n\n<role>${role}</role>\n${role_block}`
   if (supportsNativeTools) {
-    result = result.replace(PSEUDO_TAG_GUARD, '').replace(/\n{3,}/g, '\n\n')
+    result = result
+      .replace(PSEUDO_TAG_GUARD, '')
+      .replace(`- ${THINK_BULLET}\n`, '')
+      .replace(/\n{3,}/g, '\n\n')
   }
   return result
 }

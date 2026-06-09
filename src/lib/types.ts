@@ -395,6 +395,13 @@ export interface AppSettings {
    */
   toolResultSpill?: boolean
   toolResultSpillBytes?: number
+  /**
+   * HY5 — when the proof gate + change-contract machinery engages. `'rigor'`
+   * (default): only on turns that ask for verification (audit/verify/prove/…)
+   * or dispatch multi-agent. `'always'`: every mutating turn (pre-Hygiene).
+   * `'off'`: never. L8 routing is unaffected either way.
+   */
+  proofGate?: 'rigor' | 'always' | 'off'
   // End-to-end agentic coding mode (Prompt 14). When `agenticCodingMode` is
   // on, every turn uses the coding contract role, auto-activates the listed
   // skill ids, and runs the final-response composer per the composer mode.

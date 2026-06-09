@@ -50,6 +50,11 @@ import {
   DEFAULT_SPILL_THRESHOLD
 } from '../services/tool-result-spill'
 import {
+  setProofRigor,
+  isProofRigorActive,
+  resolveProofRigor
+} from '../services/proof-rigor'
+import {
   partitionToolCallWindows,
   type ProviderToolCall
 } from '../services/tool-call-windowing'
@@ -543,6 +548,18 @@ export function registerChatHandlers(): void {
       }
       void requestedAgentMode
 
+      // HY5 (Split) — decide whether the heavyweight proof machinery (change
+      // contracts + proof-gate trust notice) engages this turn. L8 routing is
+      // unchanged above; this only scopes the proof flow to rigor turns.
+      setProofRigor(
+        conversationId,
+        resolveProofRigor({
+          proofGateMode: (settingsRaw as { proofGate?: string } | null)?.proofGate,
+          dispatchKind: dispatch.kind,
+          content
+        })
+      )
+
       if (dispatch.kind === 'multi') {
         // P11 review-P1: the Coder must execute with ITS OWN model's
         // identity, system-prompt override, and modelConfig params —
@@ -1019,15 +1036,20 @@ export async function runChatRound(
               ? concatReasoningTrail(roundsForTrail, composerReasoning)
               : fullReasoning
             const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
-            const gate = evaluateProofGate({
-              conversationId,
-              correlationId,
-              workspacePath,
-              sinceMs: turnStartedAt,
-              toolCalls: toolRegistry.getCallsForConversation(conversationId, 50),
-              getDescriptor: (toolId) => toolRegistry.getById(toolId)
-            })
-            if (!gate.trusted) {
+            // HY5 (Split) — only run the proof gate + append its notice on
+            // rigor turns. Non-rigor turns skip the receipts scan and keep a
+            // clean reply; proofStatus stays undefined (banner shows nothing).
+            const gate = isProofRigorActive(conversationId)
+              ? evaluateProofGate({
+                  conversationId,
+                  correlationId,
+                  workspacePath,
+                  sinceMs: turnStartedAt,
+                  toolCalls: toolRegistry.getCallsForConversation(conversationId, 50),
+                  getDescriptor: (toolId) => toolRegistry.getById(toolId)
+                })
+              : null
+            if (gate && !gate.trusted) {
               finalContent += proofGateNotice(gate)
             }
             // WC-4 — Persist trust state as a structured column. NULL means
@@ -1039,7 +1061,7 @@ export async function runChatRound(
             // applicable turns. 'blocked' and 'waived' are reserved for the
             // M6 waiver flow (WC-5 plumbing).
             const proofStatus: 'trusted' | 'untrusted' | undefined =
-              gate.status === 'not_required'
+              !gate || gate.status === 'not_required'
                 ? undefined
                 : gate.trusted
                   ? 'trusted'
@@ -1476,7 +1498,14 @@ async function resolveSingleToolCall(
   // evaluate against. Best-effort, cached per (conversation, correlation).
   // Plan-mode-authored contracts are detected by listChangeContracts and
   // preserve their authored shape.
-  if (correlationId && descriptor && isMutatingDescriptor(descriptor)) {
+  // HY5 (Split) — only synthesize the implicit change contract on rigor turns;
+  // the proof gate that consumes it is likewise rigor-gated above.
+  if (
+    correlationId &&
+    descriptor &&
+    isMutatingDescriptor(descriptor) &&
+    isProofRigorActive(conversationId)
+  ) {
     ensureImplicitContractForFirstMutation({
       conversationId,
       correlationId,

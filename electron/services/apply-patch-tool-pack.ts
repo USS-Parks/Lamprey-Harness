@@ -16,10 +16,11 @@ toolRegistry.registerNative(
         patch: {
           type: 'string',
           description:
-            'The full patch envelope including "*** Begin Patch" header and "*** End Patch" footer.'
+            'The full patch envelope including "*** Begin Patch" header and "*** End Patch" footer. Each file block is "*** Add File: <path>" (body lines start with "+"), "*** Update File: <path>" (optional "@@ <context>", then "+"/"-"/" " body lines per hunk), or "*** Delete File: <path>" (no body). All paths must resolve inside the workspace root.'
         }
       },
-      required: ['patch']
+      required: ['patch'],
+      additionalProperties: false
     },
     risks: ['write', 'destructive'],
     requiresApproval: true,

@@ -5755,3 +5755,19 @@ Implemented the full Google OAuth flow in `electron/ipc/mcp.ts`. The `mcp:setupG
 **Notes:** SQLite confirmed as persistence layer (per audit). Migration v15 follows the existing append-only, transaction-per-migration discipline. New columns (slug, description, updated_at, last_opened_at) added with safe defaults for existing rows.
 
 **Commit:** `ff141d6`
+
+## [Project Section – Prompt PRJ-3] Project persistence service and IPC - 2026-06-08
+
+**Files changed:** `electron/services/projects-store.ts` (added selectProject, updateProject, UpdateProjectInput), `electron/ipc/projects.ts` (added projects:select, projects:update handlers), `electron/preload.ts` (added select/update API surface)
+
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest full suite: 2150 passed | 122 skipped
+- build OK
+
+**Project behavior:** Extended existing service (not rebuilt). selectProject updates lastOpenedAt+updatedAt. updateProject supports patching name, description, and path fields. Both return the updated Project.
+**Notes:** Added on top of existing 12-channel IPC surface. All new channels follow standard {success, data/error} shape.
+
+**Commit:** `d6b45b6`

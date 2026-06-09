@@ -1,3 +1,46 @@
+## [Lampshade Phase — Complete] L1 through L11 shipped end-to-end — 2026-06-09
+
+11-prompt prompt-cogency phase shipped on `claude/intelligent-agnesi-b00922`. v0.9.1 → **v0.10.0** minor release.
+
+**Final gate:**
+- tsc node OK
+- tsc web OK
+- vitest 2222 passed / 123 skipped (no new failures)
+- `verify:proof -- --no-tests` exits 0
+- `lint` clean (via verify:proof)
+- build OK (electron-vite)
+
+**Headline numbers (L1 baseline → L9 after, before L10 paperwork):**
+- `renderContract()`: 9,311 → 2,113 bytes (**−77.3%**)
+- `buildSystemPrompt()` coding role: 10,897 → 2,753 bytes (**−74.7%**)
+- `buildSystemPrompt()` coding + native tools: 10,897 → 2,431 bytes (**−77.7%**)
+- `buildAgentSystemPrompt('reviewer')`: 11,016 → 697 bytes (**−93.7%**)
+- `buildAgentSystemPrompt('planner')`: 10,630 → 311 bytes (**−97.1%**)
+- `buildAgentSystemPrompt('coder')`: 10,604 → 518 bytes (**−95.1%**)
+- `buildAgentSystemPrompt('coworker')`: 10,621 → 302 bytes (**−97.2%**)
+- `COMPOSER_SYSTEM`: 1,930 → 774 bytes (**−59.9%**)
+
+Reviewer's shared-boilerplate ratio inverted from 89% boilerplate / 11% role text to 19% / 81%.
+
+**Per-prompt commits (post-rebase, fingerprints will shift):**
+- L1 — Baseline measurement + `LL_BASELINE.md`
+- L2 — Collapse 52-bullet contract to single operating block
+- L3 — Make think-block conditional, drop every-turn mandate
+- L4 — Slim role fragments to tight imperatives
+- L5 — Strip full contract from agent sub-stage prompts
+- L6 — Drop pseudo-tag guard from prompts; sanitizer keeps safety
+- L7 — Slim composer system, keep proof-receipt rule
+- L8 — Add adaptive 'auto' agent-mode router, default new users to auto
+- L9 — Snapshot the new envelope + ship smoke playbook
+- L10 — Paperwork: DEVLOG wrap, README, CLAUDE.md, v0.10.0 bump, `LL_AFTER.md`, plan COMPLETE flip + retrospective
+- L11 — Ship arc (build + tag + Bucket)
+
+**The fix in one paragraph.** Every coding-mode turn was shipping ~2,725 tokens of operator instruction before the user message was read; the multi-agent pipeline was shipping ~32 KB across stages of mostly-identical contract boilerplate. The fix is to scope each layer correctly: the operating contract is for the primary single-agent path (now 13 tight imperatives, not 52 bullets in 9 sections); the sub-agent stages receive only their role text plus (coder only) a 3-line operating-principles excerpt; `<think>` is conditional rather than mandatory and is dropped entirely for models with a captured `reasoning_content` channel; `PSEUDO_TAG_GUARD` is gone from prompts entirely (the persist-side `sanitizePseudoTags` is the safety net); a new `'auto'` `AgentMode` decides single-vs-multi per turn via a pure heuristic so the user doesn't have to pre-pick the dispatch path. No tools, UX surfaces, function-calling infrastructure, mechanical-proof gate, panels, RAG, Snip, Skills, Plugins, Reasoning-Trace Viewer, or Bucket pipeline were touched.
+
+**Plan + baseline + after:** `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`, `PLANNING/LL_BASELINE.md`, `PLANNING/LL_AFTER.md`. **Playbook:** `PLANNING/LL_SMOKE_PLAYBOOK.md` (8 canonical asks).
+
+---
+
 ## [Schema Bootstrap Hotfix] — 2026-06-09 — v0.9.2
 
 P0 hotfix for v0.9.1: every chat send returned `table messages has no column named proof_status`.
@@ -78,6 +121,90 @@ The diagnostic plumbing (`PRAGMA user_version`, the migration ledger, the integr
 - End-to-end probe against a copy of the live (broken) DB: schema completes → `runMigrations` applies v1 → v16 → `user_version = 16`, `messages.proof_status` present, `proof_receipts`/`change_contracts`/`failure_ledger` created.
 
 **Follow-up worth scheduling (not blocking the ship):** the `schema-init.test.ts` skip-when-no-native-sqlite gate is exactly the kind of "silent test loss" the proof harness was designed to flag. A separate task should either land an electron-native-binding test runner the suite can fall back to, or make the skip explicit in `verify:proof`'s output so a future regression is visible at gate-time instead of at user-runtime.
+
+---
+
+## 2026-06-09 — Lampshade Phase (L1–L11) — peel the over-instruction layer
+
+User direction: outputs from DeepSeek / Gemma / Qwen feel "tortured" rather than cogent. After investigation, the cause is the 52-bullet contract + mandatory-every-turn `<think>` mandate + role fragments shipped as paragraphs + agent sub-stages each receiving the full identity + contract. Baseline measurement at L1 confirms: every coding-mode turn ships ~2,725 tokens of operator instruction; the Reviewer stage ships 11,016 bytes for what should produce a one-line verdict, with ~89% of those bytes shared boilerplate.
+
+Plan: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`. Approved + STS authorized by user 2026-06-09. Target: v0.10.0.
+
+### L10 — Paperwork pass
+- `package.json` — version bump 0.9.1 → 0.10.0.
+- `README.md` — Download heading + table URLs flipped to v0.10.0; new "New in v0.10.0 — Lampshade Phase" paragraph at the top of the New In stack; Quick start link version 0.8.4 → 0.10.0; new Roadmap entry under "Built and shipped (v0.10.x)" with the Lampshade summary; added the Wiring Closure entry under v0.9.x which was missing.
+- `CLAUDE.md` — appended Lampshade Phase complete bullet at the end of the State list with full per-prompt summary + numbers; updated the reference-only plan list to include Lampshade.
+- `PLANNING/LAMPREY_LAMPSHADE_PLAN.md` — flipped APPROVED → COMPLETE; appended §2 Retrospective covering headline outcome, what worked, surprises, items carried forward (out of scope), guidance for future phases, and the authorization trail.
+- New: `PLANNING/LL_AFTER.md` — same shape as `LL_BASELINE.md` with the L9 numbers and before/after diff table, full before/after of the rendered single-agent coding prompt + reviewer prompt for visual comparison.
+- Verify: tsc node + web clean, `npm run verify:proof -- --no-tests` exits 0.
+
+### L1 — Baseline measurement
+- New: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`, `PLANNING/LL_BASELINE.md`
+- Temp `lampshade-baseline.test.ts` rendered each canonical builder; numbers extracted into `LL_BASELINE.md`; temp test deleted
+- Headline: `renderContract()` = 9,311 bytes / 2,328 ~tokens; coding-mode single-agent = 10,897 bytes / 2,725 ~tokens; Reviewer agent prompt = 11,016 bytes / 2,754 ~tokens
+- Verify: tsc node + web clean
+
+### L9 — Snapshot tests + fully-authored smoke playbook
+- `electron/services/system-prompt-builder.test.ts` — new `Lampshade L9 — envelope shape guards` block adds 5 tests: (a) positive — `## How you work` heading present in single-agent prompts, (b) size — coding-mode single-agent prompt under 4,096 bytes (was 10,897), (c) negative — no rendered prompt names any of `<bash>` / `Every single assistant turn` / `MUST begin with a <think>` / `Chain-of-thought (REQUIRED)` / `Never write "task complete"` / `fenced Markdown block with a language tag`, (d) size — every rendered agent prompt under 1,500 bytes, (e) exactness — the conditional `<think>` sentence appears at most once in any rendered prompt. These pin the Lampshade wins against silent regrowth.
+- **New: `PLANNING/LL_SMOKE_PLAYBOOK.md`** — fully-authored 8-ask cogency playbook. Each ask names the expected auto-routing decision, lists the cogency signals to check by ear, and names the failure mode that would expose a regression. The eight asks span trivia → one-line edit → typo fix → bug investigation → feature build (boundary case) → cross-file refactor → phase ship → plan draft. Two asks (5 and 8) are deliberately on the router's boundary so the heuristic is exercised, not just confirmed.
+- Verify: tsc node + web clean, vitest 47/47 builder tests pass.
+
+### L8 — Adaptive `'auto'` agent-mode router (the big one)
+- User direction (2026-06-09): *"I want the multi-agent/single agent question to solve itself; if the task is large, deploy more agents and sub agents. If it's manageable, do it alone as a single agent."*
+- **New: `electron/services/agent-router.ts`** — pure heuristic `routeAgentMode(userText): { mode, reason, cleanedText }`. Precedence: (1) explicit `--single`/`--multi` flag in prompt → strip + obey, (2) prompt > 800 bytes → multi, (3) explicit phase phrase (P-SPR / STS / stem to stern / Phase) → multi, (4) build-from-scratch phrase (build/create/scaffold/implement + full/app/system/etc) → multi, (5) multi-file refactor/audit/migrate phrase → multi, (6) ≥2 sequential-step markers (and then / after that / once X is done / step N) → multi, (7) ≥3 deliverables (bullet lines OR top-level commas, code blocks + parens stripped first) → multi, (8) default → single. No LLM call — fast, deterministic, testable.
+- **New: `electron/services/agent-router.test.ts`** — 22 tests covering each precedence rule + edge cases (code-block comma immunity, parenthesised-aside comma immunity, empty/null/undefined input, case-insensitive flag, flag stripped from cleanedText, etc.).
+- `src/lib/types.ts` — `AgentMode` widened to `'auto' | 'single' | 'multi'`. `ChatRequest.agentMode` deliberately narrowed via `Exclude<AgentMode, 'auto'>` because 'auto' is a settings-level value, not a per-turn override.
+- `src/stores/agent-store.ts` — default mode flipped from `'single'` to `'auto'`. Hydration normalizes unknown values back to `'auto'`; explicit `'single'`/`'multi'` from existing settings rows passes through unchanged.
+- `src/stores/settings-store.ts` — `DEFAULT_SETTINGS.agentMode` flipped to `'auto'` for new installs.
+- `src/components/settings/AgentSettings.tsx` — third radio "Auto (recommended)" added as the first option with subtitle *"Picks single or multi per turn based on the ask. Short asks stay single."*; toast message updated.
+- `electron/services/agent-pipeline.ts` — `resolveAgentDispatch` signature widened with optional `userText: string = ''` parameter. When `agentMode === 'auto'`, calls `routeAgentMode(userText)` and dispatches accordingly. New `routeReason` field on the decision discriminated union surfaces the heuristic's one-line explanation. Auto→multi falls back to single (with explanatory reason) if the roster is invalid.
+- `electron/ipc/chat.ts` — `resolveAgentDispatch(settingsRaw, content)` now passes the user message; logs the auto-route reason as `[chat] auto-routed to {single|multi}: {reason}` when present.
+- `src/stores/chat-store.ts` — translates `agentMode === 'auto'` into `undefined` at the chat:send call site (the per-turn override stays binary because auto routing is settings-driven, not request-driven).
+- `electron/services/agent-pipeline.test.ts` — 7 new tests for auto-mode dispatch: short text → single, long text → multi, STS phrase → multi, invalid roster → single fallback, --single flag override, --multi flag override, no userText → single default.
+- Verify: tsc node + web clean; vitest 2222 passed / 123 skipped (no new failures introduced); `npm run verify:proof -- --no-tests` exits 0.
+
+### L7 — Slim `COMPOSER_SYSTEM`
+- `electron/services/system-prompt-builder.ts` — dropped the mandatory `<think>` line from `COMPOSER_SYSTEM` (matches L3's conditional-think rule for the main turn); softened "Use exactly this structure" → "When the run has multiple concrete actions, this structure helps"; added "For simple turns, skip the structure and just answer directly" as an explicit out; removed the "After those sections, add the actual direct answer only if…" instruction (which read as a hedge against the structure mandate that L7 removes anyway).
+- **Load-bearing rule kept verbatim:** *"When proof receipts are supplied, cite receipt ids and parsed metrics exactly from the summary. If no receipt exists for relevant verification, say proof is missing; never invent counts."* — the M-phase gate (M1–M13, WC-6) depends on the composer naming receipt ids exactly, and the `final-response-composer.test.ts` already pins this phrase.
+- The deterministic `**Verification:**` footer appended by `runAgentPipeline` after the composer output is unchanged — that's code, not prompt.
+- PSEUDO_TAG_GUARD already removed at L6; no further injection points exist.
+- `final-response-composer.test.ts` 24 tests pass unchanged (pre-existing `'## What I did'` / `"## What's left"` / `'cite receipt ids and parsed metrics'` assertions all still match after the softening).
+- Verify: tsc node + web clean, vitest 66/66 across builder + composer, `npm run verify:proof -- --no-tests` exits 0.
+
+### L6 — Drop `PSEUDO_TAG_GUARD` from the prompt path; sanitizer keeps safety
+- `electron/services/system-prompt-builder.ts` — removed PSEUDO_TAG_GUARD injection from every site: `COMPOSER_SYSTEM` array tail, `AGENT_ROLE_PROMPTS.planner / .coder / .reviewer / .coworker` each lost their trailing `+ PSEUDO_TAG_GUARD` concatenation. The `export const PSEUDO_TAG_GUARD` itself stays exported with `@deprecated` JSDoc so any downstream importer (none in this repo today; sanitize-pseudo-tags.ts only references it in a comment) doesn't suddenly break.
+- The persist-side `sanitizePseudoTags` in `electron/services/sanitize-pseudo-tags.ts` (HX3/HX4) is unchanged and remains the safety net — it rewrites any stray `<bash>`/`<tool>`/`<run>`/`<shell>`/`<execute>`/`<command>`/`<terminal>`/`<output>`/`<result>`/`<stdout>`/`<stderr>` into fenced markdown on save, and the verbatim original is preserved in `messages.content_raw`.
+- `system-prompt-builder.test.ts` — removed the RT1 "forbids the common pseudo-XML tool tags by name" + "routes code references through fenced Markdown blocks" + "propagates the guards (with bash + fenced Markdown)" tests; removed the HX2 "is present in AGENT_ROLE_PROMPTS.{planner,coder,coworker}" + "propagates through buildAgentSystemPrompt('{role}')" + "is present in COMPOSER_SYSTEM" tests; removed the HX2 "reassembles the M8 reviewer body" byte-identical golden-snapshot test. Replaced with L6 negative locks: every role prompt is absent of PSEUDO_TAG_GUARD, every rendered prompt is absent of the literal `<bash>` substring, COMPOSER_SYSTEM is absent of PSEUDO_TAG_GUARD. Reviewer's load-bearing invariants (no-tools, SHIP/CHANGES/file:line, checked-failure-modes) kept and re-asserted.
+- **Tightened L5 size lock:** reviewer agent prompt now under 1,024 bytes (≥90% drop from L1's 11,016 bytes), matching the original plan target.
+- 22 `sanitize-pseudo-tags` tests still pass unchanged.
+- Verify: tsc node + web clean, vitest 64/64 across builder + sanitizer pass.
+
+### L5 — Strip full base contract from agent sub-stage prompts
+- `electron/services/system-prompt-builder.ts` — added `slimIdentityHead(modelId?)` (one-line "running inside Lamprey, be honest about your model") and `CODER_OPERATING_PRINCIPLES` (3-line read → smallest → verify). Refactored `buildAgentSystemPrompt` to use the slim head by default; an explicit `base` override still works. Only the `coder` role gets the operating-principles excerpt prepended (planner/reviewer don't edit; coworker is user-facing; reader/verifier are pure-text).
+- **Measured drop:** planner 10,630 → 996 (-90.6%), coder 10,604 → 1,205 (-88.6%), reviewer 11,016 → 1,382 (-87.5%), coworker 10,621 → 989 (-90.7%), reader 9,990 → 360 (-96.4%), verifier 10,030 → 400 (-96.0%). All clear the L5 ≥70% target.
+- The reviewer prompt is at 1,382 bytes because PSEUDO_TAG_GUARD (~700 bytes) is still baked into the reviewer role text — L6 strips that and tightens the lock to <1,024 bytes (≥90% drop).
+- `system-prompt-builder.test.ts` — flipped the prior "includes the default contract when no base override is given" test to "uses the slim identity head, not the full contract"; added the coder-only `<operating_principles>` test; added the L5 size lock (<3,305 bytes for reviewer).
+- Verify: tsc node + web clean, vitest 49/49 builder tests pass.
+
+### L4 — Slim `ROLE_FRAGMENTS` to 2–3 imperatives each
+- `electron/services/system-prompt-builder.ts` — rewrote all six fragments. Pre-L4 sizes were 1,157 / 597 / 626 / 939 / 555 / 624 bytes; post-L4 sizes are 187 / 240 / 222 / 257 / 220 / 245 bytes (averages dropped from ~750 to ~228 bytes, ~70% drop).
+- Load-bearing keywords retained: `coding`→`apply_patch`+`verify_workspace`, `review`→`SHIP`/`CHANGES`+`file:line`, `frontend`→`browser_screenshot`+`typecheck`+`frontend_qa`, `non_technical_user`→`jargon`+`tsc`. Test invariants for each still pass.
+- Cut from the rendered prompt: 750-char `update_plan` UI implementation paragraph in `coding`, the "Use shell_command sparingly" meta-explanation, the document-format enumeration in `document`, the "describe risk in everyday language — for example…" worked example in `non_technical_user`.
+- Updated one test that asserted the old "You are in coding mode." opener; new opener is "You are writing code." Added an L4 size lock: every fragment must stay under 280 bytes.
+- Verify: tsc node + web clean, vitest 47/47 builder tests pass.
+
+### L3 — `<think>` becomes conditional, not mandatory
+- `electron/services/system-prompt-builder.ts` — extracted the L2 think bullet into an exported `THINK_BULLET` constant; rewrote the wording to *"When the answer involves planning, multiple options, or a non-obvious decision, work through it inside a `<think>…</think>` block before the visible reply. Skip the block for one-line acknowledgements, simple confirmations, and direct factual answers."* (was: "Begin each turn that produces visible output or tool calls with a `<think>` block").
+- Widened the `supportsNativeTools` strip in both `buildSystemPrompt` and `buildAgentSystemPrompt` to remove the `THINK_BULLET` line as well as `PSEUDO_TAG_GUARD` for native-reasoning models. Their captured `reasoning_content` channel makes the in-prose block redundant.
+- `system-prompt-builder.test.ts` — added 3 L3 tests: contract contains the conditional bullet exactly once, no longer contains the every-turn mandate, no longer contains the "Chain-of-thought (REQUIRED)" heading; `supportsNativeTools=true` strips the bullet; `supportsNativeTools=false/undefined` keeps it.
+- Verify: tsc node + web clean, vitest 46/46 builder tests pass.
+
+### L2 — Collapse 52-bullet contract to one 13-bullet operating block
+- `electron/services/system-prompt-builder.ts` — replaced `CONTRACT_SECTIONS` (9 sections / 52 bullets) with one `'how_you_work'` section / 13 bullets. Folded duplicates: zero-matches-wrong-scope (was in Intent + Verify), restate-user (was in Progress + Final), UI implementation details about update_plan (cut), the entire "Chain-of-thought (REQUIRED)" section title (replaced with one conditional-ready bullet — L3 will soften).
+- Stripped from prompt: 750-char `update_plan` UI explanation, the 6-bullet Chain-of-thought section, every redundant elaboration.
+- `system-prompt-builder.test.ts` — `EXPECTED_SECTION_HEADINGS = ['How you work']`; renamed "includes the full Codex Agent Contract" → "includes the operating block"; added a `< 3,700 bytes` size lock.
+- **Measured drop:** `renderContract()` 9,311 → 1,990 bytes (-78.6%); `buildSystemPrompt()` coding role 10,897 → 3,564 bytes (-67.3%). Both clear plan targets.
+- Verify: tsc node + web clean, vitest 43/43 builder tests pass.
 
 ---
 

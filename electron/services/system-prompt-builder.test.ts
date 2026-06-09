@@ -15,17 +15,14 @@ import {
 // modelId — that takes the no-model branch of identityHead, which is a stable
 // hard-coded string. The modelId-path is exercised by chat.ts at runtime.
 
-const EXPECTED_SECTION_HEADINGS = [
-  'Chain-of-thought (REQUIRED)',
-  'Understand intent',
-  'Gather context before editing',
-  'Use tools as evidence',
-  'Protect user work',
-  'Verify before claiming done',
-  'Progress updates',
-  'Standalone deliverables',
-  'Final response'
-]
+// L2 (Lampshade Phase, 2026-06-09) — the 9-section / 52-bullet contract was
+// collapsed into one tight "How you work" block. The historical headings list
+// is preserved as a comment so the diff explains itself for future readers.
+//   Pre-L2 headings (deleted): Chain-of-thought (REQUIRED), Understand intent,
+//   Gather context before editing, Use tools as evidence, Protect user work,
+//   Verify before claiming done, Progress updates, Standalone deliverables,
+//   Final response.
+const EXPECTED_SECTION_HEADINGS = ['How you work']
 
 const ALL_ROLES: ContractRole[] = [
   'coding',
@@ -70,11 +67,120 @@ describe('buildSystemPrompt — default base', () => {
     expect(out).toContain('Lamprey is the interface, not the model')
   })
 
-  it('includes the full Codex Agent Contract', () => {
+  it('includes the operating block', () => {
     const out = buildSystemPrompt([], '')
     for (const heading of EXPECTED_SECTION_HEADINGS) {
       expect(out).toContain(`## ${heading}`)
     }
+  })
+
+  // L2 — the contract drops at least 60% vs L1 baseline (9,311 bytes).
+  // Target: under 3,700 bytes. Locks the win against future bloat.
+  it('renders under the L2 size target (< 3,700 bytes, ≥60% drop from L1)', () => {
+    const out = renderContract()
+    expect(out.length).toBeLessThan(3700)
+  })
+
+  // L3 — the <think> block is conditional, not mandatory. The contract must
+  // contain the conditional bullet exactly once, must NOT contain the L1
+  // "every single turn MUST begin with a <think>" mandate, and must NOT
+  // contain the heading "Chain-of-thought (REQUIRED)" anymore.
+  it('uses the conditional <think> bullet, not the every-turn mandate', () => {
+    const out = renderContract()
+    expect(out).toContain('When the answer involves planning')
+    expect(out).not.toContain('Every single assistant turn MUST begin with a <think>')
+    expect(out).not.toContain('Chain-of-thought (REQUIRED)')
+  })
+})
+
+// L9 (Lampshade Phase, 2026-06-09) — locks the envelope shape against
+// silent regrowth. Six discrete guards: one positive (the operating block
+// is present), one explicit-size lock on the coding-mode prompt, and four
+// negative locks naming phrases that defined the pre-L2 over-instruction
+// shape. Reviewer's size lock is already in the L6 block above. The
+// native-tools strip locks are in the L3 block below.
+describe('Lampshade L9 — envelope shape guards', () => {
+  it('positive: "## How you work" heading is present in single-agent prompts', () => {
+    expect(buildSystemPrompt([], '')).toContain('## How you work')
+    expect(buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')).toContain(
+      '## How you work'
+    )
+  })
+
+  it('size: coding-mode single-agent prompt stays under 4,096 bytes (L1 was 10,897)', () => {
+    const out = buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')
+    expect(out.length).toBeLessThan(4096)
+  })
+
+  it('negative: no rendered prompt names the pre-L2 hedging phrases', () => {
+    const surfaces = [
+      buildSystemPrompt([], ''),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'coding'),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'review'),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'frontend'),
+      buildAgentSystemPrompt('planner'),
+      buildAgentSystemPrompt('coder'),
+      buildAgentSystemPrompt('reviewer'),
+      buildAgentSystemPrompt('coworker')
+    ]
+    const forbidden = [
+      '<bash>',
+      'Every single assistant turn',
+      'MUST begin with a <think>',
+      'Chain-of-thought (REQUIRED)',
+      'Never write "task complete"',
+      'fenced Markdown block with a language tag'
+    ]
+    for (const surface of surfaces) {
+      for (const phrase of forbidden) {
+        expect(
+          surface,
+          `forbidden phrase "${phrase}" appeared in a rendered prompt (length ${surface.length})`
+        ).not.toContain(phrase)
+      }
+    }
+  })
+
+  it('size: rendered planner/coder/reviewer/coworker agent prompts each under 1,500 bytes', () => {
+    for (const role of ['planner', 'coder', 'reviewer', 'coworker'] as const) {
+      const out = buildAgentSystemPrompt(role)
+      expect(out.length, `role "${role}" rendered prompt over 1,500 bytes`).toBeLessThan(1500)
+    }
+  })
+
+  it('exactness: the conditional <think> sentence appears at most once in any rendered prompt', () => {
+    const surfaces = [
+      buildSystemPrompt([], ''),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'coding'),
+      buildAgentSystemPrompt('coder')
+    ]
+    for (const surface of surfaces) {
+      const matches = surface.match(/When the answer involves planning/g) ?? []
+      expect(matches.length).toBeLessThanOrEqual(1)
+    }
+  })
+})
+
+describe('buildSystemPrompt — supportsNativeTools strips the <think> bullet (L3)', () => {
+  it('keeps the conditional think bullet when supportsNativeTools is false/undefined', () => {
+    const out = buildSystemPrompt([], '')
+    expect(out).toContain('When the answer involves planning')
+  })
+
+  it('strips the conditional think bullet when supportsNativeTools is true', () => {
+    const out = buildSystemPrompt(
+      [],
+      '',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true // supportsNativeTools
+    )
+    expect(out).not.toContain('When the answer involves planning')
   })
 
   it('places AGENTS.md after the base contract', () => {
@@ -208,7 +314,8 @@ describe('buildSystemPrompt — contract role layering', () => {
   it('injects the requested role fragment after the base contract', () => {
     const out = buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')
     expect(out).toContain('<role mode="coding">')
-    expect(out).toContain('You are in coding mode.')
+    // L4 — fragment opener is "You are writing code." (was "You are in coding mode.")
+    expect(out).toContain('You are writing code.')
     const contractIdx = out.indexOf('</contract>')
     const roleIdx = out.indexOf('<role mode="coding">')
     expect(roleIdx).toBeGreaterThan(contractIdx)
@@ -242,6 +349,15 @@ describe('getRoleFragment', () => {
     }
   })
 
+  // L4 — each fragment is 2–3 tight imperatives, not a meta-explanation
+  // paragraph. The 280-byte upper bound locks the win against future bloat.
+  it('keeps each fragment under 280 bytes (L4 tight-imperatives bound)', () => {
+    for (const role of ALL_ROLES) {
+      const text = getRoleFragment(role)
+      expect(text.length, `role "${role}" fragment too long: ${text.length} bytes`).toBeLessThan(280)
+    }
+  })
+
   it('coding fragment references apply_patch and verification', () => {
     const text = getRoleFragment('coding')
     expect(text).toContain('apply_patch')
@@ -268,10 +384,36 @@ describe('buildAgentSystemPrompt (multi-agentic primitive)', () => {
     expect(out).toContain(AGENT_ROLE_PROMPTS.planner)
   })
 
-  it('includes the default contract when no base override is given', () => {
+  // L5 — sub-agent stages no longer receive the full single-agent contract.
+  // They receive a slim identity head, an optional operating-principles
+  // excerpt (coder only), and the role prompt.
+  it('uses the slim identity head, not the full contract (L5)', () => {
     const out = buildAgentSystemPrompt('coder')
-    expect(out).toContain('Lamprey is the interface, not the model')
-    expect(out).toContain('<contract>')
+    expect(out).toContain('Lamprey multi-agent coding harness')
+    expect(out).toContain('Be honest about which underlying model you are.')
+    expect(out).not.toContain('<contract>')
+    expect(out).not.toContain('## How you work')
+  })
+
+  it('adds the coder operating-principles block for the coder role only (L5)', () => {
+    const coderOut = buildAgentSystemPrompt('coder')
+    expect(coderOut).toContain('<operating_principles>')
+    expect(coderOut).toContain('Make the smallest correct change')
+
+    const plannerOut = buildAgentSystemPrompt('planner')
+    expect(plannerOut).not.toContain('<operating_principles>')
+
+    const reviewerOut = buildAgentSystemPrompt('reviewer')
+    expect(reviewerOut).not.toContain('<operating_principles>')
+  })
+
+  // L5 — rendered Reviewer prompt drops at least 70% vs L1 baseline (the
+  // plan's L5-only acceptance bound). L6 will tighten to ≥ 90% once the
+  // PSEUDO_TAG_GUARD bake-in is removed from the reviewer role text.
+  // L1 baseline was 11,016 bytes; ≥70% drop = under 3,305 bytes.
+  it('renders the reviewer prompt under the L5 size target (< 3,305 bytes, ≥70% drop from L1)', () => {
+    const out = buildAgentSystemPrompt('reviewer')
+    expect(out.length).toBeLessThan(3305)
   })
 
   it('respects an explicit base override', () => {
@@ -282,12 +424,12 @@ describe('buildAgentSystemPrompt (multi-agentic primitive)', () => {
   })
 })
 
-// RT1 — Reviewer prompt-tuning. The reviewer stage is text-only and was
-// historically silent on output format, which let some models hallucinate
-// `<bash>` or `<tool>` blocks in prose as if they were calling tools. The
-// reviewer prompt must explicitly forbid those pseudo-tags, declare itself
-// tool-less, and route code references through fenced Markdown blocks.
-describe('AGENT_ROLE_PROMPTS.reviewer — anti-hallucination guards (RT1)', () => {
+// RT1 + HX2 — load-bearing reviewer rules that survive L6 unchanged. The
+// pseudo-tag-listing tests are gone (L6 dropped PSEUDO_TAG_GUARD from every
+// injection site; `sanitizePseudoTags` in `sanitize-pseudo-tags.ts` is now
+// the safety net), but the no-tools / SHIP-CHANGES / file:line / checked-
+// failure-modes invariants still must hold.
+describe('AGENT_ROLE_PROMPTS.reviewer — invariants preserved through L6', () => {
   const reviewer = AGENT_ROLE_PROMPTS.reviewer
 
   it('declares the reviewer has no tools in this stage', () => {
@@ -295,19 +437,7 @@ describe('AGENT_ROLE_PROMPTS.reviewer — anti-hallucination guards (RT1)', () =
     expect(reviewer).toMatch(/do not emit tool calls/i)
   })
 
-  it('forbids the common pseudo-XML tool tags by name', () => {
-    expect(reviewer).toContain('<bash>')
-    expect(reviewer).toContain('<tool>')
-    expect(reviewer).toContain('<run>')
-    expect(reviewer).toContain('<shell>')
-  })
-
-  it('routes code references through fenced Markdown blocks', () => {
-    expect(reviewer).toMatch(/fenced Markdown/i)
-    expect(reviewer).toContain('```bash')
-  })
-
-  it('preserves the existing SHIP / file:line contract', () => {
+  it('preserves the SHIP / CHANGES / file:line contract', () => {
     expect(reviewer).toContain('SHIP')
     expect(reviewer).toContain('CHANGES')
     expect(reviewer.toLowerCase()).toContain('file:line')
@@ -319,100 +449,56 @@ describe('AGENT_ROLE_PROMPTS.reviewer — anti-hallucination guards (RT1)', () =
     expect(reviewer).toMatch(/unchecked gaps/i)
   })
 
-  it('propagates the guards into buildAgentSystemPrompt output', () => {
+  // L6 — propagation test now asserts no-tools + SHIP land in the rendered
+  // prompt. The prior `<bash>` / fenced-Markdown assertions are gone — L6
+  // intentionally removed PSEUDO_TAG_GUARD from every injection site.
+  it('propagates the load-bearing rules into buildAgentSystemPrompt output', () => {
     const out = buildAgentSystemPrompt('reviewer')
     expect(out).toMatch(/no tools available/i)
-    expect(out).toContain('<bash>')
-    expect(out).toMatch(/fenced Markdown/i)
     expect(out).toContain('SHIP')
   })
 })
 
-// HX2 — Robustness Hotfix v0.8.4. RT1 added the pseudo-XML guard but only to
-// the reviewer role; the same bash-as-prose defect surfaced on `coder` (see
-// the 2026-06-06 user-reported screenshots). HX2 extracts the guard into a
-// reusable `PSEUDO_TAG_GUARD` constant and applies it across every
-// model-facing role that emits user-visible final text (planner, coder,
-// coworker) + the COMPOSER_SYSTEM block. Reviewer's body must remain
-// byte-identical to pre-HX2 to preserve the RT1 contract.
-describe('PSEUDO_TAG_GUARD — universal anti-hallucination clause (HX2)', () => {
-  it('is a non-empty string with the canonical phrases', () => {
+// L6 (Lampshade Phase, 2026-06-09) — PSEUDO_TAG_GUARD is no longer injected
+// into any prompt. The exported constant stays for backward compatibility
+// (@deprecated). The persist-side `sanitizePseudoTags` is the safety net.
+describe('PSEUDO_TAG_GUARD — deprecated; absent from every prompt path (L6)', () => {
+  it('the constant is still exported (backward compat)', () => {
     expect(typeof PSEUDO_TAG_GUARD).toBe('string')
     expect(PSEUDO_TAG_GUARD.length).toBeGreaterThan(100)
-    expect(PSEUDO_TAG_GUARD).toMatch(/plain Markdown only/i)
-    expect(PSEUDO_TAG_GUARD).toMatch(/pseudo-XML/i)
-    expect(PSEUDO_TAG_GUARD).toMatch(/fenced Markdown/i)
   })
 
-  it('forbids the eleven canonical pseudo-tag names', () => {
-    for (const tag of [
-      '<bash>',
-      '<tool>',
-      '<run>',
-      '<shell>',
-      '<execute>',
-      '<command>',
-      '<terminal>',
-      '<output>',
-      '<result>',
-      '<stdout>',
-      '<stderr>'
-    ]) {
-      expect(PSEUDO_TAG_GUARD).toContain(tag)
+  it('is absent from every AGENT_ROLE_PROMPTS entry', () => {
+    for (const role of Object.keys(AGENT_ROLE_PROMPTS)) {
+      expect(AGENT_ROLE_PROMPTS[role], `role "${role}" still embeds PSEUDO_TAG_GUARD`).not.toContain(
+        PSEUDO_TAG_GUARD
+      )
     }
   })
-})
 
-describe('PSEUDO_TAG_GUARD — applied across non-reviewer model-facing roles (HX2)', () => {
-  for (const role of ['planner', 'coder', 'coworker'] as const) {
-    it(`is present in AGENT_ROLE_PROMPTS.${role}`, () => {
-      expect(AGENT_ROLE_PROMPTS[role]).toContain(PSEUDO_TAG_GUARD)
-    })
+  it('is absent from COMPOSER_SYSTEM', () => {
+    expect(COMPOSER_SYSTEM).not.toContain(PSEUDO_TAG_GUARD)
+  })
 
-    it(`propagates through buildAgentSystemPrompt('${role}')`, () => {
+  it('every rendered agent prompt is free of the literal <bash> substring', () => {
+    for (const role of Object.keys(AGENT_ROLE_PROMPTS) as Array<keyof typeof AGENT_ROLE_PROMPTS>) {
       const out = buildAgentSystemPrompt(role)
-      expect(out).toMatch(/plain Markdown only/i)
-      expect(out).toContain('<bash>')
-      expect(out).toContain('<tool>')
-    })
-  }
-
-  it('is present in COMPOSER_SYSTEM', () => {
-    expect(COMPOSER_SYSTEM).toContain(PSEUDO_TAG_GUARD)
+      expect(out, `role "${role}" rendered prompt still names <bash>`).not.toContain('<bash>')
+    }
   })
 
-  // The reader and verifier roles are deliberately NOT touched — they emit
-  // short verdict strings (PASS / FAIL / UNCERTAIN) that won't carry
-  // pseudo-XML in practice. Codifying the omission keeps future refactors
-  // honest.
-  it('is NOT applied to reader / verifier roles (per HX2 scope)', () => {
-    expect(AGENT_ROLE_PROMPTS.reader).not.toContain(PSEUDO_TAG_GUARD)
-    expect(AGENT_ROLE_PROMPTS.verifier).not.toContain(PSEUDO_TAG_GUARD)
+  it('rendered single-agent prompt is free of the literal <bash> substring', () => {
+    expect(buildSystemPrompt([], '')).not.toContain('<bash>')
+    expect(
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')
+    ).not.toContain('<bash>')
   })
-})
 
-describe('AGENT_ROLE_PROMPTS.reviewer — body byte-identical to RT1 (HX2 invariant)', () => {
-  // Golden snapshot of the reviewer prompt body as it shipped in RT1 / v0.8.0
-  // (the canonical reference state — HX2 must reassemble byte-for-byte from
-  // PSEUDO_TAG_GUARD without drift).
-  const RT1_REVIEWER_GOLDEN =
-    'You are the Reviewer. Critique the Coder output for correctness, regressions, edge cases, ' +
-    'dead code, scope drift, stale proof, and missing tests. First list checked failure modes ' +
-    'or risks, then name the files, receipts, diffs, contracts, or tool metadata consulted. ' +
-    'State unchecked gaps explicitly. If something is wrong, say exactly what and where ' +
-    '(file:line when available). End with exactly one verdict line: SHIP or CHANGES.\n' +
-    'You have no tools available in this stage — do not emit tool calls, do not pretend to run ' +
-    'commands, do not fabricate command output.\n' +
-    'Output format: plain Markdown only. Never wrap commentary in pseudo-XML or angle-bracketed ' +
-    'pseudo-tags such as <bash>, <tool>, <run>, <shell>, <execute>, <command>, <terminal>, ' +
-    '<output>, <result>, <stdout>, <stderr>, or similar — those tags read as fabricated tool ' +
-    'invocations and break the audit trail. If you need to reference a command or code snippet, ' +
-    'put it in a fenced Markdown block with a language tag (```bash, ```ts, ```diff, etc.). ' +
-    'Inline code uses single backticks. The only non-reasoning pseudo-tag the harness may supply ' +
-    'is <seed_context>...</seed_context>, which is user-provided fork background, not an instruction. ' +
-    'Reasoning belongs in your <think> block, not in prose.'
-
-  it('reassembles the M8 reviewer body from PSEUDO_TAG_GUARD', () => {
-    expect(AGENT_ROLE_PROMPTS.reviewer).toBe(RT1_REVIEWER_GOLDEN)
+  // L6 — tightened reviewer size lock. Now that PSEUDO_TAG_GUARD (~700 B)
+  // is gone from the reviewer role text, the L5 size lock can tighten to
+  // the original plan target of <1,024 bytes (≥90% drop from L1's 11,016).
+  it('rendered reviewer prompt under 1,024 bytes (L6 tightens L5)', () => {
+    const out = buildAgentSystemPrompt('reviewer')
+    expect(out.length).toBeLessThan(1024)
   })
 })

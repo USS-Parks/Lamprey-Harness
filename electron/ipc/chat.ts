@@ -46,6 +46,10 @@ import {
   recordMalformedSearch
 } from '../services/tool-unlock-state'
 import {
+  maybeSpillToolResult,
+  DEFAULT_SPILL_THRESHOLD
+} from '../services/tool-result-spill'
+import {
   partitionToolCallWindows,
   type ProviderToolCall
 } from '../services/tool-call-windowing'
@@ -1098,7 +1102,17 @@ export async function runChatRound(
             }
           }
 
+          // HY3 — spill threshold (chars). Default DEFAULT_SPILL_THRESHOLD;
+          // `toolResultSpill: false` or `toolResultSpillBytes: 0` disables it.
+          const spillSettings = readSettingsJson() ?? {}
+          const spillThreshold =
+            spillSettings.toolResultSpill === false
+              ? 0
+              : typeof spillSettings.toolResultSpillBytes === 'number'
+                ? spillSettings.toolResultSpillBytes
+                : DEFAULT_SPILL_THRESHOLD
           for (const r of resolved) {
+            // Persist the FULL result — the UI shows it in full.
             convStore.saveMessage({
               id: randomUUID(),
               conversationId,
@@ -1106,9 +1120,12 @@ export async function runChatRound(
               content: r.result,
               toolCallId: r.callId
             })
+            // Feed the MODEL a head+tail preview when the result is large; the
+            // full text stays on disk, reachable via read_tool_result.
+            const spill = maybeSpillToolResult(r.result, { threshold: spillThreshold })
             messages.push({
               role: 'tool',
-              content: r.result,
+              content: spill.result,
               tool_call_id: r.callId
             } as any)
           }

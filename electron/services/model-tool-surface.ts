@@ -31,7 +31,9 @@ export const CORE_TOOL_NAMES: readonly string[] = [
   'update_plan',
   'enter_plan_mode',
   'exit_plan_mode',
-  'get_goal'
+  'get_goal',
+  // HY3 — always available so the model can page back into any spilled result.
+  'read_tool_result'
 ]
 
 export const TOOL_SEARCH_TOOL_NAME = 'tool_search'

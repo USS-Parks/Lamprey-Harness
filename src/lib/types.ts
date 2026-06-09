@@ -386,6 +386,15 @@ export interface AppSettings {
    * emits malformed `tool_search` calls. Optional → treated as `'lazy'`.
    */
   toolSurface?: ToolSurfaceMode
+  /**
+   * HY3 — tool-result spill valve. When a tool result exceeds
+   * `toolResultSpillBytes` characters (default 8192), the model receives a
+   * head+tail preview + a `read_tool_result` ref instead of the full text
+   * (the conversation store + UI still keep the full result). Set
+   * `toolResultSpill: false` (or `toolResultSpillBytes: 0`) to disable.
+   */
+  toolResultSpill?: boolean
+  toolResultSpillBytes?: number
   // End-to-end agentic coding mode (Prompt 14). When `agenticCodingMode` is
   // on, every turn uses the coding contract role, auto-activates the listed
   // skill ids, and runs the final-response composer per the composer mode.

@@ -93,6 +93,13 @@ Plan: `PLANNING/LAMPREY_LAMPSHADE_PLAN.md`. Approved + STS authorized by user 20
 - Headline: `renderContract()` = 9,311 bytes / 2,328 ~tokens; coding-mode single-agent = 10,897 bytes / 2,725 ~tokens; Reviewer agent prompt = 11,016 bytes / 2,754 ~tokens
 - Verify: tsc node + web clean
 
+### L2 — Collapse 52-bullet contract to one 13-bullet operating block
+- `electron/services/system-prompt-builder.ts` — replaced `CONTRACT_SECTIONS` (9 sections / 52 bullets) with one `'how_you_work'` section / 13 bullets. Folded duplicates: zero-matches-wrong-scope (was in Intent + Verify), restate-user (was in Progress + Final), UI implementation details about update_plan (cut), the entire "Chain-of-thought (REQUIRED)" section title (replaced with one conditional-ready bullet — L3 will soften).
+- Stripped from prompt: 750-char `update_plan` UI explanation, the 6-bullet Chain-of-thought section, every redundant elaboration.
+- `system-prompt-builder.test.ts` — `EXPECTED_SECTION_HEADINGS = ['How you work']`; renamed "includes the full Codex Agent Contract" → "includes the operating block"; added a `< 3,700 bytes` size lock.
+- **Measured drop:** `renderContract()` 9,311 → 1,990 bytes (-78.6%); `buildSystemPrompt()` coding role 10,897 → 3,564 bytes (-67.3%). Both clear plan targets.
+- Verify: tsc node + web clean, vitest 43/43 builder tests pass.
+
 ---
 
 ## [Wiring Closure Phase — Complete] WC-0 through WC-11 shipped end-to-end — 2026-06-09

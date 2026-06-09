@@ -1,3 +1,28 @@
+## [Wiring Closure — Prompt WC-0] Closure baseline + gap re-confirmation - 2026-06-09
+
+**Files changed:** `PLANNING/WIRING_CLOSURE_BASELINE.md` (new), `PLANNING/LAMPREY_WIRING_CLOSURE_PLAN.md` (new)
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest 2150 passed | 122 skipped (better-sqlite3 native binding)
+- build OK (electron-vite 3.96s)
+
+**Live wiring proof:** Read-only confirmation pass. Re-grepped all 7 gap fingerprints at HEAD `8f33b60`. All 7 still present:
+- `normalizeToolsForProvider` — only test + definition files
+- `filterToolsForRole` — only its own definition file
+- `synthesizeImplicitChangeContract` — only test + definition files
+- `proof_status`/`proofStatus` — zero hits in codebase
+- `verify:proof` in `.github/` — zero hits
+- `src/components/layout/Sidebar.*test*` — zero hits
+- final-response-composer.ts:256 cites receipts in *composer-to-model* prompt, not in user-facing prose
+
+**Notes:** Baseline gate passes. WC-1 may proceed. No drift observed between plan draft and execution.
+
+**Commit:** (pending)
+
+---
+
 ## [Function Calling Phase — Complete] FC-0 through FC-16 shipped end-to-end — 2026-06-08
 
 17-prompt phase shipped on `codex/function-calling`. All commits below.

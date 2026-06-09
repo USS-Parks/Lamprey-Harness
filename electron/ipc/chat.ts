@@ -7,7 +7,8 @@ import {
   chatStream,
   getProviderForModel,
   resolveModel,
-  type ModelRequestAudit
+  type ModelRequestAudit,
+  type ProviderId
 } from '../services/providers/registry'
 import { boundedJsonPreview, recordEvent } from '../services/event-log'
 import { validateChatSendRequest } from './chat-validation'
@@ -35,6 +36,15 @@ import { mcpManager } from '../services/mcp-manager'
 import { listSkills, getSkillContent } from '../services/skill-loader'
 import { buildApiMessagesFromStoredMessages } from '../services/chat-history'
 import { toolRegistry, isMutatingDescriptor } from '../services/tool-registry'
+import { TOOL_SEARCH_TOOL_NAME } from '../services/model-tool-surface'
+import {
+  activateLazySurface,
+  isLazyActive,
+  isSurfaceDowngraded,
+  unlockTools,
+  getUnlockedTools,
+  recordMalformedSearch
+} from '../services/tool-unlock-state'
 import {
   partitionToolCallWindows,
   type ProviderToolCall
@@ -468,8 +478,12 @@ export function registerChatHandlers(): void {
       // is unrestricted) but the call site is now the explicit source of
       // truth for which role receives this tools array.
       const activeProvider = getProviderForModel(model)
+      // HY2 — lazy model tool-surface. Default `'lazy'`: send the always-on
+      // core set + `tool_search`; the model unlocks the rest on demand (state
+      // in tool-unlock-state.ts). `'full'` or a downgraded conversation gets
+      // the entire normalized catalog, byte-for-byte the pre-Hygiene path.
       const tools: ChatCompletionTool[] =
-        toolRegistry.getNormalizedToolsForRole('coder', activeProvider)
+        buildDispatchTools(conversationId, activeProvider, settingsRaw)
 
       const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory)
 
@@ -703,6 +717,49 @@ export function registerChatHandlers(): void {
 // value; the byte-for-byte behaviour of the pre-Prompt-11 path is
 // preserved.
 export type RunChatRoundResult = { message: unknown } | null
+
+/**
+ * HY2 — Build the tool array handed to the model for a turn. `'lazy'` (default)
+ * returns the core set + `tool_search` + any tools already unlocked for this
+ * conversation; `'full'` (or a downgraded conversation) returns the entire
+ * normalized catalog, identical to the pre-Hygiene dispatch.
+ */
+function buildDispatchTools(
+  conversationId: string,
+  provider: ProviderId,
+  settingsRaw: unknown
+): ChatCompletionTool[] {
+  const mode = (settingsRaw as { toolSurface?: string } | undefined)?.toolSurface ?? 'lazy'
+  if (mode === 'lazy' && !isSurfaceDowngraded(conversationId)) {
+    activateLazySurface(conversationId)
+    return toolRegistry.getModelToolSurface(provider, {
+      unlockedNames: getUnlockedTools(conversationId)
+    })
+  }
+  return toolRegistry.getNormalizedToolsForRole('coder', provider)
+}
+
+/**
+ * HY2 — Recompute the tool array between tool-call rounds so tools unlocked by
+ * a `tool_search` call this round are callable next round. In `'full'` mode
+ * (and for non-lazy conversations) the array passes through unchanged; a
+ * mid-loop downgrade rebuilds the full catalog.
+ */
+function rebuildToolsForNextRound(
+  conversationId: string,
+  model: string,
+  currentTools: ChatCompletionTool[] | undefined
+): ChatCompletionTool[] | undefined {
+  if (isLazyActive(conversationId)) {
+    return toolRegistry.getModelToolSurface(getProviderForModel(model), {
+      unlockedNames: getUnlockedTools(conversationId)
+    })
+  }
+  if (isSurfaceDowngraded(conversationId)) {
+    return toolRegistry.getNormalizedToolsForRole('coder', getProviderForModel(model))
+  }
+  return currentTools
+}
 
 export async function runChatRound(
   conversationId: string,
@@ -1068,7 +1125,8 @@ export async function runChatRound(
               conversationId,
               model,
               messages,
-              tools,
+              // HY2 — fold in any tools unlocked by a tool_search this round.
+              rebuildToolsForNextRound(conversationId, model, tools),
               workspacePath,
               signal,
               round + 1,
@@ -1263,6 +1321,42 @@ async function resolveSingleToolCall(
     args = JSON.parse(tc.function.arguments)
   } catch {
     args = {}
+  }
+
+  // HY2 — `tool_search` meta-tool. Synthetic surface-only tool (no registry
+  // descriptor), handled before the dispatch path: resolve matches, unlock
+  // them for this conversation so the next round can call them natively, and
+  // return the match list. A malformed (empty-query) call counts toward the
+  // surface downgrade so a model that can't drive the round-trip falls back
+  // to the full catalog.
+  if (toolName === TOOL_SEARCH_TOOL_NAME) {
+    const query = typeof args.query === 'string' ? args.query.trim() : ''
+    if (!query) {
+      const n = recordMalformedSearch(conversationId)
+      return {
+        callId: tc.id,
+        result: JSON.stringify({
+          error: 'tool_search requires a non-empty "query" string.',
+          malformedCount: n
+        })
+      }
+    }
+    const matches = toolRegistry.resolveToolSearch(query)
+    unlockTools(
+      conversationId,
+      matches.map((m) => m.name)
+    )
+    return {
+      callId: tc.id,
+      result: JSON.stringify({
+        query,
+        unlocked: matches.map((m) => m.name),
+        tools: matches,
+        note: matches.length
+          ? 'These tools are now available — call them directly on your next turn.'
+          : 'No matching tools found. Try a different capability description.'
+      })
+    }
   }
 
   // FC-5 — Validate arguments against the tool's inputSchema before

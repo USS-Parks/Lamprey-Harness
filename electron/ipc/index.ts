@@ -7,6 +7,7 @@ import '../services/tool-packs'
 
 import { registerChatHandlers } from './chat'
 import { registerConversationHandlers } from './conversation'
+import { registerContractHandlers } from './contracts'
 import { registerSettingsHandlers } from './settings'
 import { registerModelHandlers } from './model'
 import { registerSkillsHandlers } from './skills'
@@ -47,10 +48,12 @@ import { registerSnipHandlers } from './snip'
 import { registerCcSkillImportHandlers } from './cc-skill-import'
 import { registerPersistenceHandlers } from './persistence'
 import { registerAfterActionHandlers } from './after-action'
+import { registerHarnessRecsHandlers } from './harness-recs'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
   registerConversationHandlers()
+  registerContractHandlers()
   registerSettingsHandlers()
   registerModelHandlers()
   registerSkillsHandlers()
@@ -93,4 +96,5 @@ export function registerAllIpcHandlers(): void {
   registerCcSkillImportHandlers()
   registerPersistenceHandlers()
   registerAfterActionHandlers()
+  registerHarnessRecsHandlers()
 }

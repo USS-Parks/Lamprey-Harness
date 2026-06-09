@@ -83,6 +83,16 @@ export interface RunSummaryToolCall {
   error?: string
 }
 
+export interface RunSummaryProofReceipt {
+  id: string
+  kind: string
+  status: string
+  command: string
+  parsedMetrics?: Record<string, unknown>
+  exitCode?: number
+  durationMs?: number
+}
+
 export interface RunSummary {
   userGoal: string
   plan?: {
@@ -90,6 +100,7 @@ export interface RunSummary {
     totals?: Record<string, number>
   }
   toolCalls: RunSummaryToolCall[]
+  proofReceipts: RunSummaryProofReceipt[]
   draftReply: string
 }
 
@@ -160,7 +171,8 @@ export function summarizeRun(
   messages: RunSummaryMessage[],
   planSnapshot: PlanSnapshot | null | undefined,
   toolCalls: LampreyToolCall[],
-  draftReply: string
+  draftReply: string,
+  proofReceipts: RunSummaryProofReceipt[] = []
 ): RunSummary {
   const userGoal =
     [...messages]
@@ -198,6 +210,15 @@ export function summarizeRun(
           ? truncateForComposer(call.error, COMPOSER_TOOL_RESULT_CAP)
           : undefined
       })),
+    proofReceipts: proofReceipts.slice(0, 20).map((receipt) => ({
+      id: receipt.id,
+      kind: receipt.kind,
+      status: receipt.status,
+      command: truncateForComposer(receipt.command, 240),
+      parsedMetrics: receipt.parsedMetrics ?? {},
+      exitCode: receipt.exitCode,
+      durationMs: receipt.durationMs
+    })),
     draftReply: truncateForComposer(draftReply, COMPOSER_DRAFT_CAP)
   }
 }
@@ -222,6 +243,20 @@ export function buildComposerPrompt(summary: RunSummary): { system: string; user
             })
             .join('\n')
         : '(no tool calls recorded)',
+      '',
+      'Proof receipts:',
+      summary.proofReceipts.length > 0
+        ? summary.proofReceipts
+            .map((receipt) => {
+              const metrics =
+                receipt.parsedMetrics && Object.keys(receipt.parsedMetrics).length > 0
+                  ? ` metrics=${JSON.stringify(receipt.parsedMetrics)}`
+                  : ''
+              const exit = typeof receipt.exitCode === 'number' ? ` exit=${receipt.exitCode}` : ''
+              return `- ${receipt.kind} receipt ${receipt.id}: ${receipt.status}; command=${receipt.command}${exit}${metrics}`
+            })
+            .join('\n')
+        : '(none recorded; if proof is relevant, say proof is missing instead of inventing counts)',
       '',
       'Model draft reply:',
       summary.draftReply || '(empty draft)',

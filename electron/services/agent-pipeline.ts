@@ -15,7 +15,11 @@ import {
   executeMultiAgentRun,
   type SubAgentRunner
 } from './multi-agent-run-tool'
-import { summarizeRun } from './final-response-composer'
+import { buildReviewEvidencePacket } from './review-evidence-packet'
+import {
+  buildReviewerCorrectionPrompt,
+  validateReviewerOutput
+} from './reviewer-output-validator'
 import { trace } from './debug-trace'
 
 // T3 — Per-stage wall-clock budgets. The MAX_TOOL_ROUNDS cap (chat.ts:204)
@@ -286,6 +290,7 @@ export interface RunAgentPipelineOptions {
   coderRunner: CoderRoundRunner
   // Optional clock + emitter seams for tests.
   emitter?: PipelineEmitter
+  buildReviewEvidencePacket?: typeof buildReviewEvidencePacket
 }
 
 const PLAN_TASK_PROMPT =
@@ -294,11 +299,12 @@ const PLAN_TASK_PROMPT =
   'in one line. Do NOT write code. End with the plan only.'
 
 const REVIEW_TASK_PROMPT =
-  'Review the implementation summarized below. Hunt for correctness bugs, ' +
-  'missed edge cases, weak/missing tests, and naming/style drift. Cite ' +
-  'findings by file and line. End with exactly one verdict on its own line ' +
-  '— SHIP if the change is good to merge, or CHANGES if not (followed by ' +
-  'the minimal fixes required).'
+  'Review the implementation using the evidence packet below. Hunt for correctness bugs, ' +
+  'missed edge cases, weak/missing tests, scope drift, and stale proof. Cite ' +
+  'findings by file and line. First list checked failure modes or risks, then ' +
+  'name files, receipts, diffs, contracts, or tool metadata consulted, then note ' +
+  'unchecked gaps. End with exactly one verdict on its own line: SHIP if the ' +
+  'change is good to merge, or CHANGES if not.'
 
 function buildCoderUserContent(userContent: string, planText: string): string {
   // The Coder sees the user request prefixed with the Planner's plan as
@@ -657,21 +663,30 @@ export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<v
   // Bounded review context: the conversation's own summary already does the
   // 4KB-per-row + 8KB-per-draft trimming. The Reviewer sees plan + audit
   // rows + the Coder draft — same shape the composer would.
+  // M7 overrides the legacy summary above with a structured evidence packet.
   let reviewContext: string
   try {
-    const summary = summarizeRun(
-      coderMessages as never,
-      undefined,
-      [],
-      typeof (coderMessage.message as { content?: unknown }).content === 'string'
-        ? ((coderMessage.message as { content: string }).content)
-        : ''
-    )
-    reviewContext = JSON.stringify(summary)
-  } catch {
-    reviewContext = String(
-      (coderMessage.message as { content?: unknown }).content ?? ''
-    ).slice(0, 32 * 1024)
+    const packet = await (opts.buildReviewEvidencePacket ?? buildReviewEvidencePacket)({
+      conversationId,
+      correlationId,
+      workspacePath: opts.workspacePath,
+      userGoal: opts.userContent,
+      builderNarrative:
+        typeof (coderMessage.message as { content?: unknown }).content === 'string'
+          ? ((coderMessage.message as { content: string }).content)
+          : undefined
+    })
+    reviewContext = JSON.stringify(packet)
+  } catch (err: any) {
+    reviewContext = JSON.stringify({
+      kind: 'review_evidence_packet',
+      version: 1,
+      conversationId,
+      correlationId,
+      workspacePath: opts.workspacePath,
+      userGoal: opts.userContent,
+      omissions: [`review evidence packet build failed: ${err?.message ?? String(err)}`]
+    })
   }
   // Hard cap as a backstop; executeMultiAgentRun enforces 32KB internally.
   if (Buffer.byteLength(reviewContext, 'utf8') > 32 * 1024) {
@@ -695,7 +710,39 @@ export async function runAgentPipeline(opts: RunAgentPipelineOptions): Promise<v
       parentSignal: reviewerBudget.signal,
       runner: opts.subAgentRunner
     })
-    const taken = takeOutput(reviewResult)
+    let taken = takeOutput(reviewResult)
+    if (!taken.error) {
+      const validation = validateReviewerOutput(taken.output)
+      if (!validation.valid) {
+        const retryResult = await executeMultiAgentRun({
+          args: {
+            tasks: [
+              {
+                role: 'reviewer',
+                prompt: buildReviewerCorrectionPrompt(validation.reasons),
+                context: reviewContext
+              }
+            ],
+            timeoutMs: opts.subAgentTimeoutMs
+          },
+          defaultModel: roster.reviewer,
+          parentSignal: reviewerBudget.signal,
+          runner: opts.subAgentRunner
+        })
+        const retryTaken = takeOutput(retryResult)
+        if (retryTaken.error) {
+          taken = retryTaken
+        } else {
+          const retryValidation = validateReviewerOutput(retryTaken.output)
+          taken = retryValidation.valid
+            ? retryTaken
+            : {
+                ...retryTaken,
+                error: `reviewer output failed validation after retry: ${retryValidation.reasons.join('; ')}`
+              }
+        }
+      }
+    }
     if (taken.error) {
       const budgetExhausted = reviewerBudget.budgetFired() && !signal.aborted
       emitter.status({

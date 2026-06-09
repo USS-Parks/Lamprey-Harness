@@ -503,6 +503,30 @@ export interface Goal {
   updatedAt: number
 }
 
+export type ChangeContractStatus = 'active' | 'closed' | 'waived'
+export type ChangeContractSource = 'user' | 'plan_goal' | 'implicit' | 'system'
+
+export interface ChangeContract {
+  id: string
+  conversationId: string
+  correlationId?: string
+  status: ChangeContractStatus
+  implicit: boolean
+  source: ChangeContractSource
+  goal: string
+  acceptanceCriteria: string[]
+  expectedFiles: string[]
+  nonGoals: string[]
+  verificationCommands: string[]
+  requiredReceiptKinds: string[]
+  createdAt: number
+  updatedAt: number
+  closedAt?: number
+  waiverReason?: string
+  waivedBy?: string
+  waivedAt?: number
+}
+
 // One conversation's persisted plan + goal state, for the inspect/clear panel.
 export interface ConversationPlanGoalState {
   conversationId: string
@@ -833,6 +857,11 @@ export type EventType =
   | 'conversation.forked'
   | 'conversation.seed.attached'
   | 'conversation.seed.truncated'
+  | 'proof.receipt.created'
+  | 'proof.receipt.failed'
+  | 'proof.gate.passed'
+  | 'proof.gate.failed'
+  | 'proof.gate.waived'
 
 export interface EventRecord {
   id: string
@@ -910,6 +939,18 @@ export interface AfterActionToolItem {
   errorPreview?: string
 }
 
+export interface AfterActionProofReceiptItem {
+  id: string
+  kind: string
+  status: string
+  command: string
+  finishedAt: number
+  durationMs: number
+  exitCode?: number
+  contractId?: string
+  metrics: Record<string, unknown>
+}
+
 export interface AfterActionReport {
   conversationId: string
   title: string
@@ -939,6 +980,17 @@ export interface AfterActionReport {
   causes: AfterActionCause[]
   timeline: AfterActionTimelineItem[]
   recentTools: AfterActionToolItem[]
+  proof: {
+    activeContracts: ChangeContract[]
+    gatePassed: number
+    gateFailed: number
+    gateWaived: number
+    latestFailureReason?: string
+    receipts: AfterActionProofReceiptItem[]
+    failedCommands: string[]
+    skippedCommands: string[]
+    reviewerCheckedModes: string[]
+  }
 }
 
 // ──────────────────── RAG (Local Retrieval) ────────────────────

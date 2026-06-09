@@ -12,6 +12,8 @@ import { ForkDialog } from './ForkDialog'
 import { PinDialog } from './PinDialog'
 import { SeedContextChip, parseSeedContext } from './SeedContextChip'
 import { useChatStore } from '@/stores/chat-store'
+import { ProofGateBanner } from './ProofGateBanner'
+import { parseProofGateNotice } from './proof-gate-notice'
 
 interface MessageBubbleProps {
   message: Message
@@ -81,6 +83,8 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
       }
     }
   }
+  const proofGate = !isUser ? parseProofGateNotice(body) : null
+  if (proofGate) body = proofGate.body
 
   const handleRemember = async () => {
     if (saving) return
@@ -125,6 +129,7 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
             <MarkdownRenderer content={body} sourceMessageId={message.id} />
+            {proofGate && <ProofGateBanner notice={proofGate} />}
             {/* R7 — "Show pipeline trace ▾" toggle. Reveals the attached
                 Planner row (stage='planner', hidden in the main thread per
                 Invariant §2.9) as an inline collapsed panel with its own

@@ -374,6 +374,18 @@ const api = {
       ipcRenderer.invoke('permissions:clearConversation', conversationId)
   },
 
+  contracts: {
+    create: (input: unknown) => ipcRenderer.invoke('contracts:create', input),
+    update: (id: string, input: unknown) => ipcRenderer.invoke('contracts:update', id, input),
+    close: (id: string) => ipcRenderer.invoke('contracts:close', id),
+    waive: (input: { id: string; reason: string; waivedBy: string }) =>
+      ipcRenderer.invoke('contracts:waive', input),
+    get: (id: string) => ipcRenderer.invoke('contracts:get', id),
+    list: (filter?: unknown) => ipcRenderer.invoke('contracts:list', filter ?? {}),
+    active: (conversationId: string, correlationId?: string) =>
+      ipcRenderer.invoke('contracts:active', conversationId, correlationId)
+  },
+
   plan: {
     get: (conversationId: string) => ipcRenderer.invoke('plan:get', conversationId),
     update: (
@@ -1081,6 +1093,10 @@ const api = {
 
   afterAction: {
     get: (conversationId: string) => ipcRenderer.invoke('after-action:get', conversationId)
+  },
+
+  harnessRecs: {
+    list: (conversationId?: string) => ipcRenderer.invoke('harness:recommendations', conversationId)
   },
 
   // Local RAG (Lamprey RAG Plan, R1+). R1 ships collection CRUD; R2 adds the

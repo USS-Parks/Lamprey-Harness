@@ -1,8 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
+import { createHash } from 'crypto'
 import { isAbsolute, relative, resolve } from 'path'
 
 import { runGit } from './git-runner'
 import { resolveWorkspaceRelative } from './path-utils'
+import { getActiveChangeContract, type ChangeContract } from './change-contract-store'
+import { getProofPolicySummary, type ProofPolicySummary } from './proof-policy'
+import { listProofReceipts, type ProofReceiptRecord } from './proof-receipts'
 
 // Codex-style workspace preflight. One read-only call returns:
 //   - cwd
@@ -101,7 +105,58 @@ export interface WorkspaceContextResult {
   frameworks: string[]
   instructionFiles: string[]
   verificationCommands: string[]
+  proof: WorkspaceProofContext
   notes: string[]
+}
+
+export interface WorkspaceProofContext {
+  policy: ProofPolicySummary
+  activeContract: WorkspaceContractSummary | null
+  recentReceipts: WorkspaceReceiptSummary[]
+  lastFailedReceipts: WorkspaceReceiptSummary[]
+  staleGreenWarnings: string[]
+  recommendedVerificationCommands: string[]
+  notes: string[]
+}
+
+export interface WorkspaceContractSummary {
+  id: string
+  conversationId: string
+  correlationId?: string
+  status: string
+  implicit: boolean
+  goal: string
+  acceptanceCriteria: string[]
+  expectedFiles: string[]
+  verificationCommands: string[]
+  requiredReceiptKinds: string[]
+  waiverReason?: string
+}
+
+export interface WorkspaceReceiptSummary {
+  id: string
+  kind: string
+  status: string
+  command: string
+  commandHash: string
+  contractId?: string
+  correlationId?: string
+  finishedAt: number
+  durationMs: number
+  exitCode?: number
+  diffHash?: string
+  metrics: Record<string, unknown>
+}
+
+export interface WorkspaceContextDeps {
+  conversationId?: string
+  getActiveContract?: (conversationId: string, correlationId?: string) => ChangeContract | null
+  listReceipts?: (filter: {
+    conversationId?: string
+    workspacePath?: string
+    limit?: number
+  }) => ProofReceiptRecord[]
+  getPolicy?: () => ProofPolicySummary
 }
 
 // ──────────────────────────── helpers ────────────────────────────
@@ -262,11 +317,133 @@ async function summarizeGitStatus(cwd: string): Promise<GitSummary> {
   return parseGitStatusOutput(r.stdout)
 }
 
+async function currentDiffHash(cwd: string): Promise<string | null> {
+  const diff = await runGit(['diff', '--binary'], cwd)
+  const staged = await runGit(['diff', '--cached', '--binary'], cwd)
+  if (diff.code !== 0 && staged.code !== 0) return null
+  const body = `${diff.stdout}\n---staged---\n${staged.stdout}`
+  return createHash('sha256').update(body).digest('hex')
+}
+
+function contractSummary(contract: ChangeContract | null): WorkspaceContractSummary | null {
+  if (!contract) return null
+  return {
+    id: contract.id,
+    conversationId: contract.conversationId,
+    correlationId: contract.correlationId,
+    status: contract.status,
+    implicit: contract.implicit,
+    goal: contract.goal.slice(0, 500),
+    acceptanceCriteria: contract.acceptanceCriteria.slice(0, 8),
+    expectedFiles: contract.expectedFiles.slice(0, 12),
+    verificationCommands: contract.verificationCommands.slice(0, 8),
+    requiredReceiptKinds: contract.requiredReceiptKinds.slice(0, 8),
+    waiverReason: contract.waiverReason
+  }
+}
+
+function receiptSummary(receipt: ProofReceiptRecord): WorkspaceReceiptSummary {
+  return {
+    id: receipt.id,
+    kind: receipt.kind,
+    status: receipt.status,
+    command: receipt.command,
+    commandHash: receipt.commandHash,
+    contractId: receipt.contractId,
+    correlationId: receipt.correlationId,
+    finishedAt: receipt.finishedAt,
+    durationMs: receipt.durationMs,
+    exitCode: receipt.exitCode,
+    diffHash: receipt.diffHash,
+    metrics: receipt.parsedMetrics
+  }
+}
+
+function uniqueCommands(commands: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const command of commands) {
+    const trimmed = command.trim()
+    if (!trimmed || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    out.push(trimmed)
+  }
+  return out.slice(0, VERIFY_CMD_CAP)
+}
+
+export async function buildProofContext(input: {
+  cwd: string
+  git: GitSummary
+  verificationCommands: string[]
+  deps?: WorkspaceContextDeps
+}): Promise<WorkspaceProofContext> {
+  const notes: string[] = []
+  const policy = input.deps?.getPolicy?.() ?? getProofPolicySummary()
+  let activeContract: ChangeContract | null = null
+  let recent: ProofReceiptRecord[] = []
+  const conversationId = input.deps?.conversationId ?? '__global__'
+  try {
+    activeContract =
+      input.deps?.getActiveContract?.(conversationId) ??
+      getActiveChangeContract(conversationId)
+  } catch (err: any) {
+    notes.push(`proof active contract unavailable: ${err?.message ?? String(err)}`)
+  }
+  try {
+    recent =
+      input.deps?.listReceipts?.({ conversationId, workspacePath: input.cwd, limit: 5 }) ??
+      listProofReceipts({ conversationId, workspacePath: input.cwd, limit: 5 })
+  } catch (err: any) {
+    notes.push(`proof receipts unavailable: ${err?.message ?? String(err)}`)
+  }
+
+  const failedByCommand = new Map<string, ProofReceiptRecord>()
+  for (const receipt of recent) {
+    if (receipt.status !== 'failed') continue
+    const previous = failedByCommand.get(receipt.command)
+    if (!previous || receipt.finishedAt > previous.finishedAt) {
+      failedByCommand.set(receipt.command, receipt)
+    }
+  }
+
+  const staleGreenWarnings: string[] = []
+  const latestPassing = recent
+    .filter((receipt) => receipt.status === 'passed')
+    .sort((a, b) => b.finishedAt - a.finishedAt)[0]
+  if (latestPassing && input.git.isDirty) {
+    const hash = await currentDiffHash(input.cwd)
+    if (!latestPassing.diffHash) {
+      staleGreenWarnings.push(
+        `Latest passing proof ${latestPassing.id} has no diff hash and workspace is dirty.`
+      )
+    } else if (hash && latestPassing.diffHash !== hash) {
+      staleGreenWarnings.push(
+        `Latest passing proof ${latestPassing.id} predates the current dirty diff.`
+      )
+    }
+  }
+
+  const contract = contractSummary(activeContract)
+  return {
+    policy,
+    activeContract: contract,
+    recentReceipts: recent.slice(0, 5).map(receiptSummary),
+    lastFailedReceipts: Array.from(failedByCommand.values()).slice(0, 5).map(receiptSummary),
+    staleGreenWarnings,
+    recommendedVerificationCommands: uniqueCommands([
+      ...(contract?.verificationCommands ?? []),
+      ...input.verificationCommands
+    ]),
+    notes
+  }
+}
+
 // ──────────────────────────── executor ────────────────────────────
 
 export async function executeWorkspaceContext(
   args: WorkspaceContextArgs | undefined,
-  workspaceRoot: string
+  workspaceRoot: string,
+  deps?: WorkspaceContextDeps
 ): Promise<string> {
   const requestedCwd = resolveInsideWorkspace(workspaceRoot, args?.cwd)
   if (!requestedCwd) {
@@ -285,6 +462,12 @@ export async function executeWorkspaceContext(
   const instructionFiles = findInstructionFiles(requestedCwd)
   const git = await summarizeGitStatus(requestedCwd)
   const verificationCommands = inferVerificationCommands(requestedCwd, pkg)
+  const proof = await buildProofContext({
+    cwd: requestedCwd,
+    git,
+    verificationCommands,
+    deps
+  })
 
   const result: WorkspaceContextResult = {
     cwd: requestedCwd,
@@ -299,6 +482,7 @@ export async function executeWorkspaceContext(
     frameworks,
     instructionFiles,
     verificationCommands,
+    proof,
     notes: []
   }
 

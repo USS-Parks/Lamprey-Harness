@@ -59,6 +59,8 @@ import {
   shouldComposeFinalResponse,
   summarizeRun
 } from '../services/final-response-composer'
+import { evaluateProofGate, proofGateNotice } from '../services/proof-gate'
+import { listProofReceipts } from '../services/proof-receipts'
 import { getPlanSnapshot } from '../services/plan-goal-store'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
@@ -686,7 +688,8 @@ export async function runChatRound(
    *  composer ran) can fold the whole trail into the composer-row's
    *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
    *  the top-level call so callers don't need to pass it. */
-  roundReasonings: string[] = []
+  roundReasonings: string[] = [],
+  turnStartedAt: number = Date.now()
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -762,7 +765,21 @@ export async function runChatRound(
                   messages as any,
                   getPlanSnapshot(conversationId),
                   toolRegistry.getCallsForConversation(conversationId, 50),
-                  fullContent
+                  fullContent,
+                  listProofReceipts({
+                    conversationId,
+                    correlationId,
+                    workspacePath,
+                    limit: 20
+                  }).map((receipt) => ({
+                    id: receipt.id,
+                    kind: receipt.kind,
+                    status: receipt.status,
+                    command: receipt.command,
+                    parsedMetrics: receipt.parsedMetrics,
+                    exitCode: receipt.exitCode,
+                    durationMs: receipt.durationMs
+                  }))
                 )
                 const composed = await composeFinalResponse({
                   summary,
@@ -821,6 +838,17 @@ export async function runChatRound(
               ? concatReasoningTrail(roundsForTrail, composerReasoning)
               : fullReasoning
             const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
+            const gate = evaluateProofGate({
+              conversationId,
+              correlationId,
+              workspacePath,
+              sinceMs: turnStartedAt,
+              toolCalls: toolRegistry.getCallsForConversation(conversationId, 50),
+              getDescriptor: (toolId) => toolRegistry.getById(toolId)
+            })
+            if (!gate.trusted) {
+              finalContent += proofGateNotice(gate)
+            }
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
@@ -936,7 +964,8 @@ export async function runChatRound(
               composerMode,
               suppressDoneEvent,
               correlationId,
-              nextRoundReasonings
+              nextRoundReasonings,
+              turnStartedAt
             )
             resolve(next)
           } catch (err) {

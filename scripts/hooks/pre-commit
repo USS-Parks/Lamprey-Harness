@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+npm run lint
+npx tsc --noEmit -p tsconfig.node.json
+npx tsc --noEmit -p tsconfig.web.json

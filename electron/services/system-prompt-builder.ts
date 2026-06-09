@@ -175,6 +175,7 @@ export const COMPOSER_SYSTEM = [
   '- one-line per open item, or "Nothing - task complete." when empty',
   '',
   'After those sections, add the actual direct answer only if the wrap-up alone does not cover the user request.',
+  'When proof receipts are supplied, cite receipt ids and parsed metrics exactly from the summary. If no receipt exists for relevant verification, say proof is missing; never invent counts.',
   'Do not invent files, commands, checks, or outcomes. If verification is absent, say SKIPPED or list it under what is left.',
   'Keep it short and concrete.',
   PSEUDO_TAG_GUARD
@@ -326,8 +327,10 @@ export const AGENT_ROLE_PROMPTS: Record<string, string> = {
     PSEUDO_TAG_GUARD,
   reviewer:
     'You are the Reviewer. Critique the Coder output for correctness, regressions, edge cases, ' +
-    'and dead code. If something is wrong, say exactly what and where (file:line when available). ' +
-    'If it is good, say SHIP.\n' +
+    'dead code, scope drift, stale proof, and missing tests. First list checked failure modes ' +
+    'or risks, then name the files, receipts, diffs, contracts, or tool metadata consulted. ' +
+    'State unchecked gaps explicitly. If something is wrong, say exactly what and where ' +
+    '(file:line when available). End with exactly one verdict line: SHIP or CHANGES.\n' +
     'You have no tools available in this stage — do not emit tool calls, do not pretend to run ' +
     'commands, do not fabricate command output.\n' +
     PSEUDO_TAG_GUARD,

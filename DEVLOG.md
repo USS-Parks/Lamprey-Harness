@@ -1,3 +1,22 @@
+## [Wiring Closure — Prompt WC-7] Wire verify:proof into CI - 2026-06-09
+
+**Files changed:** `scripts/verify-proof.cjs`, `.github/workflows/ci.yml`
+**Verify gate:**
+- lint OK (via verify:proof)
+- tsc node OK (via verify:proof)
+- tsc web OK (via verify:proof)
+- smoke:bundle PASS, smoke:renderer PASS
+- vitest 2180 passed | 123 skipped (full run after script change)
+- Local smoke of `npm run verify:proof -- --no-tests` exits 0
+
+**Live wiring proof:** `.github/workflows/ci.yml:34` now invokes `npm run verify:proof -- --no-tests` as the "Proof policy static gate" step. The script in `scripts/verify-proof.cjs:7–12` honors the new `--no-tests` flag so the sibling `test` job's full vitest pass is not duplicated. The script still runs lint + tsc node + tsc web + (smokes if build present) + vitest (locally without the flag), so production usage is unchanged.
+
+**Notes:** This closes M10's gap: the script existed but CI invoked an inline lint+tsc combo. CI now exercises the canonical proof-policy gate path. Script composition drift will surface as a CI failure. The header comment on `verify-proof.cjs` documents all three flags for future maintainers.
+
+**Commit:** (pending)
+
+---
+
 ## [Wiring Closure — Prompt WC-6] Cite receipt IDs in final answer prose - 2026-06-09
 
 **Files changed:** `electron/services/final-response-composer.ts`, `electron/services/final-response-composer.test.ts`
@@ -10,7 +29,7 @@
 
 **Notes:** The model's reply is preserved exactly — the footer is additive. Capped at 20 receipts so the footer stays legible. Unknown metric shapes fall back to compact JSON (capped at 120 chars). The pre-WC-6 composer trusted the model to follow the in-prompt "cite receipt id" instruction; now it's guaranteed regardless of model behavior. Existing "(none recorded; if proof is relevant, say proof is missing instead of inventing counts)" instruction on line 259 still covers the no-receipts case.
 
-**Commit:** (pending)
+**Commit:** d024441
 
 ---
 

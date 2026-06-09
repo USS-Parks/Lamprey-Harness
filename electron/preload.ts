@@ -715,7 +715,10 @@ const api = {
     assignConversation: (conversationId: string, projectId: string | null) =>
       ipcRenderer.invoke('projects:assignConversation', conversationId, projectId),
     ensureForPath: (path: string, fallbackName?: string) =>
-      ipcRenderer.invoke('projects:ensureForPath', path, fallbackName)
+      ipcRenderer.invoke('projects:ensureForPath', path, fallbackName),
+    select: (id: string) => ipcRenderer.invoke('projects:select', id),
+    update: (id: string, patch: { name?: string | null; description?: string | null; path?: string | null }) =>
+      ipcRenderer.invoke('projects:update', id, patch)
   },
 
   review: {

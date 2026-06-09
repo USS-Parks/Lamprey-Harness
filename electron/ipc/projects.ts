@@ -116,4 +116,27 @@ export function registerProjectsHandlers(): void {
       }
     }
   )
+
+  ipcMain.handle('projects:select', async (_e, id: string) => {
+    try {
+      const p = projects.selectProject(id)
+      if (!p) return { success: false, error: 'Project not found' }
+      return { success: true, data: p }
+    } catch (err: any) {
+      return { success: false, error: err?.message ?? 'select failed' }
+    }
+  })
+
+  ipcMain.handle(
+    'projects:update',
+    async (_e, id: string, patch: projects.UpdateProjectInput) => {
+      try {
+        const p = projects.updateProject(id, patch)
+        if (!p) return { success: false, error: 'Project not found' }
+        return { success: true, data: p }
+      } catch (err: any) {
+        return { success: false, error: err?.message ?? 'update failed' }
+      }
+    }
+  )
 }

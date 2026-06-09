@@ -142,6 +142,37 @@ export function deleteProject(id: string): void {
   })
 }
 
+export function selectProject(id: string): Project | null {
+  const db = getDb()
+  const now = Date.now()
+  db.prepare('UPDATE projects SET last_opened_at = ?, updated_at = ? WHERE id = ?').run(now, now, id)
+  return getProject(id)
+}
+
+export interface UpdateProjectInput {
+  name?: string | null
+  description?: string | null
+  path?: string | null
+}
+
+export function updateProject(id: string, patch: UpdateProjectInput): Project | null {
+  const existing = getProject(id)
+  if (!existing) return null
+
+  const db = getDb()
+  const now = Date.now()
+  const name = patch.name !== undefined ? (patch.name ?? existing.name) : existing.name
+  const description = patch.description !== undefined ? (patch.description ?? existing.description) : existing.description
+  const path = patch.path !== undefined ? (patch.path ?? existing.path) : existing.path
+  const slug = patch.name !== undefined ? slugify(name) : existing.slug
+
+  db.prepare(
+    'UPDATE projects SET name = ?, slug = ?, description = ?, path = ?, updated_at = ? WHERE id = ?'
+  ).run(name, slug, description, path, now, id)
+
+  return getProject(id)
+}
+
 function emitProjectEvent(
   type: EventType,
   projectId: string,

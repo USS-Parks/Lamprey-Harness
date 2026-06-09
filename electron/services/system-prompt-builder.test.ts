@@ -81,6 +81,40 @@ describe('buildSystemPrompt — default base', () => {
     expect(out.length).toBeLessThan(3700)
   })
 
+  // L3 — the <think> block is conditional, not mandatory. The contract must
+  // contain the conditional bullet exactly once, must NOT contain the L1
+  // "every single turn MUST begin with a <think>" mandate, and must NOT
+  // contain the heading "Chain-of-thought (REQUIRED)" anymore.
+  it('uses the conditional <think> bullet, not the every-turn mandate', () => {
+    const out = renderContract()
+    expect(out).toContain('When the answer involves planning')
+    expect(out).not.toContain('Every single assistant turn MUST begin with a <think>')
+    expect(out).not.toContain('Chain-of-thought (REQUIRED)')
+  })
+})
+
+describe('buildSystemPrompt — supportsNativeTools strips the <think> bullet (L3)', () => {
+  it('keeps the conditional think bullet when supportsNativeTools is false/undefined', () => {
+    const out = buildSystemPrompt([], '')
+    expect(out).toContain('When the answer involves planning')
+  })
+
+  it('strips the conditional think bullet when supportsNativeTools is true', () => {
+    const out = buildSystemPrompt(
+      [],
+      '',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true // supportsNativeTools
+    )
+    expect(out).not.toContain('When the answer involves planning')
+  })
+
   it('places AGENTS.md after the base contract', () => {
     const out = buildSystemPrompt([], '', undefined, 'repo-specific guidance here')
     const contractIdx = out.indexOf('</contract>')

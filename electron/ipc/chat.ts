@@ -426,7 +426,12 @@ export function registerChatHandlers(): void {
         ? mergeAgenticSkillIds(activeSkillIds, agentic.skills)
         : activeSkillIds
 
-      let skillContents: { name: string; content: string; allowedTools?: string[] }[] = []
+      let skillContents: {
+        name: string
+        content: string
+        allowedTools?: string[]
+        description?: string
+      }[] = []
       if (effectiveSkillIds.length > 0) {
         const skills = listSkills()
         skillContents = effectiveSkillIds
@@ -438,11 +443,23 @@ export function registerChatHandlers(): void {
             return {
               name: skill.name,
               content,
-              ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {})
+              ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {}),
+              // HY4 — carry the description so lazy skill stubs can summarize.
+              ...(skill.description ? { description: skill.description } : {})
             }
           })
-          .filter(Boolean) as { name: string; content: string; allowedTools?: string[] }[]
+          .filter(Boolean) as {
+          name: string
+          content: string
+          allowedTools?: string[]
+          description?: string
+        }[]
       }
+
+      // HY4 — lazy skill bodies follow the tool-surface mode: lazy (default)
+      // injects name+description stubs; 'full' injects full bodies as before.
+      const lazySkillBodies =
+        ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'lazy') !== 'full'
 
       const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
       const activeWorkspace = getActiveWorkspace()
@@ -462,7 +479,8 @@ export function registerChatHandlers(): void {
         memoryIndexBlock,
         taskNotificationsBlock,
         chaptersBlock,
-        supportsTools
+        supportsTools,
+        lazySkillBodies
       )
 
       // Tools come from the unified registry — natives (memory_add today) plus
@@ -548,7 +566,12 @@ export function registerChatHandlers(): void {
           'coding',
           memoryIndexBlock,
           taskNotificationsBlock,
-          chaptersBlock
+          chaptersBlock,
+          // supportsNativeTools left undefined — preserves the exact pre-HY4
+          // coder prompt (no guard/think stripping change); HY4 only adds the
+          // lazy skill-body flag in the next position.
+          undefined,
+          lazySkillBodies // HY4
         )
         const priorWithoutLatestUser = apiMessages.filter(
           (m, idx) => idx !== 0 // drop the system entry; pipeline owns it

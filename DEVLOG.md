@@ -1,3 +1,20 @@
+## [Wiring Closure — Prompt WC-5] UI + composer consume persisted trust status - 2026-06-09
+
+**Files changed:** `src/components/chat/ProofGateBanner.tsx`, `src/components/chat/MessageBubble.tsx`, `src/components/chat/proof-banner-state.ts` (new), `src/components/chat/proof-banner-state.test.ts` (new), `electron/services/conversation-store.ts`, `electron/ipc/contracts.ts`, `electron/preload.ts`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- vitest 2171 passed | 123 skipped (+7 new WC-5 banner-state tests)
+
+**Live wiring proof:** `computeProofBannerState(proofStatus, hasLegacyNotice)` at `src/components/chat/proof-banner-state.ts:18` is the new source of truth for whether the banner renders. `MessageBubble.tsx:88` invokes it; `ProofGateBanner.tsx` now accepts `state` + `messageId` props and renders distinct surfaces for `untrusted`, `blocked`, `waived`. On successful waiver, `window.api.messages.setProofStatus({ messageId, status: 'waived' })` flips the persisted column via the new `messages:setProofStatus` IPC channel (`electron/ipc/contracts.ts:135`) backed by `setMessageProofStatus(messageId, status)` in `conversation-store.ts:741`. Banner hides locally on waiver success so the user sees instant feedback.
+
+**Notes:** Legacy fallback preserved — rows without a persisted `proof_status` (pre-WC-4) still render via inline-notice text. Composer-side context-injection of trust state is deferred — the M5 gate already keeps the notice in the assistant body so the next turn's model still sees it; adding a separate composer hook here would be redundant. Strict-mode `'blocked'` value is reserved but no call site emits it yet (no behavior change for current users; the surface is ready).
+
+**Commit:** (pending)
+
+---
+
 ## [Wiring Closure — Prompt WC-4] Persist proof gate trust status - 2026-06-09
 
 **Files changed:** `electron/services/db-migrations.ts`, `electron/services/db-migrations.test.ts`, `electron/services/schema-init.ts`, `electron/services/conversation-store.ts`, `electron/ipc/chat.ts`, `src/lib/types.ts`
@@ -11,7 +28,7 @@
 
 **Notes:** NULL means "not applicable" (read-only turn, legacy row). The proof-gate inline-notice text on `finalContent` is preserved during WC-4 — WC-5 will downgrade it once the banner reads the column directly. Migration test exercises `PRAGMA table_info(messages)` to confirm the column shape and idempotency. `'blocked'` and `'waived'` are valid ProofStatus values but no call site emits them yet (reserved for the WC-5 waiver path).
 
-**Commit:** (pending)
+**Commit:** 83d0d7d
 
 ---
 

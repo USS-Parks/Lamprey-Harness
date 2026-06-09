@@ -57,6 +57,15 @@ const coder = KNOWN_MODELS[1] ?? KNOWN_MODELS[0]
 const reviewer = KNOWN_MODELS[2] ?? KNOWN_MODELS[0]
 const validRoster: AgentRoster = { planner, coder, reviewer }
 
+function validReviewText(): string {
+  return [
+    'Checked failure modes: stale proof and missing lifecycle events.',
+    'Evidence consulted: electron/services/chat-correlation-events.test.ts:1 and receipt prf_1.',
+    'Unchecked gaps: none.',
+    'SHIP'
+  ].join('\n')
+}
+
 // ──────────────────── correlationId on tool + approval producers ────────────────────
 
 describe('producers pass correlationId through to event payloads', () => {
@@ -122,7 +131,7 @@ describe('runAgentPipeline emits agent.stage.* events', () => {
     const cid = 'corr-pipeline-happy'
     const subAgentRunner: SubAgentRunner = async (_msgs, modelId) => {
       if (modelId === planner) return 'plan-output'
-      return 'review-output'
+      return validReviewText()
     }
     const coderMessageBody = { content: 'coder reply', model: coder }
     const coderRunner = vi.fn(async () => ({ message: coderMessageBody }))
@@ -261,7 +270,7 @@ describe('one correlationId reconstructs a coherent multi-producer run', () => {
     })
     // 3. Pipeline stages.
     const subAgentRunner: SubAgentRunner = async (_msgs, modelId) =>
-      modelId === planner ? 'plan' : 'review'
+      modelId === planner ? 'plan' : validReviewText()
     await runAgentPipeline({
       conversationId: 'conv-M',
       correlationId: cid,

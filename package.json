@@ -24,6 +24,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify:proof": "node scripts/verify-proof.cjs",
+    "verify:all": "npm run build && node scripts/verify-proof.cjs --require-smokes",
     "smoke:bundle": "node scripts/smoke-bundle.cjs",
     "smoke:renderer": "node scripts/smoke-renderer.cjs",
     "lamprey": "electron-vite dev -- --lamprey-headless",

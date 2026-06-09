@@ -1,3 +1,18 @@
+## [Wiring Closure — Prompt WC-10] Plan-record corrections - 2026-06-09
+
+**Files changed:** `PLANNING/Lamprey_Function_Calling_PSPR_.md`, `PLANNING/LAMPREY_MECHANICAL_PROOF_HARNESS_PLAN.md`, `PLANNING/LAMPREY_PROJECT_SECTION_PLAN.md`
+**Verify gate:**
+- lint OK
+- vitest 2193 passed | 123 skipped (no change — append-only doc edits)
+
+**Live wiring proof:** Each of the three audited plans now ends with an append-only `## Correction Notes (2026-06-09)` subsection that names what was deferred or aspirational at ship time and which WC prompt closed it. The FC plan's §3 FC-1B tool-list inaccuracy (named `read_file/write_file` instead of `workspace_context/view_image`) is documented. The MP plan lists the four closures (WC-3 implicit contracts, WC-4 trust persistence, WC-5 banner state, WC-6 composer footer, WC-7 CI). The PRJ plan documents the PRJ-10 regression test gap (validation-only, would not have caught the original defect) and the WC-8 source-reading contract test that closes it.
+
+**Notes:** Append-only — no original prompt roster was modified. Future readers landing on any of the three plans will see the closure note before assuming a documented invariant is live in the v0.9.0 form.
+
+**Commit:** (pending)
+
+---
+
 ## [Wiring Closure — Prompt WC-9] Architecture doc accuracy sweep - 2026-06-09
 
 **Files changed:** `ARCHITECTURE/FUNCTION_CALLING.md`, `ARCHITECTURE/MECHANICAL_PROOF.md`, `ARCHITECTURE/PROJECTS.md`
@@ -9,7 +24,7 @@
 
 **Notes:** No source code changes — pure documentation accuracy pass. All cited file:line anchors are stable function or section names, not just raw line numbers (the line number is descriptive). Each "Invoked from" claim was verified by grep before being written. The drift identified in the FC audit (lines 25, 31, 96, 204) is now resolved.
 
-**Commit:** (pending)
+**Commit:** 852e831
 
 ---
 

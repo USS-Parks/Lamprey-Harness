@@ -93,6 +93,74 @@ describe('buildSystemPrompt — default base', () => {
   })
 })
 
+// L9 (Lampshade Phase, 2026-06-09) — locks the envelope shape against
+// silent regrowth. Six discrete guards: one positive (the operating block
+// is present), one explicit-size lock on the coding-mode prompt, and four
+// negative locks naming phrases that defined the pre-L2 over-instruction
+// shape. Reviewer's size lock is already in the L6 block above. The
+// native-tools strip locks are in the L3 block below.
+describe('Lampshade L9 — envelope shape guards', () => {
+  it('positive: "## How you work" heading is present in single-agent prompts', () => {
+    expect(buildSystemPrompt([], '')).toContain('## How you work')
+    expect(buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')).toContain(
+      '## How you work'
+    )
+  })
+
+  it('size: coding-mode single-agent prompt stays under 4,096 bytes (L1 was 10,897)', () => {
+    const out = buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')
+    expect(out.length).toBeLessThan(4096)
+  })
+
+  it('negative: no rendered prompt names the pre-L2 hedging phrases', () => {
+    const surfaces = [
+      buildSystemPrompt([], ''),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'coding'),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'review'),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'frontend'),
+      buildAgentSystemPrompt('planner'),
+      buildAgentSystemPrompt('coder'),
+      buildAgentSystemPrompt('reviewer'),
+      buildAgentSystemPrompt('coworker')
+    ]
+    const forbidden = [
+      '<bash>',
+      'Every single assistant turn',
+      'MUST begin with a <think>',
+      'Chain-of-thought (REQUIRED)',
+      'Never write "task complete"',
+      'fenced Markdown block with a language tag'
+    ]
+    for (const surface of surfaces) {
+      for (const phrase of forbidden) {
+        expect(
+          surface,
+          `forbidden phrase "${phrase}" appeared in a rendered prompt (length ${surface.length})`
+        ).not.toContain(phrase)
+      }
+    }
+  })
+
+  it('size: rendered planner/coder/reviewer/coworker agent prompts each under 1,500 bytes', () => {
+    for (const role of ['planner', 'coder', 'reviewer', 'coworker'] as const) {
+      const out = buildAgentSystemPrompt(role)
+      expect(out.length, `role "${role}" rendered prompt over 1,500 bytes`).toBeLessThan(1500)
+    }
+  })
+
+  it('exactness: the conditional <think> sentence appears at most once in any rendered prompt', () => {
+    const surfaces = [
+      buildSystemPrompt([], ''),
+      buildSystemPrompt([], '', undefined, undefined, undefined, 'coding'),
+      buildAgentSystemPrompt('coder')
+    ]
+    for (const surface of surfaces) {
+      const matches = surface.match(/When the answer involves planning/g) ?? []
+      expect(matches.length).toBeLessThanOrEqual(1)
+    }
+  })
+})
+
 describe('buildSystemPrompt — supportsNativeTools strips the <think> bullet (L3)', () => {
   it('keeps the conditional think bullet when supportsNativeTools is false/undefined', () => {
     const out = buildSystemPrompt([], '')

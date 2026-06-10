@@ -37,21 +37,40 @@ describe('proof-rigor (HY5 Split)', () => {
     expect(isProofRigorActive('c1')).toBe(false)
   })
 
-  it('resolveProofRigor: multi dispatch always engages', () => {
-    expect(resolveProofRigor({ dispatchKind: 'multi', content: 'add a button' })).toBe(true)
+  // SP-1 (Sweet Spot Phase, 2026-06-10) — rigor-on-signal behavior now
+  // requires an EXPLICIT proofGate='rigor'. Unset resolves to off (era
+  // default): the Opus 4.5-era product had no proof gate.
+  it("resolveProofRigor: mode 'rigor' + multi dispatch engages", () => {
+    expect(
+      resolveProofRigor({ proofGateMode: 'rigor', dispatchKind: 'multi', content: 'add a button' })
+    ).toBe(true)
   })
 
-  it('resolveProofRigor: single + rigor verb engages', () => {
-    expect(resolveProofRigor({ dispatchKind: 'single', content: 'verify the build' })).toBe(true)
+  it("resolveProofRigor: mode 'rigor' + single + rigor verb engages", () => {
+    expect(
+      resolveProofRigor({ proofGateMode: 'rigor', dispatchKind: 'single', content: 'verify the build' })
+    ).toBe(true)
   })
 
-  it('resolveProofRigor: single + casual does NOT engage (default)', () => {
-    expect(resolveProofRigor({ dispatchKind: 'single', content: 'add a button' })).toBe(false)
+  it("resolveProofRigor: mode 'rigor' + single + casual does NOT engage", () => {
+    expect(
+      resolveProofRigor({ proofGateMode: 'rigor', dispatchKind: 'single', content: 'add a button' })
+    ).toBe(false)
   })
 
   it('resolveProofRigor: proofGate=always forces on; off forces off', () => {
     expect(resolveProofRigor({ proofGateMode: 'always', dispatchKind: 'single', content: 'x' })).toBe(true)
     expect(resolveProofRigor({ proofGateMode: 'off', dispatchKind: 'multi', content: 'audit it' })).toBe(false)
+  })
+
+  it('SP-1: unset proofGate resolves to OFF — even on multi dispatch or rigor verbs', () => {
+    expect(resolveProofRigor({ dispatchKind: 'multi', content: 'add a button' })).toBe(false)
+    expect(resolveProofRigor({ dispatchKind: 'single', content: 'verify the build' })).toBe(false)
+    expect(resolveProofRigor({ dispatchKind: 'multi', content: 'audit everything' })).toBe(false)
+  })
+
+  it('SP-1: unknown proofGate values resolve to OFF (fail-quiet, not fail-rigor)', () => {
+    expect(resolveProofRigor({ proofGateMode: 'bogus', dispatchKind: 'multi', content: 'audit it' })).toBe(false)
   })
 })
 

@@ -473,10 +473,11 @@ export function registerChatHandlers(): void {
         }[]
       }
 
-      // HY4 — lazy skill bodies follow the tool-surface mode: lazy (default)
-      // injects name+description stubs; 'full' injects full bodies as before.
+      // HY4 — lazy skill bodies follow the tool-surface mode: 'lazy' (opt-in)
+      // injects name+description stubs; 'full' (the SP-1 era default) injects
+      // full bodies as before.
       const lazySkillBodies =
-        ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'lazy') !== 'full'
+        ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'full') !== 'full'
 
       const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
       const activeWorkspace = getActiveWorkspace()
@@ -517,10 +518,11 @@ export function registerChatHandlers(): void {
       // is unrestricted) but the call site is now the explicit source of
       // truth for which role receives this tools array.
       const activeProvider = getProviderForModel(model)
-      // HY2 — lazy model tool-surface. Default `'lazy'`: send the always-on
-      // core set + `tool_search`; the model unlocks the rest on demand (state
-      // in tool-unlock-state.ts). `'full'` or a downgraded conversation gets
-      // the entire normalized catalog, byte-for-byte the pre-Hygiene path.
+      // HY2 — model tool-surface. `'full'` (the SP-1 era default) sends the
+      // entire normalized catalog every turn, like the Opus 4.5-era product.
+      // `'lazy'` (opt-in for MCP-heavy setups) sends the always-on core set +
+      // `tool_search`; the model unlocks the rest on demand (state in
+      // tool-unlock-state.ts).
       const tools: ChatCompletionTool[] =
         buildDispatchTools(conversationId, activeProvider, settingsRaw)
 
@@ -820,17 +822,18 @@ export function registerChatHandlers(): void {
 export type RunChatRoundResult = { message: unknown } | null
 
 /**
- * HY2 — Build the tool array handed to the model for a turn. `'lazy'` (default)
+ * HY2 — Build the tool array handed to the model for a turn. `'full'` (the
+ * SP-1 era default, also used when unset or downgraded) returns the entire
+ * normalized catalog, identical to the pre-Hygiene dispatch. `'lazy'` (opt-in)
  * returns the core set + `tool_search` + any tools already unlocked for this
- * conversation; `'full'` (or a downgraded conversation) returns the entire
- * normalized catalog, identical to the pre-Hygiene dispatch.
+ * conversation.
  */
 function buildDispatchTools(
   conversationId: string,
   provider: ProviderId,
   settingsRaw: unknown
 ): ChatCompletionTool[] {
-  const mode = (settingsRaw as { toolSurface?: string } | undefined)?.toolSurface ?? 'lazy'
+  const mode = (settingsRaw as { toolSurface?: string } | undefined)?.toolSurface ?? 'full'
   if (mode === 'lazy' && !isSurfaceDowngraded(conversationId)) {
     activateLazySurface(conversationId)
     return toolRegistry.getModelToolSurface(provider, {

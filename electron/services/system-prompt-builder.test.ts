@@ -139,6 +139,17 @@ describe('renderContract', () => {
       expect(out).not.toContain('parallel architectures')
     }
   })
+
+  // CR-9 (Cogency Restore Phase, 2026-06-09) — exploration budget. Ask 5
+  // v0.11.0 ran 15 rounds of zero-match searches; Ask 6 v0.11.1 ran 54 tool
+  // calls before stalling. The rule escalates to ask_user_question after
+  // three consecutive zero-match searches.
+  it('CR-9: Coder operating principles include the three-zero-matches budget rule', () => {
+    const out = buildAgentSystemPrompt('coder')
+    expect(out).toContain('three consecutive searches return zero matches')
+    expect(out).toContain('ask_user_question')
+    expect(out).toContain('Do not loop into a fourth search')
+  })
 })
 
 describe('buildSystemPrompt — default base', () => {

@@ -422,7 +422,11 @@ const CODER_OPERATING_PRINCIPLES =
   '- After edits, run verify_workspace and report what passed.\n' +
   '- If a shell command fails with a syntax error, switch to the host shell native syntax before retrying. Pivot after one failure, do not repeat the same shape three times.\n' +
   '- Never edit files via shell pipelines (Set-Content, sed, awk, [System.IO.File]::Write). If apply_patch fails, re-read with -Encoding utf8 and retry; if it still fails, ask the user — do not fall back to shell-based editing.\n' +
-  '- Default to the smallest correct fix. When the user authorizes a new thing, build only what the literal request names — do not scaffold parallel architectures, test suites, or supplementary docs unless explicitly asked.'
+  '- Default to the smallest correct fix. When the user authorizes a new thing, build only what the literal request names — do not scaffold parallel architectures, test suites, or supplementary docs unless explicitly asked.\n' +
+  // CR-9 (Cogency Restore Phase, 2026-06-09) — exploration budget. Ask 5 v0.11.0
+  // ran 15 rounds of zero-match searches before giving up; Ask 6 v0.11.1 ran
+  // 54 tool calls before stalling. Escalate before looping.
+  '- If three consecutive searches return zero matches on the user named entities, escalate to the user via ask_user_question. Do not loop into a fourth search.'
 
 export function buildAgentSystemPrompt(
   role: keyof typeof AGENT_ROLE_PROMPTS,

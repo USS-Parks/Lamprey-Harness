@@ -131,6 +131,29 @@ multi in both v0.11.0 and v0.11.1. This means either:
 CR-3's structured `RouterDecision` will surface which rule fires (or whether the
 auto-router is being consulted at all) per-turn for diagnosis. CR-4 acts on that data.
 
+### CR-4 update (2026-06-09) — root cause confirmed
+
+CR-3 telemetry + the new LL_SMOKE_PLAYBOOK lock tests confirm: **the router itself is
+correct.** The heuristic routes Asks 2/3/4/5 to single and Asks 6/7/8 to multi exactly
+as documented in §5's "predicted route" column.
+
+The user's runtime observation of multi-routing on Asks 2-5 was caused by the
+**dispatch-layer bypass**: when `settings.agentMode === 'multi'` (vs. `'auto'`),
+`resolveAgentDispatch` skips `routeAgentMode` entirely and goes straight to the
+multi pipeline. That's by design — explicit-multi means the user pinned it. The
+playbook's setup notes assumed `agentMode='auto'` but the user's effective settings
+were `'multi'`.
+
+**Conclusion: no router rule tuning needed.** CR-4 ships as the test lock + this doc
+note + the dispatch-bypass test (`CR-4: agentMode=multi BYPASSES routeAgentMode …`).
+The fix for the user's actual experience is a settings change (flip to `'auto'`), not
+a code change.
+
+Future signal to watch: if users report "the heuristic mis-routed my single ask to
+multi" with `agentMode='auto'` confirmed in their settings, that's a CR-4.x patch
+prompt to tune the regex. CR-3's telemetry ring buffer makes that trivially
+diagnosable via the /debug view.
+
 ---
 
 ## §6 — `isRigorTurn` snapshot (the F4 trip wire)

@@ -141,6 +141,12 @@ export function buildComposerSystemPrompt(): string {
 // pinned by tests: coding → apply_patch + verify, review → SHIP/CHANGES +
 // file:line, frontend → browser_screenshot + typecheck, non_technical_user
 // → jargon + tsc.
+// CR-8 (Cogency Restore Phase, 2026-06-09) — three additional Coder rules
+// landed in CODER_OPERATING_PRINCIPLES below (the multi-agent Coder sub-agent
+// excerpt). The single-agent coding fragment stays L4-slim because the
+// broader contract's "Make the smallest correct change" + "Treat tool output
+// as primary evidence" bullets already cover the same intent in the
+// single-agent flow.
 const ROLE_FRAGMENTS: Record<ContractRole, string> = {
   coding:
     'You are writing code. Read files before you edit them and use apply_patch for the edits. Make the smallest correct change. After edits, run verify_workspace and report what passed.',
@@ -403,14 +409,20 @@ function slimIdentityHead(modelId?: string): string {
   )
 }
 
-// L5 — three-line coder operating excerpt. Read → smallest change → verify.
+// L5 — coder operating excerpt. Read → smallest change → verify.
 // Applied only to the `coder` role; the others get just the role prompt
 // (planner doesn't edit, reviewer doesn't edit, coworker is user-facing,
 // reader/verifier are pure-text stages).
+// CR-8 (Cogency Restore Phase, 2026-06-09) — three additional rules (shell
+// syntax adapt after one failure, no shell-based file editing, F13 smallest
+// correct fix). Each is a bullet so it composes cleanly with the L5 head.
 const CODER_OPERATING_PRINCIPLES =
   '- Read the file you intend to change before changing it.\n' +
   '- Make the smallest correct change. Use apply_patch for code edits.\n' +
-  '- After edits, run verify_workspace and report what passed.'
+  '- After edits, run verify_workspace and report what passed.\n' +
+  '- If a shell command fails with a syntax error, switch to the host shell native syntax before retrying. Pivot after one failure, do not repeat the same shape three times.\n' +
+  '- Never edit files via shell pipelines (Set-Content, sed, awk, [System.IO.File]::Write). If apply_patch fails, re-read with -Encoding utf8 and retry; if it still fails, ask the user — do not fall back to shell-based editing.\n' +
+  '- Default to the smallest correct fix. When the user authorizes a new thing, build only what the literal request names — do not scaffold parallel architectures, test suites, or supplementary docs unless explicitly asked.'
 
 export function buildAgentSystemPrompt(
   role: keyof typeof AGENT_ROLE_PROMPTS,

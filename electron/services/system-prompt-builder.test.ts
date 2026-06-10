@@ -106,6 +106,39 @@ describe('renderContract', () => {
     const { IDEAL_REVIEWER_EXEMPLAR } = await import('./system-prompt-builder')
     expect(IDEAL_REVIEWER_EXEMPLAR.length).toBeLessThanOrEqual(300)
   })
+
+  // CR-8 (Cogency Restore Phase, 2026-06-09) — three Coder operational
+  // rules added to the multi-agent Coder sub-agent's operating-principles
+  // excerpt. Each addresses a finding from the LL_SMOKE_PLAYBOOK.
+  it('CR-8: Coder operating principles include the F7 shell-adapt rule', () => {
+    const out = buildAgentSystemPrompt('coder')
+    expect(out).toContain('switch to the host shell native syntax')
+    expect(out).toContain('Pivot after one failure')
+  })
+
+  it('CR-8: Coder operating principles include the F9 no-shell-edit rule', () => {
+    const out = buildAgentSystemPrompt('coder')
+    expect(out).toContain('Never edit files via shell pipelines')
+    expect(out).toContain('Set-Content')
+    expect(out).toContain('apply_patch fails')
+  })
+
+  it('CR-8: Coder operating principles include the F13 minimum-fix rule', () => {
+    const out = buildAgentSystemPrompt('coder')
+    expect(out).toContain('Default to the smallest correct fix')
+    expect(out).toContain('parallel architectures')
+  })
+
+  it('CR-8: Reviewer / Planner / Coworker sub-agents do NOT receive the Coder rules', () => {
+    // These rules only make sense for the role that mutates files.
+    const reviewer = buildAgentSystemPrompt('reviewer')
+    const planner = buildAgentSystemPrompt('planner')
+    const coworker = buildAgentSystemPrompt('coworker')
+    for (const out of [reviewer, planner, coworker]) {
+      expect(out).not.toContain('Never edit files via shell pipelines')
+      expect(out).not.toContain('parallel architectures')
+    }
+  })
 })
 
 describe('buildSystemPrompt — default base', () => {

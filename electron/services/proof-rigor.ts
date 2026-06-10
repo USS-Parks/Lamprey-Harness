@@ -62,6 +62,16 @@ export function hasMutationAttempted(conversationId: string): boolean {
   return mutationAttemptedConversations.has(conversationId)
 }
 
+/** SP-3 (Sweet Spot Phase, 2026-06-10) — reset the mutation flag at TURN
+ *  start. The flag is per-turn by contract ("attempted on this turn"), but
+ *  nothing ever cleared it (D4 in SP_BASELINE.md): one mutating turn armed
+ *  the proof gate for every later rigor-keyword turn in the same
+ *  conversation. chat.ts calls this alongside setProofRigor when a turn
+ *  begins. */
+export function clearMutationAttempted(conversationId: string): void {
+  mutationAttemptedConversations.delete(conversationId)
+}
+
 /** CR-5 — toggle whether `shouldEngageProofGate` requires mutation_attempted in
  *  addition to rigor. Default true (the CR-5 fix). Set false to restore the
  *  v0.11.0/v0.11.1 behavior. Wired to `settings.rigorRequiresMutation`. */

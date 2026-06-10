@@ -64,6 +64,8 @@ import {
   // mutate stop tripping the "Untrusted completion" pill.
   shouldEngageProofGate,
   markMutationAttempted,
+  // SP-3 — the mutation flag is per-turn; cleared at turn start (D4).
+  clearMutationAttempted,
   setRigorRequiresMutation
 } from '../services/proof-rigor'
 import {
@@ -536,6 +538,11 @@ export function registerChatHandlers(): void {
       // HY5 (Split) — decide whether the heavyweight proof machinery (change
       // contracts + proof-gate trust notice) engages this turn. L8 routing is
       // unchanged above; this only scopes the proof flow to rigor turns.
+      //
+      // SP-3 — clear the per-turn mutation flag FIRST. Without this a
+      // mutating turn armed the gate for every later rigor turn in the same
+      // conversation (D4): the flag's contract is "attempted on THIS turn".
+      clearMutationAttempted(conversationId)
       setProofRigor(
         conversationId,
         resolveProofRigor({

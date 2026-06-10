@@ -6,6 +6,7 @@ import {
   resolveProofRigor,
   shouldEngageProofGate,
   markMutationAttempted,
+  clearMutationAttempted,
   hasMutationAttempted,
   setRigorRequiresMutation,
   isRigorRequiresMutation,
@@ -133,5 +134,37 @@ describe('CR-5 shouldEngageProofGate — rigor && mutation_attempted', () => {
     markMutationAttempted('c1')
     expect(hasMutationAttempted('c1')).toBe(true)
     expect(hasMutationAttempted('c2')).toBe(false)
+  })
+
+  // SP-3 (Sweet Spot Phase, 2026-06-10) — D4 regression lock. The flag is
+  // per-TURN: chat.ts clears it at turn start, so a mutation on turn 1 can't
+  // arm the gate for a rigor-keyword turn 2 that never mutates.
+  it('SP-3: clearMutationAttempted resets the flag for the next turn (D4)', () => {
+    // Turn 1 — "fix the bug": mutating turn, rigor off → gate stays closed.
+    clearMutationAttempted('c1')
+    setProofRigor('c1', false)
+    markMutationAttempted('c1')
+    expect(shouldEngageProofGate('c1')).toBe(false)
+
+    // Turn 2 — "audit the module": rigor on, NO mutation this turn. Before
+    // SP-3 the stale turn-1 flag made this engage; now it must not.
+    clearMutationAttempted('c1')
+    setProofRigor('c1', true)
+    expect(hasMutationAttempted('c1')).toBe(false)
+    expect(shouldEngageProofGate('c1')).toBe(false)
+
+    // Turn 3 — rigor on AND a fresh mutation → engages as designed.
+    clearMutationAttempted('c1')
+    setProofRigor('c1', true)
+    markMutationAttempted('c1')
+    expect(shouldEngageProofGate('c1')).toBe(true)
+  })
+
+  it('SP-3: clearing one conversation leaves others untouched', () => {
+    markMutationAttempted('c1')
+    markMutationAttempted('c2')
+    clearMutationAttempted('c1')
+    expect(hasMutationAttempted('c1')).toBe(false)
+    expect(hasMutationAttempted('c2')).toBe(true)
   })
 })

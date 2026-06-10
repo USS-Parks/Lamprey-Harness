@@ -1,3 +1,22 @@
+## [Cogency Restore Phase — CR-6] No-op confirmed by v0.11.1 — 2026-06-09
+
+CR-6 (Reviewer verdict-line rule restored) lands as a **no-op** per the revision 3 gate of `PLANNING/LAMPREY_COGENCY_RESTORE_PLAN.md`.
+
+Empirical resolution: the LL_SMOKE_PLAYBOOK v0.11.1 re-run (Asks 3, 4, 5, 8 — Ask 6 stalled per F15 and is excluded from the sample) recorded **4 / 4 first-try verdict-line hits**:
+
+- Ask 3 (`CHANGES`) — verdict line on its own line, no validation re-prompt observed
+- Ask 4 (`SHIP`) — first `SHIP` verdict in the playbook
+- Ask 5 (`CHANGES`) — verdict line on its own line
+- Ask 8 (`CHANGES`) — verdict line on its own line
+
+The verdict-line miss pattern in v0.11.0 was a downstream symptom of the Reviewer Packet bug (`d28cf7c fix(pipeline): forward coder reply to reviewer via inverted builderNarrative API`), not a contract regression. The Reviewer Packet Hotfix gave the Reviewer real Coder output to grade; the verdict-line rule that was already present in `ROLE_FRAGMENTS.review` (L4 slim) now fires correctly on first try.
+
+No contract change required. No commit beyond this DEVLOG entry.
+
+Continuing with CR-7 (reviewer-exemplar half executes; scope-creep half is also a revision 3 no-op).
+
+---
+
 ## [Reviewer Packet Hotfix] v0.11.1 — 2026-06-09
 
 Single-defect hotfix shipped on `claude/determined-kapitsa-7494f6`. v0.11.0 → **v0.11.1** patch release. Closes a load-bearing wiring defect in the M7 reviewer evidence packet that was surfacing as "every multi-agent turn returns `CHANGES`, even for casual knowledge questions."

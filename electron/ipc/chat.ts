@@ -676,7 +676,14 @@ export function registerChatHandlers(): void {
                   coderModelParams,
                   agentic.composer,
                   /* suppressDoneEvent */ true,
-                  correlationId
+                  correlationId,
+                  [],
+                  Date.now(),
+                  // SP-5 (D2) — in-stage progress resets the stall timer. Before
+                  // this, kick() was only reachable from armStage(), so a Coder
+                  // actively streaming chunks or finishing tool calls still
+                  // tripped the watchdog after stageInactivityMs.
+                  () => watchdog.kick()
                 )
                 reachedStage('reviewer')
                 watchdog.armStage('reviewer')
@@ -894,7 +901,13 @@ export async function runChatRound(
    *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
    *  the top-level call so callers don't need to pass it. */
   roundReasonings: string[] = [],
-  turnStartedAt: number = Date.now()
+  turnStartedAt: number = Date.now(),
+  /** SP-5 (Sweet Spot Phase, 2026-06-10) — in-stage activity signal for the
+   *  CR-2 StageInactivityWatchdog (D2). Called on every stream chunk,
+   *  reasoning chunk, and completed tool call so a PROGRESSING stage keeps
+   *  resetting the stall timer. The multi-agent coderRunner passes
+   *  `() => watchdog.kick()`; single-mode passes nothing (no watchdog). */
+  onActivity?: () => void
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -935,9 +948,11 @@ export async function runChatRound(
       effectiveTools,
       {
         onChunk: (chunk) => {
+          onActivity?.() // SP-5 — streaming text is progress; kick the watchdog
           emitChatEvent('chat:chunk', { conversationId, content: chunk })
         },
         onReasoning: (chunk) => {
+          onActivity?.() // SP-5 — reasoning chunks are progress too
           emitChatEvent('chat:reasoning', { conversationId, content: chunk })
         },
         onVitals: (v) => {
@@ -1230,6 +1245,7 @@ export async function runChatRound(
                 ? spillSettings.toolResultSpillBytes
                 : DEFAULT_SPILL_THRESHOLD
           for (const r of resolved) {
+            onActivity?.() // SP-5 — each completed tool call is progress
             // Persist the FULL result — the UI shows it in full.
             convStore.saveMessage({
               id: randomUUID(),
@@ -1270,7 +1286,8 @@ export async function runChatRound(
               suppressDoneEvent,
               correlationId,
               nextRoundReasonings,
-              turnStartedAt
+              turnStartedAt,
+              onActivity // SP-5 — thread the watchdog kick through recursion
             )
             resolve(next)
           } catch (err) {

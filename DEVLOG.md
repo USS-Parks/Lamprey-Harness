@@ -1,3 +1,42 @@
+## [Reviewer Packet Hotfix] v0.11.1 — 2026-06-09
+
+Single-defect hotfix shipped on `claude/determined-kapitsa-7494f6`. v0.11.0 → **v0.11.1** patch release. Closes a load-bearing wiring defect in the M7 reviewer evidence packet that was surfacing as "every multi-agent turn returns `CHANGES`, even for casual knowledge questions."
+
+**Final gate:**
+- lint clean
+- tsc:node OK / tsc:web OK
+- vitest **2265 passed / 123 skipped** (0 failures)
+- `verify:proof --no-tests` exits 0
+
+**Symptom.** A smoke test of *"What does the keychain module do?"* (a casual knowledge question) under multi-agent dispatch produced a Reviewer verdict of `CHANGES` with a verbatim chain-of-thought from the Reviewer reading: *"the evidence packet doesn't include the coder's final answer."* The user observed the harness "mercilessly flogging the model."
+
+**Diagnosis.** Two-step trace.
+
+1. The HY5 rigor classifier is correct — `"What does the keychain module do?"` matches no rigor verb. But under explicit-multi-agent dispatch, `resolveProofRigor` returns `true` via the `dispatchKind === 'multi'` branch (per the HY5 Split decision). So the rigor machinery engages, the pipeline runs Planner → Coder → Reviewer, and the Reviewer is invoked.
+2. **Root cause** at [agent-pipeline.ts:700–709](electron/services/agent-pipeline.ts:700): the pipeline calls `buildReviewEvidencePacket({ ..., builderNarrative: coderMessage.message.content })`. The packet builder at [review-evidence-packet.ts:350](electron/services/review-evidence-packet.ts:350) gated inclusion behind `if (input.includeBuilderNarrative && input.builderNarrative)` — a separate boolean flag in `BuildReviewEvidencePacketInput` that no caller (in production or tests) ever set. So `builderNarrative` was silently dropped from the packet on every multi-agent turn. The Reviewer reviewed a packet without the work product, correctly noted "no answer artifact to review", and returned `CHANGES`.
+
+**Why CI didn't catch it.** Two unit tests codified the wrong invariant:
+- [review-evidence-packet.test.ts:137](electron/services/review-evidence-packet.test.ts:137) — `"builds a capped packet without builder narrative by default"` asserted the field was undefined when the flag was absent.
+- [agent-pipeline.test.ts:248](electron/services/agent-pipeline.test.ts:248) — `"M7: sends an evidence packet to Reviewer without coder narrative"` asserted `.not.toContain('CODER NARRATIVE')` and `.not.toContain('I fixed it')` against the Reviewer's serialized input.
+
+The likely original intent was "don't let the Coder narrate its way past review" — but the implementation excluded the work product itself. The defense against persuasive self-reports is the reviewer prompt + the field's explicit name (a labelled *claim*, not *evidence*), not hiding the Coder's content.
+
+**Fix — invert the API.** `builderNarrative` is now included whenever provided. Five edits across three files (`+34 / −26`):
+
+1. [review-evidence-packet.ts:86](electron/services/review-evidence-packet.ts:86) — removed `includeBuilderNarrative?: boolean` from `BuildReviewEvidencePacketInput`.
+2. [review-evidence-packet.ts:350](electron/services/review-evidence-packet.ts:350) — gate simplifies to `if (input.builderNarrative)`. The `enforcePacketCap` last-resort `delete next.builderNarrative` trim path is unchanged (still works as a byte-budget escape).
+3. [review-evidence-packet.test.ts](electron/services/review-evidence-packet.test.ts) — flipped: the "by default" test now asserts inclusion (positive `expect(packet.builderNarrative).toBe(...)`); added a small "omits when none supplied" companion; removed the redundant flag-gated test.
+4. [agent-pipeline.test.ts:248](electron/services/agent-pipeline.test.ts:248) — flipped M7 to `"forwards the coder reply to the Reviewer as builderNarrative"`. New assertions capture the `builderNarrative` arg passed into the dependency-injected `buildReviewEvidencePacket` AND check the Reviewer sub-agent's serialized user message contains the Coder's content.
+5. Call site at [agent-pipeline.ts:700](electron/services/agent-pipeline.ts:700) — no edit needed; it already passes `builderNarrative` and silently becomes correct under the new API.
+
+`grep includeBuilderNarrative` across the repo returns zero.
+
+**Knock-on effect.** Next time `"What does the keychain module do?"` (or any other casual or rigor turn) runs under multi-agent dispatch, the Reviewer receives the Coder's actual reply as `builderNarrative` in its evidence packet. Combined with the reviewer prompt's framing of builder claims as claims, the verdict will track the work product instead of complaining about its absence. The merciless-flogging failure mode stops being structural; it becomes prompt-tunable.
+
+**Honest gaps.** This fix restores the Reviewer's ability to see the Coder's reply, but does not yet address the broader question of whether multi-agent dispatch is the right default for casual knowledge questions — that's an HY5 routing decision per the Split memo, and was left untouched by this hotfix.
+
+---
+
 ## [Hygiene Phase — Complete] HY0 through HY7 shipped end-to-end — 2026-06-09
 
 8-prompt context-economy + thin-harness phase shipped on `claude/github-pushes-audit-3wn41r`. v0.10.0 → **v0.11.0** minor release. Derived from a direct audit of the Claude Code harness vs. Lamprey (the two real differentiators were context hygiene + philosophy, not features).

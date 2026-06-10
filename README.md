@@ -23,16 +23,18 @@ Optional hook templates live in `scripts/hooks/`. They are not installed automat
 
 ---
 
-## ⬇ Download v0.11.0
+## ⬇ Download v0.11.1
 
 Pick one — the `.exe` is the standard installer, the `.zip` is the portable bundle (unzip and run `Lamprey.exe` directly, no install required).
 
 | Format | File | Direct link |
 |---|---|---|
-| **NSIS installer** (Windows) | `Lamprey-x64.exe` | [Download .exe](https://github.com/USS-Parks/lamprey/releases/download/v0.11.0/Lamprey-x64.exe) |
-| **Portable ZIP** (Windows) | `Lamprey-x64.zip` | [Download .zip](https://github.com/USS-Parks/lamprey/releases/download/v0.11.0/Lamprey-x64.zip) |
+| **NSIS installer** (Windows) | `Lamprey-x64.exe` | [Download .exe](https://github.com/USS-Parks/lamprey/releases/download/v0.11.1/Lamprey-x64.exe) |
+| **Portable ZIP** (Windows) | `Lamprey-x64.zip` | [Download .zip](https://github.com/USS-Parks/lamprey/releases/download/v0.11.1/Lamprey-x64.zip) |
 
 Or browse all releases → <https://github.com/USS-Parks/lamprey/releases>
+
+**New in v0.11.1 — Reviewer Packet Hotfix.** Fixes a load-bearing wiring defect in the M7 reviewer evidence packet that was making every multi-agent turn feel like merciless flogging. `runAgentPipeline` was passing the Coder's reply to `buildReviewEvidencePacket` as `builderNarrative`, but the builder gated inclusion behind a separate `includeBuilderNarrative` flag that no caller ever set. The Reviewer therefore reviewed a packet with the work product silently missing, then correctly returned `CHANGES` — for every turn, including casual ones — because it had no answer to evaluate. v0.11.1 inverts the API: `builderNarrative` is now included whenever supplied. The defense against the Coder's self-report persuading the Reviewer lives in the reviewer prompt and the field's explicit name (a labelled *claim*, not evidence), not in hiding the work product. The two tests that codified the old "must not contain coder narrative" invariant are flipped to assert the opposite, plus a positive assertion in M7 that the Coder's content reaches the Reviewer sub-agent's serialized packet. Verify gate: lint, tsc node + web, vitest 2265 passed / 123 skipped, `verify:proof --no-tests` exits 0.
 
 **New in v0.11.0 — Hygiene Phase.** An 8-prompt context-economy phase (HY0–HY7) derived from a direct audit of the Claude Code harness against Lamprey: the differentiators were context hygiene and a thinner harness, not missing features. **Lazy tool surface** — instead of shipping all ~46 native tools' full JSON schemas to the model on every turn, Lamprey now sends a 12-tool always-on core set plus a `tool_search` meta-tool; the model unlocks the rest on demand via a search→resolve→unlock round-trip, cutting tool-schema bytes per turn by **63.8%** (native-only; the lazy surface stays flat as MCP connectors are added, so the real-world saving is larger). Falls back to the full catalog automatically for models that can't drive the round-trip, and is switchable via `toolSurface: 'lazy' | 'full'`. **Tool-result spill valve** — a large tool result (a big `git log`, a wide grep) is written to disk and the model receives a head+tail preview plus a `read_tool_result` ref, so one fat result no longer rides along in every later turn's context. **Lazy skill bodies** — active skills inject a name+description stub and load their full instructions on demand via `skill_open`. **Rigor-scoped proof gate** — the mechanical proof gate and change-contract machinery now engage only on verification-grade turns (audit / verify / prove, or multi-agent runs), leaving casual turns clean; L8 adaptive routing is unchanged. **Exemplar steering** — one compact worked example in the contract, which steers instruction-tuned models better than another prose rule. Verify gate: tsc node + web clean, vitest 2271 passed / 117 skipped, build OK, `verify:proof` exits 0. See [PLANNING/LAMPREY_HYGIENE_PLAN.md](PLANNING/LAMPREY_HYGIENE_PLAN.md) and [PLANNING/HY_AFTER.md](PLANNING/HY_AFTER.md).
 
@@ -226,7 +228,7 @@ User-defined JavaScript sandbox hooks that fire on lifecycle events:
 
 ## Quick start
 
-1. **Download** the [v0.10.0 installer](https://github.com/USS-Parks/lamprey/releases/download/v0.10.0/Lamprey-x64.exe) and run it.
+1. **Download** the [v0.11.1 installer](https://github.com/USS-Parks/lamprey/releases/download/v0.11.1/Lamprey-x64.exe) and run it.
 2. **Get a key.** Easiest: <https://platform.deepseek.com> → sign up → create key → load $5. Lamprey also accepts Google AI Studio (Gemma), Alibaba DashScope (Qwen), and OpenRouter keys.
 3. **Paste your key** in the first-run modal. It's stored with `safeStorage` (OS keychain) under `userData/keys.json`.
 4. **Type something.** That's it.
@@ -301,6 +303,12 @@ Build history: [DEVLOG.md](DEVLOG.md).
 ---
 
 ## Roadmap
+
+Built and shipped (v0.11.x):
+
+- ✅ **Reviewer Packet Hotfix** (v0.11.1) — fixes a load-bearing wiring defect in the M7 reviewer evidence packet that was making the Reviewer return `CHANGES` on every multi-agent turn (including casual ones) because the Coder's reply was being silently dropped from the packet. `runAgentPipeline` was passing the Coder's content to `buildReviewEvidencePacket` as `builderNarrative`, but inclusion was gated behind a separate `includeBuilderNarrative` flag no caller ever set, so the Reviewer was reviewing a packet with the work product missing and correctly noting its absence. v0.11.1 inverts the API: `builderNarrative` is now included whenever supplied — the defense against the Coder narrating its way past review lives in the reviewer prompt + the field's explicit name (labelled *claim*, not evidence), not in hiding the work product. Two tests that codified the old invariant flipped; a positive assertion added that the Coder's content reaches the Reviewer sub-agent's serialized packet. Verify gate: lint, tsc node + web, vitest 2265 passed / 123 skipped, `verify:proof --no-tests` exits 0.
+
+- ✅ **Hygiene Phase** (v0.11.0) — 8-prompt context-economy + thin-harness phase derived from a direct audit of the Claude Code harness vs. Lamprey. Lazy tool surface (12-tool always-on CORE + `tool_search` meta-tool; rest unlocked on demand) cut model tool-schema bytes per turn by −63.8% native-only, flat regardless of MCP connector count. Tool-result spill valve writes oversize results to disk and gives the model a head+tail preview + `read_tool_result` ref. Lazy skill bodies inject name+description stubs + `skill_open` on demand. Rigor-scoped proof gate (`proof-rigor.ts`) leaves casual turns clean; engages only on verification verbs / multi-agent / `proofGate:'always'`. One compact few-shot exemplar embedded in the contract for instruction-tuned model steering. New optional settings (`toolSurface`, `toolResultSpill`, `proofGate`) with safe defaults. Verify gate: tsc node + web pass, vitest 2271 passed / 117 skipped, build OK, `verify:proof` exits 0.
 
 Built and shipped (v0.10.x):
 

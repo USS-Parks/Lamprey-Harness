@@ -84,7 +84,6 @@ export interface BuildReviewEvidencePacketInput {
   workspacePath: string
   userGoal?: string
   builderNarrative?: string
-  includeBuilderNarrative?: boolean
   capBytes?: number
   deps?: ReviewEvidencePacketDeps
 }
@@ -347,7 +346,7 @@ export async function buildReviewEvidencePacket(
     omissions
   }
 
-  if (input.includeBuilderNarrative && input.builderNarrative) {
+  if (input.builderNarrative) {
     packet.builderNarrative = truncateText(input.builderNarrative, 4096).text
   }
 

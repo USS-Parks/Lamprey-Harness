@@ -34,7 +34,7 @@ describe('review evidence packet', () => {
     expect(snippets[0].snippet).toContain('+const b = 3')
   })
 
-  it('builds a capped packet without builder narrative by default', async () => {
+  it('includes the builder narrative whenever it is provided', async () => {
     const packet = await buildReviewEvidencePacket({
       conversationId: 'conv-1',
       correlationId: 'corr-1',
@@ -133,16 +133,14 @@ describe('review evidence packet', () => {
     })
     expect(packet.proof.staleGreenWarnings[0]).toContain('prf_1')
     expect(packet.toolCalls[0]).toMatchObject({ id: 'tool_1', name: 'apply_patch' })
-    expect(JSON.stringify(packet)).not.toContain('Trust me')
-    expect(packet.builderNarrative).toBeUndefined()
+    expect(packet.builderNarrative).toBe('I definitely fixed everything. Trust me.')
+    expect(JSON.stringify(packet)).toContain('Trust me')
   })
 
-  it('labels builder narrative only when explicitly included', async () => {
+  it('omits the builder narrative field when none is supplied', async () => {
     const packet = await buildReviewEvidencePacket({
       conversationId: 'conv-1',
       workspacePath: 'C:/repo',
-      builderNarrative: 'builder summary',
-      includeBuilderNarrative: true,
       deps: {
         getActiveContract: () => null,
         listReceipts: () => [],
@@ -151,6 +149,6 @@ describe('review evidence packet', () => {
       }
     })
 
-    expect(packet.builderNarrative).toBe('builder summary')
+    expect(packet.builderNarrative).toBeUndefined()
   })
 })

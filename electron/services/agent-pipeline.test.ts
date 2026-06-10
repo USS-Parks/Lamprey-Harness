@@ -245,8 +245,9 @@ describe('runAgentPipeline — happy path', () => {
   // object form `{output, reasoning}` per R3) must land on the saved
   // Planner row's `reasoning` field so MessageBubble can render the
   // pill inside the "Show pipeline trace" toggle on the Coder bubble.
-  it('M7: sends an evidence packet to Reviewer without coder narrative', async () => {
+  it('M7: forwards the coder reply to the Reviewer as builderNarrative', async () => {
     const reviewerContexts: string[] = []
+    const builderNarratives: Array<string | undefined> = []
     const subAgentRunner: SubAgentRunner = async (messages, modelId) => {
       if (modelId === reviewer) {
         const user = messages.find((m) => m.role === 'user')
@@ -274,27 +275,37 @@ describe('runAgentPipeline — happy path', () => {
       subAgentRunner,
       coderRunner,
       emitter,
-      buildReviewEvidencePacket: async (input) => ({
-        kind: 'review_evidence_packet',
-        version: 1,
-        conversationId: input.conversationId,
-        correlationId: input.correlationId,
-        workspacePath: input.workspacePath,
-        generatedAt: 1,
-        userGoal: input.userGoal,
-        contract: null,
-        git: { changedFiles: [], diffSummary: '', snippets: [] },
-        proof: { receipts: [], failedCommands: [], skippedCommands: [], staleGreenWarnings: [] },
-        toolCalls: [],
-        omissions: []
-      })
+      buildReviewEvidencePacket: async (input) => {
+        builderNarratives.push(input.builderNarrative)
+        return {
+          kind: 'review_evidence_packet',
+          version: 1,
+          conversationId: input.conversationId,
+          correlationId: input.correlationId,
+          workspacePath: input.workspacePath,
+          generatedAt: 1,
+          userGoal: input.userGoal,
+          contract: null,
+          git: { changedFiles: [], diffSummary: '', snippets: [] },
+          proof: { receipts: [], failedCommands: [], skippedCommands: [], staleGreenWarnings: [] },
+          toolCalls: [],
+          omissions: [],
+          builderNarrative: input.builderNarrative
+        }
+      }
     })
 
     expect(reviewerContexts).toHaveLength(1)
     expect(reviewerContexts[0]).toContain('"kind":"review_evidence_packet"')
     expect(reviewerContexts[0]).toContain('"userGoal":"fix proof UI"')
-    expect(reviewerContexts[0]).not.toContain('CODER NARRATIVE')
-    expect(reviewerContexts[0]).not.toContain('I fixed it')
+    // The coder's reply is the work product under review — it must reach the
+    // Reviewer as builderNarrative. The reviewer prompt treats it as a claim,
+    // not as evidence, so the field name (not its absence) does the framing.
+    expect(builderNarratives).toEqual([
+      'CODER NARRATIVE: I fixed it, no need to inspect.'
+    ])
+    expect(reviewerContexts[0]).toContain('CODER NARRATIVE')
+    expect(reviewerContexts[0]).toContain('I fixed it')
   })
 
   it('M8: retries a vague reviewer output once and saves the corrected review', async () => {

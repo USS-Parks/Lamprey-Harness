@@ -24,6 +24,17 @@ import { trace } from './debug-trace'
 // L8 (Lampshade Phase, 2026-06-09) — resolveAgentDispatch consults the
 // per-turn routing heuristic when agentMode === 'auto'.
 import { routeAgentMode } from './agent-router'
+// CR-2 (Cogency Restore Phase, 2026-06-09) — abort-safe rollback + stall
+// detection. The pipeline wraps in try/finally; the helper synthesises a
+// user-visible system message when the run bails after the Coder mutated
+// files but before the Composer wrote a reply.
+import {
+  MutationTracker,
+  StageInactivityWatchdog,
+  evaluateClosure,
+  type PipelineStage,
+  type TerminationReason
+} from './agent-pipeline-safety'
 
 // T3 — Per-stage wall-clock budgets. The MAX_TOOL_ROUNDS cap (chat.ts:204)
 // protects against infinite loops but not against 50 rounds × 60s thinking-

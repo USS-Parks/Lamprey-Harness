@@ -30,6 +30,13 @@ import {
 } from '../services/async-event-bridge'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
+// CR-2 (Cogency Restore Phase, 2026-06-09) — abort-safe rollback + stall
+// detection wrapper. Surfaces a `role:'system'` message naming modified
+// paths when the pipeline bails after Coder mutations land.
+import {
+  withPipelineSafety,
+  newSystemMessageId
+} from '../services/agent-pipeline-safety'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -606,43 +613,78 @@ export function registerChatHandlers(): void {
             ? priorWithoutLatestUser
             : priorWithoutLatestUser.slice(0, lastUserIdx)
 
-        await runAgentPipeline({
+        // CR-2 — wrap the multi-agent dispatch in withPipelineSafety so that
+        // if the pipeline bails after Coder mutations land (F2: stage threw,
+        // F15: stage stalled with no error), the user sees a synthesised
+        // system message naming the modified paths. The wrapper is a no-op
+        // on the happy path (composer completes cleanly).
+        const stageInactivityMs =
+          typeof (settingsRaw as { stageInactivityMs?: number } | null)?.stageInactivityMs === 'number'
+            ? Math.max(0, (settingsRaw as { stageInactivityMs: number }).stageInactivityMs)
+            : 0
+        await withPipelineSafety({
           conversationId,
-          correlationId,
-          roster: coderRoster,
-          userContent: content,
-          systemPrompt: coderSystemPrompt,
-          priorMessages: priorTrimmed,
-          tools: tools.length > 0 ? tools : undefined,
           workspacePath,
-          signal: abortController.signal,
-          subAgentRunner: async (subMessages, modelId, subSignal) => {
-            // chatOnce takes (messages, modelId, signal); sub-agents are
-            // one-shot reasoning calls — per-model temperature/topP from
-            // modelConfig doesn't apply here. R3: return the object form
-            // so Planner + Reviewer reasoning flows through forkAgent →
-            // SubAgentResult.reasoning → the saved Planner / Reviewer row.
-            const result = await chatOnce(subMessages, modelId, subSignal, {
-              correlationId,
-              conversationId,
-              purpose: 'sub-agent'
-            })
-            return { output: result.content, reasoning: result.reasoning }
+          stageInactivityMs,
+          persistSystemMessage: (payload) => {
+            try {
+              const msg = convStore.saveMessage({
+                id: newSystemMessageId(),
+                conversationId: payload.conversationId,
+                role: 'system',
+                content: payload.text,
+                model: 'lamprey-safety-net',
+                stage: 'system'
+              })
+              emitChatEvent('chat:done', { conversationId, message: msg })
+            } catch (err) {
+              console.error('[chat] CR-2 persistSystemMessage failed:', err)
+            }
           },
-          coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) =>
-            runChatRound(
+          runPipeline: async ({ reachedStage, watchdog }) => {
+            await runAgentPipeline({
               conversationId,
-              coderModel,
-              messages,
-              coderTools,
+              correlationId,
+              roster: coderRoster,
+              userContent: content,
+              systemPrompt: coderSystemPrompt,
+              priorMessages: priorTrimmed,
+              tools: tools.length > 0 ? tools : undefined,
               workspacePath,
-              coderSignal,
-              0,
-              coderModelParams,
-              agentic.composer,
-              /* suppressDoneEvent */ true,
-              correlationId
-            )
+              signal: abortController.signal,
+              subAgentRunner: async (subMessages, modelId, subSignal) => {
+                const result = await chatOnce(subMessages, modelId, subSignal, {
+                  correlationId,
+                  conversationId,
+                  purpose: 'sub-agent'
+                })
+                return { output: result.content, reasoning: result.reasoning }
+              },
+              coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) => {
+                reachedStage('coder')
+                watchdog.armStage('coder')
+                const out = await runChatRound(
+                  conversationId,
+                  coderModel,
+                  messages,
+                  coderTools,
+                  workspacePath,
+                  coderSignal,
+                  0,
+                  coderModelParams,
+                  agentic.composer,
+                  /* suppressDoneEvent */ true,
+                  correlationId
+                )
+                reachedStage('reviewer')
+                watchdog.armStage('reviewer')
+                return out
+              }
+            })
+            // runAgentPipeline returns void; if we got here without throwing
+            // the composer/reviewer chain ran to completion.
+            reachedStage('composer')
+          }
         })
       } else {
         if (dispatch.reason) {

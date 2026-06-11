@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Force the event-log + policy-store fallbacks; mock conversation-store so
-// the agent pipeline's saveMessage call resolves without booting better-sqlite3.
+// Force the event-log + policy-store fallbacks so tests run without
+// better-sqlite3. UB-1 (Unburdening Phase, 2026-06-10): the agent.stage.*
+// pipeline-event suites that used to live here died with runAgentPipeline —
+// what remains is the correlation contract for the producers that still
+// exist (approvals + tool lifecycle).
 vi.mock('electron', () => ({
   app: {
     getPath: () => {
@@ -15,23 +18,11 @@ vi.mock('@electron-toolkit/utils', () => ({
   is: { dev: true }
 }))
 
-vi.mock('./conversation-store', () => ({
-  saveMessage: (msg: { id: string; conversationId: string; role: string; content: string; model?: string }) => ({
-    id: msg.id,
-    conversationId: msg.conversationId,
-    role: msg.role,
-    content: msg.content,
-    timestamp: 1,
-    model: msg.model
-  })
-}))
-
 import {
   __forceMemoryFallback as forceEventMemory,
   __resetEventLog,
   listEvents,
-  listTimeline,
-  type EventRecord
+  listTimeline
 } from './event-log'
 import {
   __forceMemoryFallback as forcePolicyMemory,
@@ -40,9 +31,6 @@ import {
 } from './permission-policies-store'
 import { permissionsService } from './permissions-store'
 import { toolRegistry } from './tool-registry'
-import { runAgentPipeline, type AgentRoster } from './agent-pipeline'
-import { MODEL_CATALOG } from './providers/registry'
-import type { SubAgentRunner } from './multi-agent-run-tool'
 
 beforeEach(() => {
   __resetEventLog()
@@ -50,21 +38,6 @@ beforeEach(() => {
   __resetPolicyStore()
   forcePolicyMemory()
 })
-
-const KNOWN_MODELS = MODEL_CATALOG.map((m) => m.id)
-const planner = KNOWN_MODELS[0]
-const coder = KNOWN_MODELS[1] ?? KNOWN_MODELS[0]
-const reviewer = KNOWN_MODELS[2] ?? KNOWN_MODELS[0]
-const validRoster: AgentRoster = { planner, coder, reviewer }
-
-function validReviewText(): string {
-  return [
-    'Checked failure modes: stale proof and missing lifecycle events.',
-    'Evidence consulted: electron/services/chat-correlation-events.test.ts:1 and receipt prf_1.',
-    'Unchecked gaps: none.',
-    'SHIP'
-  ].join('\n')
-}
 
 // ──────────────────── correlationId on tool + approval producers ────────────────────
 
@@ -124,111 +97,10 @@ describe('producers pass correlationId through to event payloads', () => {
   })
 })
 
-// ──────────────────── agent.stage.* events ────────────────────
-
-describe('runAgentPipeline emits agent.stage.* events', () => {
-  it('happy path: planner/coder/reviewer started+completed pairs in order, all with the same correlationId', async () => {
-    const cid = 'corr-pipeline-happy'
-    const subAgentRunner: SubAgentRunner = async (_msgs, modelId) => {
-      if (modelId === planner) return 'plan-output'
-      return validReviewText()
-    }
-    const coderMessageBody = { content: 'coder reply', model: coder }
-    const coderRunner = vi.fn(async () => ({ message: coderMessageBody }))
-
-    await runAgentPipeline({
-      conversationId: 'conv-P',
-      correlationId: cid,
-      roster: validRoster,
-      userContent: 'do the thing',
-      systemPrompt: '<sys>',
-      priorMessages: [],
-      tools: undefined,
-      workspacePath: '/tmp',
-      signal: new AbortController().signal,
-      subAgentRunner,
-      coderRunner,
-      // Use the inline no-op emitter so we only see the event-log side.
-      emitter: {
-        status: () => undefined,
-        done: () => undefined,
-        error: () => undefined
-      }
-    })
-
-    const events: EventRecord[] = listTimeline({ correlationId: cid })
-    const stageEvents = events.filter((e) => e.type.startsWith('agent.stage.'))
-    expect(stageEvents.map((e) => `${e.type}:${(e.payload as { role: string }).role}`)).toEqual([
-      'agent.stage.started:planner',
-      'agent.stage.completed:planner',
-      'agent.stage.started:coder',
-      'agent.stage.completed:coder',
-      'agent.stage.started:reviewer',
-      'agent.stage.completed:reviewer'
-    ])
-    expect(stageEvents.every((e) => e.correlationId === cid)).toBe(true)
-    expect(stageEvents.every((e) => e.actorKind === 'agent')).toBe(true)
-    // The completed events carry a durationMs and a bounded outputPreview.
-    const plannerDone = stageEvents.find(
-      (e) =>
-        e.type === 'agent.stage.completed' &&
-        (e.payload as { role: string }).role === 'planner'
-    )!
-    expect(typeof (plannerDone.payload as { durationMs: number }).durationMs).toBe(
-      'number'
-    )
-    expect((plannerDone.payload as { outputPreview: string }).outputPreview).toContain(
-      'plan-output'
-    )
-  })
-
-  it('planner-failure path: stage.started + stage.failed (no completed), severity error', async () => {
-    const cid = 'corr-pipeline-fail'
-    const subAgentRunner: SubAgentRunner = async () => {
-      throw new Error('upstream provider 500')
-    }
-    const coderRunner = vi.fn()
-    await runAgentPipeline({
-      conversationId: 'conv-Q',
-      correlationId: cid,
-      roster: validRoster,
-      userContent: 'x',
-      systemPrompt: '<sys>',
-      priorMessages: [],
-      tools: undefined,
-      workspacePath: '/tmp',
-      signal: new AbortController().signal,
-      subAgentRunner,
-      coderRunner,
-      emitter: {
-        status: () => undefined,
-        done: () => undefined,
-        error: () => undefined
-      }
-    })
-    expect(coderRunner).not.toHaveBeenCalled()
-    const stage = listEvents({
-      correlationId: cid,
-      type: ['agent.stage.started', 'agent.stage.completed', 'agent.stage.failed'],
-      order: 'asc'
-    })
-    expect(stage.map((e) => e.type)).toEqual([
-      'agent.stage.started',
-      'agent.stage.failed'
-    ])
-    const failed = stage[1]
-    expect(failed.severity).toBe('error')
-    expect((failed.payload as { role: string }).role).toBe('planner')
-    expect((failed.payload as { errorPreview: string }).errorPreview).toContain(
-      'upstream provider 500'
-    )
-  })
-})
-
 // ──────────────────── correlation-grouped timeline ────────────────────
 
 describe('one correlationId reconstructs a coherent multi-producer run', () => {
-  it('approval + tool lifecycle + pipeline stages share a correlationId and order by time', async () => {
+  it('approval + tool lifecycle share a correlationId and order by time', async () => {
     const cid = 'corr-mixed-run'
     // 1. Approval (policy-match allow → emits tool.call.approved).
     upsertPolicy({
@@ -268,37 +140,15 @@ describe('one correlationId reconstructs a coherent multi-producer run', () => {
       finishedAt: Date.now(),
       correlationId: cid
     })
-    // 3. Pipeline stages.
-    const subAgentRunner: SubAgentRunner = async (_msgs, modelId) =>
-      modelId === planner ? 'plan' : validReviewText()
-    await runAgentPipeline({
-      conversationId: 'conv-M',
-      correlationId: cid,
-      roster: validRoster,
-      userContent: 'thing',
-      systemPrompt: '<sys>',
-      priorMessages: [],
-      tools: undefined,
-      workspacePath: '/tmp',
-      signal: new AbortController().signal,
-      subAgentRunner,
-      coderRunner: async () => ({ message: { content: 'coder reply' } }),
-      emitter: {
-        status: () => undefined,
-        done: () => undefined,
-        error: () => undefined
-      }
-    })
 
     const tl = listTimeline({ correlationId: cid })
     // Every event in the timeline must share the same correlationId — the
     // very property that lets the UI reconstruct a chat run by one id.
-    expect(tl.length).toBeGreaterThanOrEqual(8)
+    expect(tl.length).toBeGreaterThanOrEqual(3)
     expect(tl.every((e) => e.correlationId === cid)).toBe(true)
     // The first event chronologically is the approval (it ran first); the
-    // last is reviewer-completed.
+    // last is the tool completion.
     expect(tl[0].type).toBe('tool.call.approved')
-    expect(tl[tl.length - 1].type).toBe('agent.stage.completed')
-    expect((tl[tl.length - 1].payload as { role: string }).role).toBe('reviewer')
+    expect(tl[tl.length - 1].type).toBe('tool.call.completed')
   })
 })

@@ -30,6 +30,9 @@ function readSettings() {
   if (!existsSync(settingsPath)) return { ...defaultSettings }
   try {
     const data = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    // UB-7 (Unburdening Phase, 2026-06-10) — the agentMode coercion that
+    // lived here is gone along with every reader of the key. Stale keys in
+    // existing settings.json files ride through inert.
     return { ...defaultSettings, ...data }
   } catch {
     return { ...defaultSettings }

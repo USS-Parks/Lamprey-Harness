@@ -6,37 +6,53 @@
 // user-visible in v0.12.0; this suite keeps them out.
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 const here = __dirname
 const agentRunBanner = readFileSync(join(here, 'AgentRunBanner.tsx'), 'utf-8')
 const messageBubble = readFileSync(join(here, 'MessageBubble.tsx'), 'utf-8')
-const proofGateBanner = readFileSync(join(here, 'ProofGateBanner.tsx'), 'utf-8')
 
 describe('SP-7 era chrome — no raw harness internals in user copy', () => {
-  it('AgentRunBanner renders plain-English stage labels, not raw role ids', () => {
-    expect(agentRunBanner).toContain('ROLE_LABEL')
-    expect(agentRunBanner).toContain("planner: 'Planning'")
-    expect(agentRunBanner).toContain("coder: 'Writing code'")
-    expect(agentRunBanner).toContain("reviewer: 'Reviewing'")
-    // The pipeline row must render the label, never the bare role id.
-    expect(agentRunBanner).toMatch(/\{ROLE_LABEL\[role\]\}/)
-    expect(agentRunBanner).not.toMatch(/>\s*\{role\}/)
+  it('AgentRunBanner has NO pipeline branch at all (deleted 2026-06-10 per user direction)', () => {
+    // The multi-agent "Pipeline" banner (planner → coder → reviewer stage
+    // dots above the input pill) is deleted, not gated. Only the single-mode
+    // run-phase pill remains.
+    expect(agentRunBanner).not.toContain('Pipeline')
+    expect(agentRunBanner).not.toContain('ROLE_ORDER')
+    expect(agentRunBanner).not.toContain('activeRun')
+    expect(agentRunBanner).not.toContain('useAgentStore')
+    expect(agentRunBanner).toContain('RunPhasePill')
   })
 
-  it('MessageBubble no longer says "Planner (orphan)" or "planner ·"', () => {
+  it('UB-7: the Agents settings tab is deleted; the work-mode popover has no mode switch', () => {
+    expect(existsSync(join(here, '..', 'settings', 'AgentSettings.tsx'))).toBe(false)
+    const workModePopover = readFileSync(
+      join(here, '..', 'workspace', 'WorkModePopover.tsx'),
+      'utf-8'
+    )
+    expect(workModePopover).not.toContain('Pipeline (Planner')
+    expect(workModePopover).not.toContain("setMode('multi')")
+    expect(workModePopover).not.toContain('agentMode')
+  })
+
+  it('UB-6: pipeline trace + stage chips reduced to one legacy marker', () => {
+    expect(messageBubble).not.toContain('attachedPlanner')
+    expect(messageBubble).not.toContain('pipeline trace')
     expect(messageBubble).not.toContain('Planner (orphan)')
-    expect(messageBubble).not.toContain('planner · {')
-    expect(messageBubble).toContain('Plan · {attachedPlanner.model}')
+    expect(messageBubble).toContain('Pipeline (legacy)')
+    // The legacy chip is the ONLY stage rendering left, and it is muted.
+    expect(messageBubble).not.toContain('bg-purple-500/15')
+    expect(messageBubble).not.toContain('bg-sky-500/15')
   })
 
-  it('ProofGateBanner keeps contract ids out of the visible body', () => {
-    // The id string may appear ONLY inside the hover tooltip (title={...}).
-    const visibleContractRender = /<div[^>]*>\s*\{\[notice\.contractId/
-    expect(proofGateBanner).not.toMatch(visibleContractRender)
-    expect(proofGateBanner).toContain('title={')
-    expect(proofGateBanner).toContain('Checks: {receiptLabel}')
+  it('UB-4: the proof-gate banner no longer exists at all', () => {
+    // Excised with the proof machinery — absence-locked so it can't return.
+    expect(existsSync(join(here, 'ProofGateBanner.tsx'))).toBe(false)
+    expect(existsSync(join(here, 'proof-gate-notice.ts'))).toBe(false)
+    expect(existsSync(join(here, 'proof-banner-state.ts'))).toBe(false)
+    expect(messageBubble).not.toContain('ProofGateBanner')
+    expect(messageBubble).not.toContain('proofStatus')
   })
 
   it('system rows route to SystemMarker, not assistant bubbles', () => {

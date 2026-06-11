@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import type {
   AfterActionCauseSeverity,
-  AfterActionProofReceiptItem,
   AfterActionReport,
   AfterActionTimelineItem,
   AfterActionToolItem
@@ -24,18 +23,6 @@ interface IpcEnvelope<T> {
   error?: string
 }
 
-// SP-8 — mirror of RouterDecisionTelemetryEntry (electron/services/
-// router-telemetry.ts). Session-scoped ring buffer; only populated when
-// agentMode is 'auto'.
-interface RouterDecisionItem {
-  promptHash: string
-  promptLength: number
-  route: 'single' | 'multi'
-  matchedRule: string
-  reason: string
-  timestamp: number
-  conversationId?: string
-}
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString([], {
@@ -73,58 +60,6 @@ function CountPill({ label, value }: { label: string; value: number }) {
         {label}
       </div>
     </div>
-  )
-}
-
-function ContractRow({
-  contract
-}: {
-  contract: { id: string; goal: string; verificationCommands: string[] }
-}) {
-  return (
-    <li className="border-b border-[var(--panel-border)] px-3 py-2 last:border-b-0">
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-[var(--text-primary)]">
-          {contract.goal}
-        </span>
-        <span className="shrink-0 font-mono text-[10px] text-[var(--warning)]">active</span>
-      </div>
-      <div className="mt-1 truncate font-mono text-[10px] text-[var(--text-muted)]">
-        {contract.verificationCommands.length > 0
-          ? contract.verificationCommands.join(' - ')
-          : contract.id}
-      </div>
-    </li>
-  )
-}
-
-function ReceiptRow({ receipt }: { receipt: AfterActionProofReceiptItem }) {
-  const tone =
-    receipt.status === 'failed'
-      ? 'text-[var(--error)]'
-      : receipt.status === 'skipped'
-        ? 'text-[var(--warning)]'
-        : 'text-[var(--success)]'
-  const metrics = Object.keys(receipt.metrics ?? {}).length > 0
-    ? JSON.stringify(receipt.metrics)
-    : ''
-  return (
-    <li className="border-b border-[var(--panel-border)] px-3 py-2 last:border-b-0">
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text-primary)]">
-          {receipt.kind} receipt {receipt.id}
-        </span>
-        <span className={`shrink-0 font-mono text-[10px] ${tone}`}>{receipt.status}</span>
-      </div>
-      <div className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
-        {receipt.command}
-      </div>
-      <div className="mt-0.5 flex gap-2 overflow-hidden font-mono text-[10px] text-[var(--text-muted)]">
-        {receipt.exitCode !== undefined && <span>exit {receipt.exitCode}</span>}
-        <span>{formatDuration(receipt.durationMs)}</span>
-        {metrics && <span className="truncate">{metrics}</span>}
-      </div>
-    </li>
   )
 }
 
@@ -191,7 +126,6 @@ export function AfterActionPanel(): React.ReactElement {
   const conversationId = useChatStore((s) => s.activeConversationId)
   const [report, setReport] = useState<AfterActionReport | null>(null)
   const [recs, setRecs] = useState<HarnessRecItem[]>([])
-  const [routerDecisions, setRouterDecisions] = useState<RouterDecisionItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -221,16 +155,6 @@ export function AfterActionPanel(): React.ReactElement {
         )) as IpcEnvelope<HarnessRecItem[]>
         if (recsResult.success && recsResult.data) {
           setRecs(recsResult.data)
-        }
-      } catch { /* best-effort */ }
-
-      // SP-8 — recent auto-router decisions for this conversation (D6).
-      try {
-        const routerResult = (await window.api.afterAction.routerTelemetry(
-          conversationId
-        )) as IpcEnvelope<RouterDecisionItem[]>
-        if (routerResult.success && routerResult.data) {
-          setRouterDecisions(routerResult.data)
         }
       } catch { /* best-effort */ }
     } finally {
@@ -334,95 +258,9 @@ export function AfterActionPanel(): React.ReactElement {
               </div>
             </section>
 
-            <section>
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                Proof
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <CountPill label="Passed" value={report.proof.gatePassed} />
-                <CountPill label="Failed" value={report.proof.gateFailed} />
-                <CountPill label="Waived" value={report.proof.gateWaived} />
-              </div>
-              {report.proof.latestFailureReason && (
-                <div className="mt-1.5 rounded-md border border-[var(--warning)]/35 bg-[var(--bg-primary)] px-3 py-2 text-[12px] leading-snug text-[var(--text-secondary)]">
-                  {report.proof.latestFailureReason}
-                </div>
-              )}
-              {report.proof.activeContracts.length > 0 && (
-                <ul className="mt-1.5 overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
-                  {report.proof.activeContracts.map((contract) => (
-                    <ContractRow key={contract.id} contract={contract} />
-                  ))}
-                </ul>
-              )}
-              {report.proof.receipts.length > 0 && (
-                <ul className="mt-1.5 overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
-                  {report.proof.receipts.slice(0, 12).map((receipt) => (
-                    <ReceiptRow key={receipt.id} receipt={receipt} />
-                  ))}
-                </ul>
-              )}
-              {(report.proof.failedCommands.length > 0 ||
-                report.proof.skippedCommands.length > 0) && (
-                <div className="mt-1.5 rounded-md border border-[var(--warning)]/35 bg-[var(--bg-primary)] px-3 py-2 text-[12px] leading-snug text-[var(--text-secondary)]">
-                  {report.proof.failedCommands.length > 0 && (
-                    <div>Failed: {report.proof.failedCommands.join(', ')}</div>
-                  )}
-                  {report.proof.skippedCommands.length > 0 && (
-                    <div>Skipped: {report.proof.skippedCommands.join(', ')}</div>
-                  )}
-                </div>
-              )}
-              {report.proof.reviewerCheckedModes.length > 0 && (
-                <ul className="mt-1.5 overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
-                  {report.proof.reviewerCheckedModes.map((line, idx) => (
-                    <li
-                      key={`${idx}-${line}`}
-                      className="border-b border-[var(--panel-border)] px-3 py-1.5 text-[11px] leading-snug text-[var(--text-secondary)] last:border-b-0"
-                    >
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {routerDecisions.length > 0 && (
-              <section>
-                <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                  Routing
-                </div>
-                <ul className="overflow-hidden rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)]">
-                  {routerDecisions.slice(-12).map((d) => (
-                    <li
-                      key={`${d.promptHash}-${d.timestamp}`}
-                      className="border-b border-[var(--panel-border)] px-3 py-2 last:border-b-0"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] text-[var(--text-muted)]">
-                          {formatTime(d.timestamp)}
-                        </span>
-                        <span
-                          className={`shrink-0 rounded px-1 font-mono text-[10px] ${
-                            d.route === 'multi'
-                              ? 'bg-purple-500/15 text-purple-400'
-                              : 'bg-[var(--bg-tertiary)]/60 text-[var(--text-secondary)]'
-                          }`}
-                        >
-                          {d.route}
-                        </span>
-                        <span className="truncate font-mono text-[10px] text-[var(--text-muted)]">
-                          {d.matchedRule}
-                        </span>
-                      </div>
-                      <div className="mt-0.5 text-[12px] leading-snug text-[var(--text-secondary)]">
-                        {d.reason}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+            {/* UB-4 (Unburdening Phase, 2026-06-10) — the Proof section
+                (gate counts, contracts, receipts, reviewer modes) is excised
+                with the proof machinery. */}
 
             {recs.length > 0 && (
               <section>

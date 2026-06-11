@@ -7,7 +7,6 @@ const api = {
       model: string
       content: string
       activeSkillIds: string[]
-      agentMode?: 'single' | 'multi'
     }) => ipcRenderer.invoke('chat:send', request),
     cancel: (conversationId: string) => ipcRenderer.invoke('chat:cancel', conversationId),
     generateTitle: (content: string) => ipcRenderer.invoke('chat:generateTitle', content),
@@ -64,7 +63,6 @@ const api = {
       ipcRenderer.on('chat:document-created', handler)
       return () => ipcRenderer.removeListener('chat:document-created', handler)
     },
-    onAgentStatus: (cb: (e: unknown) => void) => ipcRenderer.on('agent:status', (_, e) => cb(e)),
     onAsyncEvent: (cb: (e: unknown) => void): (() => void) => {
       const handler = (_: unknown, e: unknown): void => cb(e)
       ipcRenderer.on('async-event:received', handler)
@@ -75,14 +73,12 @@ const api = {
         'chat:chunk',
         'chat:reasoning',
         'chat:done',
-        'chat:planner-message',
         'chat:error',
         'chat:tool-call',
         'chat:tool-call-result',
         'chat:phase',
         'chat:streaming-vitals',
-        'chat:document-created',
-        'agent:status'
+        'chat:document-created'
       ].forEach((ch) => ipcRenderer.removeAllListeners(ch))
     },
     // Per-conversation subscription that returns an unsubscribe function.
@@ -384,16 +380,6 @@ const api = {
     list: (filter?: unknown) => ipcRenderer.invoke('contracts:list', filter ?? {}),
     active: (conversationId: string, correlationId?: string) =>
       ipcRenderer.invoke('contracts:active', conversationId, correlationId)
-  },
-
-  // WC-5 — Flip a message's persisted proof_status. Used by the proof
-  // gate banner after a successful waiver so the banner does not return
-  // on conversation reload.
-  messages: {
-    setProofStatus: (input: {
-      messageId: string
-      status: 'trusted' | 'untrusted' | 'blocked' | 'waived'
-    }) => ipcRenderer.invoke('messages:setProofStatus', input)
   },
 
   plan: {
@@ -1105,10 +1091,7 @@ const api = {
   },
 
   afterAction: {
-    get: (conversationId: string) => ipcRenderer.invoke('after-action:get', conversationId),
-    // SP-8 — recent auto-router decisions (session-scoped ring buffer, D6).
-    routerTelemetry: (conversationId?: string) =>
-      ipcRenderer.invoke('after-action:routerTelemetry', conversationId)
+    get: (conversationId: string) => ipcRenderer.invoke('after-action:get', conversationId)
   },
 
   harnessRecs: {

@@ -13,7 +13,6 @@ import type {
 } from '@/lib/types'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useModelStore } from '@/stores/model-store'
-import { useAgentStore } from '@/stores/agent-store'
 import { usePlanStore } from '@/stores/plan-store'
 import { toast } from '@/stores/toast-store'
 import { useNavHistoryStore } from '@/stores/nav-history-store'
@@ -86,12 +85,6 @@ interface ChatState {
   appendStreamChunk: (content: string) => void
   appendReasoningChunk: (content: string) => void
   appendStreamingDocument: (doc: DocumentAttachment) => void
-  /** Reasoning Audit Phase R4 — append a persisted Planner audit row
-   *  mid-pipeline (between Planner and Coder stages). Unlike
-   *  finishStream, this does NOT clear streaming state — the Coder is
-   *  still streaming when the Planner row arrives. Idempotent on
-   *  message.id so a duplicate event is dropped. */
-  appendPlannerMessage: (message: Message) => void
   finishStream: (message: Message) => void
   streamError: (error: string) => void
   setStreamingVitals: (
@@ -395,21 +388,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       pendingAttachments: []
     }))
 
-    // L8 (Lampshade Phase, 2026-06-09) — the chat:send per-turn override
-    // remains binary ('single' | 'multi' | undefined). When the user picks
-    // 'auto' in Settings, the dispatch decision is made server-side by
-    // resolveAgentDispatch + routeAgentMode based on settings.agentMode,
-    // not the per-turn override. So we leave the override undefined here.
-    const storedMode = useAgentStore.getState().mode
-    const agentMode = storedMode === 'auto' ? undefined : storedMode
+    // UB-6 (Unburdening Phase, 2026-06-10) — the per-turn agentMode override
+    // died with the pipeline; every turn is single-agent.
     let result
     try {
       result = await window.api.chat.send({
         conversationId,
         model: state.activeModel,
         content: augmentedContent,
-        activeSkillIds,
-        agentMode
+        activeSkillIds
       })
     } catch (err) {
       const msg = errorMessage(err, 'Message failed')
@@ -511,14 +498,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ streamingVitals: v })
   },
 
-  appendPlannerMessage: (message: Message) => {
-    set((state) => {
-      // Idempotent — duplicate planner-message events (e.g. re-fire after
-      // a brief disconnect) shouldn't double-append.
-      if (state.messages.some((m) => m.id === message.id)) return state
-      return { messages: [...state.messages, message] }
-    })
-  },
 
   finishStream: (message: Message) => {
     set((state) => ({

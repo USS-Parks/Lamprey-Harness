@@ -15,7 +15,6 @@ import { destroyAllBackgroundShells } from './services/shell-tool'
 import { destroyAllMonitors } from './services/monitor-service'
 import { fireHooks } from './services/hooks-runner'
 import { setUserDataPathProvider as setProviderUserDataPath } from './services/providers/registry'
-import { setPipelineUserDataPathProvider } from './services/agent-pipeline'
 import {
   setDebugTraceUserDataPath,
   forceDebugTraceOn,
@@ -536,8 +535,6 @@ app.whenReady().then(() => {
   // T1 — let chatStream's inactivity watchdog read settings.json without
   // dragging an electron import into provider-layer tests.
   setProviderUserDataPath(() => app.getPath('userData'))
-  // T3 — same trick for the pipeline's per-stage wall-clock budgets.
-  setPipelineUserDataPathProvider(() => app.getPath('userData'))
   // DBG1 — wire the diagnostic trace writer + force it on for this debug
   // build so the user doesn't have to flip `debugTrace: true` themselves.
   // Remove `forceDebugTraceOn()` before shipping a non-debug build.

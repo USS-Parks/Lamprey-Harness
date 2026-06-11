@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
-import { useAgentStore } from '@/stores/agent-store'
 import { useEnvironment } from '@/hooks/useEnvironment'
 import { useSources } from '@/hooks/useSources'
 import { toast } from '@/stores/toast-store'
@@ -128,7 +127,6 @@ function PanelRow({
 
 export function EnvironmentPanel(): React.ReactElement {
   const setActiveTool = useUiStore((s) => s.setActiveTool)
-  const agentMode = useAgentStore((s) => s.mode)
   const { snapshot, refresh } = useEnvironment()
   const { sources, groups } = useSources()
 
@@ -258,7 +256,8 @@ export function EnvironmentPanel(): React.ReactElement {
     : snapshot.ahead > 0
     ? `Push (${snapshot.ahead} ahead)`
     : 'Commit or push'
-  const workModeLabel = agentMode === 'multi' ? 'Pipeline' : 'Local'
+  // UB-6 — single-agent always; the 'Pipeline' label died with the toggle.
+  const workModeLabel = 'Local'
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-2">

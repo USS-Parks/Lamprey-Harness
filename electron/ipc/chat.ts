@@ -29,14 +29,6 @@ import {
   drainAsyncEventsForPrompt
 } from '../services/async-event-bridge'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
-import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
-// CR-2 (Cogency Restore Phase, 2026-06-09) — abort-safe rollback + stall
-// detection wrapper. Surfaces a `role:'system'` message naming modified
-// paths when the pipeline bails after Coder mutations land.
-import {
-  withPipelineSafety,
-  newSystemMessageId
-} from '../services/agent-pipeline-safety'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -56,18 +48,6 @@ import {
   maybeSpillToolResult,
   DEFAULT_SPILL_THRESHOLD
 } from '../services/tool-result-spill'
-import {
-  setProofRigor,
-  resolveProofRigor,
-  // CR-5 (Cogency Restore Phase, 2026-06-09) — gate the proof machinery on
-  // rigor AND mutation_attempted so multi-dispatch turns that don't actually
-  // mutate stop tripping the "Untrusted completion" pill.
-  shouldEngageProofGate,
-  markMutationAttempted,
-  // SP-3 — the mutation flag is per-turn; cleared at turn start (D4).
-  clearMutationAttempted,
-  setRigorRequiresMutation
-} from '../services/proof-rigor'
 import {
   partitionToolCallWindows,
   type ProviderToolCall
@@ -97,21 +77,12 @@ import {
   DeepResearchCancelledError,
   NoSourcesError
 } from '../services/research'
-import {
-  composeFinalResponse,
-  concatReasoningTrail,
-  loadAgenticCodingConfig,
-  resolveComposerGate,
-  summarizeRun,
-  type AgenticComposerMode
-} from '../services/final-response-composer'
-import { evaluateProofGate, proofGateNotice } from '../services/proof-gate'
-import { listProofReceipts } from '../services/proof-receipts'
-import {
-  listChangeContracts,
-  synthesizeImplicitChangeContract
-} from '../services/change-contract-store'
-import { getPlanSnapshot } from '../services/plan-goal-store'
+// UB-5 (Unburdening Phase, 2026-06-10) — the final-response composer is
+// excised: the reply the user reads is the model's own reply, always. The
+// R6 reasoning trail (kept, user-directed) moved to reasoning-trail.ts and
+// the agentic-coding config (mode + skills, no composer) to its own module.
+import { concatReasoningTrail } from '../services/reasoning-trail'
+import { loadAgenticCodingConfig } from '../services/agentic-coding-config'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
 
@@ -154,10 +125,8 @@ function loadModelConfig(
   }
 }
 
-// SP-2 — loadAgenticCodingConfig + resolveComposerGate moved to
-// `../services/final-response-composer` (pure, testable) and the composer is
-// now gated on agenticCodingMode being ON. Default turns keep the model's own
-// final reply, like the Opus 4.5-era product.
+// UB-5 — the final-response composer is excised entirely; agentic-coding
+// config (mode + skills) lives in `../services/agentic-coding-config`.
 
 // Idempotent union: preserves order of `base`, then appends ids from `extra`
 // that aren't already present. Used to merge auto-activated agentic skills
@@ -244,7 +213,7 @@ export function registerChatHandlers(): void {
     if (!validation.ok) {
       return { success: false, error: validation.error }
     }
-    const { content: rawContent, model, activeSkillIds, requestedAgentMode } = validation.value
+    const { content: rawContent, model, activeSkillIds } = validation.value
     // D3 — the prompt body the rest of the handler sees may have a
     // /research or --no-research prefix stripped off it. The actual
     // routing decision is made below before any model dispatch.
@@ -524,201 +493,25 @@ export function registerChatHandlers(): void {
       // chip mid-stream.
       const workspacePath = activeWorkspace
 
-      // Prompt 11: agentMode dispatch. The single-mode path below is
-      // byte-for-byte unchanged from pre-Prompt-11. Multi mode routes
-      // through `runAgentPipeline` with the validated roster. A bad
-      // roster falls back to single mode so the user isn't left without
-      // a reply. The whole decision tree lives in `resolveAgentDispatch`
-      // so the chat:send wiring is testable in isolation.
-      //
-      // L8 (Lampshade Phase, 2026-06-09) — when settings resolve to
-      // `agentMode: 'auto'` (the new default), `resolveAgentDispatch`
-      // calls `routeAgentMode(content)` to decide single vs multi per
-      // turn based on the user's prompt shape. The decision's
-      // `routeReason` is logged for UI surfacing.
-      const dispatch = resolveAgentDispatch(settingsRaw, content, conversationId)
-      if (dispatch.routeReason) {
-        console.info(`[chat] auto-routed to ${dispatch.kind}: ${dispatch.routeReason}`)
-      }
-      void requestedAgentMode
-
-      // HY5 (Split) — decide whether the heavyweight proof machinery (change
-      // contracts + proof-gate trust notice) engages this turn. L8 routing is
-      // unchanged above; this only scopes the proof flow to rigor turns.
-      //
-      // SP-3 — clear the per-turn mutation flag FIRST. Without this a
-      // mutating turn armed the gate for every later rigor turn in the same
-      // conversation (D4): the flag's contract is "attempted on THIS turn".
-      clearMutationAttempted(conversationId)
-      setProofRigor(
+      // UB-1 (Unburdening Phase, 2026-06-10) — there is no dispatch decision
+      // anymore. The multi-agent pipeline (Prompt 11 → L8 → CR-2) is excised;
+      // every turn is one model with its full tools. Git history at v0.13.0
+      // holds the last live pipeline.
+      // UB-4 (Unburdening Phase, 2026-06-10) — the HY5/CR-5 rigor resolution
+      // that ran here (proof-gate scoping per turn) is excised with the
+      // proof machinery.
+      await runChatRound(
         conversationId,
-        resolveProofRigor({
-          proofGateMode: (settingsRaw as { proofGate?: string } | null)?.proofGate,
-          dispatchKind: dispatch.kind,
-          content
-        })
+        model,
+        apiMessages,
+        tools.length > 0 ? tools : undefined,
+        workspacePath,
+        abortController.signal,
+        0,
+        modelParams,
+        /* suppressDoneEvent */ false,
+        correlationId
       )
-      // CR-5 — honor the optional `rigorRequiresMutation` setting (default
-      // true). When true (the CR-5 fix), the proof gate further requires a
-      // mutating tool to have been attempted before engaging — so multi-
-      // dispatch turns that don't actually edit anything no longer trip the
-      // "Untrusted completion" pill. Flip to false to restore pre-CR-5
-      // behavior (rigor signal alone fires the gate).
-      {
-        const rrm = (settingsRaw as { rigorRequiresMutation?: boolean } | null)?.rigorRequiresMutation
-        setRigorRequiresMutation(rrm !== false)
-      }
-
-      if (dispatch.kind === 'multi') {
-        // P11 review-P1: the Coder must execute with ITS OWN model's
-        // identity, system-prompt override, and modelConfig params —
-        // not the request model's. The outer `systemPrompt` and
-        // `modelParams` were derived from `model` (the active model the
-        // user selected for the conversation), which is the Coder model
-        // ONLY when single-mode would have been used. In multi mode we
-        // build a Coder-specific system prompt with contractRole='coding'
-        // (always, regardless of `agenticCodingMode` — the pipeline IS
-        // the coding-mode wrapper at this layer) and a Coder-specific
-        // params block.
-        const coderRoster = dispatch.roster
-        const { params: coderModelParams, systemPromptOverride: coderSystemOverride } =
-          loadModelConfig(settingsRaw, coderRoster.coder)
-        const coderSystemPrompt = buildSystemPrompt(
-          skillContents,
-          memoryBlock,
-          coderSystemOverride,
-          agentsMd,
-          coderRoster.coder,
-          'coding',
-          memoryIndexBlock,
-          taskNotificationsBlock,
-          chaptersBlock,
-          // supportsNativeTools left undefined — preserves the exact pre-HY4
-          // coder prompt (no guard/think stripping change); HY4 only adds the
-          // lazy skill-body flag in the next position.
-          undefined,
-          lazySkillBodies // HY4
-        )
-        const priorWithoutLatestUser = apiMessages.filter(
-          (m, idx) => idx !== 0 // drop the system entry; pipeline owns it
-        )
-        // Drop the most recent user turn from the prior list — pipeline
-        // injects its own rewritten user message that carries the plan.
-        // The latest user is whatever we just saved; locate by trailing
-        // role==='user'.
-        const lastUserIdx = priorWithoutLatestUser
-          .map((m, i) => (m.role === 'user' ? i : -1))
-          .filter((i) => i >= 0)
-          .pop()
-        const priorTrimmed =
-          lastUserIdx === undefined
-            ? priorWithoutLatestUser
-            : priorWithoutLatestUser.slice(0, lastUserIdx)
-
-        // CR-2 — wrap the multi-agent dispatch in withPipelineSafety so that
-        // if the pipeline bails after Coder mutations land (F2: stage threw,
-        // F15: stage stalled with no error), the user sees a synthesised
-        // system message naming the modified paths. The wrapper is a no-op
-        // on the happy path (composer completes cleanly).
-        const stageInactivityMs =
-          typeof (settingsRaw as { stageInactivityMs?: number } | null)?.stageInactivityMs === 'number'
-            ? Math.max(0, (settingsRaw as { stageInactivityMs: number }).stageInactivityMs)
-            : 0
-        await withPipelineSafety({
-          conversationId,
-          workspacePath,
-          stageInactivityMs,
-          persistSystemMessage: (payload) => {
-            try {
-              const msg = convStore.saveMessage({
-                id: newSystemMessageId(),
-                conversationId: payload.conversationId,
-                role: 'system',
-                content: payload.text,
-                model: 'lamprey-safety-net',
-                stage: 'system'
-              })
-              emitChatEvent('chat:done', { conversationId, message: msg })
-            } catch (err) {
-              console.error('[chat] CR-2 persistSystemMessage failed:', err)
-            }
-          },
-          runPipeline: async ({ reachedStage, watchdog }) => {
-            await runAgentPipeline({
-              conversationId,
-              correlationId,
-              roster: coderRoster,
-              userContent: content,
-              systemPrompt: coderSystemPrompt,
-              priorMessages: priorTrimmed,
-              tools: tools.length > 0 ? tools : undefined,
-              workspacePath,
-              signal: abortController.signal,
-              subAgentRunner: async (subMessages, modelId, subSignal) => {
-                const result = await chatOnce(subMessages, modelId, subSignal, {
-                  correlationId,
-                  conversationId,
-                  purpose: 'sub-agent'
-                })
-                return { output: result.content, reasoning: result.reasoning }
-              },
-              coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) => {
-                reachedStage('coder')
-                watchdog.armStage('coder')
-                const out = await runChatRound(
-                  conversationId,
-                  coderModel,
-                  messages,
-                  coderTools,
-                  workspacePath,
-                  coderSignal,
-                  0,
-                  coderModelParams,
-                  agentic.composer,
-                  /* suppressDoneEvent */ true,
-                  correlationId,
-                  [],
-                  Date.now(),
-                  // SP-5 (D2) — in-stage progress resets the stall timer. Before
-                  // this, kick() was only reachable from armStage(), so a Coder
-                  // actively streaming chunks or finishing tool calls still
-                  // tripped the watchdog after stageInactivityMs.
-                  () => watchdog.kick()
-                )
-                reachedStage('reviewer')
-                watchdog.armStage('reviewer')
-                return out
-              }
-            })
-            // runAgentPipeline returns void; if we got here without throwing
-            // the composer/reviewer chain ran to completion.
-            reachedStage('composer')
-          }
-        })
-      } else {
-        if (dispatch.reason) {
-          // Surface why the pipeline was bypassed; do NOT block the user's
-          // reply. Falling through to single mode keeps the harness
-          // useful while the roster is being corrected.
-          console.warn(
-            '[chat] agentMode=multi but roster invalid; falling back to single mode:',
-            dispatch.reason
-          )
-        }
-        await runChatRound(
-          conversationId,
-          model,
-          apiMessages,
-          tools.length > 0 ? tools : undefined,
-          workspacePath,
-          abortController.signal,
-          0,
-          modelParams,
-          agentic.composer,
-          /* suppressDoneEvent */ false,
-          correlationId
-        )
-      }
 
       activeAbortControllers.delete(conversationId)
       drainPendingDocuments(correlationId)
@@ -889,25 +682,15 @@ export async function runChatRound(
   signal: AbortSignal,
   round: number,
   params?: ModelParams,
-  // SP-2 — defensive default 'never': both call sites pass agentic.composer
-  // explicitly; an unwired future caller must opt INTO composition.
-  composerMode: AgenticComposerMode = 'never',
   suppressDoneEvent: boolean = false,
   correlationId?: string,
   /** Reasoning Audit Phase R6 — cumulative reasoning trail. Pre-existing
    *  rounds' chain-of-thought; this round appends its own onDone.
-   *  Threaded through recursion so the FINAL round (no tool calls + the
-   *  composer ran) can fold the whole trail into the composer-row's
-   *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
-   *  the top-level call so callers don't need to pass it. */
+   *  Threaded through recursion so the FINAL round folds the whole trail
+   *  into the saved row's `reasoning` column via concatReasoningTrail().
+   *  Defaults to [] at the top-level call so callers don't need to pass it. */
   roundReasonings: string[] = [],
-  turnStartedAt: number = Date.now(),
-  /** SP-5 (Sweet Spot Phase, 2026-06-10) — in-stage activity signal for the
-   *  CR-2 StageInactivityWatchdog (D2). Called on every stream chunk,
-   *  reasoning chunk, and completed tool call so a PROGRESSING stage keeps
-   *  resetting the stall timer. The multi-agent coderRunner passes
-   *  `() => watchdog.kick()`; single-mode passes nothing (no watchdog). */
-  onActivity?: () => void
+  turnStartedAt: number = Date.now()
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -948,11 +731,9 @@ export async function runChatRound(
       effectiveTools,
       {
         onChunk: (chunk) => {
-          onActivity?.() // SP-5 — streaming text is progress; kick the watchdog
           emitChatEvent('chat:chunk', { conversationId, content: chunk })
         },
         onReasoning: (chunk) => {
-          onActivity?.() // SP-5 — reasoning chunks are progress too
           emitChatEvent('chat:reasoning', { conversationId, content: chunk })
         },
         onVitals: (v) => {
@@ -1033,138 +814,28 @@ export async function runChatRound(
           }
 
           if (!effectiveToolCalls || effectiveToolCalls.length === 0) {
-            let finalContent = fullContent
-            let draft: string | undefined
-            let composerReasoning: string | undefined
-            let composerRan = false
-            // R6 — append this round's reasoning to the cumulative trail
-            // BEFORE the composer runs. The trail then carries every
-            // round's CoT plus the composer's CoT into the saved final.
-            const roundsForTrail = [...roundReasonings, fullReasoning ?? '']
-            if (resolveComposerGate(composerMode, round)) {
-              emitPhase(conversationId, 'summarizing')
-              try {
-                const summary = summarizeRun(
-                  messages as any,
-                  getPlanSnapshot(conversationId),
-                  toolRegistry.getCallsForConversation(conversationId, 50),
-                  fullContent,
-                  listProofReceipts({
-                    conversationId,
-                    correlationId,
-                    workspacePath,
-                    limit: 20
-                  }).map((receipt) => ({
-                    id: receipt.id,
-                    kind: receipt.kind,
-                    status: receipt.status,
-                    command: receipt.command,
-                    parsedMetrics: receipt.parsedMetrics,
-                    exitCode: receipt.exitCode,
-                    durationMs: receipt.durationMs
-                  }))
-                )
-                const composed = await composeFinalResponse({
-                  summary,
-                  model,
-                  signal,
-                  // chatOnce now takes an optional audit context; the composer
-                  // passes it through transparently when callers supply one.
-                  // R2: composer runner returns {content, reasoning?}.
-                  runner: (msgs, modelId, sig) =>
-                    chatOnce(msgs, modelId, sig, audit && { ...audit, purpose: 'composer' })
-                })
-                if (composed.content) {
-                  finalContent = composed.content
-                  draft = fullContent
-                  composerReasoning = composed.reasoning
-                  composerRan = true
-                }
-              } catch (err) {
-                console.warn('[chat] final response composer failed:', err)
-                // The user still gets the original streamed `fullContent`;
-                // the un-composed draft is the safe fallback. Record a
-                // chat.error event so the Activity Timeline shows that the
-                // composer pass didn't land, without disrupting the reply.
-                if (correlationId) {
-                  try {
-                    recordEvent({
-                      type: 'chat.error',
-                      actorKind: 'system',
-                      severity: 'warning',
-                      conversationId,
-                      correlationId,
-                      payload: {
-                        source: 'composer',
-                        errorPreview: boundedJsonPreview(
-                          (err as Error)?.message ?? String(err)
-                        )
-                      }
-                    })
-                  } catch (e) {
-                    console.error('[chat] composer chat.error event failed:', e)
-                  }
-                }
-              }
-            }
+            // UB-5 (Unburdening Phase, 2026-06-10) — the final-response
+            // composer that used to rewrite the reply here is EXCISED. The
+            // content the model streamed IS the reply, byte-for-byte. The
+            // UB-4 note still applies: no proof gate, no trust notice, no
+            // proof_status write.
             const documents = drainPendingDocuments(correlationId)
-            // R6 — when the composer ran, write the CUMULATIVE per-round
-            // reasoning trail (plus the composer's own CoT) to this row's
-            // reasoning column, capped at MAX_REASONING_BYTES with an
-            // honest truncation marker. Tag the row stage='composer' so
-            // R7's MessageBubble shows the muted "Composer" chip.
-            // When the composer did NOT run (single-shot turn, no tool
-            // rounds, or composer failed), fall back to the streamed
-            // round's own reasoning unchanged — single-agent behavior is
-            // preserved exactly.
-            const finalReasoning = composerRan
-              ? concatReasoningTrail(roundsForTrail, composerReasoning)
-              : fullReasoning
-            const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
-            // HY5 (Split) — only run the proof gate + append its notice on
-            // rigor turns. Non-rigor turns skip the receipts scan and keep a
-            // clean reply; proofStatus stays undefined (banner shows nothing).
-            // CR-5 — additionally require mutation_attempted (gated by
-            // `settings.rigorRequiresMutation`, default true). Multi-dispatch
-            // pure-question turns no longer trip the gate.
-            const gate = shouldEngageProofGate(conversationId)
-              ? evaluateProofGate({
-                  conversationId,
-                  correlationId,
-                  workspacePath,
-                  sinceMs: turnStartedAt,
-                  toolCalls: toolRegistry.getCallsForConversation(conversationId, 50),
-                  getDescriptor: (toolId) => toolRegistry.getById(toolId)
-                })
-              : null
-            if (gate && !gate.trusted) {
-              finalContent += proofGateNotice(gate)
-            }
-            // WC-4 — Persist trust state as a structured column. NULL means
-            // "not applicable" (no mutating tool observed on this turn) so
-            // the column stays sparse on read-only / research turns.
-            // `gate.status === 'not_required'` is the proof-gate equivalent
-            // of "no mutations were observed", which maps to undefined.
-            // 'trusted' / 'untrusted' map directly from gate.trusted on
-            // applicable turns. 'blocked' and 'waived' are reserved for the
-            // M6 waiver flow (WC-5 plumbing).
-            const proofStatus: 'trusted' | 'untrusted' | undefined =
-              !gate || gate.status === 'not_required'
-                ? undefined
-                : gate.trusted
-                  ? 'trusted'
-                  : 'untrusted'
+            // R6 (kept) — fold every round's chain-of-thought into the saved
+            // row. Single-shot turns (no prior tool rounds) persist the raw
+            // reasoning unchanged; multi-round turns get the numbered trail,
+            // capped at MAX_REASONING_BYTES with the honest truncation marker.
+            const finalReasoning =
+              roundReasonings.length > 0
+                ? concatReasoningTrail([...roundReasonings, fullReasoning ?? ''], undefined)
+                : fullReasoning
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
               role: 'assistant',
-              content: finalContent,
+              content: fullContent,
               model,
-              draft,
               reasoning: finalReasoning,
-              documents,
-              stage: finalStage,
-              proofStatus
+              documents
             })
             if (!suppressDoneEvent) {
               emitPhase(conversationId, 'done')
@@ -1245,7 +916,6 @@ export async function runChatRound(
                 ? spillSettings.toolResultSpillBytes
                 : DEFAULT_SPILL_THRESHOLD
           for (const r of resolved) {
-            onActivity?.() // SP-5 — each completed tool call is progress
             // Persist the FULL result — the UI shows it in full.
             convStore.saveMessage({
               id: randomUUID(),
@@ -1282,12 +952,10 @@ export async function runChatRound(
               signal,
               round + 1,
               params,
-              composerMode,
               suppressDoneEvent,
               correlationId,
               nextRoundReasonings,
-              turnStartedAt,
-              onActivity // SP-5 — thread the watchdog kick through recursion
+              turnStartedAt
             )
             resolve(next)
           } catch (err) {
@@ -1378,85 +1046,6 @@ export async function runChatRound(
 interface ResolvedToolCall {
   callId: string
   result: string
-}
-
-/**
- * WC-3 — Per-correlation cache so the implicit-contract check fires at
- * most once per turn. Cleared by id when the run completes via the
- * `cancelTurnTracking` helper called from the chat round's done/error
- * handlers (or by garbage collection when correlation ids age out).
- */
-const _implicitContractCheckedCorrelations = new Set<string>()
-
-/**
- * WC-3 — Ensure a change contract exists for the current correlation
- * before the first mutating tool call dispatches. If a Plan-mode contract
- * is already open for this conversation+correlation, do nothing. Otherwise
- * synthesize an implicit one tagged `implicit: true` so the M5 proof gate
- * has something concrete to evaluate against.
- *
- * Failures (DB unavailable, contract store fallback, etc.) are swallowed —
- * implicit contract synthesis is best-effort and must not block tool
- * dispatch. Tests assert the success path.
- */
-export function ensureImplicitContractForFirstMutation(input: {
-  conversationId: string
-  correlationId: string
-  toolName: string
-  args: Record<string, unknown>
-}): void {
-  const key = `${input.conversationId}::${input.correlationId}`
-  if (_implicitContractCheckedCorrelations.has(key)) return
-  _implicitContractCheckedCorrelations.add(key)
-  try {
-    const existing = listChangeContracts({
-      conversationId: input.conversationId,
-      correlationId: input.correlationId,
-      status: 'active'
-    })
-    if (existing.length > 0) return
-    let userRequest = `Mutating tool call: ${input.toolName}`
-    try {
-      const msgs = convStore.getMessages(input.conversationId)
-      const lastUser = [...msgs].reverse().find((m) => m.role === 'user')
-      if (lastUser?.content) {
-        userRequest = lastUser.content.slice(0, 2000)
-      }
-    } catch {
-      // Best-effort — fall through to the default userRequest.
-    }
-    const firstObservedFile =
-      typeof input.args?.path === 'string'
-        ? input.args.path
-        : typeof input.args?.file_path === 'string'
-          ? input.args.file_path
-          : typeof input.args?.target === 'string'
-            ? input.args.target
-            : undefined
-    synthesizeImplicitChangeContract({
-      conversationId: input.conversationId,
-      correlationId: input.correlationId,
-      userRequest,
-      firstObservedFile
-    })
-  } catch (err) {
-    // Best-effort — the M5 gate will surface the contract gap on its own
-    // pass if synthesis fails.
-    trace('implicitContract.synthesize-failed', {
-      conversationId: input.conversationId,
-      correlationId: input.correlationId,
-      toolName: input.toolName,
-      error: (err as Error)?.message ?? String(err)
-    })
-  }
-}
-
-/**
- * WC-3 — Test-only seam: reset the per-correlation cache so a fresh
- * synthesis check fires the next time the helper is invoked.
- */
-export function __resetImplicitContractCacheForTesting(): void {
-  _implicitContractCheckedCorrelations.clear()
 }
 
 async function resolveSingleToolCall(
@@ -1583,37 +1172,10 @@ async function resolveSingleToolCall(
     emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
   }
 
-  // WC-3 — Synthesize an implicit change contract for the first mutating
-  // tool call on this correlation, so the M5 proof gate has scope to
-  // evaluate against. Best-effort, cached per (conversation, correlation).
-  // Plan-mode-authored contracts are detected by listChangeContracts and
-  // preserve their authored shape.
-  // CR-5 — record that this turn attempted a mutation as soon as we see a
-  // mutating descriptor. Done BEFORE the implicit-contract guard so the proof
-  // gate predicate at the end of the round sees the flag. Plan-mode mutating
-  // descriptors are blocked just below; this assignment is harmless if the
-  // mutation never actually executes — what we're recording is the *attempt*.
-  if (descriptor && isMutatingDescriptor(descriptor)) {
-    markMutationAttempted(conversationId)
-  }
-  // HY5 (Split) — only synthesize the implicit change contract on rigor turns;
-  // the proof gate that consumes it is likewise rigor-gated above.
-  // CR-5 — uses the combined shouldEngageProofGate predicate so plan-mode
-  // turns (where mutations are blocked) and pure-question multi-dispatch
-  // turns don't synthesize a contract they'll never need.
-  if (
-    correlationId &&
-    descriptor &&
-    isMutatingDescriptor(descriptor) &&
-    shouldEngageProofGate(conversationId)
-  ) {
-    ensureImplicitContractForFirstMutation({
-      conversationId,
-      correlationId,
-      toolName,
-      args
-    })
-  }
+  // UB-4 (Unburdening Phase, 2026-06-10) — the WC-3 implicit change-contract
+  // synthesis + CR-5 mutation-attempt tracking that ran here fed the M5
+  // proof gate; all excised with it. Mutating calls go straight to the
+  // plan-mode gate + approval flow below, exactly like the era product.
 
   // Track 2 / C3 — plan-mode gate. Block mutating tools without asking
   // for approval first: there is no point routing through the modal when

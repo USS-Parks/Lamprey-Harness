@@ -14,19 +14,9 @@ import { SeedContextChip, parseSeedContext } from './SeedContextChip'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { formatModelIdFallback } from '@/lib/model-label'
-import { ProofGateBanner } from './ProofGateBanner'
-import { parseProofGateNotice } from './proof-gate-notice'
-import { computeProofBannerState } from './proof-banner-state'
 
 interface MessageBubbleProps {
   message: Message
-  /** Reasoning Audit Phase R7 — Planner audit row attached to this
-   *  bubble per Invariant §2.9. When supplied, the bubble grows a
-   *  "Show pipeline trace ▾" toggle that reveals the attached
-   *  Planner's reasoning + plan text inline below the body. Coder /
-   *  Composer / single-agent bubbles can carry one; Reviewer +
-   *  user/system/tool bubbles never do. */
-  attachedPlanner?: Message
 }
 
 const REMEMBER_MAX = 280
@@ -42,7 +32,7 @@ function truncateForMemory(content: string): string {
   return trimmed.slice(0, REMEMBER_MAX).trimEnd() + '…'
 }
 
-export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) {
+export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   const isTool = message.role === 'tool'
   const addMemory = useMemoryStore((s) => s.addMemory)
@@ -59,9 +49,6 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
   // PS21 — pin-as-memory dialog state. Sits next to the Fork dialog so the
   // adjacent MessageActions button isn't a "coming soon" stub anymore.
   const [pinOpen, setPinOpen] = useState(false)
-  // R7 — collapsed by default. Click "Show pipeline trace ▾" to expand
-  // the inline panel showing the attached Planner row's reasoning + plan.
-  const [traceOpen, setTraceOpen] = useState(false)
 
   if (isTool) return null
 
@@ -93,16 +80,9 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
       }
     }
   }
-  const proofGate = !isUser ? parseProofGateNotice(body) : null
-  if (proofGate) body = proofGate.body
-  // WC-5 — the proof gate banner is driven by the persisted
-  // `messages.proof_status` column (WC-4). See `computeProofBannerState`
-  // for the precedence rules; the helper is unit-tested in
-  // `proof-banner-state.test.ts`.
-  const proofBannerState = !isUser
-    ? computeProofBannerState(message.proofStatus, proofGate !== null)
-    : null
-
+  // UB-4 (Unburdening Phase, 2026-06-10) — the WC-5 proof-gate banner +
+  // notice parsing that lived here is excised with the proof machinery.
+  // Historical rows that carry a persisted notice render it as plain text.
   const handleRemember = async () => {
     if (saving) return
     const text = truncateForMemory(message.content)
@@ -146,62 +126,6 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
             <MarkdownRenderer content={body} sourceMessageId={message.id} />
-            {proofBannerState && (
-              <ProofGateBanner
-                notice={
-                  proofGate ?? {
-                    body,
-                    reason:
-                      proofBannerState === 'blocked'
-                        ? 'Strict proof policy blocked this completion.'
-                        : 'Proof was required but no trusted verification was found.',
-                    failedReceiptIds: [],
-                    skippedReceiptIds: []
-                  }
-                }
-                state={proofBannerState}
-                messageId={message.id}
-              />
-            )}
-            {/* R7 — "Show pipeline trace ▾" toggle. Reveals the attached
-                Planner row (stage='planner', hidden in the main thread per
-                Invariant §2.9) as an inline collapsed panel with its own
-                ReasoningBlock + plan text. Renders ONLY when a Planner
-                row is attached to this bubble. */}
-            {attachedPlanner && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setTraceOpen((v) => !v)}
-                  className="flex items-center gap-1.5 text-[12px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
-                  title={traceOpen ? 'Hide plan trace' : 'Show plan trace'}
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-                    {traceOpen ? <path d="M6 9l6 6 6-6" /> : <path d="M9 6l6 6-6 6" />}
-                  </svg>
-                  <span>{traceOpen ? 'Hide' : 'Show'} pipeline trace</span>
-                  {attachedPlanner.model && (
-                    <span className="ml-1 rounded bg-[var(--bg-tertiary)]/60 px-1 py-0.5 text-[10px] normal-case tracking-normal text-[var(--text-muted)]">
-                      {/* SP-7 — 'Plan', not the raw stage id 'planner' */}
-                      Plan · {attachedPlanner.model}
-                    </span>
-                  )}
-                </button>
-                {traceOpen && (
-                  <div className="mt-2 rounded-lg bg-[var(--bg-tertiary)]/40 p-3">
-                    {attachedPlanner.reasoning && (
-                      <ReasoningBlock content={attachedPlanner.reasoning} />
-                    )}
-                    <div className="mt-1 text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
-                      Plan
-                    </div>
-                    <div className="mt-1 whitespace-pre-wrap text-[13px] text-[var(--text-secondary)]">
-                      {attachedPlanner.content}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </>
         )}
         <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
@@ -214,28 +138,17 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
               {modelLabel}
             </span>
           )}
-          {/* R7 — stage chip. Reviewer rows get a small purple "Reviewer"
-              chip; Composer rows get a muted "Composer" chip. Coder /
-              single-agent rows render no chip (default). Orphan Planner
-              rows that fell through to standalone render get a blue
-              "Planner" chip so the audit trail is never lost. */}
-          {message.stage === 'reviewer' && (
-            <span className="rounded bg-purple-500/15 px-1 text-purple-400 dark:text-purple-300">
-              Reviewer
-            </span>
-          )}
-          {message.stage === 'composer' && (
-            <span className="rounded bg-[var(--bg-tertiary)]/60 px-1 text-[var(--text-muted)]">
-              Composer
-            </span>
-          )}
-          {message.stage === 'planner' && (
+          {/* UB-6 (K3) — historical rows written by the excised multi-agent
+              pipeline keep ONE neutral muted chip so the audit trail reads;
+              new rows never carry these stages. */}
+          {(message.stage === 'planner' ||
+            message.stage === 'reviewer' ||
+            message.stage === 'composer') && (
             <span
-              className="rounded bg-sky-500/15 px-1 text-sky-400 dark:text-sky-300"
-              title="Plan produced by the pipeline; its coding turn did not complete"
+              className="rounded bg-[var(--bg-tertiary)]/60 px-1 text-[var(--text-muted)]"
+              title="Written by the retired multi-agent pipeline (pre-v0.14)"
             >
-              {/* SP-7 — neutral label; '(orphan)' was harness jargon */}
-              Plan
+              Pipeline (legacy)
             </span>
           )}
           <button

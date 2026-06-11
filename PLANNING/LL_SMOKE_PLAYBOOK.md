@@ -293,3 +293,46 @@ use it instead of console logs.
 Configuration A: 8/8 asks satisfy the era contract (the four global checks).
 Configuration B: same ≥ 6 of 7 bar as v0.12.0 on Asks 2–8. Defect spot
 checks: 5/5.
+
+---
+
+## v0.14.0 pass criteria (UB-10, Unburdening Phase, 2026-06-10)
+
+The Unburdening Phase DELETED the multi-agent pipeline, the auto-router, the
+runtime proof gate, and the composer. There is exactly ONE configuration now —
+no Configuration B, no `agentMode` to pin (the key no longer exists; stale
+keys in settings.json are inert).
+
+### The era contract — every ask, one bar
+
+All eight asks run single-agent with the full tool catalog. For EVERY ask:
+
+- [ ] No pipeline banner, stage dots, or stage chips of any kind on new turns
+- [ ] No "Untrusted completion" / proof pill / verification footer — these
+      surfaces no longer exist in the build
+- [ ] The reply is the model's streamed text, byte-for-byte (no composer
+      voice, no appended notices)
+- [ ] The model receives its full tool catalog (no `tool_search` round-trips
+      unless `toolSurface: 'lazy'` was opted into)
+- [ ] Reasoning block renders when the model thinks; multi-round turns fold
+      every round's chain-of-thought into one trail (R6, kept)
+
+Asks 1–5: the original cogency checks apply unchanged. Asks 6–8 (the old
+multi-promoting shapes): the model handles them single-agent — a cross-file
+refactor proceeds read→edit→verify file by file; "STS" / "P-SPR" still
+resolve as project vocabulary via the contract's Project conventions block;
+plan drafts produce a roster and ask for approval without touching files.
+The model MAY choose to fan out via the `multi_agent_run` tool — that is
+model-initiated delegation (Task-tool analog) and renders as a tool call,
+not as harness chrome.
+
+### Historical-row spot check
+
+- [ ] Open a pre-v0.14 conversation containing pipeline turns: planner/
+      reviewer/composer rows render as ordinary messages with one muted
+      "Pipeline (legacy)" chip; reasoning still viewable; nothing lost.
+
+### Phase pass criteria
+
+8/8 asks satisfy the era contract above. Any machinery chrome appearing on a
+new turn is a release-blocking regression — those code paths should not exist.

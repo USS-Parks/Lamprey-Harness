@@ -77,16 +77,12 @@ import {
   DeepResearchCancelledError,
   NoSourcesError
 } from '../services/research'
-import {
-  composeFinalResponse,
-  concatReasoningTrail,
-  loadAgenticCodingConfig,
-  resolveComposerGate,
-  summarizeRun,
-  type AgenticComposerMode
-} from '../services/final-response-composer'
-import { listProofReceipts } from '../services/proof-receipts'
-import { getPlanSnapshot } from '../services/plan-goal-store'
+// UB-5 (Unburdening Phase, 2026-06-10) — the final-response composer is
+// excised: the reply the user reads is the model's own reply, always. The
+// R6 reasoning trail (kept, user-directed) moved to reasoning-trail.ts and
+// the agentic-coding config (mode + skills, no composer) to its own module.
+import { concatReasoningTrail } from '../services/reasoning-trail'
+import { loadAgenticCodingConfig } from '../services/agentic-coding-config'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
 
@@ -129,10 +125,8 @@ function loadModelConfig(
   }
 }
 
-// SP-2 — loadAgenticCodingConfig + resolveComposerGate moved to
-// `../services/final-response-composer` (pure, testable) and the composer is
-// now gated on agenticCodingMode being ON. Default turns keep the model's own
-// final reply, like the Opus 4.5-era product.
+// UB-5 — the final-response composer is excised entirely; agentic-coding
+// config (mode + skills) lives in `../services/agentic-coding-config`.
 
 // Idempotent union: preserves order of `base`, then appends ids from `extra`
 // that aren't already present. Used to merge auto-activated agentic skills
@@ -517,7 +511,6 @@ export function registerChatHandlers(): void {
         abortController.signal,
         0,
         modelParams,
-        agentic.composer,
         /* suppressDoneEvent */ false,
         correlationId
       )
@@ -691,17 +684,13 @@ export async function runChatRound(
   signal: AbortSignal,
   round: number,
   params?: ModelParams,
-  // SP-2 — defensive default 'never': both call sites pass agentic.composer
-  // explicitly; an unwired future caller must opt INTO composition.
-  composerMode: AgenticComposerMode = 'never',
   suppressDoneEvent: boolean = false,
   correlationId?: string,
   /** Reasoning Audit Phase R6 — cumulative reasoning trail. Pre-existing
    *  rounds' chain-of-thought; this round appends its own onDone.
-   *  Threaded through recursion so the FINAL round (no tool calls + the
-   *  composer ran) can fold the whole trail into the composer-row's
-   *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
-   *  the top-level call so callers don't need to pass it. */
+   *  Threaded through recursion so the FINAL round folds the whole trail
+   *  into the saved row's `reasoning` column via concatReasoningTrail().
+   *  Defaults to [] at the top-level call so callers don't need to pass it. */
   roundReasonings: string[] = [],
   turnStartedAt: number = Date.now()
 ): Promise<RunChatRoundResult> {
@@ -827,109 +816,28 @@ export async function runChatRound(
           }
 
           if (!effectiveToolCalls || effectiveToolCalls.length === 0) {
-            let finalContent = fullContent
-            let draft: string | undefined
-            let composerReasoning: string | undefined
-            let composerRan = false
-            // R6 — append this round's reasoning to the cumulative trail
-            // BEFORE the composer runs. The trail then carries every
-            // round's CoT plus the composer's CoT into the saved final.
-            const roundsForTrail = [...roundReasonings, fullReasoning ?? '']
-            if (resolveComposerGate(composerMode, round)) {
-              emitPhase(conversationId, 'summarizing')
-              try {
-                const summary = summarizeRun(
-                  messages as any,
-                  getPlanSnapshot(conversationId),
-                  toolRegistry.getCallsForConversation(conversationId, 50),
-                  fullContent,
-                  listProofReceipts({
-                    conversationId,
-                    correlationId,
-                    workspacePath,
-                    limit: 20
-                  }).map((receipt) => ({
-                    id: receipt.id,
-                    kind: receipt.kind,
-                    status: receipt.status,
-                    command: receipt.command,
-                    parsedMetrics: receipt.parsedMetrics,
-                    exitCode: receipt.exitCode,
-                    durationMs: receipt.durationMs
-                  }))
-                )
-                const composed = await composeFinalResponse({
-                  summary,
-                  model,
-                  signal,
-                  // chatOnce now takes an optional audit context; the composer
-                  // passes it through transparently when callers supply one.
-                  // R2: composer runner returns {content, reasoning?}.
-                  runner: (msgs, modelId, sig) =>
-                    chatOnce(msgs, modelId, sig, audit && { ...audit, purpose: 'composer' })
-                })
-                if (composed.content) {
-                  finalContent = composed.content
-                  draft = fullContent
-                  composerReasoning = composed.reasoning
-                  composerRan = true
-                }
-              } catch (err) {
-                console.warn('[chat] final response composer failed:', err)
-                // The user still gets the original streamed `fullContent`;
-                // the un-composed draft is the safe fallback. Record a
-                // chat.error event so the Activity Timeline shows that the
-                // composer pass didn't land, without disrupting the reply.
-                if (correlationId) {
-                  try {
-                    recordEvent({
-                      type: 'chat.error',
-                      actorKind: 'system',
-                      severity: 'warning',
-                      conversationId,
-                      correlationId,
-                      payload: {
-                        source: 'composer',
-                        errorPreview: boundedJsonPreview(
-                          (err as Error)?.message ?? String(err)
-                        )
-                      }
-                    })
-                  } catch (e) {
-                    console.error('[chat] composer chat.error event failed:', e)
-                  }
-                }
-              }
-            }
+            // UB-5 (Unburdening Phase, 2026-06-10) — the final-response
+            // composer that used to rewrite the reply here is EXCISED. The
+            // content the model streamed IS the reply, byte-for-byte. The
+            // UB-4 note still applies: no proof gate, no trust notice, no
+            // proof_status write.
             const documents = drainPendingDocuments(correlationId)
-            // R6 — when the composer ran, write the CUMULATIVE per-round
-            // reasoning trail (plus the composer's own CoT) to this row's
-            // reasoning column, capped at MAX_REASONING_BYTES with an
-            // honest truncation marker. Tag the row stage='composer' so
-            // R7's MessageBubble shows the muted "Composer" chip.
-            // When the composer did NOT run (single-shot turn, no tool
-            // rounds, or composer failed), fall back to the streamed
-            // round's own reasoning unchanged — single-agent behavior is
-            // preserved exactly.
-            const finalReasoning = composerRan
-              ? concatReasoningTrail(roundsForTrail, composerReasoning)
-              : fullReasoning
-            const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
-            // UB-4 (Unburdening Phase, 2026-06-10) — the M5/WC-4 proof gate
-            // that used to run here (receipts scan → trust notice appended to
-            // the reply → proof_status column write) is EXCISED. The reply is
-            // the model's reply; trust comes from the user reading it. The
-            // proof_status column survives for historical rows (K2).
+            // R6 (kept) — fold every round's chain-of-thought into the saved
+            // row. Single-shot turns (no prior tool rounds) persist the raw
+            // reasoning unchanged; multi-round turns get the numbered trail,
+            // capped at MAX_REASONING_BYTES with the honest truncation marker.
+            const finalReasoning =
+              roundReasonings.length > 0
+                ? concatReasoningTrail([...roundReasonings, fullReasoning ?? ''], undefined)
+                : fullReasoning
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
               role: 'assistant',
-              content: finalContent,
+              content: fullContent,
               model,
-              draft,
               reasoning: finalReasoning,
-              documents,
-              stage: finalStage
+              documents
             })
             if (!suppressDoneEvent) {
               emitPhase(conversationId, 'done')
@@ -1046,7 +954,6 @@ export async function runChatRound(
               signal,
               round + 1,
               params,
-              composerMode,
               suppressDoneEvent,
               correlationId,
               nextRoundReasonings,

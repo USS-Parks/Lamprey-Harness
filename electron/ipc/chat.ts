@@ -49,18 +49,6 @@ import {
   DEFAULT_SPILL_THRESHOLD
 } from '../services/tool-result-spill'
 import {
-  setProofRigor,
-  resolveProofRigor,
-  // CR-5 (Cogency Restore Phase, 2026-06-09) — gate the proof machinery on
-  // rigor AND mutation_attempted so multi-dispatch turns that don't actually
-  // mutate stop tripping the "Untrusted completion" pill.
-  shouldEngageProofGate,
-  markMutationAttempted,
-  // SP-3 — the mutation flag is per-turn; cleared at turn start (D4).
-  clearMutationAttempted,
-  setRigorRequiresMutation
-} from '../services/proof-rigor'
-import {
   partitionToolCallWindows,
   type ProviderToolCall
 } from '../services/tool-call-windowing'
@@ -97,12 +85,7 @@ import {
   summarizeRun,
   type AgenticComposerMode
 } from '../services/final-response-composer'
-import { evaluateProofGate, proofGateNotice } from '../services/proof-gate'
 import { listProofReceipts } from '../services/proof-receipts'
-import {
-  listChangeContracts,
-  synthesizeImplicitChangeContract
-} from '../services/change-contract-store'
 import { getPlanSnapshot } from '../services/plan-goal-store'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
@@ -522,29 +505,9 @@ export function registerChatHandlers(): void {
       // holds the last live pipeline.
       void requestedAgentMode
 
-      // HY5 (Split) — decide whether the heavyweight proof machinery (change
-      // contracts + proof-gate trust notice) engages this turn.
-      //
-      // SP-3 — clear the per-turn mutation flag FIRST. Without this a
-      // mutating turn armed the gate for every later rigor turn in the same
-      // conversation (D4): the flag's contract is "attempted on THIS turn".
-      clearMutationAttempted(conversationId)
-      setProofRigor(
-        conversationId,
-        resolveProofRigor({
-          proofGateMode: (settingsRaw as { proofGate?: string } | null)?.proofGate,
-          dispatchKind: 'single',
-          content
-        })
-      )
-      // CR-5 — honor the optional `rigorRequiresMutation` setting (default
-      // true): the proof gate requires a mutating tool to have been
-      // attempted before engaging.
-      {
-        const rrm = (settingsRaw as { rigorRequiresMutation?: boolean } | null)?.rigorRequiresMutation
-        setRigorRequiresMutation(rrm !== false)
-      }
-
+      // UB-4 (Unburdening Phase, 2026-06-10) — the HY5/CR-5 rigor resolution
+      // that ran here (proof-gate scoping per turn) is excised with the
+      // proof machinery.
       await runChatRound(
         conversationId,
         model,
@@ -952,39 +915,11 @@ export async function runChatRound(
               ? concatReasoningTrail(roundsForTrail, composerReasoning)
               : fullReasoning
             const finalStage: 'composer' | undefined = composerRan ? 'composer' : undefined
-            // HY5 (Split) — only run the proof gate + append its notice on
-            // rigor turns. Non-rigor turns skip the receipts scan and keep a
-            // clean reply; proofStatus stays undefined (banner shows nothing).
-            // CR-5 — additionally require mutation_attempted (gated by
-            // `settings.rigorRequiresMutation`, default true). Multi-dispatch
-            // pure-question turns no longer trip the gate.
-            const gate = shouldEngageProofGate(conversationId)
-              ? evaluateProofGate({
-                  conversationId,
-                  correlationId,
-                  workspacePath,
-                  sinceMs: turnStartedAt,
-                  toolCalls: toolRegistry.getCallsForConversation(conversationId, 50),
-                  getDescriptor: (toolId) => toolRegistry.getById(toolId)
-                })
-              : null
-            if (gate && !gate.trusted) {
-              finalContent += proofGateNotice(gate)
-            }
-            // WC-4 — Persist trust state as a structured column. NULL means
-            // "not applicable" (no mutating tool observed on this turn) so
-            // the column stays sparse on read-only / research turns.
-            // `gate.status === 'not_required'` is the proof-gate equivalent
-            // of "no mutations were observed", which maps to undefined.
-            // 'trusted' / 'untrusted' map directly from gate.trusted on
-            // applicable turns. 'blocked' and 'waived' are reserved for the
-            // M6 waiver flow (WC-5 plumbing).
-            const proofStatus: 'trusted' | 'untrusted' | undefined =
-              !gate || gate.status === 'not_required'
-                ? undefined
-                : gate.trusted
-                  ? 'trusted'
-                  : 'untrusted'
+            // UB-4 (Unburdening Phase, 2026-06-10) — the M5/WC-4 proof gate
+            // that used to run here (receipts scan → trust notice appended to
+            // the reply → proof_status column write) is EXCISED. The reply is
+            // the model's reply; trust comes from the user reading it. The
+            // proof_status column survives for historical rows (K2).
             const assistantMsg = convStore.saveMessage({
               id: randomUUID(),
               conversationId,
@@ -994,8 +929,7 @@ export async function runChatRound(
               draft,
               reasoning: finalReasoning,
               documents,
-              stage: finalStage,
-              proofStatus
+              stage: finalStage
             })
             if (!suppressDoneEvent) {
               emitPhase(conversationId, 'done')
@@ -1209,85 +1143,6 @@ interface ResolvedToolCall {
   result: string
 }
 
-/**
- * WC-3 — Per-correlation cache so the implicit-contract check fires at
- * most once per turn. Cleared by id when the run completes via the
- * `cancelTurnTracking` helper called from the chat round's done/error
- * handlers (or by garbage collection when correlation ids age out).
- */
-const _implicitContractCheckedCorrelations = new Set<string>()
-
-/**
- * WC-3 — Ensure a change contract exists for the current correlation
- * before the first mutating tool call dispatches. If a Plan-mode contract
- * is already open for this conversation+correlation, do nothing. Otherwise
- * synthesize an implicit one tagged `implicit: true` so the M5 proof gate
- * has something concrete to evaluate against.
- *
- * Failures (DB unavailable, contract store fallback, etc.) are swallowed —
- * implicit contract synthesis is best-effort and must not block tool
- * dispatch. Tests assert the success path.
- */
-export function ensureImplicitContractForFirstMutation(input: {
-  conversationId: string
-  correlationId: string
-  toolName: string
-  args: Record<string, unknown>
-}): void {
-  const key = `${input.conversationId}::${input.correlationId}`
-  if (_implicitContractCheckedCorrelations.has(key)) return
-  _implicitContractCheckedCorrelations.add(key)
-  try {
-    const existing = listChangeContracts({
-      conversationId: input.conversationId,
-      correlationId: input.correlationId,
-      status: 'active'
-    })
-    if (existing.length > 0) return
-    let userRequest = `Mutating tool call: ${input.toolName}`
-    try {
-      const msgs = convStore.getMessages(input.conversationId)
-      const lastUser = [...msgs].reverse().find((m) => m.role === 'user')
-      if (lastUser?.content) {
-        userRequest = lastUser.content.slice(0, 2000)
-      }
-    } catch {
-      // Best-effort — fall through to the default userRequest.
-    }
-    const firstObservedFile =
-      typeof input.args?.path === 'string'
-        ? input.args.path
-        : typeof input.args?.file_path === 'string'
-          ? input.args.file_path
-          : typeof input.args?.target === 'string'
-            ? input.args.target
-            : undefined
-    synthesizeImplicitChangeContract({
-      conversationId: input.conversationId,
-      correlationId: input.correlationId,
-      userRequest,
-      firstObservedFile
-    })
-  } catch (err) {
-    // Best-effort — the M5 gate will surface the contract gap on its own
-    // pass if synthesis fails.
-    trace('implicitContract.synthesize-failed', {
-      conversationId: input.conversationId,
-      correlationId: input.correlationId,
-      toolName: input.toolName,
-      error: (err as Error)?.message ?? String(err)
-    })
-  }
-}
-
-/**
- * WC-3 — Test-only seam: reset the per-correlation cache so a fresh
- * synthesis check fires the next time the helper is invoked.
- */
-export function __resetImplicitContractCacheForTesting(): void {
-  _implicitContractCheckedCorrelations.clear()
-}
-
 async function resolveSingleToolCall(
   tc: ProviderToolCall,
   conversationId: string,
@@ -1412,37 +1267,10 @@ async function resolveSingleToolCall(
     emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
   }
 
-  // WC-3 — Synthesize an implicit change contract for the first mutating
-  // tool call on this correlation, so the M5 proof gate has scope to
-  // evaluate against. Best-effort, cached per (conversation, correlation).
-  // Plan-mode-authored contracts are detected by listChangeContracts and
-  // preserve their authored shape.
-  // CR-5 — record that this turn attempted a mutation as soon as we see a
-  // mutating descriptor. Done BEFORE the implicit-contract guard so the proof
-  // gate predicate at the end of the round sees the flag. Plan-mode mutating
-  // descriptors are blocked just below; this assignment is harmless if the
-  // mutation never actually executes — what we're recording is the *attempt*.
-  if (descriptor && isMutatingDescriptor(descriptor)) {
-    markMutationAttempted(conversationId)
-  }
-  // HY5 (Split) — only synthesize the implicit change contract on rigor turns;
-  // the proof gate that consumes it is likewise rigor-gated above.
-  // CR-5 — uses the combined shouldEngageProofGate predicate so plan-mode
-  // turns (where mutations are blocked) and pure-question multi-dispatch
-  // turns don't synthesize a contract they'll never need.
-  if (
-    correlationId &&
-    descriptor &&
-    isMutatingDescriptor(descriptor) &&
-    shouldEngageProofGate(conversationId)
-  ) {
-    ensureImplicitContractForFirstMutation({
-      conversationId,
-      correlationId,
-      toolName,
-      args
-    })
-  }
+  // UB-4 (Unburdening Phase, 2026-06-10) — the WC-3 implicit change-contract
+  // synthesis + CR-5 mutation-attempt tracking that ran here fed the M5
+  // proof gate; all excised with it. Mutating calls go straight to the
+  // plan-mode gate + approval flow below, exactly like the era product.
 
   // Track 2 / C3 — plan-mode gate. Block mutating tools without asking
   // for approval first: there is no point routing through the modal when

@@ -29,14 +29,6 @@ import {
   drainAsyncEventsForPrompt
 } from '../services/async-event-bridge'
 import { buildSystemPrompt } from '../services/system-prompt-builder'
-import { resolveAgentDispatch, runAgentPipeline } from '../services/agent-pipeline'
-// CR-2 (Cogency Restore Phase, 2026-06-09) — abort-safe rollback + stall
-// detection wrapper. Surfaces a `role:'system'` message naming modified
-// paths when the pipeline bails after Coder mutations land.
-import {
-  withPipelineSafety,
-  newSystemMessageId
-} from '../services/agent-pipeline-safety'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
@@ -524,27 +516,14 @@ export function registerChatHandlers(): void {
       // chip mid-stream.
       const workspacePath = activeWorkspace
 
-      // Prompt 11: agentMode dispatch. The single-mode path below is
-      // byte-for-byte unchanged from pre-Prompt-11. Multi mode routes
-      // through `runAgentPipeline` with the validated roster. A bad
-      // roster falls back to single mode so the user isn't left without
-      // a reply. The whole decision tree lives in `resolveAgentDispatch`
-      // so the chat:send wiring is testable in isolation.
-      //
-      // L8 (Lampshade Phase, 2026-06-09) — when settings resolve to
-      // `agentMode: 'auto'` (the new default), `resolveAgentDispatch`
-      // calls `routeAgentMode(content)` to decide single vs multi per
-      // turn based on the user's prompt shape. The decision's
-      // `routeReason` is logged for UI surfacing.
-      const dispatch = resolveAgentDispatch(settingsRaw, content, conversationId)
-      if (dispatch.routeReason) {
-        console.info(`[chat] auto-routed to ${dispatch.kind}: ${dispatch.routeReason}`)
-      }
+      // UB-1 (Unburdening Phase, 2026-06-10) — there is no dispatch decision
+      // anymore. The multi-agent pipeline (Prompt 11 → L8 → CR-2) is excised;
+      // every turn is one model with its full tools. Git history at v0.13.0
+      // holds the last live pipeline.
       void requestedAgentMode
 
       // HY5 (Split) — decide whether the heavyweight proof machinery (change
-      // contracts + proof-gate trust notice) engages this turn. L8 routing is
-      // unchanged above; this only scopes the proof flow to rigor turns.
+      // contracts + proof-gate trust notice) engages this turn.
       //
       // SP-3 — clear the per-turn mutation flag FIRST. Without this a
       // mutating turn armed the gate for every later rigor turn in the same
@@ -554,171 +533,31 @@ export function registerChatHandlers(): void {
         conversationId,
         resolveProofRigor({
           proofGateMode: (settingsRaw as { proofGate?: string } | null)?.proofGate,
-          dispatchKind: dispatch.kind,
+          dispatchKind: 'single',
           content
         })
       )
       // CR-5 — honor the optional `rigorRequiresMutation` setting (default
-      // true). When true (the CR-5 fix), the proof gate further requires a
-      // mutating tool to have been attempted before engaging — so multi-
-      // dispatch turns that don't actually edit anything no longer trip the
-      // "Untrusted completion" pill. Flip to false to restore pre-CR-5
-      // behavior (rigor signal alone fires the gate).
+      // true): the proof gate requires a mutating tool to have been
+      // attempted before engaging.
       {
         const rrm = (settingsRaw as { rigorRequiresMutation?: boolean } | null)?.rigorRequiresMutation
         setRigorRequiresMutation(rrm !== false)
       }
 
-      if (dispatch.kind === 'multi') {
-        // P11 review-P1: the Coder must execute with ITS OWN model's
-        // identity, system-prompt override, and modelConfig params —
-        // not the request model's. The outer `systemPrompt` and
-        // `modelParams` were derived from `model` (the active model the
-        // user selected for the conversation), which is the Coder model
-        // ONLY when single-mode would have been used. In multi mode we
-        // build a Coder-specific system prompt with contractRole='coding'
-        // (always, regardless of `agenticCodingMode` — the pipeline IS
-        // the coding-mode wrapper at this layer) and a Coder-specific
-        // params block.
-        const coderRoster = dispatch.roster
-        const { params: coderModelParams, systemPromptOverride: coderSystemOverride } =
-          loadModelConfig(settingsRaw, coderRoster.coder)
-        const coderSystemPrompt = buildSystemPrompt(
-          skillContents,
-          memoryBlock,
-          coderSystemOverride,
-          agentsMd,
-          coderRoster.coder,
-          'coding',
-          memoryIndexBlock,
-          taskNotificationsBlock,
-          chaptersBlock,
-          // supportsNativeTools left undefined — preserves the exact pre-HY4
-          // coder prompt (no guard/think stripping change); HY4 only adds the
-          // lazy skill-body flag in the next position.
-          undefined,
-          lazySkillBodies // HY4
-        )
-        const priorWithoutLatestUser = apiMessages.filter(
-          (m, idx) => idx !== 0 // drop the system entry; pipeline owns it
-        )
-        // Drop the most recent user turn from the prior list — pipeline
-        // injects its own rewritten user message that carries the plan.
-        // The latest user is whatever we just saved; locate by trailing
-        // role==='user'.
-        const lastUserIdx = priorWithoutLatestUser
-          .map((m, i) => (m.role === 'user' ? i : -1))
-          .filter((i) => i >= 0)
-          .pop()
-        const priorTrimmed =
-          lastUserIdx === undefined
-            ? priorWithoutLatestUser
-            : priorWithoutLatestUser.slice(0, lastUserIdx)
-
-        // CR-2 — wrap the multi-agent dispatch in withPipelineSafety so that
-        // if the pipeline bails after Coder mutations land (F2: stage threw,
-        // F15: stage stalled with no error), the user sees a synthesised
-        // system message naming the modified paths. The wrapper is a no-op
-        // on the happy path (composer completes cleanly).
-        const stageInactivityMs =
-          typeof (settingsRaw as { stageInactivityMs?: number } | null)?.stageInactivityMs === 'number'
-            ? Math.max(0, (settingsRaw as { stageInactivityMs: number }).stageInactivityMs)
-            : 0
-        await withPipelineSafety({
-          conversationId,
-          workspacePath,
-          stageInactivityMs,
-          persistSystemMessage: (payload) => {
-            try {
-              const msg = convStore.saveMessage({
-                id: newSystemMessageId(),
-                conversationId: payload.conversationId,
-                role: 'system',
-                content: payload.text,
-                model: 'lamprey-safety-net',
-                stage: 'system'
-              })
-              emitChatEvent('chat:done', { conversationId, message: msg })
-            } catch (err) {
-              console.error('[chat] CR-2 persistSystemMessage failed:', err)
-            }
-          },
-          runPipeline: async ({ reachedStage, watchdog }) => {
-            await runAgentPipeline({
-              conversationId,
-              correlationId,
-              roster: coderRoster,
-              userContent: content,
-              systemPrompt: coderSystemPrompt,
-              priorMessages: priorTrimmed,
-              tools: tools.length > 0 ? tools : undefined,
-              workspacePath,
-              signal: abortController.signal,
-              subAgentRunner: async (subMessages, modelId, subSignal) => {
-                const result = await chatOnce(subMessages, modelId, subSignal, {
-                  correlationId,
-                  conversationId,
-                  purpose: 'sub-agent'
-                })
-                return { output: result.content, reasoning: result.reasoning }
-              },
-              coderRunner: async ({ messages, model: coderModel, tools: coderTools, signal: coderSignal }) => {
-                reachedStage('coder')
-                watchdog.armStage('coder')
-                const out = await runChatRound(
-                  conversationId,
-                  coderModel,
-                  messages,
-                  coderTools,
-                  workspacePath,
-                  coderSignal,
-                  0,
-                  coderModelParams,
-                  agentic.composer,
-                  /* suppressDoneEvent */ true,
-                  correlationId,
-                  [],
-                  Date.now(),
-                  // SP-5 (D2) — in-stage progress resets the stall timer. Before
-                  // this, kick() was only reachable from armStage(), so a Coder
-                  // actively streaming chunks or finishing tool calls still
-                  // tripped the watchdog after stageInactivityMs.
-                  () => watchdog.kick()
-                )
-                reachedStage('reviewer')
-                watchdog.armStage('reviewer')
-                return out
-              }
-            })
-            // runAgentPipeline returns void; if we got here without throwing
-            // the composer/reviewer chain ran to completion.
-            reachedStage('composer')
-          }
-        })
-      } else {
-        if (dispatch.reason) {
-          // Surface why the pipeline was bypassed; do NOT block the user's
-          // reply. Falling through to single mode keeps the harness
-          // useful while the roster is being corrected.
-          console.warn(
-            '[chat] agentMode=multi but roster invalid; falling back to single mode:',
-            dispatch.reason
-          )
-        }
-        await runChatRound(
-          conversationId,
-          model,
-          apiMessages,
-          tools.length > 0 ? tools : undefined,
-          workspacePath,
-          abortController.signal,
-          0,
-          modelParams,
-          agentic.composer,
-          /* suppressDoneEvent */ false,
-          correlationId
-        )
-      }
+      await runChatRound(
+        conversationId,
+        model,
+        apiMessages,
+        tools.length > 0 ? tools : undefined,
+        workspacePath,
+        abortController.signal,
+        0,
+        modelParams,
+        agentic.composer,
+        /* suppressDoneEvent */ false,
+        correlationId
+      )
 
       activeAbortControllers.delete(conversationId)
       drainPendingDocuments(correlationId)
@@ -901,13 +740,7 @@ export async function runChatRound(
    *  `reasoning` column via concatReasoningTrail(). Defaults to [] at
    *  the top-level call so callers don't need to pass it. */
   roundReasonings: string[] = [],
-  turnStartedAt: number = Date.now(),
-  /** SP-5 (Sweet Spot Phase, 2026-06-10) — in-stage activity signal for the
-   *  CR-2 StageInactivityWatchdog (D2). Called on every stream chunk,
-   *  reasoning chunk, and completed tool call so a PROGRESSING stage keeps
-   *  resetting the stall timer. The multi-agent coderRunner passes
-   *  `() => watchdog.kick()`; single-mode passes nothing (no watchdog). */
-  onActivity?: () => void
+  turnStartedAt: number = Date.now()
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -948,11 +781,9 @@ export async function runChatRound(
       effectiveTools,
       {
         onChunk: (chunk) => {
-          onActivity?.() // SP-5 — streaming text is progress; kick the watchdog
           emitChatEvent('chat:chunk', { conversationId, content: chunk })
         },
         onReasoning: (chunk) => {
-          onActivity?.() // SP-5 — reasoning chunks are progress too
           emitChatEvent('chat:reasoning', { conversationId, content: chunk })
         },
         onVitals: (v) => {
@@ -1245,7 +1076,6 @@ export async function runChatRound(
                 ? spillSettings.toolResultSpillBytes
                 : DEFAULT_SPILL_THRESHOLD
           for (const r of resolved) {
-            onActivity?.() // SP-5 — each completed tool call is progress
             // Persist the FULL result — the UI shows it in full.
             convStore.saveMessage({
               id: randomUUID(),
@@ -1286,8 +1116,7 @@ export async function runChatRound(
               suppressDoneEvent,
               correlationId,
               nextRoundReasonings,
-              turnStartedAt,
-              onActivity // SP-5 — thread the watchdog kick through recursion
+              turnStartedAt
             )
             resolve(next)
           } catch (err) {

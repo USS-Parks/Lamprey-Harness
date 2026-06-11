@@ -156,11 +156,13 @@ describe('buildSystemPrompt — default base', () => {
     }
   })
 
-  // L2 — the contract drops at least 60% vs L1 baseline (9,311 bytes).
-  // Target: under 3,700 bytes. Locks the win against future bloat.
-  it('renders under the L2 size target (< 3,700 bytes, ≥60% drop from L1)', () => {
+  // L2 set the original < 3,700 target (≥60% drop from the 9,311-byte L1
+  // baseline). UB-8 (Unburdening Phase, 2026-06-10) tightened it to < 3,300
+  // after the CR-7 reviewer exemplar left with the pipeline (measured:
+  // 3,118 bytes). Guards only ever tighten.
+  it('renders under the UB-8 size target (< 3,300 bytes)', () => {
     const out = renderContract()
-    expect(out.length).toBeLessThan(3700)
+    expect(out.length).toBeLessThan(3300)
   })
 
   // L3 — the <think> block is conditional, not mandatory. The contract must
@@ -189,15 +191,12 @@ describe('Lampshade L9 — envelope shape guards', () => {
     )
   })
 
-  // CR-7 (Cogency Restore Phase, 2026-06-09) — bumped the L9 4,096 size guard
-  // to 4,400 bytes. The CR phase added: CR-1 ~520 bytes of Project conventions
-  // vocab (5 bullets) and CR-7 ~285 bytes of the terse Reviewer exemplar. Net
-  // contract regrowth is ~800 bytes — still well under the byte savings L2
-  // delivered (~7,200 bytes) and 4,400 is the post-CR coding-mode prompt
-  // size + ~150 bytes of headroom for future thin additions.
-  it('size: coding-mode single-agent prompt stays under 4,400 bytes (post-CR floor)', () => {
+  // UB-8 (Unburdening Phase, 2026-06-10) — tightened from the CR 4,400 guard
+  // after the reviewer exemplar excision (measured: 3,756 bytes). ~150 bytes
+  // of headroom for future thin additions. Guards only ever tighten.
+  it('size: coding-mode single-agent prompt stays under 3,900 bytes (post-UB floor)', () => {
     const out = buildSystemPrompt([], '', undefined, undefined, undefined, 'coding')
-    expect(out.length).toBeLessThan(4400)
+    expect(out.length).toBeLessThan(3900)
   })
 
   it('negative: no rendered prompt names the pre-L2 hedging phrases', () => {
@@ -663,8 +662,8 @@ describe('HY6 — exemplar-based steering (CR-7 added the reviewer exemplar)', (
     const close = out.indexOf('</contract>')
     expect(firstEx).toBeGreaterThan(0)
     expect(firstEx).toBeLessThan(close)
-    // HY6 byte guard — exemplars are additive but the contract stays lean.
-    // CR-7 budget allowance: ≤ 3,700 holds (CR-7 + CR-1 additions fit).
-    expect(out.length).toBeLessThan(3700)
+    // HY6 byte guard — the exemplar is additive but the contract stays lean.
+    // UB-8: tightened to the new contract envelope.
+    expect(out.length).toBeLessThan(3300)
   })
 })

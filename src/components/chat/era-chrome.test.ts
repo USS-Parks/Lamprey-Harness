@@ -6,13 +6,12 @@
 // user-visible in v0.12.0; this suite keeps them out.
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 const here = __dirname
 const agentRunBanner = readFileSync(join(here, 'AgentRunBanner.tsx'), 'utf-8')
 const messageBubble = readFileSync(join(here, 'MessageBubble.tsx'), 'utf-8')
-const proofGateBanner = readFileSync(join(here, 'ProofGateBanner.tsx'), 'utf-8')
 
 describe('SP-7 era chrome — no raw harness internals in user copy', () => {
   it('AgentRunBanner has NO pipeline branch at all (deleted 2026-06-10 per user direction)', () => {
@@ -49,12 +48,13 @@ describe('SP-7 era chrome — no raw harness internals in user copy', () => {
     expect(messageBubble).toContain('Plan · {attachedPlanner.model}')
   })
 
-  it('ProofGateBanner keeps contract ids out of the visible body', () => {
-    // The id string may appear ONLY inside the hover tooltip (title={...}).
-    const visibleContractRender = /<div[^>]*>\s*\{\[notice\.contractId/
-    expect(proofGateBanner).not.toMatch(visibleContractRender)
-    expect(proofGateBanner).toContain('title={')
-    expect(proofGateBanner).toContain('Checks: {receiptLabel}')
+  it('UB-4: the proof-gate banner no longer exists at all', () => {
+    // Excised with the proof machinery — absence-locked so it can't return.
+    expect(existsSync(join(here, 'ProofGateBanner.tsx'))).toBe(false)
+    expect(existsSync(join(here, 'proof-gate-notice.ts'))).toBe(false)
+    expect(existsSync(join(here, 'proof-banner-state.ts'))).toBe(false)
+    expect(messageBubble).not.toContain('ProofGateBanner')
+    expect(messageBubble).not.toContain('proofStatus')
   })
 
   it('system rows route to SystemMarker, not assistant bubbles', () => {

@@ -14,9 +14,6 @@ import { SeedContextChip, parseSeedContext } from './SeedContextChip'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { formatModelIdFallback } from '@/lib/model-label'
-import { ProofGateBanner } from './ProofGateBanner'
-import { parseProofGateNotice } from './proof-gate-notice'
-import { computeProofBannerState } from './proof-banner-state'
 
 interface MessageBubbleProps {
   message: Message
@@ -93,16 +90,9 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
       }
     }
   }
-  const proofGate = !isUser ? parseProofGateNotice(body) : null
-  if (proofGate) body = proofGate.body
-  // WC-5 — the proof gate banner is driven by the persisted
-  // `messages.proof_status` column (WC-4). See `computeProofBannerState`
-  // for the precedence rules; the helper is unit-tested in
-  // `proof-banner-state.test.ts`.
-  const proofBannerState = !isUser
-    ? computeProofBannerState(message.proofStatus, proofGate !== null)
-    : null
-
+  // UB-4 (Unburdening Phase, 2026-06-10) — the WC-5 proof-gate banner +
+  // notice parsing that lived here is excised with the proof machinery.
+  // Historical rows that carry a persisted notice render it as plain text.
   const handleRemember = async () => {
     if (saving) return
     const text = truncateForMemory(message.content)
@@ -146,23 +136,6 @@ export function MessageBubble({ message, attachedPlanner }: MessageBubbleProps) 
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
             <MarkdownRenderer content={body} sourceMessageId={message.id} />
-            {proofBannerState && (
-              <ProofGateBanner
-                notice={
-                  proofGate ?? {
-                    body,
-                    reason:
-                      proofBannerState === 'blocked'
-                        ? 'Strict proof policy blocked this completion.'
-                        : 'Proof was required but no trusted verification was found.',
-                    failedReceiptIds: [],
-                    skippedReceiptIds: []
-                  }
-                }
-                state={proofBannerState}
-                messageId={message.id}
-              />
-            )}
             {/* R7 — "Show pipeline trace ▾" toggle. Reveals the attached
                 Planner row (stage='planner', hidden in the main thread per
                 Invariant §2.9) as an inline collapsed panel with its own

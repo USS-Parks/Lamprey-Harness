@@ -39,6 +39,23 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
   better-sqlite3 NODE_MODULE_VERSION mismatch, honest); `verify:proof --no-tests` exit 0
   (chat.ts touched).
 
+### LP-2 — Loop data layer (migration v17 + loop-store.ts)
+- `electron/services/db-migrations.ts` — appended migration **v17** creating three tables:
+  `loops` (the recurring entity: mode/status/instruction/model/cadence/ceilings/progress),
+  `loop_backlog` (the dedicated queue — position-ordered, per the user's backlog decision), and
+  `loop_runs` (per-iteration audit). All `CREATE TABLE IF NOT EXISTS` + indexes; idempotent.
+  `LATEST_VERSION` auto-recomputes to 17.
+- `electron/services/loop-store.ts` (new) — the single SQL surface for loops: loop CRUD
+  (`createLoop`/`getLoop`/`listLoops`/`listDueLoops`/`updateLoop`/`deleteLoop` with cascade),
+  backlog queue (`enqueueBacklog`/`nextBacklogItem`/`listBacklog`/`countBacklog`/
+  `updateBacklogItem`/`reorderBacklog`/`removeBacklogItem`), and run audit
+  (`recordLoopRun`/`finishLoopRun`/`listLoopRuns`). Plus a pure `nextPosition` helper.
+- `electron/services/loop-store.test.ts` (new) — pure `nextPosition` cases (always run) +
+  DB-backed CRUD/backlog/run/cascade cases (skip under the better-sqlite3 NODE_MODULE_VERSION
+  mismatch, honest — same guard as `loop-runner.test.ts`; the LP-10 smoke playbook is the real
+  integration gate).
+- Verify: tsc node + web exit 0; `vitest loop-store.test.ts` — 2 passed / 7 skipped.
+
 
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.

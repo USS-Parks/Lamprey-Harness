@@ -202,6 +202,29 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - Verify: tsc node + web exit 0; **full `npx vitest run` — 2240 passed / 130 skipped / 0 failed**
   (+7 skips vs baseline = the loop-store DB suites); `verify:proof --no-tests` exit 0.
 
+### LP-11 — Governance wrap + ship (v0.15.0)
+- `package.json` 0.14.0 → **0.15.0**.
+- `CLAUDE.md` Current State — Loop Phase entry added (records the deliberate past-era extension
+  + the discovery that the loop scaffold/automations/workflow/activity layer pre-existed
+  undocumented); reference-only note updated.
+- `README.md` — download heading + table URLs → v0.15.0; "New in v0.15.0 — Loop Phase" paragraph
+  (Unburdening demoted to "Previously in").
+- Memory `project-era-lock-scope` — documented-exception note for the Loop Phase (off by default,
+  sanctioned opt-in extension, not drift).
+- **Per-prompt commit SHAs:** `4a3ba24` LP-0 · `15ea9cf` LP-1 · `4032573` LP-2 · `ca937e5` LP-3 ·
+  `1603e70` LP-4 · `4b6f61a` LP-5 · `07ecf3d` LP-6 · `e6b1dd3` LP-7 · `9144d49` LP-8 ·
+  `7ac5dba` LP-9 · `8cf312b` LP-10 · (this commit) LP-11.
+- **Final gate:** lint OK, tsc node + web OK, full vitest 2240 passed / 130 skipped / 0 failed,
+  `npx electron-vite build` OK, `verify:proof` exit 0.
+
+**Phase complete.** 12 prompts (LP-0 → LP-11) on `claude/sad-newton-d2e91a`. Lamprey gains a
+first-class Loop primitive across the interval → self-paced → autonomous gradient, headless
+main-process re-invocation (closing the G1 wake-up defect), a dedicated backlog queue, hard
+ceilings + stop authorities + runaway/stall guards, and a Loops panel — all OFF by default. The
+first deliberate, documented extension past the Opus 4.5 era lock. Controller / config / tool /
+parser logic is covered by RUNNING pure tests; DB integration is gated by
+`PLANNING/LP_SMOKE_PLAYBOOK.md` (live).
+
 
 
 ## [Unburdening Phase — Complete] UB-0 through UB-12 shipped end-to-end — 2026-06-10, v0.14.0

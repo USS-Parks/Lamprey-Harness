@@ -136,7 +136,30 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - Verify: tsc node exit 0 (node-only); `vitest loop-controller.test.ts` — 23 passed / 0 skipped;
   `verify:proof --no-tests` exit 0.
 
+### LP-7 — Settings + IPC + preload + renderer store
+- Settings (off by default): `loopsEnabled` (false) + `loopMaxIterations` (25) /
+  `loopMaxWallclockMs` (1.8M) / `loopTokenBudget` (500k) / `loopMaxConcurrent` (1) /
+  `loopMinIntervalSeconds` (30) added to `AppSettings` (`src/lib/types.ts`), the canonical
+  `DEFAULT_APP_SETTINGS`, the renderer mirror (`settings-store.ts`), and the parity test
+  (`default-app-settings.test.ts` — explicit LP-7 block + the catch-all key check).
+- `electron/services/loop-config.ts` (new) — pure `resolveLoopConfig(raw)` + `readLoopConfig()`
+  fs wrapper; controller `productionDeps` reads `minIntervalSeconds`, `tickLoops` slices due
+  loops by `maxConcurrent`.
+- `electron/ipc/loops.ts` — loop-entity handlers (distinct from the wake-up channels):
+  `loops:create` (gated on `loopsEnabled`; seeds the backlog from tasks or the instruction;
+  applies config ceilings), `listLoops` / `getLoop` / `pause` / `resume` (gated) / `stop` /
+  `deleteLoop` / `listBacklog` / `enqueue` / `reorderBacklog` / `removeBacklog` / `listRuns`.
+- `electron/preload.ts` — `window.api.loops.*` extended + `onLoopEvent` subscription;
+  `LampreyAPI = typeof api` flows the renderer types automatically.
+- `src/stores/loops-store.ts` (new) — Zustand store for loop entities (consumed by LP-9 UI).
+- `electron/services/loop-config.test.ts` (new, 4 cases, run) + parity test LP-7 block.
+- Verify: tsc node + web exit 0; `vitest` default-app-settings + loop-config — 11 passed / 0
+  skipped; `verify:proof --no-tests` exit 0. With `loopsEnabled=false`, `loops:create` /
+  `loops:resume` refuse cleanly.
 
+
+
+## [Unburdening Phase — Complete] UB-0 through UB-12 shipped end-to-end — 2026-06-10, v0.14.0
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.
 

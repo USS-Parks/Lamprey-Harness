@@ -2,6 +2,7 @@ import * as store from './loop-store'
 import { getLoopTurnRunner } from './loop-runner'
 import { recordEvent, boundedJsonPreview } from './event-log'
 import { gcSpillDir } from './tool-result-spill'
+import { readLoopConfig } from './loop-config'
 import { BrowserWindow } from 'electron'
 import type {
   Loop,
@@ -424,6 +425,7 @@ function productionDeps(): LoopIterationDeps {
       return { tokensUsed: estimateTokens(input.promptBody) + estimateTokens(replyText) }
     },
     iterationTimeoutMs: DEFAULT_ITERATION_TIMEOUT_MS,
+    minIntervalSeconds: readLoopConfig().minIntervalSeconds,
     emit: emitToAll
   }
 }
@@ -446,7 +448,8 @@ export async function tickLoops(now = Date.now()): Promise<void> {
   // No runner wired → nothing can run; skip quietly (e.g. very early boot).
   if (!getLoopTurnRunner()) return
   const deps = productionDeps()
-  const due = deps.store.listDueLoops(now)
+  const maxConcurrent = readLoopConfig().maxConcurrent
+  const due = deps.store.listDueLoops(now).slice(0, Math.max(1, maxConcurrent))
   if (due.length > 0) maybeGcSpill(now)
   for (const loop of due) {
     try {

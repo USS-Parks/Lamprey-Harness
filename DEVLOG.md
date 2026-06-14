@@ -169,6 +169,25 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - Verify: tsc web exit 0 (web-only); `vitest parse-loop-command` — 7 passed;
   `verify:proof --no-tests` exit 0.
 
+### LP-9 — Observation UI: running-loop panel + backlog management
+- `src/components/tools/panels/LoopsPanel.tsx` (new) — the docked Loops panel: lists each loop
+  with live status / `iter N/max` / `budget X%` / `next Ns` (1s countdown ticker), subscribes to
+  `window.api.loops.onLoopEvent` for live refresh, and exposes pause / resume / stop / delete +
+  an expandable backlog with add (enqueue) and remove.
+- `src/stores/ui-store.ts` — `ToolId` gains `'loop'`.
+- `src/components/tools/ToolsPanel.tsx` — `loop` wired into `TOOL_LABELS`, `ToolHeaderIcon` (loop
+  glyph), and `renderToolBody` (→ `LoopsPanel`). `src/components/layout/Titlebar.tsx` —
+  `TOOL_TITLES.loop` (the other `Record<ToolId,string>` site).
+- `src/components/artifacts/RightPanelHome.tsx` — a "Loops" right-panel pill.
+- `src/components/tools/loops-panel.wiring.test.ts` (new, 4 cases, run) — source-locks the
+  ToolId / pill / panel / store wiring (WC-8 pattern).
+- Verify: tsc web + node exit 0; `vitest loops-panel.wiring` — 4 passed; `verify:proof --no-tests`
+  exit 0.
+- **Honest gap:** the LoopsPanel is the canonical running-loop observation surface. A dedicated
+  status-line slot for loop entities (beyond the existing pending-wake-up count) is deferred —
+  it would require extending the statusline.md `SlotId` config machinery and the live UI is
+  validated via the LP-10 smoke playbook rather than here.
+
 
 
 ## [Unburdening Phase — Complete] UB-0 through UB-12 shipped end-to-end — 2026-06-10, v0.14.0

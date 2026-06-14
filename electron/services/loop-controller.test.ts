@@ -248,3 +248,41 @@ describe('runLoopIteration (injected seam, runs fully)', () => {
     expect(store.seam.getLoop('loop-1')!.nextFireAt).toBe(5000 + 120_000)
   })
 })
+
+describe('LP-4 self-paced cadence + mid-turn model control', () => {
+  it('honours a next-fire the model set during the turn (self_paced)', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'self_paced', intervalSeconds: null }), [
+      makeItem({ id: 'b1', position: 0 }),
+      makeItem({ id: 'b2', position: 1 })
+    ])
+    const runTurn = async (): Promise<{ tokensUsed: number }> => {
+      store.seam.updateLoop('loop-1', { nextFireAt: 5000 + 999_000 })
+      return { tokensUsed: 1 }
+    }
+    const o = await runLoopIteration(store.seam.getLoop('loop-1')!, {
+      store: store.seam,
+      runTurn,
+      clock: () => 5000
+    })
+    expect(o).toMatchObject({ ran: true, stopped: false })
+    expect(store.seam.getLoop('loop-1')!.nextFireAt).toBe(5000 + 999_000)
+  })
+
+  it('terminates when the model stops the loop during the turn', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'self_paced' }), [
+      makeItem({ id: 'b1', position: 0 }),
+      makeItem({ id: 'b2', position: 1 })
+    ])
+    const runTurn = async (): Promise<Record<string, never>> => {
+      store.seam.updateLoop('loop-1', { status: 'stopped', stopReason: 'model-stop' })
+      return {}
+    }
+    const o = await runLoopIteration(store.seam.getLoop('loop-1')!, {
+      store: store.seam,
+      runTurn,
+      clock: () => 5000
+    })
+    expect(o).toMatchObject({ ran: true, stopped: true, reason: 'model-stop' })
+    expect(store.seam.getLoop('loop-1')!.status).toBe('stopped')
+  })
+})

@@ -83,6 +83,27 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - Verify: tsc node + web exit 0; `vitest loop-controller.test.ts` — 16 passed / 0 skipped;
   `verify:proof --no-tests` exit 0 (lint clean).
 
+### LP-4 — Self-paced mode + model loop tools
+- `electron/services/loop-tool-logic.ts` (new) — pure logic for the three model tools, behind an
+  injected `LoopToolStore` seam (unit-tested without a DB): `applyLoopEnqueue` (append backlog
+  tasks, dropping blanks), `applyLoopCompleteTask` (mark the in-progress item done + record the
+  outcome — the ledger entry), `applyLoopControl` (`pause` / `stop` / `mission_complete` /
+  `continue` with a floor-clamped `delaySeconds` for self-paced cadence).
+- `electron/services/loop-tool-pack.ts` — registered `loop_enqueue`, `loop_complete_task`,
+  `loop_control` native tools (risks `['write']`, no approval) as thin wrappers over the pure
+  logic + the production store. All resolve "the current loop" from `ctx.conversationId` and
+  return a clear `{ ok:false }` when the conversation has no active loop.
+- `electron/services/loop-store.ts` — added `getActiveLoopForConversation` +
+  `inProgressBacklogItem` helpers.
+- `electron/services/loop-controller.ts` — the continue path now re-reads the loop after the
+  turn: if the model changed state via `loop_control` (pause/stop/mission_complete) it respects
+  the terminal state instead of resurrecting the loop; for self-paced it honours a future
+  next-fire the model set via `loop_control continue`.
+- `electron/services/loop-tool-logic.test.ts` (new, 9 cases) + 2 new self-paced cases in
+  `loop-controller.test.ts` — all run (injected seams, no skip).
+- Verify: tsc node exit 0 (LP-4 is node-only; web unchanged since LP-3); `vitest` loop-tool-logic
+  + loop-controller — 27 passed / 0 skipped; `verify:proof --no-tests` exit 0.
+
 
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.

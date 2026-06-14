@@ -269,8 +269,28 @@ export async function runLoopIteration(
       return { ran: true, stopped: true, reason: post.reason }
     }
 
-    // 6c. Continue — schedule the next iteration.
-    const nextFire = computeNextFire(loop, now(), deps.minIntervalSeconds)
+    // 6c. The model may have changed loop state DURING the turn via
+    // loop_control (pause / stop / mission_complete, or continue to set a
+    // self-paced cadence). Re-read before scheduling so we never resurrect a
+    // loop the model just terminated.
+    const fresh = deps.store.getLoop(loop.id)
+    if (fresh && fresh.status !== 'running') {
+      deps.store.updateLoop(loop.id, {
+        iteration: nextIteration,
+        tokensUsed: newTokens,
+        lastIterationAt: finishedAt
+      })
+      emit('loop:iteration:done', { id: loop.id, iteration: nextIteration })
+      emit('loop:stopped', { id: loop.id, reason: fresh.stopReason ?? fresh.status })
+      return { ran: true, stopped: true, reason: fresh.stopReason ?? fresh.status }
+    }
+
+    // Continue — schedule the next iteration. Self-paced honours a future
+    // next-fire the model set this turn; otherwise the per-mode default.
+    let nextFire = computeNextFire(loop, now(), deps.minIntervalSeconds)
+    if (loop.mode === 'self_paced' && fresh && fresh.nextFireAt != null && fresh.nextFireAt > now()) {
+      nextFire = fresh.nextFireAt
+    }
     deps.store.updateLoop(loop.id, {
       iteration: nextIteration,
       tokensUsed: newTokens,

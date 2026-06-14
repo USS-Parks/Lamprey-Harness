@@ -311,6 +311,27 @@ export function enqueueBacklog(loopId: string, tasks: string[]): BacklogItem[] {
   return created
 }
 
+/** The running/paused loop for a conversation, if any (most recent). Used by
+ *  the model loop-control tools to resolve "the current loop" from ctx. */
+export function getActiveLoopForConversation(conversationId: string): Loop | null {
+  const row = getDb()
+    .prepare(
+      "SELECT * FROM loops WHERE conversation_id = ? AND status IN ('running','paused') ORDER BY created_at DESC LIMIT 1"
+    )
+    .get(conversationId)
+  return row ? rowToLoop(row) : null
+}
+
+/** The item currently being worked (status='in_progress'), if any. */
+export function inProgressBacklogItem(loopId: string): BacklogItem | null {
+  const row = getDb()
+    .prepare(
+      "SELECT * FROM loop_backlog WHERE loop_id = ? AND status = 'in_progress' ORDER BY position ASC LIMIT 1"
+    )
+    .get(loopId)
+  return row ? rowToBacklog(row) : null
+}
+
 /** The next item to work: lowest-position pending row. */
 export function nextBacklogItem(loopId: string): BacklogItem | null {
   const row = getDb()

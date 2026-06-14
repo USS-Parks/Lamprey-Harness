@@ -157,6 +157,18 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
   skipped; `verify:proof --no-tests` exit 0. With `loopsEnabled=false`, `loops:create` /
   `loops:resume` refuse cleanly.
 
+### LP-8 — `/loop` slash command
+- `src/lib/parse-loop-command.ts` (new) — pure parser: `/loop <task>` → self-paced,
+  `/loop 5m <task>` → interval (s/m/h units), `/loop --auto <mission>` → autonomous (mission
+  seeds the backlog + is the standing instruction). Usage errors for empty / task-less forms.
+- `src/components/chat/ChatInput.tsx` — `/loop` built-in case: gated on `loopsEnabled` (clear
+  "Loops are off. Enable them in Settings → Loops." toast when off), otherwise creates the loop
+  via `useLoopsStore` and selects the loop's conversation. The IPC gate is the real enforcement;
+  this is the friendly front door.
+- `src/lib/parse-loop-command.test.ts` (new, 7 cases, run).
+- Verify: tsc web exit 0 (web-only); `vitest parse-loop-command` — 7 passed;
+  `verify:proof --no-tests` exit 0.
+
 
 
 ## [Unburdening Phase — Complete] UB-0 through UB-12 shipped end-to-end — 2026-06-10, v0.14.0

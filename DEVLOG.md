@@ -16,6 +16,29 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - `PLANNING/LAMPREY_LOOP_PLAN.md` §6 flipped to APPROVED.
 - Verify: docs only; baseline tsc node + web both exit 0 (pre-change).
 
+### LP-1 — Headless turn runner extraction (closes G1)
+- `electron/ipc/chat.ts` — factored the normal-dispatch body (context compression →
+  prompt/memory/skills assembly → tool surface → abort registration → `runChatRound` →
+  cleanup) out of the `chat:send` handler into a new exported `runHeadlessTurn(input)`. The
+  handler now persists the user message then calls `runHeadlessTurn` (behaviour byte-identical
+  for the chat path). The runner owns abort registration + cleanup in a `finally` (no leaked
+  `activeAbortControllers` entry on throw) and bridges an optional external cancel signal so
+  `chat:cancel` AND a future loop-cancel both interrupt a turn.
+- `electron/services/loop-runner.ts` — added an injected `LoopTurnRunner` seam
+  (`setLoopTurnRunner`) and wired `fireDueWakeups` to invoke it (fire-and-forget) right after
+  it injects the wake-up user message. **This closes G1:** a fired `schedule_wakeup` wake-up
+  now drives a real headless turn instead of leaving the injected message unanswered. Injection
+  (not a direct import) keeps loop-runner a pure service — no service→ipc cycle.
+- `electron/ipc/chat.ts` — `registerChatHandlers()` wires `setLoopTurnRunner(runHeadlessTurn)`
+  at registration time.
+- Net effect: the pre-existing self-paced `schedule_wakeup` tool finally functions end to end —
+  schedule → fire → run a turn → the model may `schedule_wakeup` again. Headless: works with
+  the window closed or another conversation focused (no `activeConversationId` guard).
+- Verify: tsc node + web exit 0; `vitest` loop-runner + ghost-reply + chat-correlation +
+  chat-validation suites — 35 passed / 2 skipped (loop-runner DB suite skips under the
+  better-sqlite3 NODE_MODULE_VERSION mismatch, honest); `verify:proof --no-tests` exit 0
+  (chat.ts touched).
+
 
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.

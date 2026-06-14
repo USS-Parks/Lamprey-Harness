@@ -15,6 +15,18 @@ Closes the four honest gaps documented at the Loop Phase wrap.
   silently losing coverage. This is the automated integration gate the LP-10 playbook stood in for.
 - Verify: tsc node exit 0; `vitest loop-db-integration` — 9 passed / 0 skipped.
 
+### Gap 3 — context-aware token-budget estimate
+- `electron/ipc/chat.ts` — `runHeadlessTurn` now returns `HeadlessTurnResult` (`{ message,
+  tokensEstimate }`): the estimate counts the chars of the FULL assembled `apiMessages` (system
+  prompt + history + iteration prompt) plus the reply, over ~4 chars/token. The prior estimate
+  used only `promptBody`, ignoring the system prompt + history that dominate a turn's real cost.
+- `electron/services/loop-controller.ts` — `productionDeps.runTurn` prefers the runner's
+  `tokensEstimate` (the context-aware figure) and only falls back to the prompt-only estimate when
+  a runner doesn't provide one. The token budget is the soft guard; iteration + wall-clock stay the
+  hard caps (multi-round tool turns still undercount the re-sent context — documented).
+- Verify: tsc node exit 0; `vitest loop-controller` — 23 passed; `verify:proof --no-tests` exit 0
+  (chat.ts touched).
+
 ## 2026-06-14 — Loop Phase
 
 Deliberate, user-authorized extension PAST the Opus 4.5 era-lock: a first-class Loop primitive

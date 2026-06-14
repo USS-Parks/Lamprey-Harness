@@ -27,6 +27,17 @@ Closes the four honest gaps documented at the Loop Phase wrap.
 - Verify: tsc node exit 0; `vitest loop-controller` — 23 passed; `verify:proof --no-tests` exit 0
   (chat.ts touched).
 
+### Gap 1 — Settings → Loops tab
+- `src/components/settings/LoopSettings.tsx` (new) — a master enable toggle (writes `loopsEnabled`)
+  + the five ceilings (max iterations, max wall-clock in minutes, token budget with `0 = off`,
+  max concurrent, runaway floor). Wired to `useSettingsStore` (same fresh-read pattern as the
+  Timeouts panel — no IPC patch). Includes the "extension past the era target, off by default"
+  framing + the `/loop` usage. The ceiling section dims when loops are disabled.
+- `src/components/settings/SettingsDialog.tsx` — registered the `loops` tab (after Automations).
+- `src/components/tools/loops-panel.wiring.test.ts` — +2 source-lock cases for the tab + key
+  binding. No `settings.json` editing required anymore.
+- Verify: tsc web exit 0; `vitest loops-panel.wiring` — 6 passed; `verify:proof --no-tests` exit 0.
+
 ## 2026-06-14 — Loop Phase
 
 Deliberate, user-authorized extension PAST the Opus 4.5 era-lock: a first-class Loop primitive

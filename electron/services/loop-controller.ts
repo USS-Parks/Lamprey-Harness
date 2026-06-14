@@ -1,6 +1,7 @@
 import * as store from './loop-store'
 import { getLoopTurnRunner } from './loop-runner'
 import { recordEvent, boundedJsonPreview } from './event-log'
+import { gcSpillDir } from './tool-result-spill'
 import { BrowserWindow } from 'electron'
 import type {
   Loop,
@@ -23,6 +24,8 @@ import type {
 
 export const DEFAULT_INTERVAL_SECONDS = 300
 export const MIN_INTERVAL_SECONDS = 30 // runaway floor (LP-7 makes it a setting)
+export const DEFAULT_ITERATION_TIMEOUT_MS = 10 * 60_000 // per-iteration wall-clock budget
+const SPILL_GC_THROTTLE_MS = 60 * 60_000 // GC spill dir at most hourly while loops run
 
 // ---------------------------------------------------------------------------
 // Pure helpers (unit-testable, no DB)
@@ -171,6 +174,8 @@ export interface LoopIterationDeps {
   runTurn: LoopTurnFn
   clock?: () => number
   minIntervalSeconds?: number
+  /** Per-iteration wall-clock budget (ms). 0/undefined disables the watchdog. */
+  iterationTimeoutMs?: number
   emit?: (channel: string, payload: unknown) => void
 }
 
@@ -179,6 +184,7 @@ export interface IterationOutcome {
   stopped: boolean
   reason?: string
   error?: string
+  timedOut?: boolean
 }
 
 function tokensFrom(result: unknown): number {
@@ -245,12 +251,25 @@ export async function runLoopIteration(
   })
   emit('loop:iteration:start', { id: loop.id, iteration: nextIteration, backlogId: item.id })
 
-  // 5. Run the turn.
+  // 5. Run the turn under a per-iteration stall watchdog. If the turn exceeds
+  // the wall-clock budget, abort it via the signal and treat it as a timeout —
+  // the item is marked error so the loop advances rather than wedging.
+  const iterationTimeoutMs = deps.iterationTimeoutMs ?? 0
+  const watchdog = new AbortController()
+  let timedOut = false
+  const watchdogTimer =
+    iterationTimeoutMs > 0
+      ? setTimeout(() => {
+          timedOut = true
+          watchdog.abort()
+        }, iterationTimeoutMs)
+      : null
   try {
     const result = await deps.runTurn({
       conversationId: loop.conversationId,
       model: loop.model ?? 'deepseek-v4-pro',
-      promptBody: prompt
+      promptBody: prompt,
+      signal: watchdog.signal
     })
     const turnTokens = tokensFrom(result)
     const finishedAt = now()
@@ -326,8 +345,26 @@ export async function runLoopIteration(
     emit('loop:iteration:done', { id: loop.id, iteration: nextIteration })
     return { ran: true, stopped: false }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
     const finishedAt = now()
+    if (timedOut) {
+      // Watchdog tripped — record the run as a timeout, mark the item error,
+      // and advance (the iteration counter still ticks toward maxIterations).
+      deps.store.finishLoopRun(run.id, { status: 'timeout', finishedAt })
+      deps.store.updateBacklogItem(item.id, {
+        status: 'error',
+        result: `iteration timed out after ${iterationTimeoutMs} ms`,
+        finishedAt
+      })
+      const nextFire = computeNextFire(loop, now(), deps.minIntervalSeconds)
+      deps.store.updateLoop(loop.id, {
+        iteration: nextIteration,
+        lastIterationAt: finishedAt,
+        nextFireAt: nextFire
+      })
+      emit('loop:iteration:error', { id: loop.id, iteration: nextIteration, error: 'timeout' })
+      return { ran: true, stopped: false, error: 'iteration timed out', timedOut: true }
+    }
+    const msg = err instanceof Error ? err.message : String(err)
     deps.store.finishLoopRun(run.id, { status: 'error', finishedAt })
     deps.store.updateBacklogItem(item.id, { status: 'error', result: msg, finishedAt })
     // A failed iteration marks the item error and advances; the loop keeps
@@ -341,6 +378,8 @@ export async function runLoopIteration(
     })
     emit('loop:iteration:error', { id: loop.id, iteration: nextIteration, error: msg })
     return { ran: true, stopped: false, error: msg }
+  } finally {
+    if (watchdogTimer) clearTimeout(watchdogTimer)
   }
 }
 
@@ -384,7 +423,22 @@ function productionDeps(): LoopIterationDeps {
       })()
       return { tokensUsed: estimateTokens(input.promptBody) + estimateTokens(replyText) }
     },
+    iterationTimeoutMs: DEFAULT_ITERATION_TIMEOUT_MS,
     emit: emitToAll
+  }
+}
+
+let lastSpillGcAt = 0
+
+/** Bound the spill dir during long-running loop sessions (the app-startup GC
+ *  won't run again until restart). Throttled to hourly, best-effort. */
+function maybeGcSpill(now: number): void {
+  if (now - lastSpillGcAt < SPILL_GC_THROTTLE_MS) return
+  lastSpillGcAt = now
+  try {
+    gcSpillDir()
+  } catch (err) {
+    console.error('[loops] spill gc failed:', err)
   }
 }
 
@@ -393,6 +447,7 @@ export async function tickLoops(now = Date.now()): Promise<void> {
   if (!getLoopTurnRunner()) return
   const deps = productionDeps()
   const due = deps.store.listDueLoops(now)
+  if (due.length > 0) maybeGcSpill(now)
   for (const loop of due) {
     try {
       const outcome = await runLoopIteration(loop, deps)

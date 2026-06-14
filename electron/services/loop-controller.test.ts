@@ -363,3 +363,46 @@ describe('LP-5 autonomous backlog mode', () => {
     expect(store.seam.getLoop('loop-1')!.nextFireAt).toBe(5000 + 30_000)
   })
 })
+
+describe('LP-6 per-iteration stall watchdog', () => {
+  it('aborts a stalled iteration without wedging the loop', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'interval', intervalSeconds: 60 }), [
+      makeItem({ id: 'b1', position: 0 }),
+      makeItem({ id: 'b2', position: 1 })
+    ])
+    const runTurn = (input: { signal?: AbortSignal }): Promise<never> =>
+      new Promise((_resolve, reject) => {
+        input.signal?.addEventListener('abort', () => reject(new Error('aborted by watchdog')))
+      })
+    const o = await runLoopIteration(store.seam.getLoop('loop-1')!, {
+      store: store.seam,
+      runTurn,
+      clock: () => 5000,
+      iterationTimeoutMs: 20
+    })
+    expect(o).toMatchObject({ ran: true, stopped: false, timedOut: true })
+    const item = store.getBacklog().find((b) => b.id === 'b1')!
+    expect(item.status).toBe('error')
+    expect(item.result).toContain('timed out')
+    const loop = store.seam.getLoop('loop-1')!
+    expect(loop.status).toBe('running')
+    expect(loop.iteration).toBe(1)
+    expect(loop.nextFireAt).toBe(5000 + 60_000)
+  })
+
+  it('a fast turn under the budget is unaffected', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'interval', intervalSeconds: 60 }), [
+      makeItem({ id: 'b1', position: 0 }),
+      makeItem({ id: 'b2', position: 1 })
+    ])
+    const o = await runLoopIteration(store.seam.getLoop('loop-1')!, {
+      store: store.seam,
+      runTurn: async () => ({ tokensUsed: 5 }),
+      clock: () => 5000,
+      iterationTimeoutMs: 10_000
+    })
+    expect(o).toMatchObject({ ran: true, stopped: false })
+    expect(o.timedOut).toBeUndefined()
+    expect(store.getBacklog().find((b) => b.id === 'b1')!.status).toBe('done')
+  })
+})

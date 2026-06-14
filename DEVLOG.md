@@ -121,6 +121,21 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - Verify: tsc node exit 0 (node-only); `vitest` loop-controller + loop-tool-logic — 30 passed /
   0 skipped; `verify:proof --no-tests` exit 0.
 
+### LP-6 — Per-iteration stall watchdog + spill GC
+- `electron/services/loop-controller.ts` — each iteration now runs under a per-iteration
+  wall-clock budget (`iterationTimeoutMs`): an `AbortController` is passed to `runTurn` as
+  `signal` and a timer aborts it on overrun. A tripped watchdog records the run as `timeout`,
+  marks the item `error` ("iteration timed out after N ms"), and advances the loop (counter
+  ticks toward `maxIterations`) rather than wedging. Production uses
+  `DEFAULT_ITERATION_TIMEOUT_MS` (10 min; LP-7 makes it a setting). `tickLoops` calls
+  `gcSpillDir()` (throttled hourly) while loops are active, so a long-running loop's spill files
+  don't grow unbounded between app restarts.
+- `electron/services/loop-controller.test.ts` — 2 LP-6 cases (run): a hung turn is aborted by
+  the 20 ms watchdog → item error, loop still running + advanced + rescheduled; a fast turn
+  under a 10 s budget is unaffected.
+- Verify: tsc node exit 0 (node-only); `vitest loop-controller.test.ts` — 23 passed / 0 skipped;
+  `verify:proof --no-tests` exit 0.
+
 
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.

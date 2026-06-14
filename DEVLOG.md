@@ -50,6 +50,16 @@ Closes the four honest gaps documented at the Loop Phase wrap.
 - Verify: tsc node + web exit 0; `vitest statusline-config` — 6 passed; `verify:proof --no-tests`
   exit 0.
 
+### Gap-closure wrap (v0.15.1)
+- `package.json` 0.15.0 → **0.15.1**; README "New in v0.15.1" paragraph (Loop Phase demoted to
+  "Previously"); `PLANNING/LP_SMOKE_PLAYBOOK.md` Gaps section + CLAUDE.md Loop Phase entry updated
+  to mark all four gaps CLOSED.
+- **Per-gap commit SHAs:** `9b0c851` gap-4 (node:sqlite DB test) · `d358d09` gap-3 (context-aware
+  token estimate) · `bb62dfc` gap-1 (Settings → Loops tab) · `babb935` gap-2 (status-line slot) ·
+  (this commit) wrap.
+- **Final gate:** lint OK, tsc node + web OK, full vitest <see commit>, build OK, `verify:proof`
+  exit 0.
+
 ## 2026-06-14 — Loop Phase
 
 Deliberate, user-authorized extension PAST the Opus 4.5 era-lock: a first-class Loop primitive

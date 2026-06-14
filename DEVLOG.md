@@ -1,3 +1,20 @@
+## 2026-06-14 — Loop Phase gap-closure (v0.15.1)
+
+Closes the four honest gaps documented at the Loop Phase wrap.
+
+### Gap 4 — real DB integration coverage that does not skip
+- `electron/services/loop-schema.ts` (new) — the v17 `loops`/`loop_backlog`/`loop_runs` DDL as a
+  standalone, import-free `LOOP_SCHEMA_SQL` constant. Migration v17 (`db-migrations.ts`) now
+  `db.exec(LOOP_SCHEMA_SQL)` instead of an inline copy, so production + test share one source.
+- `electron/services/loop-db-integration.test.ts` (new, 9 cases, **all run**) — uses Node's
+  built-in `node:sqlite` (`DatabaseSync`, no native addon → loads under vitest's ABI where the
+  Electron-built better-sqlite3 cannot) to run the EXACT production DDL + the loop-store query
+  shapes: table creation, mode/status CHECK constraints, `nextBacklogItem` ordering, `countBacklog`,
+  `listRecentDone` (finished_at DESC), `listDueLoops`, cascade delete. The "node:sqlite available"
+  assertion is a hard `expect` (not skipIf) so a future runtime without it FAILS loudly instead of
+  silently losing coverage. This is the automated integration gate the LP-10 playbook stood in for.
+- Verify: tsc node exit 0; `vitest loop-db-integration` — 9 passed / 0 skipped.
+
 ## 2026-06-14 — Loop Phase
 
 Deliberate, user-authorized extension PAST the Opus 4.5 era-lock: a first-class Loop primitive

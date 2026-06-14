@@ -1,4 +1,22 @@
-## [Unburdening Phase — Complete] UB-0 through UB-12 shipped end-to-end — 2026-06-10, v0.14.0
+## 2026-06-14 — Loop Phase
+
+Deliberate, user-authorized extension PAST the Opus 4.5 era-lock: a first-class Loop primitive
+spanning interval → self-paced → autonomous "work-the-backlog" loops that re-invoke real chat
+turns headlessly in the main process, drain a dedicated backlog queue, are bounded by hard
+ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_LOOP_PLAN.md`
+(APPROVED 2026-06-14). Built on the pre-existing half-built loop scaffold — see
+`PLANNING/LP_BASELINE.md`.
+
+### LP-0 — Baseline + extension declaration (docs only)
+- `PLANNING/LP_BASELINE.md` (new) — B1–B8 inventory of the existing scaffold, the G1–G4 gaps
+  (the `App.tsx:316–326` re-invocation defect quoted verbatim: a fired wake-up reloads the
+  message list but never calls `chat:send`, so it never runs a turn), the governance gap
+  (loop/automations/workflow/activity layer undocumented in CLAUDE.md), the §4 target
+  architecture, and the explicit deliberate-past-era-extension statement.
+- `PLANNING/LAMPREY_LOOP_PLAN.md` §6 flipped to APPROVED.
+- Verify: docs only; baseline tsc node + web both exit 0 (pre-change).
+
+
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.
 

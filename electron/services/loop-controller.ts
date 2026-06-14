@@ -98,12 +98,20 @@ export function estimateTokens(text: string): number {
 export interface LedgerInfo {
   iteration: number
   remaining: number
+  /** Recently-completed tasks + their outcomes — the idempotency ledger. */
+  completed?: Array<{ task: string; result: string | null }>
 }
+
+/** Cap on how much ledger text we inject, so a long-running loop's prompt
+ *  stays bounded regardless of how many tasks it has completed. */
+export const LEDGER_RESULT_MAX_CHARS = 240
 
 /**
  * The per-iteration prompt: the loop's standing instruction + the current task
- * + a progress-ledger note. The ledger note is the idempotency seed — LP-5
- * expands it with prior outcomes so settled work is never redone.
+ * + a progress ledger. The ledger lists recently-completed tasks with their
+ * outcomes so the model does not redo settled work (idempotency). For
+ * autonomous loops it also reminds the model it may enqueue follow-up work and
+ * declare the mission complete when nothing remains.
  */
 export function buildIterationPrompt(
   loop: Pick<Loop, 'instruction' | 'mode'>,
@@ -115,10 +123,23 @@ export function buildIterationPrompt(
   parts.push(
     `Loop iteration ${ledger.iteration}. ${ledger.remaining} task(s) remain in the backlog after this one.`
   )
+  if (ledger.completed && ledger.completed.length > 0) {
+    const lines = ledger.completed.map((c) => {
+      const outcome = (c.result ?? '').trim().slice(0, LEDGER_RESULT_MAX_CHARS)
+      return `- ${c.task}${outcome ? ` → ${outcome}` : ' → (done)'}`
+    })
+    parts.push(`Already done (do NOT repeat):\n${lines.join('\n')}`)
+  }
   if (item) parts.push(`Current task:\n${item.task}`)
-  parts.push(
-    'Complete this task, then briefly state the outcome. Do not repeat work already marked done.'
-  )
+  const tail = [
+    'Complete this task, then call loop_complete_task with a one-line outcome.'
+  ]
+  if (loop.mode === 'autonomous') {
+    tail.push(
+      'If you discover follow-up work, add it with loop_enqueue. When nothing worthwhile remains, call loop_control with action "mission_complete".'
+    )
+  }
+  parts.push(tail.join(' '))
   return parts.join('\n\n')
 }
 
@@ -132,6 +153,7 @@ export interface LoopStoreSeam {
   nextBacklogItem(loopId: string): BacklogItem | null
   updateBacklogItem(id: string, patch: Parameters<typeof store.updateBacklogItem>[1]): BacklogItem | null
   countBacklog(loopId: string, status?: BacklogStatus): number
+  listRecentDone(loopId: string, limit: number): BacklogItem[]
   recordLoopRun(input: { loopId: string; iteration: number; backlogId?: string | null; startedAt?: number }): LoopRun
   finishLoopRun(id: string, patch: { status: 'running' | 'done' | 'error' | 'timeout'; tokensUsed?: number | null; finishedAt?: number }): LoopRun | null
   listDueLoops(now: number): Loop[]
@@ -213,9 +235,13 @@ export async function runLoopIteration(
   // item is already marked in_progress above, so the pending count is exactly
   // the number of tasks remaining AFTER this one.
   const remainingAfter = deps.store.countBacklog(loop.id, 'pending')
+  const completed = deps.store
+    .listRecentDone(loop.id, 5)
+    .map((c) => ({ task: c.task, result: c.result }))
   const prompt = buildIterationPrompt(loop, item, {
     iteration: nextIteration,
-    remaining: remainingAfter
+    remaining: remainingAfter,
+    completed
   })
   emit('loop:iteration:start', { id: loop.id, iteration: nextIteration, backlogId: item.id })
 
@@ -336,6 +362,7 @@ function productionDeps(): LoopIterationDeps {
       nextBacklogItem: store.nextBacklogItem,
       updateBacklogItem: store.updateBacklogItem,
       countBacklog: store.countBacklog,
+      listRecentDone: store.listRecentDone,
       recordLoopRun: store.recordLoopRun,
       finishLoopRun: store.finishLoopRun,
       listDueLoops: store.listDueLoops

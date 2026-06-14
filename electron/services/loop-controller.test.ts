@@ -78,6 +78,11 @@ function makeFakeStore(loop: Loop, backlogItems: BacklogItem[]) {
     },
     countBacklog: (loopId, status) =>
       backlog.filter((b) => b.loopId === loopId && (status ? b.status === status : true)).length,
+    listRecentDone: (loopId, limit) =>
+      backlog
+        .filter((b) => b.loopId === loopId && b.status === 'done')
+        .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
+        .slice(0, limit),
     recordLoopRun: (input) => {
       const run: LoopRun = {
         id: `run-${runs.length}`,
@@ -103,7 +108,13 @@ function makeFakeStore(loop: Loop, backlogItems: BacklogItem[]) {
         (l) => l.status === 'running' && (l.nextFireAt == null || l.nextFireAt <= now)
       )
   }
-  return { seam, loops, runs, getBacklog: () => backlog }
+  const appendPending = (tasks: string[]): void => {
+    const base = backlog.length
+    tasks.forEach((task, i) =>
+      backlog.push(makeItem({ id: `g${base + i}`, position: base + i, task, status: 'pending' }))
+    )
+  }
+  return { seam, loops, runs, getBacklog: () => backlog, appendPending }
 }
 
 describe('checkCeilings (pure)', () => {
@@ -162,7 +173,7 @@ describe('estimateTokens / buildIterationPrompt (pure)', () => {
     expect(p).toContain('ship it')
     expect(p).toContain('iteration 3')
     expect(p).toContain('2 task(s) remain')
-    expect(p).toContain('Do not repeat work already marked done')
+    expect(p).toContain('loop_complete_task')
   })
 })
 
@@ -284,5 +295,71 @@ describe('LP-4 self-paced cadence + mid-turn model control', () => {
     })
     expect(o).toMatchObject({ ran: true, stopped: true, reason: 'model-stop' })
     expect(store.seam.getLoop('loop-1')!.status).toBe('stopped')
+  })
+})
+
+describe('LP-5 autonomous backlog mode', () => {
+  function deps2(
+    store: ReturnType<typeof makeFakeStore>,
+    over: Partial<LoopIterationDeps> = {}
+  ): LoopIterationDeps {
+    return {
+      store: store.seam,
+      runTurn: async () => ({ tokensUsed: 1 }),
+      clock: () => 5000,
+      ...over
+    }
+  }
+
+  it('grows the backlog mid-turn (loop_enqueue) then drains to done', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'autonomous', intervalSeconds: null }), [
+      makeItem({ id: 'b1', position: 0, task: 'seed' })
+    ])
+    let grew = false
+    const runTurn = async (): Promise<{ tokensUsed: number }> => {
+      if (!grew) {
+        grew = true
+        store.appendPending(['discovered-1', 'discovered-2'])
+      }
+      return { tokensUsed: 1 }
+    }
+    for (let i = 0; i < 10; i++) {
+      const loop = store.seam.getLoop('loop-1')!
+      if (loop.status !== 'running') break
+      await runLoopIteration(loop, deps2(store, { runTurn }))
+    }
+    const final = store.seam.getLoop('loop-1')!
+    expect(final.status).toBe('done')
+    expect(final.stopReason).toBe('backlog-empty')
+    expect(final.iteration).toBe(3) // seed + 2 discovered
+    expect(store.getBacklog().every((b) => b.status === 'done')).toBe(true)
+  })
+
+  it('injects a progress ledger so settled work is visible to the model', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'autonomous', intervalSeconds: null }), [
+      makeItem({ id: 'b1', position: 0, task: 'first task' }),
+      makeItem({ id: 'b2', position: 1, task: 'second task' })
+    ])
+    const prompts: string[] = []
+    const runTurn = async (input: { promptBody: string }): Promise<{ tokensUsed: number }> => {
+      prompts.push(input.promptBody)
+      return { tokensUsed: 1 }
+    }
+    await runLoopIteration(store.seam.getLoop('loop-1')!, deps2(store, { runTurn }))
+    await runLoopIteration(store.seam.getLoop('loop-1')!, deps2(store, { runTurn }))
+    expect(prompts[0]).toContain('first task')
+    expect(prompts[0]).not.toContain('Already done')
+    expect(prompts[1]).toContain('Already done')
+    expect(prompts[1]).toContain('first task')
+  })
+
+  it('runaway clamp: a continuing autonomous iteration fires no sooner than the floor', async () => {
+    const store = makeFakeStore(makeLoop({ mode: 'autonomous', intervalSeconds: null }), [
+      makeItem({ id: 'b1', position: 0 }),
+      makeItem({ id: 'b2', position: 1 })
+    ])
+    const o = await runLoopIteration(store.seam.getLoop('loop-1')!, deps2(store, { minIntervalSeconds: 30 }))
+    expect(o).toMatchObject({ ran: true, stopped: false })
+    expect(store.seam.getLoop('loop-1')!.nextFireAt).toBe(5000 + 30_000)
   })
 })

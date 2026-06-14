@@ -356,6 +356,18 @@ export function listBacklog(loopId: string, status?: BacklogStatus | BacklogStat
     .map(rowToBacklog)
 }
 
+/** Most-recently-finished done items — the progress ledger fed back to the
+ *  model each iteration so settled work is not repeated (idempotency seed). */
+export function listRecentDone(loopId: string, limit = 5): BacklogItem[] {
+  const lim = Math.min(Math.max(limit, 1), 50)
+  return getDb()
+    .prepare(
+      "SELECT * FROM loop_backlog WHERE loop_id = ? AND status = 'done' ORDER BY finished_at DESC LIMIT ?"
+    )
+    .all(loopId, lim)
+    .map(rowToBacklog)
+}
+
 export function countBacklog(loopId: string, status?: BacklogStatus): number {
   const sql = status
     ? 'SELECT COUNT(*) AS n FROM loop_backlog WHERE loop_id = ? AND status = ?'

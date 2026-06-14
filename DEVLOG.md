@@ -104,6 +104,23 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
 - Verify: tsc node exit 0 (LP-4 is node-only; web unchanged since LP-3); `vitest` loop-tool-logic
   + loop-controller — 27 passed / 0 skipped; `verify:proof --no-tests` exit 0.
 
+### LP-5 — Autonomous backlog mode + idempotency ledger + runaway guard
+- `electron/services/loop-controller.ts` — `buildIterationPrompt` now injects a **progress
+  ledger**: the recently-completed tasks + their outcomes ("Already done (do NOT repeat): …"),
+  bounded by `LEDGER_RESULT_MAX_CHARS`. Autonomous loops also get a tail reminding the model it
+  may `loop_enqueue` follow-up work and `loop_control mission_complete` when nothing remains.
+  `runLoopIteration` fetches the ledger via the new `listRecentDone` seam method each iteration.
+  Runaway guard: `computeNextFire('autonomous')` and `loop_control continue` both clamp to the
+  interval floor, so a loop cannot schedule itself faster than `minIntervalSeconds`.
+- `electron/services/loop-store.ts` — `listRecentDone(loopId, limit)` (done items by
+  `finished_at DESC`).
+- `electron/services/loop-controller.test.ts` — 3 LP-5 cases (all run): autonomous grows the
+  backlog mid-turn via `appendPending` then drains to `done`/`backlog-empty` over the right
+  iteration count; the ledger appears only after the first task completes and lists prior tasks
+  (idempotency); a continuing autonomous iteration fires no sooner than the floor.
+- Verify: tsc node exit 0 (node-only); `vitest` loop-controller + loop-tool-logic — 30 passed /
+  0 skipped; `verify:proof --no-tests` exit 0.
+
 
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.

@@ -188,6 +188,20 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
   it would require extending the statusline.md `SlotId` config machinery and the live UI is
   validated via the LP-10 smoke playbook rather than here.
 
+### LP-10 — Safety hardening + smoke playbook
+- `electron/services/loop-safety.test.ts` (new, 6 cases, run) — source-locks the master-toggle
+  gate at every entry point (`loops:create` + `loops:resume` check `enabled`; `/loop` checks
+  `settings.loopsEnabled`; the model tools refuse outside an active loop) + the OFF defaults in
+  both the canonical defaults and the config resolver + the runaway-floor clamp in the
+  controller and the `loop_control` tool. A future edit can't silently arm autonomous loops.
+- `PLANNING/LP_SMOKE_PLAYBOOK.md` (new) — the live integration gate (DB-backed loop tests skip
+  under the native-binding mismatch, so this is where real coverage lives): enable → interval /
+  self-paced / autonomous runs, headless-with-window-unfocused, ceiling trips, user/model/floor
+  stop authorities, backlog persistence across restart. Lists the honest gaps (no Settings UI
+  tab, no status-line slot, approximate token budget, DB-test skip).
+- Verify: tsc node + web exit 0; **full `npx vitest run` — 2240 passed / 130 skipped / 0 failed**
+  (+7 skips vs baseline = the loop-store DB suites); `verify:proof --no-tests` exit 0.
+
 
 
 ## [Unburdening Phase — Complete] UB-0 through UB-12 shipped end-to-end — 2026-06-10, v0.14.0

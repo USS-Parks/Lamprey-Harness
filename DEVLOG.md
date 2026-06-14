@@ -38,6 +38,18 @@ Closes the four honest gaps documented at the Loop Phase wrap.
   binding. No `settings.json` editing required anymore.
 - Verify: tsc web exit 0; `vitest loops-panel.wiring` — 6 passed; `verify:proof --no-tests` exit 0.
 
+### Gap 2 — status-line slot for running loop entities
+- `electron/services/statusline-config.ts` — new `loops` slot: added to `StatusLineSlot`,
+  `ALL_SLOTS`, `DEFAULT_VISIBLE_SLOTS` (after `wakeups`), and the default format
+  `'{count} loop{plural} · iter {iter}'`.
+- `src/components/layout/StatusLine.tsx` — `SlotId` + default config gain `loops`; a 10s poll of
+  `loops:listLoops {status:'running'}` (+ `onLoopEvent` refresh) tracks the running-loop count +
+  lead iteration; the `loops` render case hides at count 0 (so default installs with loops off see
+  nothing) and otherwise shows e.g. "1 loop · iter 4" in the amber wake-ups tone. Distinct from the
+  pre-existing `wakeups` count (those are one-shot `schedule_wakeup` rows, not loop entities).
+- Verify: tsc node + web exit 0; `vitest statusline-config` — 6 passed; `verify:proof --no-tests`
+  exit 0.
+
 ## 2026-06-14 — Loop Phase
 
 Deliberate, user-authorized extension PAST the Opus 4.5 era-lock: a first-class Loop primitive

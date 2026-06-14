@@ -56,6 +56,33 @@ ceilings, are observable, and ship **off by default**. Plan: `PLANNING/LAMPREY_L
   integration gate).
 - Verify: tsc node + web exit 0; `vitest loop-store.test.ts` — 2 passed / 7 skipped.
 
+### LP-3 — Loop controller core: interval mode + ceilings + stop authorities
+- `electron/services/loop-controller.ts` (new) — the per-iteration lifecycle. Pure helpers
+  (`checkCeilings`, `computeNextFire`, `estimateTokens`, `buildIterationPrompt`) + the core
+  `runLoopIteration(loop, deps)` which takes an **injected `store` + `runTurn` seam** so the
+  ceiling / stop-authority / backlog-drain logic is unit-tested as pure logic that ACTUALLY
+  RUNS (no DB, no skip). Sequence: pre-flight ceilings → pull next backlog item → mark
+  in_progress + open run audit → build ledger prompt → run turn → finish run + mark item done →
+  drain-check / post-ceiling / schedule-next. Stop authorities: `max-iterations`,
+  `max-wallclock`, `token-budget`, `backlog-empty`; a thrown turn marks the item `error` and
+  the loop keeps running (iteration counter still ticks toward the cap, so a failing loop can't
+  spin forever). Production `tickLoops()` builds DB-backed deps (real `loop-store` + the
+  `getLoopTurnRunner()` headless runner) and runs due loops serially; `startLoopController()` /
+  `stopLoopController()` own a 30s timer.
+- `electron/services/loop-runner.ts` — added `getLoopTurnRunner()` so the controller reaches
+  the headless runner without a service→ipc cycle.
+- `electron/main.ts` — `startLoopController()` next to `startLoopWakeups()`; `stopLoopController()`
+  in both the GUI and headless shutdown paths.
+- `electron/services/event-log.ts`, `src/lib/types.ts`, `src/lib/event-presentation.ts` —
+  registered `loop.iteration` + `loop.iteration.error` event types + labels.
+- `electron/services/loop-controller.test.ts` (new) — 16 cases, **all run** (injected fakes):
+  ceiling pure cases, `computeNextFire` (interval + runaway-floor clamp + autonomous floor),
+  prompt assembly, and full `runLoopIteration` paths — 3-item drain → backlog-empty, pre-flight
+  max-iterations, post token-budget, turn-throw → item error + loop survives, next-fire
+  scheduling.
+- Verify: tsc node + web exit 0; `vitest loop-controller.test.ts` — 16 passed / 0 skipped;
+  `verify:proof --no-tests` exit 0 (lint clean).
+
 
 
 Phase complete. 13 prompts (UB-0 through UB-12) on `claude/hardcore-swanson-5561d9`, immediately following the same-day pipeline retirement (`2f40e68`). Per explicit user direction ("Lamprey is still tortured... strip away the stale and burdensome scaffolding so that it can breathe easier and be comfortable in its own skin"), this phase DELETES — not gates — every subsystem the Opus 4.5-era product never had. **Net −7,400+ lines across 64+ files.** Git history at the v0.13.0 tag holds the last full-machinery build.

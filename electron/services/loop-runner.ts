@@ -46,6 +46,10 @@ export function setLoopTurnRunner(fn: LoopTurnRunner | null): void {
   turnRunner = fn
 }
 
+export function getLoopTurnRunner(): LoopTurnRunner | null {
+  return turnRunner
+}
+
 function rowToWakeup(row: any): LoopWakeup {
   return {
     id: row.id,

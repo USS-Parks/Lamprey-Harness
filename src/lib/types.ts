@@ -840,6 +840,8 @@ export type EventType =
   | 'automation.failed'
   | 'loop.wakeup.scheduled'
   | 'loop.wakeup.fired'
+  | 'loop.iteration'
+  | 'loop.iteration.error'
   | 'security.decision'
   | 'permission.policy.created'
   | 'permission.policy.updated'

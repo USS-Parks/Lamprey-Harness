@@ -57,7 +57,7 @@ function readStreamInactivityMs(): number {
   }
 }
 
-export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter'
+export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter' | 'zhipu'
 
 export interface ProviderDescriptor {
   id: ProviderId
@@ -95,6 +95,13 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     baseURL: 'https://openrouter.ai/api/v1',
     keyEnv: 'openrouter',
     docsUrl: 'https://openrouter.ai/keys'
+  },
+  zhipu: {
+    id: 'zhipu',
+    label: 'Zhipu AI (GLM)',
+    baseURL: 'https://open.bigmodel.cn/api/paas/v4/',
+    keyEnv: 'zhipu',
+    docsUrl: 'https://open.bigmodel.cn/usercenter/apikeys'
   }
 }
 
@@ -299,10 +306,23 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     supportsVision: false,
     tier: 'pro',
     description: 'Qwen long-context model — 10M token window for very large documents.'
-  }
+  },
   // qwen3.7 is referenced in Alibaba's blog announcements but the DashScope
   // model catalog at fetch time did not list a qwen3.7-* api id. Paste the
   // exact id from your DashScope console into Custom Models when it lands.
+
+  // ── Zhipu AI (GLM) ──
+  {
+    id: 'glm-5-2',
+    name: 'GLM 5.2',
+    provider: 'zhipu',
+    apiModelId: 'GLM-5-2',
+    contextWindow: 128000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Zhipu AI flagship — GLM 5.2, 128K context, tool use + vision.'
+  }
 ]
 
 export interface ChatStreamParams {

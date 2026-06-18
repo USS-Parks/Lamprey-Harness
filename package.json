@@ -1,7 +1,7 @@
 {
   "name": "lamprey-harness",
-  "version": "0.15.1",
-  "description": "Multi-agent coding harness for DeepSeek V4 Pro/Flash, Gemma, and Qwen.",
+  "version": "0.15.2",
+  "description": "Multi-agent coding harness for DeepSeek V4 Pro/Flash, Gemma, Qwen, and GLM.",
   "main": "./out/main/index.js",
   "bin": {
     "lamprey": "./out/main/cli.js"

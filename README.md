@@ -37,9 +37,13 @@ All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Par
 ## Quick start
 
 1. **Download** your platform's installer above and run it.
-2. **Get a key.** Easiest: [platform.deepseek.com](https://platform.deepseek.com) &mdash; sign up, create a key, load $5. Lamprey also accepts Google AI Studio, Alibaba DashScope, Zhipu AI (GLM), and OpenRouter keys.
-3. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
-4. **Type something.** That's it.
+2. **Get a key.**
+3. **DeepSeek:** [platform.deepseek.com](https://platform.deepseek.com)
+4. **Gemma:** (https://openrouter.ai/google/gemma-4-31b-it:free#api)
+   **Qwen:** 
+   **GLM:** (https://z.ai/manage-apikey/apikey-list)
+5. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
+6. **Type something.** Let's go.
 
 ---
 

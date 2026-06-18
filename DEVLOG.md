@@ -1,12 +1,13 @@
-## 2026-06-17 — Zhipu AI / GLM 5.2 provider (v0.15.2)
+## 2026-06-17 — Zhipu AI / GLM 5.2 provider (v0.15.3)
 
 Added Zhipu AI as Lamprey's fifth provider. New `'zhipu'` provider id routes to
-`https://open.bigmodel.cn/api/paas/v4/` (OpenAI-compatible). GLM 5.2 entry in the model catalog:
-128K context, tool use + vision. The provider card appears automatically in Settings → API Keys.
+`https://open.bigmodel.cn/api/paas/v4/` (OpenAI-compatible). Two catalog entries: `glm-5.2`
+(128K context) and `glm-5.2[1m]` (1M context), both with tool use + vision. The provider card
+appears automatically in Settings → API Keys.
 
-Files touched: `electron/services/providers/registry.ts` (ProviderId union, PROVIDERS map,
-MODEL_CATALOG), `src/lib/types.ts` (renderer ProviderId union), `package.json` (version bump),
-`README.md` (Quick Start provider list + download URLs).
+v0.15.2 shipped with `apiModelId: 'GLM-5-2'` which Zhipu rejected (400 "model does not exist").
+The correct ID is `glm-5.2` (lowercase, dot-separated). v0.15.3 fixes the ID and adds the 1M
+variant.
 
 ## 2026-06-14 — Bucket ship-script hardening
 

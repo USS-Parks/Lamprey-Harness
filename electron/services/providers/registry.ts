@@ -313,15 +313,26 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
 
   // ── Zhipu AI (GLM) ──
   {
-    id: 'glm-5-2',
+    id: 'glm-5.2',
     name: 'GLM 5.2',
     provider: 'zhipu',
-    apiModelId: 'GLM-5-2',
+    apiModelId: 'glm-5.2',
     contextWindow: 128000,
     supportsTools: true,
     supportsVision: true,
     tier: 'pro',
     description: 'Zhipu AI flagship — GLM 5.2, 128K context, tool use + vision.'
+  },
+  {
+    id: 'glm-5.2-1m',
+    name: 'GLM 5.2 (1M context)',
+    provider: 'zhipu',
+    apiModelId: 'glm-5.2[1m]',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'GLM 5.2 with explicit 1M token context window.'
   }
 ]
 

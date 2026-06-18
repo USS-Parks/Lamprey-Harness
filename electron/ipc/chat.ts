@@ -616,7 +616,7 @@ export async function runHeadlessTurn(input: {
     settingsRaw
   )
 
-  const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory)
+  const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory, model)
 
   // Context-aware token estimate (gap-closure): the full message stack sent to
   // the model, not just the iteration prompt. Computed here because this is the
@@ -899,7 +899,8 @@ export async function runChatRound(
           messages.push({
             role: 'assistant',
             content: fullContent || null,
-            tool_calls: persistedToolCalls
+            tool_calls: persistedToolCalls,
+            ...(fullReasoning && { reasoning_content: fullReasoning })
           } as any)
 
           // Group the model's tool_calls into execution windows: contiguous

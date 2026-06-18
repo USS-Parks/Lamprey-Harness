@@ -151,3 +151,65 @@ describe('buildApiMessagesFromStoredMessages — reasoning rehydration (R8)', ()
     )
   })
 })
+
+describe('buildApiMessagesFromStoredMessages — reasoning_content field for DeepSeek V4', () => {
+  const mockReadSettings = readSettings as unknown as ReturnType<typeof vi.fn>
+  beforeEach(() => {
+    mockReadSettings.mockReset()
+    mockReadSettings.mockReturnValue({})
+  })
+
+  it('includes reasoning_content field for deepseek-v4-pro', () => {
+    const api = buildApiMessagesFromStoredMessages('system', [
+      { role: 'user', content: 'help' },
+      {
+        role: 'assistant',
+        content: 'sure',
+        reasoning: 'chain of thought',
+        toolCalls: [toolCall('call-a')]
+      },
+      { role: 'tool', content: 'done', toolCallId: 'call-a' }
+    ], 'deepseek-v4-pro')
+    const assistant = api[2] as any
+    expect(assistant.reasoning_content).toBe('chain of thought')
+    expect(assistant.content).toBe('sure')
+  })
+
+  it('includes reasoning_content field for deepseek-v4-flash', () => {
+    const api = buildApiMessagesFromStoredMessages('system', [
+      { role: 'user', content: 'help' },
+      { role: 'assistant', content: 'reply', reasoning: 'thought' }
+    ], 'deepseek-v4-flash')
+    const assistant = api[2] as any
+    expect(assistant.reasoning_content).toBe('thought')
+    expect(assistant.content).toBe('reply')
+  })
+
+  it('does NOT wrap reasoning in <think> tags for V4 models', () => {
+    const api = buildApiMessagesFromStoredMessages('system', [
+      { role: 'user', content: 'help' },
+      { role: 'assistant', content: 'reply', reasoning: 'thought' }
+    ], 'deepseek-v4-pro')
+    const assistant = api[2] as any
+    expect(assistant.content).not.toContain('<think>')
+  })
+
+  it('does NOT include reasoning_content for non-V4 models', () => {
+    const api = buildApiMessagesFromStoredMessages('system', [
+      { role: 'user', content: 'help' },
+      { role: 'assistant', content: 'reply', reasoning: 'thought' }
+    ], 'deepseek-chat')
+    const assistant = api[2] as any
+    expect(assistant.reasoning_content).toBeUndefined()
+    expect(assistant.content).toContain('<think>')
+  })
+
+  it('does NOT include reasoning_content when modelId is undefined', () => {
+    const api = buildApiMessagesFromStoredMessages('system', [
+      { role: 'user', content: 'help' },
+      { role: 'assistant', content: 'reply', reasoning: 'thought' }
+    ])
+    const assistant = api[2] as any
+    expect(assistant.reasoning_content).toBeUndefined()
+  })
+})

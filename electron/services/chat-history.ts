@@ -18,6 +18,13 @@ export interface StoredChatMessage {
   reasoning?: string
 }
 
+const DEEPSEEK_V4_MODELS = new Set(['deepseek-v4-pro', 'deepseek-v4-flash'])
+
+function modelNeedsReasoningContentField(modelId?: string): boolean {
+  if (!modelId) return false
+  return DEEPSEEK_V4_MODELS.has(modelId)
+}
+
 /** Reasoning Audit Phase R8 — read the `includePastReasoningInContext`
  *  setting from `userData/settings.json`. Defaults to `true` per the
  *  user's audit-priority direction (2026-06-06). Returns false ONLY when
@@ -78,12 +85,14 @@ function reasoningRehydratedContent(
 
 export function buildApiMessagesFromStoredMessages(
   systemPrompt: string,
-  storedMessages: StoredChatMessage[]
+  storedMessages: StoredChatMessage[],
+  modelId?: string
 ): ChatCompletionMessageParam[] {
   const apiMessages: ChatCompletionMessageParam[] = [
     { role: 'system' as const, content: systemPrompt }
   ]
   const includePastReasoning = shouldIncludePastReasoning()
+  const useReasoningField = modelNeedsReasoningContentField(modelId)
 
   let pendingAssistant:
     | (ChatCompletionMessageParam & { tool_calls: Array<{ id: string }> })
@@ -123,15 +132,17 @@ export function buildApiMessagesFromStoredMessages(
 
     if (m.role === 'assistant') {
       const toolCalls = toApiToolCalls(m.toolCalls)
-      const rehydratedContent = reasoningRehydratedContent(
-        m.content,
-        m.reasoning,
-        includePastReasoning
-      )
+      const rehydratedContent = useReasoningField
+        ? m.content
+        : reasoningRehydratedContent(m.content, m.reasoning, includePastReasoning)
+      const reasoningField = useReasoningField && m.reasoning
+        ? m.reasoning
+        : undefined
       if (toolCalls.length > 0) {
         pendingAssistant = {
           role: 'assistant' as const,
           content: rehydratedContent || null,
+          ...(reasoningField && { reasoning_content: reasoningField }),
           tool_calls: toolCalls.map((tc) => ({
             id: tc.id,
             type: 'function' as const,
@@ -140,7 +151,11 @@ export function buildApiMessagesFromStoredMessages(
         } as ChatCompletionMessageParam & { tool_calls: Array<{ id: string }> }
         pendingToolIds = new Set(toolCalls.map((tc) => tc.id))
       } else {
-        apiMessages.push({ role: 'assistant' as const, content: rehydratedContent })
+        apiMessages.push({
+          role: 'assistant' as const,
+          content: rehydratedContent,
+          ...(reasoningField && { reasoning_content: reasoningField })
+        } as ChatCompletionMessageParam)
       }
       continue
     }

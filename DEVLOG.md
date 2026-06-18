@@ -1,3 +1,22 @@
+## 2026-06-18 — Fix DeepSeek V4 reasoning_content 400 errors (v0.15.4)
+
+DeepSeek V4 (Pro + Flash) uses thinking mode by default. When the model produces
+`reasoning_content` AND makes tool calls, the API requires that `reasoning_content` be echoed
+back on assistant messages in subsequent API calls. Lamprey was stripping it in two places,
+causing `400 The reasoning_content in the thinking mode must be passed back to the API` on every
+multi-round tool-use turn.
+
+**Fix (3 files, 5 new tests):**
+- `electron/ipc/chat.ts:899`: in-flight assistant messages during tool-call rounds now include
+  `reasoning_content: fullReasoning` so the next API round sees the model's chain-of-thought.
+- `electron/services/chat-history.ts`: `buildApiMessagesFromStoredMessages` gains an optional
+  `modelId` parameter. For DeepSeek V4 models (`deepseek-v4-pro`, `deepseek-v4-flash`), assistant
+  messages include `reasoning_content` as a native API field and skip `<think>` content wrapping
+  (avoids double-sending). Non-V4 models keep the existing R8 `<think>` rehydration behavior.
+- `electron/services/headless-runner.ts:127`: call site passes `conv.model`.
+- 5 new tests in `chat-history.test.ts` cover V4 field inclusion, `<think>` suppression for V4,
+  and non-V4 exclusion.
+
 ## 2026-06-17 — Zhipu AI / GLM 5.2 provider (v0.15.3)
 
 Added Zhipu AI as Lamprey's fifth provider. New `'zhipu'` provider id routes to

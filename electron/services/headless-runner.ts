@@ -126,7 +126,8 @@ async function runConversationTurn(conversationId: string): Promise<HeadlessRunR
   )
   const apiMessages = buildApiMessagesFromStoredMessages(
     systemPrompt,
-    storedMessages
+    storedMessages,
+    conv.model
   ) as ChatCompletionMessageParam[]
   const result = await chatOnce(apiMessages, conv.model, undefined, {
     correlationId: randomUUID(),

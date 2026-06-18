@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://github.com/USS-Parks/lamprey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/USS-Parks/lamprey?style=flat-square&color=2ea44f" /></a>
   <a href="https://github.com/USS-Parks/lamprey/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" /></a>
-  <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square" />
+  <img alt="Platform: Windows · macOS · Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078d4?style=flat-square" />
   <img alt="Electron 35" src="https://img.shields.io/badge/electron-35-47848F?style=flat-square" />
 </p>
 
@@ -21,19 +21,22 @@ The target user is the developer who looked at Claude Code and Codex and said *"
 
 ## Download
 
-| Format | Link |
-|---|---|
-| **Installer** (Windows x64) | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.exe) |
-| **Portable ZIP** (Windows x64) | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.zip) |
+| Platform | Format | Link |
+|---|---|---|
+| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.exe) |
+| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.zip) |
+| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-arm64.dmg) |
+| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x86_64.AppImage) |
 
-Linux and macOS are buildable from source (`npm run build:linux` / `npm run build:mac`).
+> **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
+> **Linux note:** `chmod +x Lamprey-x64.AppImage` then run it.
 All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Parks/lamprey/releases)
 
 ---
 
 ## Quick start
 
-1. **Download** the installer above and run it.
+1. **Download** your platform's installer above and run it.
 2. **Get a key.** Easiest: [platform.deepseek.com](https://platform.deepseek.com) &mdash; sign up, create a key, load $5. Lamprey also accepts Google AI Studio, Alibaba DashScope, and OpenRouter keys.
 3. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
 4. **Type something.** That's it.

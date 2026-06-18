@@ -252,7 +252,7 @@ export interface McpServerConfig {
   pluginId?: string
 }
 
-export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter'
+export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter' | 'zhipu'
 
 export interface ProviderInfo {
   id: ProviderId

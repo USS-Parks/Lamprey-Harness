@@ -23,10 +23,10 @@ The target user is the developer who looked at Claude Code and Codex and said *"
 
 | Platform | Format | Link |
 |---|---|---|
-| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.exe) |
-| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.zip) |
-| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-arm64.dmg) |
-| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x86_64.AppImage) |
+| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.2/Lamprey-x64.exe) |
+| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.2/Lamprey-x64.zip) |
+| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.15.2/Lamprey-arm64.dmg) |
+| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.15.2/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x64.AppImage` then run it.
@@ -37,7 +37,7 @@ All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Par
 ## Quick start
 
 1. **Download** your platform's installer above and run it.
-2. **Get a key.** Easiest: [platform.deepseek.com](https://platform.deepseek.com) &mdash; sign up, create a key, load $5. Lamprey also accepts Google AI Studio, Alibaba DashScope, and OpenRouter keys.
+2. **Get a key.** Easiest: [platform.deepseek.com](https://platform.deepseek.com) &mdash; sign up, create a key, load $5. Lamprey also accepts Google AI Studio, Alibaba DashScope, Zhipu AI (GLM), and OpenRouter keys.
 3. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
 4. **Type something.** That's it.
 

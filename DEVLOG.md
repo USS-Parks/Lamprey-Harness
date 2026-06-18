@@ -1,3 +1,37 @@
+## 2026-06-18 — Reasoning token exhaustion guard (v0.15.5)
+
+Three fixes for a class of failure where DeepSeek V4 Pro/Flash's extended reasoning consumes the
+entire output token budget, leaving tool-call parameters empty. The model emits the tool call
+structure (function name) but the `arguments` field is `""` or `"{}"` — the tool dispatches with
+no input, fails, and the model spirals into progressively longer reasoning about why it keeps
+failing, making the problem worse each round.
+
+**Fix A — Explicit output token budget:**
+- New `defaultMaxTokens` field on `ModelDescriptor`. All 4 DeepSeek catalog entries set to 16,384.
+- `chatStream` and `chatOnce` send `max_tokens` from this default when the caller doesn't provide
+  one. Caller-provided `maxTokens` still takes priority.
+
+**Fix B — Reasoning effort cap on tool-use turns:**
+- New `reasoningCapOnToolUse` field on `ModelDescriptor`. DeepSeek V4 Pro, V4 Flash, and Chat set
+  to `true`.
+- When tools are offered in the request, `chatStream` sends `reasoning_effort: 'low'` so the
+  provider allocates more of the output budget to content/tool-call parameters. No effect on pure
+  conversation turns (tools not offered).
+
+**Fix C — Empty-parameter detection:**
+- New pure module `electron/services/empty-params-guard.ts` with `detectEmptyParams()`.
+- Wired into `resolveSingleToolCall` before the existing FC-5 argument validation gate.
+- When a tool call arrives with empty/`{}`/`null` arguments and the schema has `required` fields,
+  returns a diagnostic: "Your tool call arrived with empty parameters — this typically means your
+  reasoning/thinking consumed the entire output token budget. Shorten your chain-of-thought
+  drastically and retry."
+- 10 unit tests in `empty-params-guard.test.ts`.
+
+**Files:** `registry.ts` (+2 descriptor fields, 4 catalog entries updated, `chatStream`/`chatOnce`
+wiring), `chat.ts` (Fix C integration), `empty-params-guard.ts` (new pure module),
+`empty-params-guard.test.ts` (10 tests), `registry.test.ts` (+12 tests for Fix A/B).
+Gate: tsc node + web OK, vitest 2278 passed / 130 skipped / 0 failed.
+
 ## 2026-06-18 — Fix DeepSeek V4 reasoning_content 400 errors (v0.15.4)
 
 DeepSeek V4 (Pro + Flash) uses thinking mode by default. When the model produces

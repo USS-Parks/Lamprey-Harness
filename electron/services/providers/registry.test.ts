@@ -458,3 +458,143 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
     expect(result.reasoning).toBe('actual reasoning')
   })
 })
+
+// ── Fix A/B descriptor field tests ──────────────────────────────────
+import { MODEL_CATALOG, resolveModel } from './registry'
+
+describe('reasoning token exhaustion guards (Fix A/B)', () => {
+  const deepseekIds = [
+    'deepseek-v4-pro',
+    'deepseek-v4-flash',
+    'deepseek-chat',
+    'deepseek-reasoner'
+  ]
+
+  for (const id of deepseekIds) {
+    it(`${id} has defaultMaxTokens set`, () => {
+      const desc = resolveModel(id)
+      expect(desc.defaultMaxTokens).toBe(16_384)
+    })
+  }
+
+  it('deepseek-v4-pro has reasoningCapOnToolUse', () => {
+    expect(resolveModel('deepseek-v4-pro').reasoningCapOnToolUse).toBe(true)
+  })
+
+  it('deepseek-v4-flash has reasoningCapOnToolUse', () => {
+    expect(resolveModel('deepseek-v4-flash').reasoningCapOnToolUse).toBe(true)
+  })
+
+  it('deepseek-reasoner does NOT have reasoningCapOnToolUse (no tool support)', () => {
+    const desc = resolveModel('deepseek-reasoner')
+    expect(desc.reasoningCapOnToolUse).toBeFalsy()
+  })
+
+  it('non-DeepSeek models have no defaultMaxTokens by default', () => {
+    const nonDs = MODEL_CATALOG.filter((m) => m.provider !== 'deepseek')
+    for (const m of nonDs) {
+      expect(m.defaultMaxTokens).toBeUndefined()
+    }
+  })
+
+  it('chatStream sends max_tokens from defaultMaxTokens when caller omits maxTokens', async () => {
+    __setStreamInactivityForTesting(0)
+    const controllable = makeControllableStream()
+    mockCreate.mockImplementation((_req: unknown, opts: { signal: AbortSignal }) => {
+      controllable.stream.attachSignal(opts.signal)
+      setTimeout(() => controllable.push(makeChunk('ok')), 10)
+      setTimeout(() => controllable.end(), 20)
+      return Promise.resolve(controllable.stream)
+    })
+
+    await chatStream(
+      [{ role: 'user', content: 'hi' }],
+      'deepseek-v4-pro',
+      undefined,
+      { onChunk: () => {}, onDone: () => {}, onError: () => {} }
+    )
+
+    const createArg = mockCreate.mock.calls[0][0]
+    expect(createArg.max_tokens).toBe(16_384)
+    __setStreamInactivityForTesting(null)
+  })
+
+  it('chatStream sends reasoning_effort when tools are offered on a capped model', async () => {
+    __setStreamInactivityForTesting(0)
+    const controllable = makeControllableStream()
+    mockCreate.mockImplementation((_req: unknown, opts: { signal: AbortSignal }) => {
+      controllable.stream.attachSignal(opts.signal)
+      setTimeout(() => controllable.push(makeChunk('ok')), 10)
+      setTimeout(() => controllable.end(), 20)
+      return Promise.resolve(controllable.stream)
+    })
+
+    const tools = [
+      {
+        type: 'function' as const,
+        function: {
+          name: 'test_tool',
+          description: 'test',
+          parameters: { type: 'object', properties: {} }
+        }
+      }
+    ]
+
+    await chatStream(
+      [{ role: 'user', content: 'hi' }],
+      'deepseek-v4-pro',
+      tools,
+      { onChunk: () => {}, onDone: () => {}, onError: () => {} }
+    )
+
+    const createArg = mockCreate.mock.calls[0][0]
+    expect(createArg.reasoning_effort).toBe('low')
+    __setStreamInactivityForTesting(null)
+  })
+
+  it('chatStream does NOT send reasoning_effort when no tools offered', async () => {
+    __setStreamInactivityForTesting(0)
+    const controllable = makeControllableStream()
+    mockCreate.mockImplementation((_req: unknown, opts: { signal: AbortSignal }) => {
+      controllable.stream.attachSignal(opts.signal)
+      setTimeout(() => controllable.push(makeChunk('ok')), 10)
+      setTimeout(() => controllable.end(), 20)
+      return Promise.resolve(controllable.stream)
+    })
+
+    await chatStream(
+      [{ role: 'user', content: 'hi' }],
+      'deepseek-v4-pro',
+      undefined,
+      { onChunk: () => {}, onDone: () => {}, onError: () => {} }
+    )
+
+    const createArg = mockCreate.mock.calls[0][0]
+    expect(createArg.reasoning_effort).toBeUndefined()
+    __setStreamInactivityForTesting(null)
+  })
+
+  it('caller-provided maxTokens overrides defaultMaxTokens', async () => {
+    __setStreamInactivityForTesting(0)
+    const controllable = makeControllableStream()
+    mockCreate.mockImplementation((_req: unknown, opts: { signal: AbortSignal }) => {
+      controllable.stream.attachSignal(opts.signal)
+      setTimeout(() => controllable.push(makeChunk('ok')), 10)
+      setTimeout(() => controllable.end(), 20)
+      return Promise.resolve(controllable.stream)
+    })
+
+    await chatStream(
+      [{ role: 'user', content: 'hi' }],
+      'deepseek-v4-pro',
+      undefined,
+      { onChunk: () => {}, onDone: () => {}, onError: () => {} },
+      undefined,
+      { maxTokens: 4096 }
+    )
+
+    const createArg = mockCreate.mock.calls[0][0]
+    expect(createArg.max_tokens).toBe(4096)
+    __setStreamInactivityForTesting(null)
+  })
+})

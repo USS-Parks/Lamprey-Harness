@@ -16,7 +16,8 @@ describe('FC-2 — supportsTools flag audit', () => {
     expect(v4flash.supportsTools).toBe(true)
 
     const reasoner = resolveModel('deepseek-reasoner')
-    expect(reasoner.supportsTools).toBe(false)
+    expect(reasoner.supportsTools).toBe(true)
+    expect(reasoner.id).toBe('deepseek-v4-pro')
   })
 
   it('Qwen native models have correct supportsTools', () => {

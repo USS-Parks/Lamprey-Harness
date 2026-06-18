@@ -72,7 +72,7 @@ export function SideChatPanel() {
         }
       }
       // Create new one tied to current active model
-      const created = await window.api.conversation.create(activeModel || 'deepseek-chat')
+      const created = await window.api.conversation.create(activeModel || 'deepseek-v4-flash')
       if (cancelled) return
       if (!created.success) {
         setError(created.error ?? 'Failed to create side conversation')
@@ -142,7 +142,7 @@ export function SideChatPanel() {
 
   const resetSession = async () => {
     if (!window.api) return
-    const created = await window.api.conversation.create(activeModel || 'deepseek-chat')
+    const created = await window.api.conversation.create(activeModel || 'deepseek-v4-flash')
     if (created.success) {
       const id = (created.data as any).id as string
       window.localStorage?.setItem(SIDE_CONV_KEY, id)

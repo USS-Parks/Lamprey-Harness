@@ -463,31 +463,35 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
 import { MODEL_CATALOG, resolveModel } from './registry'
 
 describe('reasoning token exhaustion guards (Fix A/B)', () => {
-  const deepseekIds = [
-    'deepseek-v4-pro',
-    'deepseek-v4-flash',
-    'deepseek-chat',
-    'deepseek-reasoner'
-  ]
+  const deepseekIds = ['deepseek-v4-pro', 'deepseek-v4-flash']
 
   for (const id of deepseekIds) {
     it(`${id} has defaultMaxTokens set`, () => {
       const desc = resolveModel(id)
       expect(desc.defaultMaxTokens).toBe(16_384)
     })
+
+    it(`${id} has reasoningCapOnToolUse`, () => {
+      expect(resolveModel(id).reasoningCapOnToolUse).toBe(true)
+    })
   }
 
-  it('deepseek-v4-pro has reasoningCapOnToolUse', () => {
-    expect(resolveModel('deepseek-v4-pro').reasoningCapOnToolUse).toBe(true)
+  it('no legacy DeepSeek aliases exist in the catalog', () => {
+    const stale = MODEL_CATALOG.filter(
+      (m) => m.provider === 'deepseek' && !m.id.startsWith('deepseek-v4-')
+    )
+    expect(stale).toEqual([])
   })
 
-  it('deepseek-v4-flash has reasoningCapOnToolUse', () => {
-    expect(resolveModel('deepseek-v4-flash').reasoningCapOnToolUse).toBe(true)
-  })
-
-  it('deepseek-reasoner does NOT have reasoningCapOnToolUse (no tool support)', () => {
-    const desc = resolveModel('deepseek-reasoner')
-    expect(desc.reasoningCapOnToolUse).toBeFalsy()
+  it.each([
+    ['deepseek-chat', 'deepseek-v4-flash'],
+    ['deepseek-reasoner', 'deepseek-v4-pro'],
+    ['deepseek-v3', 'deepseek-v4-flash'],
+    ['deepseek-r1', 'deepseek-v4-pro']
+  ])('retired model %s resolves to %s', (retired, expected) => {
+    const desc = resolveModel(retired)
+    expect(desc.id).toBe(expected)
+    expect(desc.apiModelId).toBe(expected)
   })
 
   it('non-DeepSeek models have no defaultMaxTokens by default', () => {

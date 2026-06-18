@@ -64,6 +64,7 @@ import { inferPhaseFromDescriptor, type AgentRunPhase } from '../services/agent-
 import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
 import { validateToolArguments } from '../services/tool-schema-validator'
+import { detectEmptyParams } from '../services/empty-params-guard'
 import { parseFallbackToolCalls } from '../services/fallback-tool-parser'
 import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { dispatchNativeTool } from '../services/native-dispatch'
@@ -1093,10 +1094,40 @@ async function resolveSingleToolCall(
 ): Promise<ResolvedToolCall> {
   const toolName = tc.function.name
   let args: Record<string, unknown> = {}
+  const rawArgs = tc.function.arguments
   try {
-    args = JSON.parse(tc.function.arguments)
+    args = JSON.parse(rawArgs)
   } catch {
     args = {}
+  }
+
+  // Fix C — detect empty-parameter tool calls caused by reasoning token
+  // exhaustion. Pure detection in empty-params-guard.ts; see that module
+  // for the full rationale.
+  {
+    const schemaReq = (toolRegistry.getById(toolName)?.inputSchema as
+      | { required?: string[] }
+      | undefined)?.required
+    const detection = detectEmptyParams(toolName, rawArgs, schemaReq)
+    if (detection.isEmpty) {
+      trace('resolveToolCall.empty-params-detected', {
+        callId: tc.id,
+        conversationId,
+        toolName,
+        rawArgs: (rawArgs || '').trim(),
+        requiredFields: detection.requiredFields
+      })
+      return {
+        callId: tc.id,
+        result: JSON.stringify({
+          error: 'empty_tool_parameters',
+          tool: detection.toolName,
+          required_fields: detection.requiredFields,
+          diagnosis: detection.diagnostic,
+          hint: 'Do not re-plan. Emit the tool call immediately with minimal reasoning.'
+        })
+      }
+    }
   }
 
   // HY2 — `tool_search` meta-tool. Synthetic surface-only tool (no registry

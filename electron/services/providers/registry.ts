@@ -114,6 +114,14 @@ export interface ModelDescriptor {
   supportsTools: boolean
   supportsVision: boolean
   isReasoner?: boolean
+  /** When set, sent as `max_tokens` when the caller doesn't provide one.
+   *  Prevents reasoning models from exhausting their output budget on
+   *  chain-of-thought before emitting tool-call parameters. */
+  defaultMaxTokens?: number
+  /** When true AND tools are offered in the request, send
+   *  `reasoning_effort: 'low'` to cap chain-of-thought token consumption
+   *  so the content/tool-call portion of the output has room. */
+  reasoningCapOnToolUse?: boolean
   tier: 'pro' | 'flash' | 'open' | 'coder' | 'reasoner'
   description: string
 }
@@ -133,6 +141,8 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     contextWindow: 1_000_000,
     supportsTools: true,
     supportsVision: false,
+    defaultMaxTokens: 16_384,
+    reasoningCapOnToolUse: true,
     tier: 'pro',
     description: 'Flagship DeepSeek V4 — high-performance reasoning, 1M token context.'
   },
@@ -144,6 +154,8 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     contextWindow: 1_000_000,
     supportsTools: true,
     supportsVision: false,
+    defaultMaxTokens: 16_384,
+    reasoningCapOnToolUse: true,
     tier: 'flash',
     description: 'Fast DeepSeek V4 — supports both non-thinking and thinking modes (default), 1M context.'
   },
@@ -155,6 +167,8 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     contextWindow: 1_000_000,
     supportsTools: true,
     supportsVision: false,
+    defaultMaxTokens: 16_384,
+    reasoningCapOnToolUse: true,
     tier: 'pro',
     description: 'Legacy alias — currently routes to V4 Flash (non-thinking). DeepSeek plans to deprecate.'
   },
@@ -167,6 +181,7 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     supportsTools: false,
     supportsVision: false,
     isReasoner: true,
+    defaultMaxTokens: 16_384,
     tier: 'reasoner',
     description: 'Legacy alias — currently routes to V4 Flash (thinking). DeepSeek plans to deprecate.'
   },
@@ -683,7 +698,8 @@ export async function chatOnce(
     const response = await client.chat.completions.create(
       {
         model: desc.apiModelId,
-        messages
+        messages,
+        ...(desc.defaultMaxTokens != null && { max_tokens: desc.defaultMaxTokens })
       },
       signal ? { signal } : undefined
     )
@@ -869,6 +885,24 @@ export async function chatStream(
       startVitalsHeartbeat()
       armInactivityTimer()
       trace('chatStream.attempt.start', { traceId, retries, attemptStartedAt })
+      // Fix A — explicit output token budget. When the caller hasn't set
+      // maxTokens, use the model's defaultMaxTokens so reasoning models
+      // can't exhaust the entire output budget on chain-of-thought.
+      const effectiveMaxTokens =
+        params?.maxTokens != null
+          ? params.maxTokens
+          : desc.defaultMaxTokens ?? undefined
+
+      // Fix B — cap reasoning effort on tool-use turns. When the model
+      // emits extended reasoning AND tools are offered, the reasoning can
+      // consume the output budget leaving no room for tool-call parameters.
+      // Send reasoning_effort: 'low' so the provider allocates more of the
+      // budget to the content/tool-call portion.
+      const reasoningCap =
+        desc.reasoningCapOnToolUse && usableTools && usableTools.length > 0
+          ? { reasoning_effort: 'low' as const }
+          : {}
+
       const stream = await client.chat.completions.create(
         {
           model: desc.apiModelId,
@@ -877,8 +911,9 @@ export async function chatStream(
           tools: usableTools,
           ...(params?.temperature !== undefined && { temperature: params.temperature }),
           ...(params?.topP !== undefined && { top_p: params.topP }),
-          ...(params?.maxTokens != null && { max_tokens: params.maxTokens })
-        },
+          ...(effectiveMaxTokens != null && { max_tokens: effectiveMaxTokens }),
+          ...reasoningCap
+        } as any,
         { signal: attemptController.signal }
       )
       trace('chatStream.sdk.stream-resolved', {

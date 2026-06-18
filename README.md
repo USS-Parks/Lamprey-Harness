@@ -7,33 +7,36 @@
 <p align="center">
   <a href="https://github.com/USS-Parks/lamprey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/USS-Parks/lamprey?style=flat-square&color=2ea44f" /></a>
   <a href="https://github.com/USS-Parks/lamprey/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" /></a>
-  <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square" />
+  <img alt="Platform: Windows · macOS · Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078d4?style=flat-square" />
   <img alt="Electron 35" src="https://img.shields.io/badge/electron-35-47848F?style=flat-square" />
 </p>
 
 ---
 
-Lamprey is the transmission for the open-source LLM engine of your choice. It's a desktop coding IDE that grafts Claude Desktop-quality UX onto a Codex-style developer toolset &mdash; streaming markdown, reasoning blocks, skills, MCP servers, autonomous loops, sub-agent orchestration, and session memory welded directly onto a file tree, multi-tab Chromium browser, git diff review, integrated terminal, and side-thread conversations. Plug in DeepSeek, Gemma, Qwen, or anything on OpenRouter. When the next breakthrough model drops, swap the key and the harness adapts. Everything stays local, everything persists in SQLite, and API keys never leave the OS keychain. No subscription, no telemetry, no Token Overlords watching your prompts.
+Lamprey is the transmission for the open-source LLM engine of your choice. It's a desktop coding IDE that grafts Claude Desktop-quality UX onto a Codex-style developer toolset: streaming markdown, reasoning blocks, skills, MCP servers, autonomous loops, sub-agent orchestration, and session memory welded directly onto a file tree, multi-tab Chromium browser, git diff review, integrated terminal, Brave search engine, and side-thread conversations. Plug in DeepSeek, Gemma, Qwen, GLM, or anything on OpenRouter. When the next breakthrough model drops, swap the key and the harness will adapt. Everything stays local, everything persists in SQLite, and API keys never leave the OS keychain. No Token Overlords watching your prompts for the next chance to roach your bank account.
 
-The target user is the developer who looked at Claude Code and Codex and said *"I want exactly this, but I'm not paying per-token forever and I'm not sending my codebase to someone else's servers."* Lamprey is a bring-your-own-keys alternative to the two most capable agentic coding tools on the market, built for people who want the power without the leash. It's ready for next-gen models out of the box &mdash; the harness evolves with the ecosystem, not against it. 100% vibe-coded over nearly 300 sessions in Claude Code and Codex using WhisprFlow.
+The target user is the developer who looked at Claude Code and Codex and said *"I want exactly this, but I'm not paying predatorial prices."* Lamprey is a bring-your-own-keys alternative to the two most capable agentic coding tools on the market, built for people who want the power without the leash. It's ready for next-gen models out of the box, as the harness evolves naturally with the ecosystem. 100% vibe-coded over nearly 300 sessions in Claude Code and Codex using WhisprFlow.
 
 ---
 
 ## Download
 
-| Format | Link |
-|---|---|
-| **Installer** (Windows x64) | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.exe) |
-| **Portable ZIP** (Windows x64) | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.zip) |
+| Platform | Format | Link |
+|---|---|---|
+| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.exe) |
+| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x64.zip) |
+| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-arm64.dmg) |
+| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.15.1/Lamprey-x86_64.AppImage) |
 
-Linux and macOS are buildable from source (`npm run build:linux` / `npm run build:mac`).
+> **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
+> **Linux note:** `chmod +x Lamprey-x64.AppImage` then run it.
 All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Parks/lamprey/releases)
 
 ---
 
 ## Quick start
 
-1. **Download** the installer above and run it.
+1. **Download** your platform's installer above and run it.
 2. **Get a key.** Easiest: [platform.deepseek.com](https://platform.deepseek.com) &mdash; sign up, create a key, load $5. Lamprey also accepts Google AI Studio, Alibaba DashScope, and OpenRouter keys.
 3. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
 4. **Type something.** That's it.

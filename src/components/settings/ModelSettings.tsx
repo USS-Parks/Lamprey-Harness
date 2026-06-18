@@ -46,8 +46,6 @@ function statusChip(status: CatalogStatus | undefined): { label: string; tone: s
 const BUILTIN_IDS = new Set([
   'deepseek-v4-pro',
   'deepseek-v4-flash',
-  'deepseek-chat',
-  'deepseek-reasoner',
   'gemma-3-27b-it',
   'qwen3-coder-plus'
 ])

@@ -160,32 +160,6 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     description: 'Fast DeepSeek V4 — supports both non-thinking and thinking modes (default), 1M context.'
   },
   {
-    id: 'deepseek-chat',
-    name: 'DeepSeek Chat (legacy alias)',
-    provider: 'deepseek',
-    apiModelId: 'deepseek-chat',
-    contextWindow: 1_000_000,
-    supportsTools: true,
-    supportsVision: false,
-    defaultMaxTokens: 16_384,
-    reasoningCapOnToolUse: true,
-    tier: 'pro',
-    description: 'Legacy alias — currently routes to V4 Flash (non-thinking). DeepSeek plans to deprecate.'
-  },
-  {
-    id: 'deepseek-reasoner',
-    name: 'DeepSeek Reasoner (legacy alias)',
-    provider: 'deepseek',
-    apiModelId: 'deepseek-reasoner',
-    contextWindow: 1_000_000,
-    supportsTools: false,
-    supportsVision: false,
-    isReasoner: true,
-    defaultMaxTokens: 16_384,
-    tier: 'reasoner',
-    description: 'Legacy alias — currently routes to V4 Flash (thinking). DeepSeek plans to deprecate.'
-  },
-  {
     id: 'gemma-3-27b-it',
     name: 'Gemma 3 27B',
     provider: 'google',
@@ -440,9 +414,23 @@ function getClientForProvider(provider: ProviderId): OpenAI {
   return client
 }
 
+const RETIRED_MODEL_MAP: Record<string, string> = {
+  'deepseek-chat': 'deepseek-v4-flash',
+  'deepseek-reasoner': 'deepseek-v4-pro',
+  'deepseek-v3': 'deepseek-v4-flash',
+  'deepseek-r1': 'deepseek-v4-pro'
+}
+
 export function resolveModel(modelId: string): ModelDescriptor {
   const found = MODEL_CATALOG.find((m) => m.id === modelId)
   if (found) return found
+
+  const replacement = RETIRED_MODEL_MAP[modelId]
+  if (replacement) {
+    const mapped = MODEL_CATALOG.find((m) => m.id === replacement)
+    if (mapped) return mapped
+  }
+
   // Unknown model id — assume DeepSeek, OpenAI-compatible.
   return {
     id: modelId,

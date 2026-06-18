@@ -88,7 +88,7 @@ async function runOne(autoId: string): Promise<void> {
   const list = listAutomations()
   const a = list.find((x) => x.id === autoId)
   if (!a) return
-  const model = a.model || 'deepseek-chat'
+  const model = a.model || 'deepseek-v4-flash'
   // Per-run correlation id so the model.request.* events emitted from within
   // chatOnce join the automation.started/completed event-log row group. Each
   // run is its own logical "turn" — they do NOT share an id across cron firings.

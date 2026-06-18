@@ -129,7 +129,7 @@ export function AutomationsPanel() {
               type="text"
               value={draft.model}
               onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-              placeholder="(optional — defaults to deepseek-chat)"
+              placeholder="(optional — defaults to deepseek-v4-flash)"
               className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)]"
             />
             <label className="self-start pt-1 text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
@@ -203,7 +203,7 @@ export function AutomationsPanel() {
                       {a.label}
                     </span>
                     <span className="block truncate font-mono text-[10px] text-[var(--text-muted)]">
-                      {a.cron} · {a.model || 'deepseek-chat'}
+                      {a.cron} · {a.model || 'deepseek-v4-flash'}
                     </span>
                   </button>
                   <button

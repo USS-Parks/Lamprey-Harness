@@ -1,3 +1,32 @@
+## 2026-06-18 — Retired DeepSeek model cleanup (v0.15.6)
+
+DeepSeek fully deprecated the `deepseek-chat` and `deepseek-reasoner` API endpoints — requests
+return HTTP 400 "The supported API model names are deepseek-v4-pro or deepseek-v4-flash". Users
+with stale model selections (from settings or old conversations) hit an unrecoverable error.
+
+**Catalog cleanup:**
+- Removed `deepseek-chat` and `deepseek-reasoner` entries from `MODEL_CATALOG`.
+- New `RETIRED_MODEL_MAP` in `resolveModel()` silently remaps stale IDs:
+  `deepseek-chat` → `deepseek-v4-flash`, `deepseek-reasoner` → `deepseek-v4-pro`,
+  `deepseek-v3` → `deepseek-v4-flash`, `deepseek-r1` → `deepseek-v4-pro`.
+- Unknown model fallback (synthetic descriptor) still exists for genuinely custom models.
+
+**Renderer sweep:**
+- ChatInput fallback catalog: legacy aliases replaced with V4 Pro / V4 Flash.
+- SideChatPanel, WorktreeManagerModal, AutomationsPanel: default model `deepseek-v4-flash`.
+- ModelSettings `BUILTIN_IDS`: legacy aliases removed.
+- MCPStatusBar: removed dead `deepseek-reasoner` → "R1 active - MCP tools unavailable" check.
+- ActivityFeed: removed `deepseek-reasoner`-specific reasoning parse gate (now always parses).
+
+**Files:** `electron/services/providers/registry.ts`, `electron/services/automations-runner.ts`,
+`src/components/chat/ChatInput.tsx`, `src/components/settings/ModelSettings.tsx`,
+`src/components/tools/panels/SideChatPanel.tsx`, `src/components/worktree/WorktreeManagerModal.tsx`,
+`src/components/automations/AutomationsPanel.tsx`, `src/components/mcp/MCPStatusBar.tsx`,
+`src/components/artifacts/ActivityFeed.tsx`, `electron/services/providers/registry.test.ts`,
+`electron/services/providers/supports-tools-audit.test.ts`.
+
+---
+
 ## 2026-06-18 — Reasoning token exhaustion guard (v0.15.5)
 
 Three fixes for a class of failure where DeepSeek V4 Pro/Flash's extended reasoning consumes the

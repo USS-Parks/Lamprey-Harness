@@ -1,6 +1,5 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import { useMcpStore } from '@/stores/mcp-store'
-import { useChatStore } from '@/stores/chat-store'
 import type { McpServerConfig } from '@/lib/types'
 
 type ServerWithStatus = McpServerConfig & { error?: string }
@@ -79,23 +78,15 @@ function ServerPopover({ server, onClose }: { server: ServerWithStatus; onClose:
 
 export function MCPStatusBar() {
   const servers = useMcpStore((s) => s.servers)
-  const activeModel = useChatStore((s) => s.activeModel)
   const [popoverServer, setPopoverServer] = useState<string | null>(null)
 
-  const isR1 = activeModel === 'deepseek-reasoner'
   const connectedCount = servers.filter((s) => s.status === 'connected').length
 
   if (servers.length === 0) return null
 
   return (
     <div className="flex h-8 items-center gap-3 border-t border-[var(--panel-border)] bg-[var(--bg-secondary)] px-3">
-      {isR1 && (
-        <span className="font-mono text-[13px] text-[var(--warning)]">
-          R1 active - MCP tools unavailable
-        </span>
-      )}
-
-      {!isR1 && connectedCount === 0 && servers.length > 0 && (
+      {connectedCount === 0 && servers.length > 0 && (
         <span className="font-mono text-[13px] text-[var(--text-muted)]">
           No MCP servers connected
         </span>

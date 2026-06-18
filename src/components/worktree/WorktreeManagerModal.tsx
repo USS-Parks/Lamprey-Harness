@@ -63,7 +63,7 @@ export function WorktreeManagerModal() {
     if (confirm(`Create a new thread for worktree '${data.branch}'?`)) {
       // createConversation in the store doesn't currently take kind; using
       // direct IPC so the metadata is recorded.
-      const conv = await window.api.conversation.create('deepseek-chat', {
+      const conv = await window.api.conversation.create('deepseek-v4-flash', {
         kind: 'worktree',
         worktreePath: data.path
       })

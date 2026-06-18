@@ -253,8 +253,8 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
     { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B A4B (OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
     { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'google', contextWindow: 131072, supportsTools: true, supportsVision: true },
     { id: 'gemma-3-12b-it', name: 'Gemma 3 12B', provider: 'google', contextWindow: 131072, supportsTools: true, supportsVision: true },
-    { id: 'deepseek-chat', name: 'DeepSeek Chat (legacy alias)', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
-    { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (legacy alias)', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: false, supportsVision: false }
+    { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
+    { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false }
   ]
   const models = allModels.length > 0 ? allModels : fallback
   const active = models.find((m) => m.id === activeModel) ?? models[0]

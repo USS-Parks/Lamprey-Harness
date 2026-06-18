@@ -41,7 +41,6 @@ export function ActivityFeed() {
   const streamingReasoning = useChatStore((s) => s.streamingReasoning)
   const streamStartedAt = useChatStore((s) => s.streamStartedAt)
   const toolCalls = useChatStore((s) => s.toolCalls)
-  const activeModel = useChatStore((s) => s.activeModel)
 
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -50,14 +49,10 @@ export function ActivityFeed() {
     return () => clearInterval(id)
   }, [isStreaming])
 
-  // Prefer the live reasoning channel; fall back to legacy inline <think>
-  // parsing for any reasoner that streams thinking inside the body.
-  const isReasoner = activeModel === 'deepseek-reasoner'
+  // Prefer the live reasoning channel; fall back to inline <think> parsing.
   const parsed = streamingReasoning
     ? { reasoning: streamingReasoning, body: streamingContent, isThinking: !streamingContent }
-    : isReasoner
-      ? parseReasoning(streamingContent)
-      : { reasoning: null as string | null, body: streamingContent, isThinking: false }
+    : parseReasoning(streamingContent)
 
   const elapsed = streamStartedAt ? formatElapsed(now - streamStartedAt) : null
   const reasoningChars = parsed.reasoning?.length ?? 0

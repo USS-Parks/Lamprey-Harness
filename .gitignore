@@ -21,3 +21,12 @@ opencode.jsonc
 .aws/
 .cf/
 .bucket.json
+
+# Editor / Office temp + lock files
+~$*
+*.tmp
+*.bak
+*.orig
+
+# One-off local research scratch (not part of the app)
+/research/

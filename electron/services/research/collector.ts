@@ -89,8 +89,7 @@ const SPAM_DOMAINS = new Set<string>([
   'hubpages.com',
   'squidoo.com',
   'articlesbase.com',
-  'buzzle.com',
-  'webmd-spam.example'  // placeholder slot for future additions
+  'buzzle.com'
 ])
 
 // Major-publisher / canonical-source allowlist for trust boost. Kept

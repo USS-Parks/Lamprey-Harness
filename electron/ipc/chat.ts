@@ -500,7 +500,8 @@ export type HeadlessTurnResult = { message: unknown; tokensEstimate: number } | 
  * so a loop iteration or a fired `schedule_wakeup` wake-up can run a real chat
  * turn in the main process, with the window closed or another conversation
  * focused. The CALLER persists the triggering user message first (chat:send
- * does; fireDueWakeups does). This function assembles the prompt + tools,
+ * does; fireDueWakeups does; the loop controller's runTurn seam does for
+ * iteration prompts — JM-2). This function assembles the prompt + tools,
  * registers an abort controller (so chat:cancel AND a loop's cancel both
  * interrupt it), runs runChatRound, and owns its own cleanup in a `finally` —
  * a throwing turn never leaks the activeAbortControllers entry.

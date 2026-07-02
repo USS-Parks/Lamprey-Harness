@@ -1,3 +1,27 @@
+## 2026-07-02 — JM-2: Loop iteration prompt reaches the model (LP-1 fix)
+
+The audit's top P0: `runLoopIteration` handed `buildIterationPrompt`'s output
+to `runHeadlessTurn` as `promptBody`, but `runHeadlessTurn` uses `promptBody`
+only for the promptSubmit hook — API messages come exclusively from persisted
+history, and (unlike `fireDueWakeups`) the loop controller never persisted the
+prompt. Every loop iteration ran a turn in which the model never saw the
+instruction, current task, or idempotency ledger; on a fresh `/loop`
+conversation it received an empty history.
+
+Fix: the production `runTurn` seam in `loop-controller.ts` now persists the
+iteration prompt as a `role:'user'` message before invoking the runner — the
+same persist-then-run contract `fireDueWakeups` follows. The prompt shows in
+the transcript (the user can see what drove each iteration) and reaches the
+model via history. Stale caller-contract comments in `ipc/chat.ts` corrected.
+
+New `loop-turn-wiring.test.ts` source-locks persist-before-run at both call
+sites (WC-8 pattern — the production seam needs the native binding, so the
+running pure tests stay pure and the wiring is pinned by source contract).
+
+Gate: loop-turn-wiring + loop-controller + loop-safety suites 32/32 green.
+
+---
+
 ## 2026-07-02 — JM-1: Quick wins (July 2026 Maintenance Phase)
 
 Nine small, independent fixes from the audit's "cheap immediate wins" list:

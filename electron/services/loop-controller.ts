@@ -3,6 +3,8 @@ import { getLoopTurnRunner } from './loop-runner'
 import { recordEvent, boundedJsonPreview } from './event-log'
 import { gcSpillDir } from './tool-result-spill'
 import { readLoopConfig } from './loop-config'
+import { saveMessage } from './conversation-store'
+import { randomUUID } from 'crypto'
 import { BrowserWindow } from 'electron'
 import type {
   Loop,
@@ -410,6 +412,17 @@ function productionDeps(): LoopIterationDeps {
     runTurn: async (input) => {
       const runner = getLoopTurnRunner()
       if (!runner) throw new Error('loop turn runner not wired')
+      // The iteration prompt must be PERSISTED before the turn runs:
+      // runHeadlessTurn builds its API messages from stored history only
+      // (promptBody feeds the promptSubmit hook, nothing else). Without this
+      // row the model never sees the instruction, task, or ledger — the loop
+      // answers into thin air. Mirrors fireDueWakeups' contract.
+      saveMessage({
+        id: randomUUID(),
+        conversationId: input.conversationId,
+        role: 'user',
+        content: input.promptBody
+      })
       const result = await runner({
         conversationId: input.conversationId,
         model: input.model,

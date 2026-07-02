@@ -359,12 +359,16 @@ export function registerChatHandlers(): void {
 
       activeAbortControllers.delete(conversationId)
       drainPendingDocuments(correlationId)
-      return { success: true, data: { conversationId } }
+      // JM-8 (CC-20) — same success payload shape as the research path.
+      return { success: true, data: { conversationId, correlationId } }
     } catch (err: any) {
+      // JM-8 (CC-20) — a thrown string/undefined used to produce
+      // { success:false, error: undefined }, violating the IPC contract.
+      const errMsg = err instanceof Error ? err.message : String(err ?? 'unknown error')
       activeAbortControllers.delete(conversationId)
       drainPendingDocuments(correlationId)
       emitPhase(conversationId, 'error')
-      emitChatEvent('chat:error', { conversationId, error: err.message })
+      emitChatEvent('chat:error', { conversationId, error: errMsg })
       // Mirror into the event spine so the timeline reader sees the failure
       // alongside any model/tool/agent events that completed before the throw.
       try {
@@ -375,7 +379,7 @@ export function registerChatHandlers(): void {
           conversationId,
           correlationId,
           payload: {
-            errorPreview: boundedJsonPreview(err?.message),
+            errorPreview: boundedJsonPreview(errMsg),
             errorClass: err?.name
           }
         })
@@ -395,7 +399,7 @@ export function registerChatHandlers(): void {
               id: randomUUID(),
               conversationId,
               role: 'system',
-              content: buildGhostReplyNotice(err?.message),
+              content: buildGhostReplyNotice(errMsg),
               model: 'lamprey-safety-net',
               stage: 'system'
             })
@@ -405,7 +409,7 @@ export function registerChatHandlers(): void {
       } catch (guardErr) {
         console.error('[chat] SP-4 ghost-reply guard failed:', guardErr)
       }
-      return { success: false, error: err.message }
+      return { success: false, error: errMsg }
     }
   })
 
@@ -788,6 +792,11 @@ export async function runChatRound(
     : undefined
 
   return new Promise<RunChatRoundResult>((resolve, reject) => {
+    // JM-8 (CC-1) — chatStream's own returned promise is captured below.
+    // A pre-stream throw (missing API key, unknown provider) rejects that
+    // promise WITHOUT ever firing onDone/onError; before the catch at the
+    // bottom, such a throw never settled this wrapper — the turn hung
+    // forever (spinner stuck, ghost guard never ran, abort entry leaked).
     chatStream(
       messages,
       model,
@@ -810,6 +819,12 @@ export async function runChatRound(
           })
         },
         onDone: async (fullContent, toolCalls, fullReasoning) => {
+          // JM-8 (CC-3) — the whole body runs inside try/catch. chatStream
+          // fires onDone without awaiting it, so a throw from saveMessage or
+          // a rejected approval used to become an unhandled rejection while
+          // this wrapper never settled (the v0.9.2 class of failure: renderer
+          // hangs, no error row, no ghost notice).
+          try {
           trace('runChatRound.onDone', {
             conversationId,
             round,
@@ -998,35 +1013,36 @@ export async function runChatRound(
             } as any)
           }
 
-          try {
-            // R6 — fold THIS round's reasoning into the cumulative trail
-            // before recursing. The final round (no tool calls + composer
-            // ran) reads the trail off the `roundReasonings` parameter
-            // and folds it into the saved composer-row's reasoning column.
-            const nextRoundReasonings = fullReasoning && fullReasoning.length > 0
-              ? [...roundReasonings, fullReasoning]
-              : roundReasonings
-            const next = await runChatRound(
-              conversationId,
-              model,
-              messages,
-              // HY2 — fold in any tools unlocked by a tool_search this round.
-              rebuildToolsForNextRound(conversationId, model, tools),
-              workspacePath,
-              signal,
-              round + 1,
-              params,
-              suppressDoneEvent,
-              correlationId,
-              nextRoundReasonings,
-              turnStartedAt
-            )
-            resolve(next)
+          // R6 — fold THIS round's reasoning into the cumulative trail
+          // before recursing. The final round (no tool calls + composer
+          // ran) reads the trail off the `roundReasonings` parameter
+          // and folds it into the saved composer-row's reasoning column.
+          const nextRoundReasonings = fullReasoning && fullReasoning.length > 0
+            ? [...roundReasonings, fullReasoning]
+            : roundReasonings
+          const next = await runChatRound(
+            conversationId,
+            model,
+            messages,
+            // HY2 — fold in any tools unlocked by a tool_search this round.
+            rebuildToolsForNextRound(conversationId, model, tools),
+            workspacePath,
+            signal,
+            round + 1,
+            params,
+            suppressDoneEvent,
+            correlationId,
+            nextRoundReasonings,
+            turnStartedAt
+          )
+          resolve(next)
           } catch (err) {
-            reject(err)
+            // CC-3 — settle the wrapper on ANY onDone-body throw.
+            reject(err instanceof Error ? err : new Error(String(err)))
           }
         },
         onError: (error, partial) => {
+          try {
           trace('runChatRound.onError', {
             conversationId,
             round,
@@ -1098,12 +1114,25 @@ export async function runChatRound(
             }
           }
           reject(new Error(error))
+          } catch (err) {
+            // CC-3 — even the error path must settle the wrapper.
+            reject(err instanceof Error ? err : new Error(String(err)))
+          }
         }
       },
       signal,
       params,
       audit
-    )
+    ).catch((err) => {
+      // JM-8 (CC-1) — a throw BEFORE the stream loop (missing key, unknown
+      // provider) fires neither onDone nor onError. Surface it like a stream
+      // error and settle the wrapper so the turn ends instead of hanging.
+      const msg = err instanceof Error ? err.message : String(err)
+      trace('runChatRound.preStreamThrow', { conversationId, round, errorPreview: msg.slice(0, 200) })
+      emitPhase(conversationId, 'error')
+      emitChatEvent('chat:error', { conversationId, error: msg })
+      reject(err instanceof Error ? err : new Error(msg))
+    })
   })
 }
 

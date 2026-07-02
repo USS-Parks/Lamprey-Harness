@@ -1,3 +1,32 @@
+## 2026-07-02 — JM-8: Every chat-turn failure path settles the turn (CC-1, CC-3, CC-20)
+
+The audit's worst chat-core class: failure paths that never settle
+`runChatRound`'s wrapper promise, hanging the turn forever (spinner stuck,
+no error row, ghost guard never runs, abort-controller entry leaked).
+
+- **CC-1**: `chatStream(...)`'s returned promise was fired-and-forgotten. A
+  pre-stream throw — missing/deleted API key, unknown provider — rejected it
+  without ever firing onDone/onError. Now captured with a `.catch` that
+  emits `chat:error`, traces `runChatRound.preStreamThrow`, and rejects the
+  wrapper; the rejection rides up to runHeadlessTurn's JM-4 ghost guard.
+- **CC-3**: the async `onDone` body ran unprotected until the recursion step;
+  chatStream fires it without awaiting, so a `saveMessage` throw (the exact
+  v0.9.2 failure class) or a rejected approval became an unhandled rejection.
+  The whole body (and onError's, for symmetry) is now wrapped, routing any
+  throw to `reject`.
+- **CC-20**: `chat:send`'s catch dereferenced `err.message` on untyped throws
+  → `{ success:false, error: undefined }` violated the IPC envelope. Now
+  stringified once (`errMsg`) and used consistently (error event, ledger
+  preview, ghost notice, return). Both success paths now return the same
+  `{ conversationId, correlationId }` shape.
+
+New `electron/ipc/chat-turn-settlement.test.ts` — five source locks.
+
+Gate: settlement + chat-validation + ghost-reply-guard suites 30/30 green;
+tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-7: Crash recovery, atomic commits, sandbox Math, quit drain (LP-10, LP-12, LP-13, LP-20, LP-21, LP-24)
 
 - **LP-10**: the workflow vm sandbox received the HOST `Math` object, and the

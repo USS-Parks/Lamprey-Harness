@@ -57,9 +57,14 @@ async function ensurePipeline(modelRef: string): Promise<PipelineFn> {
   // the new weights instead of returning the old pipeline.
   currentModelRef = modelRef
   pipelineP = (async () => {
-    // transformers.js ships its own types; types align so no override
-    // needed. We narrow to the two named exports we actually use.
-    const { pipeline, env } = (await import('@xenova/transformers')) as unknown as {
+    // JM-28 (July 2026 Maintenance, HY-3) — migrated from the legacy,
+    // unmaintained `@xenova/transformers` (which dragged the critical
+    // protobufjs → onnxruntime-web → onnx-proto CVE chain) to the official
+    // `@huggingface/transformers` 4.x. The `pipeline` + `env` API and the
+    // feature-extraction `{ data, dims }` output shape are compatible; the
+    // `Xenova/…` model refs still resolve on the Hub. `env.cacheDir` still
+    // pins the on-disk model cache.
+    const { pipeline, env } = (await import('@huggingface/transformers')) as unknown as {
       pipeline: (
         task: string,
         modelRef: string

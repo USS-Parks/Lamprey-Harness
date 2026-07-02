@@ -1,3 +1,31 @@
+## 2026-07-02 — JM-28: Embedder migration @xenova → @huggingface/transformers (HY-3)
+
+The legacy, unmaintained `@xenova/transformers` 2.x dragged the ENTIRE
+critical+high audit chain (→ onnxruntime-web → onnx-proto → **protobufjs
+critical**, arbitrary code execution). Migrated the RAG embedder worker to the
+official `@huggingface/transformers` 4.x, whose `pipeline` + `env` API and
+feature-extraction `{ data, dims }` output shape are compatible — the swap is
+a single import change in `electron/services/rag/embeddings/worker.ts`; the
+`Xenova/bge-small-en-v1.5` + `Xenova/all-MiniLM-L6-v2` model refs still resolve
+on the Hub, and `env.cacheDir` still pins the on-disk model cache.
+
+Removing `@xenova` dropped the audit from **6 → 2** (the critical protobufjs +
+the onnxruntime-web highs gone); a follow-up non-breaking `npm audit fix`
+cleared the last two hono transitives (via the MCP SDK), leaving:
+
+**npm audit --omit=dev: 0 vulnerabilities** (was 7: 1 critical, 4 high, 2
+moderate at the phase baseline).
+
+**Gate (Electron 43, post-fix):** lint OK, tsc node + web OK, build OK,
+smoke:bundle + smoke:renderer PASS, full vitest **2334 passed / 130 skipped**.
+The embeddings unit suite (12 tests) passes; the real-worker integration test
+stays gated (needs a 33 MB model download) exactly as before. **Honest note:**
+the static gate proves the swap builds and the API surface matches; a live RAG
+ingest (model download + a real embedding pass) is the owner's final
+confirmation that vectors come out identical.
+
+---
+
 ## 2026-07-02 — JM-27: Electron 35 → 43 major upgrade (HY-2)
 
 Electron 35 was ~8 majors / ~a year of unpatched Chromium/Node/V8 CVEs behind

@@ -1,3 +1,28 @@
+## 2026-07-02 — JM-11: System rows, custom models, session-state cleanup (CC-5, CC-7, CC-12)
+
+- **CC-5**: `buildApiMessagesFromStoredMessages` dropped every persisted
+  `role:'system'` row, which broke the documented R1+R2 research fallback —
+  the "answer from training knowledge ONLY" note was persisted with a comment
+  claiming it reached the model via promptHistory, but it never did, so the
+  model answered as if its web search had succeeded. System rows now map into
+  the API array (flushing any pending tool-call block first to preserve the
+  strict pairing). This also carries the JM-10 corrective notes and gives the
+  model context on prior failed turns via the ghost notices.
+- **CC-7**: `resolveModel` now consults `settings.customModels` (mtime-cached)
+  before the blind DeepSeek fallback — a pasted DashScope/AI-Studio custom
+  model finally dispatches to its own provider/key with its declared context
+  window and tool support, instead of api.deepseek.com with 65k/true.
+- **CC-12**: `conversation:delete` now clears the per-conversation tool-unlock
+  state and capability tracking (new conversation-wide
+  `clearCapabilityTrackingForConversation` — the keys are conv::model pairs).
+  Both cleaners previously had zero production callers: maps grew for the app
+  lifetime and an FC-10 downgrade stayed pinned forever.
+
+Gate: registry + capability-tracker + chat-history 55/55 green (3 new tests);
+tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-10: The fallback tool contract is live (CC-4, CC-6, CC-13)
 
 - **CC-4**: `FALLBACK_TOOL_INSTRUCTION` (FC-6) had ZERO injection sites since

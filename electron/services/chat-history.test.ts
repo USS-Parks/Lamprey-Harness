@@ -204,6 +204,22 @@ describe('buildApiMessagesFromStoredMessages — reasoning_content field for Dee
     expect(assistant.content).toContain('<think>')
   })
 
+  // JM-11 (CC-5) — persisted system rows reach the model. Before this they
+  // were dropped, so the R1+R2 research-fallback note never arrived and the
+  // model answered as if its web search had succeeded.
+  it('persisted system rows are included in the API messages', () => {
+    const api = buildApiMessagesFromStoredMessages('sys-prompt', [
+      { role: 'user', content: 'research this' },
+      { role: 'system', content: 'Deep research fallback: answer from training knowledge ONLY.' },
+      { role: 'assistant', content: 'reply' }
+    ])
+    expect(api).toHaveLength(4)
+    expect(api[2]).toEqual({
+      role: 'system',
+      content: 'Deep research fallback: answer from training knowledge ONLY.'
+    })
+  })
+
   // JM-9 (CC-15) — this test used to assert the OPPOSITE with 'deepseek-chat'
   // as the "non-V4" fixture, codifying the defect: the retired alias resolves
   // to V4 via RETIRED_MODEL_MAP, so legacy conversations were silently denied

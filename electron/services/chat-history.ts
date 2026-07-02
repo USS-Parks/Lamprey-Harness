@@ -125,7 +125,17 @@ export function buildApiMessagesFromStoredMessages(
   }
 
   for (const m of storedMessages) {
-    if (m.role === 'system') continue
+    // JM-11 (CC-5) — persisted system rows now REACH the model. The R1+R2
+    // research-fallback note ("answer from training knowledge ONLY") and the
+    // JM-10 corrective notes were being dropped here, so the model answered
+    // as if its web search had succeeded. A system row that lands between an
+    // assistant tool_calls row and its tool results flushes the pending block
+    // first (same as any non-tool role), which keeps the strict pairing.
+    if (m.role === 'system') {
+      if (pendingAssistant) flushPending()
+      apiMessages.push({ role: 'system' as const, content: m.content })
+      continue
+    }
 
     if (pendingAssistant) {
       if (m.role === 'tool' && m.toolCallId && pendingToolIds.has(m.toolCallId)) {

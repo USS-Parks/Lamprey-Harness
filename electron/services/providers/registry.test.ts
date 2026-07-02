@@ -501,6 +501,45 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     }
   })
 
+  // JM-11 (CC-7) — Custom Models saved via model:addCustom are consulted by
+  // resolveModel before the blind DeepSeek fallback. The catalog's own
+  // comments tell users to paste DashScope/AI-Studio ids into Custom Models;
+  // those used to dispatch to api.deepseek.com with the DeepSeek key.
+  it('resolveModel honours a custom model from settings.json', async () => {
+    const { mkdtempSync, writeFileSync: wf } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const dir = mkdtempSync(j(tmpdir(), 'lamprey-custom-model-'))
+    wf(
+      j(dir, 'settings.json'),
+      JSON.stringify({
+        customModels: [
+          {
+            id: 'my-dashscope-model',
+            name: 'My DashScope Model',
+            provider: 'dashscope',
+            contextWindow: 128_000,
+            supportsTools: false,
+            supportsVision: true
+          }
+        ]
+      })
+    )
+    setUserDataPathProvider(() => dir)
+    try {
+      const desc = resolveModel('my-dashscope-model')
+      expect(desc.provider).toBe('dashscope')
+      expect(desc.contextWindow).toBe(128_000)
+      expect(desc.supportsTools).toBe(false)
+      expect(desc.supportsVision).toBe(true)
+      // Unknown ids still fall through to the DeepSeek default.
+      expect(resolveModel('totally-unknown-model').provider).toBe('deepseek')
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  })
+
   it('chatStream sends max_tokens from defaultMaxTokens when caller omits maxTokens', async () => {
     __setStreamInactivityForTesting(0)
     const controllable = makeControllableStream()

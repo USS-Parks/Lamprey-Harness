@@ -61,6 +61,18 @@ export function clearAllCapabilityTracking(): void {
 }
 
 /**
+ * JM-11 (CC-12) — drop every model's tracking state for one conversation.
+ * Called from conversation:delete; the keys are `${conversationId}::${modelId}`
+ * so a per-model reset can't cover an unknown set of models.
+ */
+export function clearCapabilityTrackingForConversation(conversationId: string): void {
+  const prefix = `${conversationId}::`
+  for (const key of stateMap.keys()) {
+    if (key.startsWith(prefix)) stateMap.delete(key)
+  }
+}
+
+/**
  * Return true if the model has been downgraded to fallback mode for this
  * conversation. Callers should treat the model as `supportsTools: false`.
  */

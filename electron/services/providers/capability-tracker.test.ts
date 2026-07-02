@@ -3,6 +3,7 @@ import {
   recordCapabilityCheck,
   isDowngraded,
   resetCapabilityTracking,
+  clearCapabilityTrackingForConversation,
   __clearForTesting,
   __setCapabilityStateForTesting
 } from './capability-tracker'
@@ -143,5 +144,18 @@ describe('recordCapabilityCheck', () => {
     )
     expect(result).not.toBeNull()
     expect(isDowngraded('conv1', 'model1')).toBe(true)
+  })
+
+  // JM-11 (CC-12) — conversation-wide clear, wired into conversation:delete.
+  it('clearCapabilityTrackingForConversation drops every model for that conversation only', () => {
+    recordCapabilityCheck('conv1', 'model1', true, false, '<bash>a</bash>', 1)
+    recordCapabilityCheck('conv1', 'model2', true, false, '<bash>b</bash>', 1)
+    recordCapabilityCheck('conv2', 'model1', true, false, '<bash>c</bash>', 1)
+    expect(isDowngraded('conv1', 'model1')).toBe(true)
+    expect(isDowngraded('conv1', 'model2')).toBe(true)
+    clearCapabilityTrackingForConversation('conv1')
+    expect(isDowngraded('conv1', 'model1')).toBe(false)
+    expect(isDowngraded('conv1', 'model2')).toBe(false)
+    expect(isDowngraded('conv2', 'model1')).toBe(true)
   })
 })

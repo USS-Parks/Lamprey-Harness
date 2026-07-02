@@ -3,7 +3,7 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool
 } from 'openai/resources/chat/completions'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { getKey } from '../keychain'
@@ -421,6 +421,51 @@ const RETIRED_MODEL_MAP: Record<string, string> = {
   'deepseek-r1': 'deepseek-v4-pro'
 }
 
+// JM-11 (CC-7) — user-defined Custom Models. `model:addCustom` persists id,
+// name, provider, contextWindow, supportsTools into settings.json, but
+// resolveModel never consulted them: any unknown id fell through to the
+// hard-coded DeepSeek descriptor, so a DashScope/AI-Studio id pasted per the
+// catalog's own instructions dispatched to api.deepseek.com with the DeepSeek
+// key. Cached on settings.json mtime — resolveModel is on every hot path.
+let customModelCache: { mtimeMs: number; models: ModelDescriptor[] } | null = null
+
+function readCustomModelDescriptors(): ModelDescriptor[] {
+  if (!userDataPathProvider) return []
+  try {
+    const path = join(userDataPathProvider(), 'settings.json')
+    if (!existsSync(path)) return []
+    const mtimeMs = statSync(path).mtimeMs
+    if (customModelCache && customModelCache.mtimeMs === mtimeMs) {
+      return customModelCache.models
+    }
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as { customModels?: unknown }
+    const arr = Array.isArray(raw.customModels) ? raw.customModels : []
+    const models: ModelDescriptor[] = []
+    for (const m of arr as Array<Record<string, unknown>>) {
+      if (!m || typeof m.id !== 'string' || !m.id) continue
+      const provider =
+        typeof m.provider === 'string' && m.provider in PROVIDERS
+          ? (m.provider as ProviderId)
+          : 'deepseek'
+      models.push({
+        id: m.id,
+        name: typeof m.name === 'string' && m.name ? m.name : m.id,
+        provider,
+        apiModelId: typeof m.apiModelId === 'string' && m.apiModelId ? m.apiModelId : m.id,
+        contextWindow: typeof m.contextWindow === 'number' ? m.contextWindow : 65536,
+        supportsTools: m.supportsTools !== false,
+        supportsVision: m.supportsVision === true,
+        tier: 'pro',
+        description: 'Custom model.'
+      })
+    }
+    customModelCache = { mtimeMs, models }
+    return models
+  } catch {
+    return []
+  }
+}
+
 export function resolveModel(modelId: string): ModelDescriptor {
   const found = MODEL_CATALOG.find((m) => m.id === modelId)
   if (found) return found
@@ -430,6 +475,10 @@ export function resolveModel(modelId: string): ModelDescriptor {
     const mapped = MODEL_CATALOG.find((m) => m.id === replacement)
     if (mapped) return mapped
   }
+
+  // JM-11 (CC-7) — a user-defined Custom Model wins over the blind fallback.
+  const custom = readCustomModelDescriptors().find((m) => m.id === modelId)
+  if (custom) return custom
 
   // Unknown model id — assume DeepSeek, OpenAI-compatible.
   return {

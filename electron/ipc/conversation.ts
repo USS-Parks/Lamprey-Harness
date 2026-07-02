@@ -14,6 +14,8 @@ import {
 import { chunk as chunkText } from '../services/rag/chunker'
 import { readSettings } from '../services/settings-helper'
 import { recordEvent } from '../services/event-log'
+import { clearToolUnlockState } from '../services/tool-unlock-state'
+import { clearCapabilityTrackingForConversation } from '../services/providers/capability-tracker'
 
 type SeedKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
 type WorkspaceMode = 'inherit' | 'current' | 'none'
@@ -362,6 +364,12 @@ export function registerConversationHandlers(): void {
   ipcMain.handle('conversation:delete', async (_event, id) => {
     try {
       store.deleteConversation(id)
+      // JM-11 (CC-12) — release the per-conversation session state. These
+      // cleaners existed with zero production callers: the unlock/capability
+      // maps grew for the app's lifetime, and an FC-10 downgrade stayed
+      // pinned to a conversationId forever (even one being deleted).
+      clearToolUnlockState(id)
+      clearCapabilityTrackingForConversation(id)
       return { success: true, data: null }
     } catch (err: any) {
       return { success: false, error: err.message }

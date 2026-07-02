@@ -74,9 +74,20 @@ win:
   # release tag + notes; the binary filename does not carry it. See
   # `feedback_cdn_evergreen_artifacts`.
   artifactName: ${productName}-${arch}.${ext}
-  # Skip the sign-and-edit step entirely. We aren't code-signing, and the
-  # winCodeSign archive contains macOS symlinks that Windows can't extract
-  # without Developer Mode / admin (A required privilege is not held by the client).
+  # JM-20 (SEC-6) — code signing. Unsigned auto-updates rest their integrity
+  # SOLELY on the sha512 in latest.yml served from the update host: anyone who
+  # can alter that manifest (or defeat TLS to it) can push a trojaned,
+  # auto-installed update. Real fix is a publisher signature. This is wired to
+  # be env-gated so CI/local can sign WITHOUT committing a cert:
+  #   - Set WIN_CSC_LINK (path or base64 of the .pfx) + WIN_CSC_KEY_PASSWORD.
+  #   - electron-builder auto-detects those env vars and signs; the updater
+  #     then verifies the publisher cert on every download.
+  # DEFERRED (owner action): acquiring an Authenticode / EV cert is a purchase
+  # + identity-verification step that cannot happen in this session. Until the
+  # cert exists the env vars are unset and the build stays unsigned, exactly as
+  # before — no behavior change, but the path is documented and ready.
+  # When signed, flip signAndEditExecutable to true (or delete this line — the
+  # winCodeSign symlink-extraction issue below only bites the UNSIGNED path).
   signAndEditExecutable: false
 
 nsis:

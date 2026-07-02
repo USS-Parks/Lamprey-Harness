@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { ipcMain, shell, dialog, BrowserWindow } from 'electron'
 import { createServer } from 'http'
 import { mcpManager } from '../services/mcp-manager'
 import type { McpServerConfig } from '../services/mcp-manager'
@@ -81,6 +81,31 @@ export function registerMcpHandlers(): void {
       const parsed = sanitizeAddServerInput(raw)
       if (typeof parsed === 'string') {
         return { success: false, error: parsed }
+      }
+      // JM-20 (SEC-5) — a stdio connector spawns an arbitrary LOCAL PROCESS
+      // (the `command` string is free-form and could arrive from a
+      // socially-engineered JSON paste). Before this, add-server ran it with
+      // no confirmation. Show the exact command line and require explicit
+      // approval; the process only spawns if the user consents. SSE
+      // connectors (network URL, no local exec) skip the prompt.
+      if (parsed.transport === 'stdio') {
+        const cmdline = [parsed.command, ...(parsed.args ?? [])].join(' ')
+        const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+        const opts = {
+          type: 'warning' as const,
+          buttons: ['Cancel', 'Run this command'],
+          defaultId: 0,
+          cancelId: 0,
+          title: 'Add local connector?',
+          message: `"${parsed.name}" will run a local command on your machine every time it connects:`,
+          detail: `${cmdline}\n\nOnly approve connectors you trust. This command runs with your account's full permissions.`
+        }
+        const { response } = win
+          ? await dialog.showMessageBox(win, opts)
+          : await dialog.showMessageBox(opts)
+        if (response !== 1) {
+          return { success: false, error: 'Connector not added — local command was not approved.' }
+        }
       }
       const added = await mcpManager.addServerIfMissing(parsed)
       if (!added) {

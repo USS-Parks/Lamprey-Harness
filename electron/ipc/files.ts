@@ -140,13 +140,34 @@ async function walkProject(rootPath: string): Promise<string[]> {
   return results
 }
 
+// JM-20 (SEC-4) — confine the renderer file-read IPCs to the active workspace
+// root. These power the @file mention index, the Files panel, and quick-open;
+// every renderer caller already passes a workspace-rooted path. Before this,
+// they read ANY absolute path the renderer sent (no root check, unlike
+// apply_patch / shell_command), so a renderer compromise could disclose
+// ~/.ssh/id_rsa or userData/keys.json verbatim. Returns null when the path
+// escapes the root (`..`, absolute-elsewhere, other drive on Windows).
+function confineToWorkspace(candidate: string): string | null {
+  const root = path.resolve(getActiveWorkspace())
+  const target = path.resolve(root, candidate)
+  const rel = path.relative(root, target)
+  if (rel === '') return target
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return null
+  return target
+}
+
+const OUTSIDE_WORKSPACE_ERROR =
+  'Path is outside the active workspace. File access is confined to the project root.'
+
 export function registerFilesHandlers(): void {
   ipcMain.handle('files:listDir', async (_event, dirPath: string) => {
     try {
       if (typeof dirPath !== 'string' || !dirPath) {
         return { success: false, error: 'dirPath required' }
       }
-      const entries = await listDir(dirPath)
+      const safe = confineToWorkspace(dirPath)
+      if (!safe) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
+      const entries = await listDir(safe)
       return { success: true, data: entries }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'listDir failed' }
@@ -158,14 +179,16 @@ export function registerFilesHandlers(): void {
       if (typeof filePath !== 'string' || !filePath) {
         return { success: false, error: 'filePath required' }
       }
-      const st = await fs.stat(filePath)
+      const safeFile = confineToWorkspace(filePath)
+      if (!safeFile) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
+      const st = await fs.stat(safeFile)
       if (st.size > TEXT_READ_CAP) {
         return {
           success: false,
           error: `File too large (${(st.size / 1_000_000).toFixed(1)} MB). Cap is ${(TEXT_READ_CAP / 1_000_000).toFixed(1)} MB.`
         }
       }
-      const buf = await fs.readFile(filePath)
+      const buf = await fs.readFile(safeFile)
       // Crude binary sniff: presence of NUL byte in first 4 KB.
       const sample = buf.subarray(0, Math.min(buf.length, 4096))
       const isBinary = sample.includes(0)
@@ -183,7 +206,9 @@ export function registerFilesHandlers(): void {
       if (typeof rootPath !== 'string' || !rootPath) {
         return { success: false, error: 'rootPath required' }
       }
-      const files = await walkProject(rootPath)
+      const safeRoot = confineToWorkspace(rootPath)
+      if (!safeRoot) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
+      const files = await walkProject(safeRoot)
       return { success: true, data: { files, truncated: files.length >= WALK_FILE_CAP } }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'walkProject failed' }

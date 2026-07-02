@@ -1,3 +1,30 @@
+## 2026-07-02 — JM-20: File-read confinement, MCP spawn approval, signing scaffold (SEC-4, SEC-5, SEC-6)
+
+- **SEC-4**: `files:readText` / `:listDir` / `:walkProject` read ANY absolute
+  path the renderer sent (no root check, unlike apply_patch / shell_command),
+  so a renderer compromise chained with the old SEC-1 gap could disclose
+  ~/.ssh/id_rsa or userData/keys.json verbatim. All three now confine the path
+  to the active workspace root via `confineToWorkspace` and return a clear
+  error on escape (`..`, absolute-elsewhere, other Windows drive). Every
+  renderer caller (@file mention index, Files panel, quick-open) already
+  passes workspace-rooted paths, so the UX is unchanged.
+- **SEC-5**: adding a stdio MCP connector spawns an arbitrary LOCAL process
+  from a free-form `command` string (reachable via a socially-engineered
+  "Add connector" JSON paste). `mcp:addServer` now shows the exact command
+  line in a warning dialog and spawns only on explicit approval; SSE
+  connectors (network URL, no local exec) skip the prompt.
+- **SEC-6**: code-signing is documented + env-gated in electron-builder.yml —
+  set `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD` and electron-builder signs, so
+  the updater verifies the publisher cert on every auto-download. DEFERRED
+  honestly: acquiring the Authenticode/EV cert is a purchase + identity-
+  verification step that can't happen in-session; until it exists the build
+  stays unsigned exactly as before (no behavior change, path ready).
+
+Gate: security-hardening + files IPC suites 17/17 green; tsc node OK.
+**Track D complete.**
+
+---
+
 ## 2026-07-02 — JM-19: Electron shell navigation + artifact hardening (SEC-1, SEC-2, SEC-8)
 
 - **SEC-1**: the main window had NO `will-navigate` guard, so any top-frame

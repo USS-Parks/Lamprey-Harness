@@ -42,3 +42,32 @@ describe('JM-19 artifact sandbox lockdown', () => {
     expect((art.match(/lockDownArtifactContents\(/g) ?? []).length).toBeGreaterThanOrEqual(3)
   })
 })
+
+describe('JM-20 file-read confinement + MCP spawn approval', () => {
+  it('the file-read IPCs confine paths to the active workspace', () => {
+    const files = read('electron/ipc/files.ts')
+    expect(files).toMatch(/function confineToWorkspace/)
+    // All three read/list/walk handlers gate on it.
+    expect((files.match(/confineToWorkspace\(/g) ?? []).length).toBeGreaterThanOrEqual(3)
+    expect(files).toMatch(/OUTSIDE_WORKSPACE_ERROR/)
+    // The actual read uses the confined path, not the raw input.
+    expect(files).toMatch(/fs\.readFile\(safeFile\)/)
+    expect(files).not.toMatch(/fs\.readFile\(filePath\)/)
+  })
+
+  it('adding a stdio MCP connector requires an approval dialog before spawn', () => {
+    const mcp = read('electron/ipc/mcp.ts')
+    const handler = mcp.slice(mcp.indexOf("'mcp:addServer'"))
+    const dialogIdx = handler.indexOf('showMessageBox')
+    const addIdx = handler.indexOf('addServerIfMissing')
+    expect(dialogIdx).toBeGreaterThan(-1)
+    expect(addIdx).toBeGreaterThan(dialogIdx)
+    expect(handler).toMatch(/parsed\.transport === 'stdio'/)
+  })
+
+  it('the signing path is documented and env-gated in electron-builder.yml', () => {
+    const yml = read('electron-builder.yml')
+    expect(yml).toMatch(/WIN_CSC_LINK/)
+    expect(yml).toMatch(/SEC-6/)
+  })
+})

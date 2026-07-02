@@ -46,9 +46,16 @@ export function concatReasoningTrail(
   const joined = parts.join('\n\n')
   if (Buffer.byteLength(joined, 'utf8') <= MAX_REASONING_BYTES) return joined
   // Truncate to MAX_REASONING_BYTES bytes, leaving room for the marker.
+  // JM-12 (CC-10): the cut is BYTE-true. The old `.slice(charCount)` kept up
+  // to ~3× the cap for CJK trails (3 bytes/char) and could split a surrogate
+  // pair, persisting a lone surrogate into the DB row.
   const marker = (kb: number): string => `\n\n[truncated for length — ${kb} kb omitted]`
   const reserve = marker(9999).length + 8 // generous reserve for the marker tail
-  const head = joined.slice(0, Math.max(0, MAX_REASONING_BYTES - reserve))
+  const capBytes = Math.max(0, MAX_REASONING_BYTES - reserve)
+  let head = Buffer.from(joined, 'utf8').subarray(0, capBytes).toString('utf8')
+  // A cut mid-codepoint decodes as a trailing U+FFFD — drop it (only the
+  // cut-induced tail one; interior replacement chars are the text's own).
+  head = head.replace(/�+$/, '')
   const omittedBytes = Buffer.byteLength(joined, 'utf8') - Buffer.byteLength(head, 'utf8')
   const omittedKb = Math.round(omittedBytes / 1024)
   return head + marker(omittedKb)

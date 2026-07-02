@@ -24,7 +24,9 @@ import {
 } from 'fs'
 import { randomUUID } from 'crypto'
 
-/** Results longer than this (characters) are spilled. 0 / disabled = never. */
+/** Results larger than this (UTF-8 BYTES — the setting is named
+ *  `toolResultSpillBytes`) are spilled. 0 / disabled = never. JM-12 (CC-18):
+ *  the trigger used to measure UTF-16 chars, firing ~3× late on CJK output. */
 export const DEFAULT_SPILL_THRESHOLD = 8192
 const HEAD_CHARS = 2048
 const TAIL_CHARS = 1024
@@ -76,7 +78,7 @@ export function maybeSpillToolResult(
   opts: { threshold?: number; dir?: string } = {}
 ): SpillOutcome {
   const threshold = opts.threshold ?? DEFAULT_SPILL_THRESHOLD
-  if (threshold <= 0 || !full || full.length <= threshold) {
+  if (threshold <= 0 || !full || Buffer.byteLength(full, 'utf8') <= threshold) {
     return { result: full, spilled: false }
   }
   const ref = randomUUID()

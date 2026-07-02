@@ -34,4 +34,16 @@ describe('concatReasoningTrail (R6, kept through UB-5)', () => {
     expect(Buffer.byteLength(out, 'utf8')).toBeLessThanOrEqual(MAX_REASONING_BYTES + 64)
     expect(out).toMatch(/\[truncated for length — \d+ kb omitted\]$/)
   })
+
+  // JM-12 (CC-10) — the cap is BYTE-true for multi-byte text. The old char
+  // slice kept ~3× the cap for CJK trails and could persist a lone surrogate.
+  it('caps CJK trails at the byte limit without splitting codepoints', () => {
+    const cjk = '思考中'.repeat(Math.ceil(MAX_REASONING_BYTES / 3)) // 3 bytes/char
+    const out = concatReasoningTrail([cjk], undefined)!
+    expect(Buffer.byteLength(out, 'utf8')).toBeLessThanOrEqual(MAX_REASONING_BYTES + 64)
+    expect(out).not.toContain('�')
+    // Round-trips cleanly — no lone surrogate at the cut point.
+    expect(Buffer.from(out, 'utf8').toString('utf8')).toBe(out)
+    expect(out).toMatch(/\[truncated for length — \d+ kb omitted\]$/)
+  })
 })

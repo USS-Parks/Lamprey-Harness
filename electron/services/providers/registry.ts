@@ -540,8 +540,12 @@ async function validateViaChatProbe(
 ): Promise<KeyValidationResult> {
   // Pick the cheapest catalog model we know about for this provider. This is
   // a fallback only — if the call fails for any non-auth reason we report it
-  // verbatim rather than claiming the key is invalid.
-  const probe = MODEL_CATALOG.find((m) => m.provider === provider)
+  // verbatim rather than claiming the key is invalid. JM-12 (CC-21): prefer
+  // the flash tier — the old bare `.find` took the FIRST entry, which for
+  // DeepSeek was the flagship V4 Pro, the opposite of "cheapest".
+  const probe =
+    MODEL_CATALOG.find((m) => m.provider === provider && m.tier === 'flash') ??
+    MODEL_CATALOG.find((m) => m.provider === provider)
   if (!probe) {
     return {
       ok: false,

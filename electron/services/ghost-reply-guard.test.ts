@@ -60,10 +60,19 @@ describe('SP-4 ghost-reply guard (D5)', () => {
 
   it('isUserAbortError matches AbortError name and abort-shaped messages', () => {
     expect(isUserAbortError({ name: 'AbortError' })).toBe(true)
+    expect(isUserAbortError({ name: 'APIUserAbortError' })).toBe(true)
     expect(isUserAbortError({ message: 'The operation was aborted' })).toBe(true)
     expect(isUserAbortError({ message: 'request aborted by user' })).toBe(true)
     expect(isUserAbortError({ message: 'ECONNRESET' })).toBe(false)
     expect(isUserAbortError(undefined)).toBe(false)
+  })
+
+  // JM-12 (CC-19) — provider failures that merely CONTAIN "abort" are NOT
+  // user cancels; the old \babort\b regex skipped the ghost guard for exactly
+  // the failure class it exists for.
+  it('provider errors containing "abort" are not classified as user cancels', () => {
+    expect(isUserAbortError({ message: 'connection aborted by upstream' })).toBe(false)
+    expect(isUserAbortError({ message: 'stream aborted: HTTP 502' })).toBe(false)
   })
 
   it('notice names the error and stays jargon-free', () => {

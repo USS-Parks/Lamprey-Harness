@@ -318,12 +318,13 @@ export function buildSystemPrompt(
   let result = parts.join('\n\n')
 
   // FC-7 + L3 — when the model supports native function calling, strip the
-  // PSEUDO_TAG_GUARD and the L3 conditional <think> bullet from the prompt.
-  // Native models use structured tool_calls arrays (no pseudo-XML needed)
-  // and emit reasoning via reasoning_content (no in-prose <think> needed).
+  // L3 conditional <think> bullet from the prompt: native models emit
+  // reasoning via reasoning_content, no in-prose <think> needed. (JM-12:
+  // the PSEUDO_TAG_GUARD strip that used to sit here was a guaranteed no-op
+  // — L6 removed every injection site, so the ~500-byte needle scan found
+  // nothing on every prompt build.)
   if (supportsNativeTools) {
     result = result
-      .replace(PSEUDO_TAG_GUARD, '')
       .replace(`- ${THINK_BULLET}\n`, '')
       .replace(/\n{3,}/g, '\n\n')
   }
@@ -430,7 +431,6 @@ export function buildAgentSystemPrompt(
   let result = parts.join('\n\n')
   if (supportsNativeTools) {
     result = result
-      .replace(PSEUDO_TAG_GUARD, '')
       .replace(`- ${THINK_BULLET}\n`, '')
       .replace(/\n{3,}/g, '\n\n')
   }

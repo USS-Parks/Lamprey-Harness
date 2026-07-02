@@ -37,6 +37,7 @@ import {
   buildApiMessagesFromStoredMessages,
   modelEchoesReasoningContent
 } from '../services/chat-history'
+import { readSettings } from '../services/settings-helper'
 import { toolRegistry, isMutatingDescriptor } from '../services/tool-registry'
 import { TOOL_SEARCH_TOOL_NAME } from '../services/model-tool-surface'
 import {
@@ -102,10 +103,11 @@ interface ModelParams {
 }
 
 function readSettingsJson(): Record<string, unknown> | null {
+  // JM-12 (CC-22) — delegate to the shared mtime-cached reader instead of
+  // re-reading + re-parsing settings.json (this was called once per tool
+  // round of every turn).
   try {
-    const path = join(app.getPath('userData'), 'settings.json')
-    if (!existsSync(path)) return null
-    return JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>
+    return readSettings()
   } catch {
     return null
   }
@@ -455,7 +457,10 @@ export function registerChatHandlers(): void {
           },
           { role: 'user', content }
         ],
-        'deepseek-v4-flash'
+        'deepseek-v4-flash',
+        // JM-12 (CC-23) — chatOnce has no inactivity watchdog (only the SDK's
+        // ~10-minute default); a stalled provider pinned this IPC for minutes.
+        AbortSignal.timeout(30_000)
       )
       const cleaned = rawResult.content.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.!?]+$/g, '').slice(0, 60)
       return { success: true, data: cleaned || content.slice(0, 40) }
@@ -599,9 +604,12 @@ export async function runHeadlessTurn(input: {
     }[]
   }
 
-  // HY4 — lazy skill bodies follow the tool-surface mode.
+  // HY4 — lazy skill bodies follow the tool-surface mode. JM-12 (CC-17):
+  // same normalization as buildDispatchTools — exactly 'lazy' activates.
+  // The old `!== 'full'` gate meant a typo'd value produced the full tool
+  // catalog WITH stubbed skill bodies, a state no phase intended.
   const lazySkillBodies =
-    ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'full') !== 'full'
+    ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'full') === 'lazy'
 
   const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
   const activeWorkspace = getActiveWorkspace()
@@ -631,13 +639,12 @@ export async function runHeadlessTurn(input: {
 
   const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory, model)
 
-  // Context-aware token estimate (gap-closure): the full message stack sent to
-  // the model, not just the iteration prompt. Computed here because this is the
-  // only place that holds the assembled apiMessages.
-  const promptChars = apiMessages.reduce((n, m) => {
-    const c = (m as { content?: unknown }).content
-    return n + (typeof c === 'string' ? c.length : c == null ? 0 : JSON.stringify(c).length)
-  }, 0)
+  // JM-12 (CC-11) — per-round token accounting. The old estimate counted the
+  // initial message stack ONCE, but every tool round re-sends the whole
+  // growing stack; a 10-round turn's real input was ~10× the estimate, making
+  // loop token ceilings decorative. runChatRound now accumulates the chars
+  // actually sent each round plus the chars received back.
+  const charCounter = { sent: 0, received: 0 }
 
   const abortController = new AbortController()
   // Bridge an external cancel signal (a loop's controller) into the turn's
@@ -664,12 +671,16 @@ export async function runHeadlessTurn(input: {
       0,
       modelParams,
       input.suppressDoneEvent ?? false,
-      correlationId
+      correlationId,
+      [],
+      Date.now(),
+      charCounter
     )
     if (!result) return null
-    const replyContent = (result as { message?: { content?: unknown } }).message?.content
-    const replyChars = typeof replyContent === 'string' ? replyContent.length : 0
-    return { message: (result as { message: unknown }).message, tokensEstimate: Math.ceil((promptChars + replyChars) / 4) }
+    return {
+      message: (result as { message: unknown }).message,
+      tokensEstimate: Math.ceil((charCounter.sent + charCounter.received) / 4)
+    }
   } catch (err) {
     // JM-4 (CC-9) — ghost-reply guard for headless callers. The SP-4 guard
     // lived only in chat:send's catch, so a failed loop iteration or wake-up
@@ -763,7 +774,11 @@ export async function runChatRound(
    *  into the saved row's `reasoning` column via concatReasoningTrail().
    *  Defaults to [] at the top-level call so callers don't need to pass it. */
   roundReasonings: string[] = [],
-  turnStartedAt: number = Date.now()
+  turnStartedAt: number = Date.now(),
+  // JM-12 (CC-11) — accumulates the chars actually sent (the full stack, per
+  // round, since every round re-sends it) and received. Shared by reference
+  // through the recursion; runHeadlessTurn owns it and derives tokensEstimate.
+  charCounter?: { sent: number; received: number }
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -808,6 +823,15 @@ export async function runChatRound(
     ? { correlationId, conversationId, purpose: 'main' }
     : undefined
 
+  if (charCounter) {
+    charCounter.sent += messages.reduce((n, m) => {
+      const c = (m as { content?: unknown }).content
+      const base = typeof c === 'string' ? c.length : c == null ? 0 : JSON.stringify(c).length
+      const tc = (m as { tool_calls?: unknown }).tool_calls
+      return n + base + (tc ? JSON.stringify(tc).length : 0)
+    }, 0)
+  }
+
   return new Promise<RunChatRoundResult>((resolve, reject) => {
     // JM-8 (CC-1) — chatStream's own returned promise is captured below.
     // A pre-stream throw (missing API key, unknown provider) rejects that
@@ -849,6 +873,10 @@ export async function runChatRound(
             reasoningLen: fullReasoning?.length ?? 0,
             toolCallsCount: toolCalls?.length ?? 0
           })
+
+          if (charCounter) {
+            charCounter.received += fullContent.length + (fullReasoning?.length ?? 0)
+          }
 
           // FC-10 — capability mismatch detection. When the model is flagged
           // supportsTools but returns tool-like text without tool_calls,
@@ -958,7 +986,8 @@ export async function runChatRound(
                 suppressDoneEvent,
                 correlationId,
                 correctiveReasonings,
-                turnStartedAt
+                turnStartedAt,
+                charCounter
               )
               resolve(next)
               return
@@ -1111,7 +1140,8 @@ export async function runChatRound(
             suppressDoneEvent,
             correlationId,
             nextRoundReasonings,
-            turnStartedAt
+            turnStartedAt,
+            charCounter
           )
           resolve(next)
           } catch (err) {

@@ -69,8 +69,12 @@ describe('FC-11 — Ghost-reply regression tests', () => {
     const result = parseFallbackToolCalls(content, [
       { name: 'shell_command', inputSchema: shellSchema }
     ])
-    // Schema validation should reject
-    expect(result).toBeNull()
+    // The load-bearing invariant is unchanged: nothing dispatches. JM-10
+    // (CC-13) replaced the old bare `null` with a structured validationError
+    // so the caller runs a corrective round instead of publishing the JSON.
+    expect(result!.calls).toEqual([])
+    expect(result!.isFinalAnswer).toBe(false)
+    expect(result!.validationError?.toolName).toBe('shell_command')
   })
 
   it('brace-balanced extractor handles nested JSON in prose', () => {

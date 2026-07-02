@@ -1,3 +1,41 @@
+## 2026-07-02 — JM-12: Chat-core misc batch (CC-10, CC-11, CC-17, CC-18, CC-19, CC-21, CC-22, CC-23)
+
+- **CC-10**: reasoning-trail truncation is byte-true (Buffer subarray + cut-
+  induced U+FFFD trim) — the old char slice kept ~3× the 64 KB cap for CJK
+  trails and could persist a lone surrogate. New CJK truncation test.
+- **CC-11**: `runChatRound` threads a `charCounter` through the recursion,
+  accumulating the chars actually SENT each round (every round re-sends the
+  growing stack) plus received output. `runHeadlessTurn`'s tokensEstimate now
+  reflects multi-round reality — a 10-round tool turn was undercounted ~10×,
+  making loop token ceilings decorative.
+- **CC-17**: `lazySkillBodies` gate normalized to exactly `'lazy'`, matching
+  buildDispatchTools (a typo'd toolSurface no longer yields full-catalog-with-
+  stubbed-skills).
+- **CC-18**: the spill trigger measures UTF-8 bytes, matching the
+  `toolResultSpillBytes` setting name (fired ~3× late on CJK output).
+- **CC-19**: `isUserAbortError` matches abort NAMES + exact known cancel
+  message shapes only — "connection aborted by upstream" no longer skips the
+  ghost guard. Regression test added.
+- **CC-21**: removed the two no-op `PSEUDO_TAG_GUARD` strip scans (L6 removed
+  every injection; the ~500-byte needle scan ran on every prompt build);
+  `validateViaChatProbe` now actually probes the flash tier instead of the
+  flagship. `services/deepseek.ts` is NOT dead (ipc/settings.ts imports it) —
+  left in place, noted here.
+- **CC-22**: `settings-helper.readSettings` is mtime-cached (shallow-copy
+  returns; `patchSettings` invalidates); chat.ts's per-tool-round reader
+  delegates to it.
+- **CC-23**: `chat:generateTitle` gets a 30s `AbortSignal.timeout` (the SDK's
+  ~10-minute default was the only cap).
+
+Test-contract updates: the FC-11 ghost-reply-regression "invalid args do not
+dispatch" now asserts the JM-10 structured shape (invariant unchanged —
+nothing dispatches).
+
+Gate: **FULL suite 2318 passed / 130 skipped / 0 failed**; tsc node OK.
+**Track B complete.**
+
+---
+
 ## 2026-07-02 — JM-11: System rows, custom models, session-state cleanup (CC-5, CC-7, CC-12)
 
 - **CC-5**: `buildApiMessagesFromStoredMessages` dropped every persisted

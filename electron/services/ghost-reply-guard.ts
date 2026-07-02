@@ -44,11 +44,15 @@ export function turnEndedGhosted(rows: readonly GhostCheckRow[]): boolean {
 }
 
 /** True for user-initiated cancellation — not a ghost; the user knows why
- *  there is no reply. Matched on the standard AbortError shapes. */
+ *  there is no reply. JM-12 (CC-19): matched on the standard abort NAMES and
+ *  the exact known cancel-message shapes only. The old `\babort(ed)?\b`
+ *  regex classified provider failures like "connection aborted by upstream"
+ *  as user cancels, skipping the guard for precisely the case it exists for. */
 export function isUserAbortError(err: { name?: string; message?: string } | null | undefined): boolean {
   if (!err) return false
-  if (err.name === 'AbortError') return true
-  return /\babort(ed)?\b/i.test(err.message ?? '')
+  if (err.name === 'AbortError' || err.name === 'APIUserAbortError') return true
+  const msg = (err.message ?? '').trim()
+  return /^(the operation was aborted|request (was )?aborted( by user)?)\.?$/i.test(msg)
 }
 
 /** The system-notice body persisted when a turn ghosts. Plain language, no

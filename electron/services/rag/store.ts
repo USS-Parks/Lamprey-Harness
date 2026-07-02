@@ -265,17 +265,32 @@ export function deleteCollection(id: string): boolean {
   if (dbAvailable()) {
     try {
       const db = getDb()
-      // rag_documents.collection_id has ON DELETE CASCADE, which cascades to
-      // rag_chunks. rag_chunk_vec rows are NOT cascaded by SQLite (vec0 is a
-      // virtual table and FKs don't reach it); R5's ingest path is responsible
-      // for keeping vec rows in lockstep with chunks. Deleting the collection
-      // here is safe because the chunk delete trigger fires on rag_chunks,
-      // and R5 will add a chunk-AFTER-DELETE trigger that also removes the
-      // matching vec rows when ingest lands.
-      const result = db
-        .prepare('DELETE FROM rag_collections WHERE id = ?')
-        .run(id)
-      return result.changes > 0
+      // JM-15 (DB-4) — rag_chunk_vec rows are NOT cascaded by SQLite (vec0 is
+      // a virtual table; FKs don't reach it). The comment that used to sit
+      // here promised a chunk-AFTER-DELETE trigger "when ingest lands" — it
+      // was never written, so deleting a collection leaked its vec rows, and
+      // SQLite rowid reuse then mapped the STALE embeddings onto unrelated
+      // new chunks (wrong retrieval results) or blew up the next vec insert
+      // on a PK conflict. Delete the vec rows for the collection's chunks in
+      // the same transaction, mirroring deleteDocument.
+      const tx = db.transaction((collectionId: string) => {
+        const chunkRows = db
+          .prepare('SELECT rowid FROM rag_chunks WHERE collection_id = ?')
+          .all(collectionId) as { rowid: number }[]
+        const delVec = (() => {
+          try {
+            return db.prepare('DELETE FROM rag_chunk_vec WHERE chunk_rowid = ?')
+          } catch {
+            return null // vec0 absent — fine.
+          }
+        })()
+        if (delVec) {
+          for (const r of chunkRows) delVec.run(r.rowid)
+        }
+        // rag_documents.collection_id has ON DELETE CASCADE → rag_chunks too.
+        return db.prepare('DELETE FROM rag_collections WHERE id = ?').run(collectionId).changes
+      })
+      return (tx(id) as number) > 0
     } catch (err) {
       activateFallback(err)
     }
@@ -592,21 +607,27 @@ export function deleteDocument(id: string): boolean {
       // DELETE CASCADE so chunks go too. rag_chunk_vec rows are NOT
       // cascaded (vec0 is outside the FK plumbing) — we DELETE them
       // explicitly first so the rowids freed by the chunk delete don't
-      // leak into the next vec INSERT.
-      const chunkRows = db
-        .prepare('SELECT rowid FROM rag_chunks WHERE document_id = ?')
-        .all(id) as { rowid: number }[]
-      for (const r of chunkRows) {
-        try {
-          db.prepare('DELETE FROM rag_chunk_vec WHERE chunk_rowid = ?').run(r.rowid)
-        } catch {
-          // vec0 absent — fine.
+      // leak into the next vec INSERT. JM-15 (DB-18): the vec sweep + row
+      // delete run in ONE transaction with a single prepared statement — a
+      // crash between them used to leave chunks whose embeddings were gone
+      // (vec search silently missed the document).
+      const tx = db.transaction((docId: string) => {
+        const chunkRows = db
+          .prepare('SELECT rowid FROM rag_chunks WHERE document_id = ?')
+          .all(docId) as { rowid: number }[]
+        const delVec = (() => {
+          try {
+            return db.prepare('DELETE FROM rag_chunk_vec WHERE chunk_rowid = ?')
+          } catch {
+            return null // vec0 absent — fine.
+          }
+        })()
+        if (delVec) {
+          for (const r of chunkRows) delVec.run(r.rowid)
         }
-      }
-      const result = db
-        .prepare('DELETE FROM rag_documents WHERE id = ?')
-        .run(id)
-      return result.changes > 0
+        return db.prepare('DELETE FROM rag_documents WHERE id = ?').run(docId).changes
+      })
+      return (tx(id) as number) > 0
     } catch (err) {
       activateFallback(err)
     }

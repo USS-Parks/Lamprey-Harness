@@ -1,3 +1,26 @@
+## 2026-07-02 — JM-15: RAG vector-row integrity on delete (DB-4, DB-18)
+
+- **DB-4**: `deleteCollection` deleted the collection (FK cascades docs →
+  chunks) but never touched `rag_chunk_vec` — the in-code comment promised a
+  chunk-AFTER-DELETE trigger "when ingest lands" that was never written.
+  SQLite reuses freed rowids (the audit verified this empirically), so a
+  later ingest either JOINed the old collection's stale embeddings onto
+  unrelated new chunks (silently wrong retrieval) or hit a vec0 PK conflict
+  that — pre-JM-14 — tripped the permanent memory fallback. The collection's
+  chunk rowids now get their vec rows deleted inside one transaction,
+  mirroring the document path.
+- **DB-18**: `deleteDocument`'s vec sweep ran outside any transaction with a
+  per-row re-prepared DELETE; a crash between the sweep and the row delete
+  left chunks whose embeddings were gone. Now one transaction, one prepared
+  statement.
+
+Gate: full rag suite 108 passed / 11 skipped; tsc node OK. (The DB-backed
+delete paths are covered live by the suite's node:sqlite-style fixtures where
+present; the vec0-virtual-table interaction itself remains exercised at
+runtime — same coverage boundary as the original R5 ingest path.)
+
+---
+
 ## 2026-07-02 — JM-14: Fallback latches scoped to real unavailability (DB-3, DB-7, DB-12, DB-22)
 
 Four stores flipped into a session-long in-memory fallback on ANY SQLite

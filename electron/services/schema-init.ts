@@ -24,13 +24,15 @@ import { isVecAvailable } from './rag/vec-loader'
 // without spreading risky DDL ordering changes across many files.
 
 function safeAddColumn(db: Database.Database, table: string, ddl: string): void {
-  try {
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl};`)
-  } catch (err: any) {
-    // SQLite throws on duplicate column add. Swallow that; rethrow anything else.
-    const msg = String(err?.message ?? err)
-    if (!/duplicate column name/i.test(msg)) throw err
-  }
+  // JM-16 (DB-19) — idempotence via a PRAGMA table_info probe instead of
+  // matching SQLite's English error text ('duplicate column name'). This
+  // runs on EVERY boot; a wrapped or localized error message from a future
+  // binding would have turned each launch into a rethrow from segment 2 —
+  // the v0.9.2 failure class, in the exact file its postmortem flagged.
+  const col = ddl.trim().split(/\s+/)[0]
+  const existing = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+  if (existing.some((c) => c.name.toLowerCase() === col.toLowerCase())) return
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl};`)
 }
 
 // ───────────────────────── Segment 1: core domain tables ─────────────────────────

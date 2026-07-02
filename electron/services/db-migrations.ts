@@ -316,11 +316,6 @@ function writeUserVersion(db: Database, value: number): void {
   db.pragma(`user_version = ${value}`)
 }
 
-function safeAddColumn(db: Database, table: string, ddl: string): void {
-  try {
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl};`)
-  } catch (err: any) {
-    const msg = String(err?.message ?? err)
-    if (!/duplicate column name/i.test(msg)) throw err
-  }
-}
+// JM-16 (DB-19) — the unused module-level safeAddColumn that lived here is
+// deleted. Migrations that need idempotent column adds keep their own local
+// copies inside up() (shipped migrations stay byte-stable).

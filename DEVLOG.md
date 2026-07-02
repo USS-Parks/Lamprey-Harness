@@ -1,3 +1,29 @@
+## 2026-07-02 — JM-16: Database init hardening (DB-5, DB-19, DB-20)
+
+- **DB-5**: `getDb()` assigned the module handle BEFORE `initLegacySchema` /
+  `runMigrations` ran; a throw propagated once, then every later caller
+  silently received the un-migrated DB — the exact amplifier behind the
+  v0.9.2 incident (user_version stuck at 0, per-INSERT failures at runtime),
+  and it made the downgrade-refusal guard first-caller-only. The open/init
+  block now closes and nulls the handle on ANY init failure, so every call
+  re-attempts the full init (or throws loudly — the honest outcomes).
+- **DB-19**: `safeAddColumn` in schema-init (runs every boot) probes
+  `PRAGMA table_info` for the column instead of matching SQLite's English
+  'duplicate column name' text — a wrapped/localized binding error would
+  have made every launch rethrow from segment 2. The unused module-level
+  copy in db-migrations.ts is deleted; the copies INSIDE shipped migrations
+  stay byte-stable (v18 relies on duplicate tolerance for fresh DBs where
+  the shared LOOP_SCHEMA_SQL already carries active_ms).
+- **DB-20**: `transactional()` resolves through `getDb()` instead of the
+  cached variable — the pre-init/post-close windows no longer silently run
+  the callback NON-transactionally; headless test environments keep the
+  direct-execution contract via the catch.
+
+Gate: db-migrations + schema-init + database + loop-db-integration suites
+9 passed / 15 skipped (ABI cohort unchanged); tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-15: RAG vector-row integrity on delete (DB-4, DB-18)
 
 - **DB-4**: `deleteCollection` deleted the collection (FK cascades docs →

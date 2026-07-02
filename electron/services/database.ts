@@ -37,6 +37,34 @@ function openDatabaseHandle(dbPath: string): Database.Database {
 
 export function getDb(): Database.Database {
   if (!db) {
+    // JM-16 (DB-5) — if ANY part of the open/schema/migration block throws,
+    // close and null the handle so the next caller re-attempts the FULL
+    // init. The old code assigned `db` before initLegacySchema/runMigrations
+    // ran: a throw propagated once, then every later caller silently got the
+    // un-migrated handle — the exact amplifier behind the v0.9.2 incident
+    // (user_version stuck at 0, per-INSERT failures at runtime), and it made
+    // the downgrade-refusal guard first-caller-only.
+    try {
+      openAndInit()
+    } catch (err) {
+      // TS can't see openAndInit's assignment to the module-level handle.
+      const handle = db as Database.Database | null
+      if (handle) {
+        try {
+          handle.close()
+        } catch {
+          // already unusable
+        }
+      }
+      db = null
+      throw err
+    }
+  }
+  return db!
+}
+
+function openAndInit(): void {
+  {
     const dbPath = join(app.getPath('userData'), 'lamprey.db')
     db = openDatabaseHandle(dbPath)
     if (!persistenceReadOnlyMode) {
@@ -86,7 +114,6 @@ export function getDb(): Database.Database {
       console.warn('[db] startup integrity_check failed:', err)
     }
   }
-  return db
 }
 
 // PS2 — WAL checkpoint result. Exported so the Persistence Settings
@@ -390,12 +417,17 @@ export function isPersistenceReadOnlyMode(): boolean {
  * Returns whatever `fn` returns.
  */
 export function transactional<T>(fn: () => T): T {
-  const target = db
-  if (!target) {
-    // No cached DB means we're in a test that hasn't opened one, or
-    // the pre-init startup window. In either case, falling back to
-    // executing fn directly preserves the caller's contract without
-    // requiring them to predict which case they're in.
+  // JM-16 (DB-20) — resolve through getDb() instead of the cached variable.
+  // The old `if (!db) return fn()` silently degraded to NON-transactional
+  // execution in the pre-init window or after closeDb: callers relying on
+  // rollback semantics got partial writes with no signal. getDb() either
+  // opens/initializes the real handle or throws — the honest outcomes. Test
+  // environments without a DB take the catch: getDb's throw is classed as
+  // unavailability and fn runs directly, preserving the old test contract.
+  let target: Database.Database
+  try {
+    target = getDb()
+  } catch {
     return fn()
   }
   let result!: T

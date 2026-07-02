@@ -20,6 +20,7 @@ export const LOOP_SCHEMA_SQL = `
     token_budget INTEGER,
     iteration INTEGER NOT NULL DEFAULT 0,
     tokens_used INTEGER NOT NULL DEFAULT 0,
+    active_ms INTEGER NOT NULL DEFAULT 0,
     started_at INTEGER,
     last_iteration_at INTEGER,
     next_fire_at INTEGER,

@@ -111,7 +111,13 @@ export function registerLoopsHandlers(): void {
           mode,
           instruction,
           model,
-          intervalSeconds: typeof input.intervalSeconds === 'number' ? input.intervalSeconds : null,
+          // JM-6 (LP-19) — reject NaN/Infinity: computeNextFire's Math.max
+          // with NaN stored NULL, which listDueLoops treats as always-due
+          // (a 30s-cadence loop regardless of the requested interval).
+          intervalSeconds:
+            typeof input.intervalSeconds === 'number' && Number.isFinite(input.intervalSeconds)
+              ? input.intervalSeconds
+              : null,
           maxIterations: cfg.maxIterations,
           maxWallclockMs: cfg.maxWallclockMs,
           tokenBudget: cfg.tokenBudget,

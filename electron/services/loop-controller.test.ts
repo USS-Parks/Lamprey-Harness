@@ -30,6 +30,7 @@ function makeLoop(over: Partial<Loop> = {}): Loop {
     tokenBudget: null,
     iteration: 0,
     tokensUsed: 0,
+    activeMs: 0,
     startedAt: 1000,
     lastIterationAt: null,
     nextFireAt: 0,
@@ -125,9 +126,15 @@ describe('checkCeilings (pure)', () => {
     const d = checkCeilings(makeLoop({ iteration: 5, maxIterations: 5 }), 5000)
     expect(d).toMatchObject({ stop: true, reason: 'max-iterations', status: 'done' })
   })
-  it('stops at max wall-clock', () => {
-    const d = checkCeilings(makeLoop({ startedAt: 1000, maxWallclockMs: 500 }), 1600)
+  it('stops at max wall-clock (JM-6: counts activeMs, not calendar age)', () => {
+    const d = checkCeilings(makeLoop({ activeMs: 600, maxWallclockMs: 500 }), 1600)
     expect(d).toMatchObject({ stop: true, reason: 'max-wallclock' })
+  })
+  it('idle time between iterations is free (JM-6 / LP-11)', () => {
+    // Old semantics: startedAt=1000 vs now=10_000_000 would have stopped this
+    // loop. A slow-cadence /loop 1h with almost no active work keeps running.
+    const d = checkCeilings(makeLoop({ startedAt: 1000, activeMs: 10, maxWallclockMs: 500 }), 10_000_000)
+    expect(d.stop).toBe(false)
   })
   it('stops at token budget', () => {
     const d = checkCeilings(makeLoop({ tokensUsed: 200, tokenBudget: 150 }), 5000)
@@ -136,6 +143,10 @@ describe('checkCeilings (pure)', () => {
   it('ignores a zero/null token budget', () => {
     expect(checkCeilings(makeLoop({ tokensUsed: 9999, tokenBudget: 0 }), 5000).stop).toBe(false)
     expect(checkCeilings(makeLoop({ tokensUsed: 9999, tokenBudget: null }), 5000).stop).toBe(false)
+  })
+  it('zero disables ALL ceilings, matching the app-wide convention (JM-6 / LP-17)', () => {
+    expect(checkCeilings(makeLoop({ iteration: 9999, maxIterations: 0 }), 5000).stop).toBe(false)
+    expect(checkCeilings(makeLoop({ activeMs: 9_999_999, maxWallclockMs: 0 }), 5000).stop).toBe(false)
   })
 })
 

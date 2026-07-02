@@ -44,22 +44,24 @@ export interface CeilingDecision {
  * Hard ceilings. Checked BEFORE an iteration (so a loop that already hit a cap
  * never runs another turn) and AFTER (so the cap that the just-finished turn
  * crossed stops the loop). Returns `{stop:false}` when the loop may continue.
+ *
+ * JM-6 semantics: `0` (or null) DISABLES a ceiling — matching the app-wide
+ * Timeouts-phase convention — for all three caps, not just tokenBudget. The
+ * wall-clock ceiling counts `activeMs` (cumulative in-turn time), not calendar
+ * age: a `/loop 1h` slow-cadence or user-paused loop no longer dies of idle
+ * time between iterations.
  */
 export function checkCeilings(
   loop: Pick<
     Loop,
-    'iteration' | 'maxIterations' | 'maxWallclockMs' | 'tokenBudget' | 'tokensUsed' | 'startedAt'
+    'iteration' | 'maxIterations' | 'maxWallclockMs' | 'tokenBudget' | 'tokensUsed' | 'activeMs'
   >,
-  now: number
+  _now: number
 ): CeilingDecision {
-  if (loop.maxIterations != null && loop.iteration >= loop.maxIterations) {
+  if (loop.maxIterations != null && loop.maxIterations > 0 && loop.iteration >= loop.maxIterations) {
     return { stop: true, status: 'done', reason: 'max-iterations' }
   }
-  if (
-    loop.maxWallclockMs != null &&
-    loop.startedAt != null &&
-    now - loop.startedAt >= loop.maxWallclockMs
-  ) {
+  if (loop.maxWallclockMs != null && loop.maxWallclockMs > 0 && loop.activeMs >= loop.maxWallclockMs) {
     return { stop: true, status: 'done', reason: 'max-wallclock' }
   }
   if (loop.tokenBudget != null && loop.tokenBudget > 0 && loop.tokensUsed >= loop.tokenBudget) {
@@ -297,10 +299,12 @@ export async function runLoopIteration(
     deps.store.updateBacklogItem(item.id, { status: 'done', finishedAt })
 
     const newTokens = loop.tokensUsed + turnTokens
+    const newActive = loop.activeMs + Math.max(0, finishedAt - startedAt)
     const advanced: Loop = {
       ...loop,
       iteration: nextIteration,
-      tokensUsed: newTokens
+      tokensUsed: newTokens,
+      activeMs: newActive
     }
 
     // 6a. Backlog drained → done.
@@ -308,6 +312,7 @@ export async function runLoopIteration(
       deps.store.updateLoop(loop.id, {
         iteration: nextIteration,
         tokensUsed: newTokens,
+        activeMs: newActive,
         lastIterationAt: finishedAt,
         status: 'done',
         stopReason: 'backlog-empty',
@@ -324,6 +329,7 @@ export async function runLoopIteration(
       deps.store.updateLoop(loop.id, {
         iteration: nextIteration,
         tokensUsed: newTokens,
+        activeMs: newActive,
         lastIterationAt: finishedAt,
         status: post.status,
         stopReason: post.reason,
@@ -343,6 +349,7 @@ export async function runLoopIteration(
       deps.store.updateLoop(loop.id, {
         iteration: nextIteration,
         tokensUsed: newTokens,
+        activeMs: newActive,
         lastIterationAt: finishedAt
       })
       emit('loop:iteration:done', { id: loop.id, iteration: nextIteration })
@@ -350,15 +357,18 @@ export async function runLoopIteration(
       return { ran: true, stopped: true, reason: fresh.stopReason ?? fresh.status }
     }
 
-    // Continue — schedule the next iteration. Self-paced honours a future
-    // next-fire the model set this turn; otherwise the per-mode default.
+    // Continue — schedule the next iteration. A future next-fire the model
+    // set this turn (loop_control continue) wins in EVERY mode — JM-6 (LP-22);
+    // it used to be honoured only for self-paced, so an autonomous loop's
+    // requested backoff was clobbered by the 30s floor.
     let nextFire = computeNextFire(loop, now(), deps.minIntervalSeconds)
-    if (loop.mode === 'self_paced' && fresh && fresh.nextFireAt != null && fresh.nextFireAt > now()) {
+    if (fresh && fresh.nextFireAt != null && fresh.nextFireAt > now()) {
       nextFire = fresh.nextFireAt
     }
     deps.store.updateLoop(loop.id, {
       iteration: nextIteration,
       tokensUsed: newTokens,
+      activeMs: newActive,
       lastIterationAt: finishedAt,
       nextFireAt: nextFire
     })
@@ -366,6 +376,19 @@ export async function runLoopIteration(
     return { ran: true, stopped: false }
   } catch (err) {
     const finishedAt = now()
+    // JM-6 (LP-18) — failed/timed-out turns still spent real time and tokens.
+    // Account a best-effort estimate (the prompt is all we have) and run the
+    // post-flight ceilings, so a persistently-erroring loop is stopped by the
+    // same caps as a healthy one instead of only the pre-flight check.
+    const errTokens = estimateTokens(prompt)
+    const errActive = loop.activeMs + Math.max(0, finishedAt - startedAt)
+    const errAdvanced: Loop = {
+      ...loop,
+      iteration: nextIteration,
+      tokensUsed: loop.tokensUsed + errTokens,
+      activeMs: errActive
+    }
+    const errPost = checkCeilings(errAdvanced, now())
     if (timedOut) {
       // Watchdog tripped — record the run as a timeout, mark the item error,
       // and advance (the iteration counter still ticks toward maxIterations).
@@ -375,14 +398,18 @@ export async function runLoopIteration(
         result: `iteration timed out after ${iterationTimeoutMs} ms`,
         finishedAt
       })
-      const nextFire = computeNextFire(loop, now(), deps.minIntervalSeconds)
       deps.store.updateLoop(loop.id, {
         iteration: nextIteration,
+        tokensUsed: errAdvanced.tokensUsed,
+        activeMs: errActive,
         lastIterationAt: finishedAt,
-        nextFireAt: nextFire
+        ...(errPost.stop
+          ? { status: errPost.status, stopReason: errPost.reason, nextFireAt: null }
+          : { nextFireAt: computeNextFire(loop, now(), deps.minIntervalSeconds) })
       })
       emit('loop:iteration:error', { id: loop.id, iteration: nextIteration, error: 'timeout' })
-      return { ran: true, stopped: false, error: 'iteration timed out', timedOut: true }
+      if (errPost.stop) emit('loop:stopped', { id: loop.id, reason: errPost.reason })
+      return { ran: true, stopped: errPost.stop, reason: errPost.reason, error: 'iteration timed out', timedOut: true }
     }
     const msg = err instanceof Error ? err.message : String(err)
     deps.store.finishLoopRun(run.id, { status: 'error', finishedAt })
@@ -390,14 +417,18 @@ export async function runLoopIteration(
     // A failed iteration marks the item error and advances; the loop keeps
     // going (the iteration counter still ticks toward maxIterations, so a
     // persistently-failing loop can't spin forever). Schedule the next fire.
-    const nextFire = computeNextFire(loop, now(), deps.minIntervalSeconds)
     deps.store.updateLoop(loop.id, {
       iteration: nextIteration,
+      tokensUsed: errAdvanced.tokensUsed,
+      activeMs: errActive,
       lastIterationAt: finishedAt,
-      nextFireAt: nextFire
+      ...(errPost.stop
+        ? { status: errPost.status, stopReason: errPost.reason, nextFireAt: null }
+        : { nextFireAt: computeNextFire(loop, now(), deps.minIntervalSeconds) })
     })
     emit('loop:iteration:error', { id: loop.id, iteration: nextIteration, error: msg })
-    return { ran: true, stopped: false, error: msg }
+    if (errPost.stop) emit('loop:stopped', { id: loop.id, reason: errPost.reason })
+    return { ran: true, stopped: errPost.stop, reason: errPost.reason, error: msg }
   } finally {
     if (watchdogTimer) clearTimeout(watchdogTimer)
     if (activeIterationAborts.get(loop.id) === watchdog) {

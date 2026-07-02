@@ -72,6 +72,12 @@ export function parseCron(expr: string): CronExpr {
   }
 }
 
+// Cron matching uses LOCAL wall-time at minute granularity, and the tick only
+// tests the current minute — missed minutes are skipped, not replayed. Two
+// documented consequences (JM-6 / LP-23): a daily job scheduled inside the
+// spring-forward DST gap (e.g. 02:30) does not fire that day, and a job whose
+// minute coincides exactly with app boot is missed (the first tick aligns to
+// the NEXT minute boundary). Loops use epoch-ms scheduling and are immune.
 function matches(expr: CronExpr, d: Date): boolean {
   return (
     expr.minutes.has(d.getMinutes()) &&
@@ -83,7 +89,7 @@ function matches(expr: CronExpr, d: Date): boolean {
 }
 
 let timer: NodeJS.Timeout | null = null
-const lastFiredMinute = new Map<string, number>()
+const lastFiredMinute = new Map<string, string>()
 
 // JM-3 (LP-16) — one run of an automation at a time. An every-minute
 // automation whose chatOnce takes >60s otherwise stacks unbounded
@@ -217,6 +223,10 @@ function tick(): void {
     return
   }
   const now = new Date()
+  // JM-6 (LP-7) — the dedup key MUST be date-qualified. The old key was
+  // Number(`${hours}${minutes}`), which never changes across days for a daily
+  // cron (fired once per app session) and collides across times (1:23 and
+  // 12:03 both → 123).
   const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`
   for (const a of autos) {
     if (!a.enabled) continue
@@ -228,12 +238,11 @@ function tick(): void {
     }
     if (!matches(expr, now)) continue
     // Guard against double-firing within the same minute (timer may drift).
-    if (lastFiredMinute.get(a.id) === Number(`${now.getHours()}${now.getMinutes()}`)) continue
-    lastFiredMinute.set(a.id, Number(`${now.getHours()}${now.getMinutes()}`))
+    if (lastFiredMinute.get(a.id) === minuteKey) continue
+    lastFiredMinute.set(a.id, minuteKey)
     // Trim the dedup map occasionally so it doesn't grow unbounded.
     if (lastFiredMinute.size > 256) lastFiredMinute.clear()
     void runOne(a.id)
-    void minuteKey
   }
 }
 

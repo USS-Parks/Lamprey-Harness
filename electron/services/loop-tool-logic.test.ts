@@ -24,6 +24,7 @@ function makeLoop(over: Partial<Loop> = {}): Loop {
     tokenBudget: null,
     iteration: 0,
     tokensUsed: 0,
+    activeMs: 0,
     startedAt: 0,
     lastIterationAt: null,
     nextFireAt: 0,

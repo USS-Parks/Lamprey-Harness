@@ -28,6 +28,9 @@ export interface Loop {
   tokenBudget: number | null
   iteration: number
   tokensUsed: number
+  /** JM-6 — cumulative milliseconds spent inside turns. The max-wallclock
+   *  ceiling counts this, not calendar age, so idle/paused time is free. */
+  activeMs: number
   startedAt: number | null
   lastIterationAt: number | null
   nextFireAt: number | null
@@ -101,6 +104,7 @@ function rowToLoop(row: any): Loop {
     tokenBudget: row.token_budget ?? null,
     iteration: row.iteration,
     tokensUsed: row.tokens_used,
+    activeMs: row.active_ms ?? 0,
     startedAt: row.started_at ?? null,
     lastIterationAt: row.last_iteration_at ?? null,
     nextFireAt: row.next_fire_at ?? null,
@@ -157,6 +161,7 @@ export function createLoop(input: CreateLoopInput): Loop {
     token_budget: input.tokenBudget ?? null,
     iteration: 0,
     tokens_used: 0,
+    active_ms: 0,
     started_at: now,
     last_iteration_at: null,
     next_fire_at: input.nextFireAt ?? now,
@@ -168,10 +173,10 @@ export function createLoop(input: CreateLoopInput): Loop {
     .prepare(
       `INSERT INTO loops
        (id, conversation_id, mode, status, instruction, model, interval_seconds,
-        max_iterations, max_wallclock_ms, token_budget, iteration, tokens_used,
+        max_iterations, max_wallclock_ms, token_budget, iteration, tokens_used, active_ms,
         started_at, last_iteration_at, next_fire_at, stop_reason, created_at, updated_at)
        VALUES (@id, @conversation_id, @mode, @status, @instruction, @model, @interval_seconds,
-        @max_iterations, @max_wallclock_ms, @token_budget, @iteration, @tokens_used,
+        @max_iterations, @max_wallclock_ms, @token_budget, @iteration, @tokens_used, @active_ms,
         @started_at, @last_iteration_at, @next_fire_at, @stop_reason, @created_at, @updated_at)`
     )
     .run(row)
@@ -230,6 +235,7 @@ const LOOP_PATCH_COLUMNS: Record<string, string> = {
   tokenBudget: 'token_budget',
   iteration: 'iteration',
   tokensUsed: 'tokens_used',
+  activeMs: 'active_ms',
   startedAt: 'started_at',
   lastIterationAt: 'last_iteration_at',
   nextFireAt: 'next_fire_at',
@@ -248,6 +254,7 @@ export function updateLoop(
     tokenBudget: number | null
     iteration: number
     tokensUsed: number
+    activeMs: number
     startedAt: number | null
     lastIterationAt: number | null
     nextFireAt: number | null

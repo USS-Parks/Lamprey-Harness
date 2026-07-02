@@ -1,3 +1,36 @@
+## 2026-07-02 — JM-6: Loop ceiling + scheduling semantics (LP-7, LP-11, LP-17, LP-18, LP-19, LP-22, LP-23)
+
+- **LP-11 / migration v18**: `loops.active_ms` — the max-wallclock ceiling now
+  counts cumulative in-turn time, not calendar age. Old behaviour killed a
+  `/loop 1h <task>` at its second pre-flight (default 30-min cap vs 1-hour
+  interval) and instantly finished any loop paused overnight. Fresh DBs get
+  the column from the shared LOOP_SCHEMA_SQL; existing DBs from the v18 ALTER
+  (duplicate-tolerant since v17 shares the DDL).
+- **LP-17**: `0` disables ALL three ceilings (was: tokenBudget only; a
+  hand-edited `loopMaxIterations: 0` insta-killed every loop, opposite of the
+  Timeouts-phase "0 disables" convention).
+- **LP-18**: error/timeout iterations now record a best-effort token estimate
+  and run the post-flight ceiling check — a persistently-erroring loop stops
+  on the same caps as a healthy one.
+- **LP-7**: automation dedup key is the date-qualified minuteKey; the old
+  HHMM number fired a daily cron once per app session and collided across
+  times (1:23 vs 12:03).
+- **LP-19**: `loops:create` rejects non-finite intervalSeconds (NaN became a
+  NULL next_fire_at = always-due 30s loop).
+- **LP-22**: a future nextFireAt set via `loop_control continue` is honoured
+  in every mode (was self-paced only; autonomous backoff requests were
+  clobbered by the floor).
+- **LP-23**: documented the local-time / skip-missed-minutes / DST-gap cron
+  semantics at `matches()`.
+
+Tests: wall-clock ceiling tests rewritten to the activeMs contract + new
+idle-time-is-free and zero-disables locks.
+
+Gate: 7 loop/migration suites — 76 passed, 8 skipped (node:sqlite cohort
+unchanged); tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-5: The loops master toggle gates every entry point (LP-4, LP-5, LP-6, LP-14)
 
 The v0.15.x `loopsEnabled` gate covered exactly loops:create + loops:resume —

@@ -201,6 +201,22 @@ export const MIGRATIONS: Migration[] = [
       // the EXACT same statements (loop-db-integration.test.ts).
       db.exec(LOOP_SCHEMA_SQL)
     }
+  },
+  {
+    version: 18,
+    description:
+      'JM-6 loops.active_ms — cumulative in-turn time per loop, so the ' +
+      'max-wallclock ceiling counts work instead of calendar time (a paused ' +
+      'or slow-cadence loop no longer dies of idle age)',
+    up(db) {
+      // Fresh DBs already have the column via the shared LOOP_SCHEMA_SQL in
+      // v17, so tolerate the duplicate.
+      try {
+        db.exec('ALTER TABLE loops ADD COLUMN active_ms INTEGER NOT NULL DEFAULT 0;')
+      } catch (err: any) {
+        if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+      }
+    }
   }
 ]
 

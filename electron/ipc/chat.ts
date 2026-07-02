@@ -465,7 +465,8 @@ export function registerChatHandlers(): void {
     runHeadlessTurn({
       conversationId: runnerInput.conversationId,
       model: runnerInput.model,
-      promptBody: runnerInput.promptBody
+      promptBody: runnerInput.promptBody,
+      signal: runnerInput.signal
     })
   )
 }
@@ -659,6 +660,32 @@ export async function runHeadlessTurn(input: {
     const replyContent = (result as { message?: { content?: unknown } }).message?.content
     const replyChars = typeof replyContent === 'string' ? replyContent.length : 0
     return { message: (result as { message: unknown }).message, tokensEstimate: Math.ceil((promptChars + replyChars) / 4) }
+  } catch (err) {
+    // JM-4 (CC-9) — ghost-reply guard for headless callers. The SP-4 guard
+    // lived only in chat:send's catch, so a failed loop iteration or wake-up
+    // turn left the injected user message permanently unanswered (the exact
+    // G1/D5 ghost class). Persist the notice here so every caller gets it;
+    // chat:send's own guard then sees the system row and stands down.
+    try {
+      const errObj = err instanceof Error ? err : { message: String(err) }
+      if (!isUserAbortError(errObj)) {
+        const rows = convStore.getMessages(conversationId)
+        if (turnEndedGhosted(rows)) {
+          const notice = convStore.saveMessage({
+            id: randomUUID(),
+            conversationId,
+            role: 'system',
+            content: buildGhostReplyNotice(errObj.message),
+            model: 'lamprey-safety-net',
+            stage: 'system'
+          })
+          emitChatEvent('chat:done', { conversationId, message: notice })
+        }
+      }
+    } catch (guardErr) {
+      console.error('[chat] headless ghost-reply guard failed:', guardErr)
+    }
+    throw err
   } finally {
     activeAbortControllers.delete(conversationId)
     drainPendingDocuments(correlationId)

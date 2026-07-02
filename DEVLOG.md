@@ -1,3 +1,29 @@
+## 2026-07-02 — JM-4: Watchdog signal threading + stop aborts + headless ghost guard (LP-3, LP-15, CC-9)
+
+- **LP-3**: the per-iteration stall watchdog was disconnected in production —
+  `runLoopIteration` passed `signal: watchdog.signal`, but the production
+  `runTurn` seam dropped it, `LoopTurnRunner` had no signal field, and the
+  chat.ts wiring never forwarded one, even though `runHeadlessTurn` accepts
+  `signal`. A hung provider stream therefore never settled the await: run row
+  stuck `running`, backlog item stuck `in_progress`, and (pre-JM-3) each tick
+  piled on another hung turn. The signal is now threaded end-to-end, and the
+  watchdog additionally races a rejection so even a runner that ignores the
+  signal cannot wedge the iteration.
+- **LP-15**: `loops:stop` / `loops:pause` only flipped DB status; the running
+  turn kept streaming and spending until the provider finished. A loopId-keyed
+  `activeIterationAborts` registry now lets both handlers abort the in-flight
+  turn.
+- **CC-9**: the SP-4 ghost-reply guard lived only in `chat:send`'s catch; a
+  failed loop/wake-up turn was just console.error'd, leaving the injected user
+  message permanently unanswered (the G1/D5 ghost class the guard was built
+  for). The guard now lives in `runHeadlessTurn`'s own catch, so every caller
+  gets it; chat:send's copy stands down when the notice row already exists.
+
+Gate: loop-turn-wiring (4 new locks) + loop-controller + chat-validation
+47/47 green; tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-3: Loop/wake-up/automation overlap guards (LP-2, LP-8, LP-16)
 
 Three concurrency holes from the audit, one theme — nothing prevented the same

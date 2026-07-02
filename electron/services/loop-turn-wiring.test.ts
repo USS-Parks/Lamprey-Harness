@@ -62,3 +62,35 @@ describe('JM-3 overlap guards', () => {
     expect(src).toMatch(/runningAutomations\.delete\(autoId\)/)
   })
 })
+
+describe('JM-4 watchdog signal + abort + headless ghost guard', () => {
+  it('the abort signal is threaded end-to-end: controller → runner type → runHeadlessTurn', () => {
+    const controller = read('electron/services/loop-controller.ts')
+    expect(controller).toMatch(/signal: input\.signal/)
+    const runner = read('electron/services/loop-runner.ts')
+    expect(runner).toMatch(/signal\?: AbortSignal/)
+    const chat = read('electron/ipc/chat.ts')
+    expect(chat).toMatch(/signal: runnerInput\.signal/)
+  })
+
+  it('the watchdog races a rejection so an ignoring runner cannot wedge the iteration', () => {
+    const src = read('electron/services/loop-controller.ts')
+    expect(src).toMatch(/Promise\.race\(\[\s*\n\s*turnPromise/)
+    expect(src).toMatch(/void turnPromise\.catch\(\(\) => \{\}\)/)
+  })
+
+  it('loops:stop and loops:pause abort the in-flight iteration', () => {
+    const src = read('electron/ipc/loops.ts')
+    const stop = src.slice(src.indexOf("'loops:stop'"))
+    const pause = src.slice(src.indexOf("'loops:pause'"))
+    expect(stop).toMatch(/abortLoopIteration\(id\)/)
+    expect(pause).toMatch(/abortLoopIteration\(id\)/)
+  })
+
+  it('runHeadlessTurn has its own ghost-reply guard (loop/wake-up turns are covered)', () => {
+    const src = read('electron/ipc/chat.ts')
+    const fn = src.slice(src.indexOf('export async function runHeadlessTurn'))
+    expect(fn).toMatch(/turnEndedGhosted\(rows\)/)
+    expect(fn).toMatch(/buildGhostReplyNotice\(/)
+  })
+})

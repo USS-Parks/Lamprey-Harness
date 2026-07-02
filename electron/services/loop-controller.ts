@@ -257,8 +257,13 @@ export async function runLoopIteration(
   // 5. Run the turn under a per-iteration stall watchdog. If the turn exceeds
   // the wall-clock budget, abort it via the signal and treat it as a timeout —
   // the item is marked error so the loop advances rather than wedging.
+  // JM-4: the signal now actually reaches runHeadlessTurn (LP-3), the watchdog
+  // ALSO races a rejection so a runner that ignores the signal can't wedge the
+  // await, and the controller is registered so loops:stop/pause can abort the
+  // in-flight turn (LP-15).
   const iterationTimeoutMs = deps.iterationTimeoutMs ?? 0
   const watchdog = new AbortController()
+  activeIterationAborts.set(loop.id, watchdog)
   let timedOut = false
   const watchdogTimer =
     iterationTimeoutMs > 0
@@ -268,12 +273,24 @@ export async function runLoopIteration(
         }, iterationTimeoutMs)
       : null
   try {
-    const result = await deps.runTurn({
+    const turnPromise = deps.runTurn({
       conversationId: loop.conversationId,
       model: loop.model ?? 'deepseek-v4-pro',
       promptBody: prompt,
       signal: watchdog.signal
     })
+    const result = await Promise.race([
+      turnPromise,
+      new Promise<never>((_, reject) => {
+        const onAbort = (): void =>
+          reject(new Error(timedOut ? 'iteration watchdog abort' : 'iteration aborted'))
+        if (watchdog.signal.aborted) onAbort()
+        else watchdog.signal.addEventListener('abort', onAbort, { once: true })
+      })
+    ])
+    // The raced turn may still settle later; swallow its rejection so an
+    // aborted-but-ignoring runner never surfaces an unhandled rejection.
+    void turnPromise.catch(() => {})
     const turnTokens = tokensFrom(result)
     const finishedAt = now()
     deps.store.finishLoopRun(run.id, { status: 'done', tokensUsed: turnTokens, finishedAt })
@@ -383,7 +400,23 @@ export async function runLoopIteration(
     return { ran: true, stopped: false, error: msg }
   } finally {
     if (watchdogTimer) clearTimeout(watchdogTimer)
+    if (activeIterationAborts.get(loop.id) === watchdog) {
+      activeIterationAborts.delete(loop.id)
+    }
   }
+}
+
+// JM-4 (LP-15) — in-flight iteration abort registry. loops:stop / loops:pause
+// flip DB status, which prevents RESCHEDULING, but the running turn kept
+// streaming (and spending) until the provider finished. The IPC handlers now
+// abort it here.
+const activeIterationAborts = new Map<string, AbortController>()
+
+export function abortLoopIteration(loopId: string): boolean {
+  const controller = activeIterationAborts.get(loopId)
+  if (!controller) return false
+  controller.abort()
+  return true
 }
 
 // ---------------------------------------------------------------------------
@@ -426,7 +459,8 @@ function productionDeps(): LoopIterationDeps {
       const result = await runner({
         conversationId: input.conversationId,
         model: input.model,
-        promptBody: input.promptBody
+        promptBody: input.promptBody,
+        signal: input.signal
       })
       // runHeadlessTurn returns a context-aware { tokensEstimate } counting the
       // full sent message stack (system prompt + history + prompt) plus reply —

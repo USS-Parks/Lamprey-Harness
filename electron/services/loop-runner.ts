@@ -38,6 +38,10 @@ export type LoopTurnRunner = (input: {
   conversationId: string
   model: string
   promptBody?: string
+  /** JM-4 (LP-3) — abort signal from the caller's watchdog/stop control.
+   *  runHeadlessTurn accepts it; dropping it here was what disconnected the
+   *  per-iteration stall watchdog in production. */
+  signal?: AbortSignal
 }) => Promise<unknown>
 
 let turnRunner: LoopTurnRunner | null = null

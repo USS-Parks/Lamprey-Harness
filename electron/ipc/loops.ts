@@ -20,6 +20,7 @@ import {
   type LoopStatus
 } from '../services/loop-store'
 import { readLoopConfig } from '../services/loop-config'
+import { abortLoopIteration } from '../services/loop-controller'
 import { createConversation, getConversation } from '../services/conversation-store'
 
 export function registerLoopsHandlers(): void {
@@ -145,6 +146,10 @@ export function registerLoopsHandlers(): void {
 
   ipcMain.handle('loops:pause', async (_event, id: string) => {
     try {
+      // JM-4 (LP-15) — pausing also aborts the in-flight turn; before this,
+      // the status flip only prevented rescheduling while the running
+      // iteration kept streaming (and spending) to completion.
+      abortLoopIteration(id)
       return { success: true, data: updateLoop(id, { status: 'paused', nextFireAt: null }) }
     } catch (err) {
       return { success: false, error: messageFor(err, 'pause failed') }
@@ -164,6 +169,7 @@ export function registerLoopsHandlers(): void {
 
   ipcMain.handle('loops:stop', async (_event, id: string, reason?: string) => {
     try {
+      abortLoopIteration(id)
       return {
         success: true,
         data: updateLoop(id, { status: 'stopped', stopReason: reason || 'user-stop', nextFireAt: null })

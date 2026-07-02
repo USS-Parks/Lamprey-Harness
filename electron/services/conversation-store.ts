@@ -418,8 +418,13 @@ function ftsDeleteMessagesForConversation(conversationId: string): void {
 // re-surfacing the discarded content.
 export function clearConversationMessages(conversationId: string): void {
   const db = getDb()
-  db.prepare('DELETE FROM messages WHERE conversation_id = ?').run(conversationId)
-  ftsDeleteMessagesForConversation(conversationId)
+  // JM-17 (DB-21) — one transaction: a crash between the row delete and the
+  // FTS delete left sessions_fts returning hits for messages that no longer
+  // existed.
+  db.transaction((convId: string) => {
+    db.prepare('DELETE FROM messages WHERE conversation_id = ?').run(convId)
+    ftsDeleteMessagesForConversation(convId)
+  })(conversationId)
 }
 
 function ftsDeleteMessage(messageId: string): void {
@@ -503,11 +508,48 @@ void ftsDeleteMessage
 
 export function deleteConversation(id: string) {
   const db = getDb()
-  db.prepare('DELETE FROM conversations WHERE id = ?').run(id)
-  // plan_steps / goals have no FK to conversations (the '__global__' bucket and
-  // ephemeral runs need rows without a conversation row), so clear them here.
+  // JM-17 (DB-10) — five row families have NO FK to conversations and were
+  // orphaned forever on delete: tool_calls, rag_retrievals,
+  // conversation_rag_attachments, loop_wakeups, and loops (whose still-
+  // `running` rows kept firing headless turns that failed on the messages FK
+  // every interval). All of it now goes in ONE transaction with the row
+  // delete and the FTS cleanup, so a crash can't leave ghost search hits or
+  // half-deleted state. Older DBs may lack some tables — those deletes are
+  // individually tolerant.
+  const safeRun = (sql: string, param: string): void => {
+    try {
+      db.prepare(sql).run(param)
+    } catch (err) {
+      console.warn('[conversation-store] cascade delete skipped:', (err as Error).message)
+    }
+  }
+  const tx = db.transaction((convId: string) => {
+    let loopIds: string[] = []
+    try {
+      loopIds = (
+        db.prepare('SELECT id FROM loops WHERE conversation_id = ?').all(convId) as Array<{
+          id: string
+        }>
+      ).map((r) => r.id)
+    } catch {
+      // loops tables absent on pre-v17 DBs
+    }
+    for (const loopId of loopIds) {
+      safeRun('DELETE FROM loop_backlog WHERE loop_id = ?', loopId)
+      safeRun('DELETE FROM loop_runs WHERE loop_id = ?', loopId)
+    }
+    safeRun('DELETE FROM loops WHERE conversation_id = ?', convId)
+    safeRun('DELETE FROM loop_wakeups WHERE conversation_id = ?', convId)
+    safeRun('DELETE FROM tool_calls WHERE conversation_id = ?', convId)
+    safeRun('DELETE FROM rag_retrievals WHERE conversation_id = ?', convId)
+    safeRun('DELETE FROM conversation_rag_attachments WHERE conversation_id = ?', convId)
+    db.prepare('DELETE FROM conversations WHERE id = ?').run(convId)
+    ftsDeleteAllForConversation(convId)
+  })
+  tx(id)
+  // plan_steps / goals live in their own store (memory + its own persistence),
+  // outside this transaction by design.
   clearConversationState(id)
-  ftsDeleteAllForConversation(id)
 }
 
 export function updateConversationTitle(id: string, title: string) {
@@ -690,38 +732,43 @@ export function saveMessage(msg: {
   // This is the single highest-frequency writer in the app; a dropped
   // row leaves the renderer's optimistic-updated bubble without DB
   // backing on the next reload.
-  withWriteRetry(
-    () => {
-      db.prepare(
-        'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, draft, reasoning, documents, stage, content_raw, proof_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run(
-        msg.id,
-        msg.conversationId,
-        msg.role,
-        sanitizedContent,
-        msg.model || null,
-        msg.toolCallId || null,
-        toolCallsJson,
-        msg.draft || null,
-        split.reasoning || null,
-        documentsJson,
-        msg.stage || null,
-        contentRaw,
-        msg.proofStatus || null,
-        now
-      )
-      touchConversation(msg.conversationId)
-      // E3: keep the cross-session FTS index in sync. User/assistant
-      // bodies are the ones worth searching; system/tool messages are
-      // usually plumbing and would inflate the index with noise. We index
-      // the sanitised content so search matches what the user sees in the
-      // bubble, not the pseudo-XML.
-      if (msg.role === 'user' || msg.role === 'assistant') {
-        ftsInsertMessage(msg.id, msg.conversationId, sanitizedContent)
-      }
-    },
-    { label: 'conversation-store.saveMessage' }
-  )
+  //
+  // JM-17 (DB-6) — the group runs inside ONE transaction, which is what
+  // makes the retry idempotent: previously a BUSY on touchConversation
+  // re-ran the whole callback, the INSERT hit a PK violation (not BUSY, so
+  // it propagated), and the send was reported failed even though the row
+  // persisted. A crash between the INSERT and the FTS insert also left the
+  // message invisible to search forever.
+  const writeGroup = db.transaction(() => {
+    db.prepare(
+      'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, draft, reasoning, documents, stage, content_raw, proof_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      msg.id,
+      msg.conversationId,
+      msg.role,
+      sanitizedContent,
+      msg.model || null,
+      msg.toolCallId || null,
+      toolCallsJson,
+      msg.draft || null,
+      split.reasoning || null,
+      documentsJson,
+      msg.stage || null,
+      contentRaw,
+      msg.proofStatus || null,
+      now
+    )
+    touchConversation(msg.conversationId)
+    // E3: keep the cross-session FTS index in sync. User/assistant
+    // bodies are the ones worth searching; system/tool messages are
+    // usually plumbing and would inflate the index with noise. We index
+    // the sanitised content so search matches what the user sees in the
+    // bubble, not the pseudo-XML.
+    if (msg.role === 'user' || msg.role === 'assistant') {
+      ftsInsertMessage(msg.id, msg.conversationId, sanitizedContent)
+    }
+  })
+  withWriteRetry(() => writeGroup(), { label: 'conversation-store.saveMessage' })
   return {
     id: msg.id,
     conversationId: msg.conversationId,

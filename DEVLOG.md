@@ -1,3 +1,28 @@
+## 2026-07-02 — JM-17: Conversation-store write groups are transactional (DB-6, DB-10, DB-21)
+
+- **DB-6**: `saveMessage`'s INSERT + touchConversation + FTS insert ran as
+  three bare statements inside `withWriteRetry` — a BUSY on statement 2
+  re-ran the whole callback, the INSERT hit a PK violation (which propagated,
+  reporting the send failed even though the row persisted), and a crash
+  between INSERT and FTS left the message invisible to search forever. The
+  group is now ONE `db.transaction`, which is what makes the retry
+  idempotent.
+- **DB-10**: `deleteConversation` orphaned five row families with no FK to
+  conversations — `tool_calls`, `rag_retrievals`,
+  `conversation_rag_attachments`, `loop_wakeups`, and `loops` (a still-
+  running loop on a deleted conversation kept firing headless turns that
+  failed every interval). All families + the row delete + the FTS cleanup
+  now run in one transaction (table-tolerant for pre-v17 DBs); plan/goal
+  state stays outside by design (its own store).
+- **DB-21**: `clearConversationMessages` (the compact path) is one
+  transaction — no more ghost FTS hits after a crash between delete and
+  index cleanup.
+
+Gate: conversation-store suites green (native-binding cohort skips
+unchanged); tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-16: Database init hardening (DB-5, DB-19, DB-20)
 
 - **DB-5**: `getDb()` assigned the module handle BEFORE `initLegacySchema` /

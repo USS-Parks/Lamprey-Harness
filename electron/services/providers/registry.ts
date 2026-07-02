@@ -870,6 +870,16 @@ export async function chatStream(
       attemptStartedAt = Date.now()
       lastChunkAt = 0
       chunkCount = 0
+      // JM-9 (CC-2) — reset the accumulators for EVERY attempt. A mid-stream
+      // stall followed by a successful retry used to persist partial₁+full₂
+      // (duplicated prefix) and concatenate attempt-2 tool-call argument
+      // fragments onto attempt-1's partial call — malformed JSON args that
+      // then silently parsed to {}. The renderer's live buffer may briefly
+      // show the retried text twice; chat:done replaces it with the persisted
+      // (correct) message.
+      fullContent = ''
+      fullReasoning = ''
+      toolCallsAccumulator.clear()
       startVitalsHeartbeat()
       armInactivityTimer()
       trace('chatStream.attempt.start', { traceId, retries, attemptStartedAt })
@@ -1005,7 +1015,22 @@ export async function chatStream(
         if (delta?.tool_calls) {
           chunkKind = chunkKind === 'empty' ? 'tool_call' : chunkKind + '+tool_call'
           for (const tc of delta.tool_calls) {
-            const idx = tc.index
+            // JM-9 (CC-14) — loose OpenAI-compat layers can omit `index` on
+            // parallel tool calls; keying the Map on undefined merged every
+            // call into one corrupt entry with all argument strings
+            // concatenated. A chunk that announces a new id gets a fresh
+            // slot; an index-less fragment continues the last slot.
+            let idx: number
+            if (typeof tc.index === 'number') {
+              idx = tc.index
+            } else if (tc.id) {
+              const existing = Array.from(toolCallsAccumulator.entries()).find(
+                ([, a]) => a.id === tc.id
+              )
+              idx = existing ? existing[0] : toolCallsAccumulator.size
+            } else {
+              idx = Math.max(0, toolCallsAccumulator.size - 1)
+            }
             if (!toolCallsAccumulator.has(idx)) {
               toolCallsAccumulator.set(idx, {
                 id: tc.id || '',

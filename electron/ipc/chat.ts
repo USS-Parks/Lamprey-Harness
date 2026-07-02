@@ -33,7 +33,10 @@ import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
 import { mcpManager } from '../services/mcp-manager'
 import { listSkills, getSkillContent } from '../services/skill-loader'
-import { buildApiMessagesFromStoredMessages } from '../services/chat-history'
+import {
+  buildApiMessagesFromStoredMessages,
+  modelEchoesReasoningContent
+} from '../services/chat-history'
 import { toolRegistry, isMutatingDescriptor } from '../services/tool-registry'
 import { TOOL_SEARCH_TOOL_NAME } from '../services/model-tool-surface'
 import {
@@ -944,7 +947,11 @@ export async function runChatRound(
             role: 'assistant',
             content: fullContent || null,
             tool_calls: persistedToolCalls,
-            ...(fullReasoning && { reasoning_content: fullReasoning })
+            // JM-9 (CC-15) — echo reasoning only to models whose API contract
+            // wants it (DeepSeek V4, resolved through the retirement map);
+            // strict compat layers 400 on the nonstandard field.
+            ...(fullReasoning &&
+              modelEchoesReasoningContent(model) && { reasoning_content: fullReasoning })
           } as any)
 
           // Group the model's tool_calls into execution windows: contiguous

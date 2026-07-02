@@ -1,6 +1,7 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import type { StoredToolCall } from './conversation-store'
 import { readSettings } from './settings-helper'
+import { resolveModel } from './providers/registry'
 
 export interface StoredChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool'
@@ -20,9 +21,22 @@ export interface StoredChatMessage {
 
 const DEEPSEEK_V4_MODELS = new Set(['deepseek-v4-pro', 'deepseek-v4-flash'])
 
-function modelNeedsReasoningContentField(modelId?: string): boolean {
+/**
+ * True when the model wants prior chain-of-thought echoed back as a
+ * `reasoning_content` field (DeepSeek V4's documented contract). JM-9
+ * (CC-15): resolved through `resolveModel` so legacy rows/selections carrying
+ * a retired alias (`deepseek-chat`) get the v0.15.4 echo too, and exported so
+ * the in-turn tool-call echo in chat.ts uses the SAME gate — it used to send
+ * `reasoning_content` to every provider unconditionally, which strict
+ * OpenAI-compat layers can 400 on.
+ */
+export function modelEchoesReasoningContent(modelId?: string): boolean {
   if (!modelId) return false
-  return DEEPSEEK_V4_MODELS.has(modelId)
+  try {
+    return DEEPSEEK_V4_MODELS.has(resolveModel(modelId).id)
+  } catch {
+    return DEEPSEEK_V4_MODELS.has(modelId)
+  }
 }
 
 /** Reasoning Audit Phase R8 — read the `includePastReasoningInContext`
@@ -92,7 +106,7 @@ export function buildApiMessagesFromStoredMessages(
     { role: 'system' as const, content: systemPrompt }
   ]
   const includePastReasoning = shouldIncludePastReasoning()
-  const useReasoningField = modelNeedsReasoningContentField(modelId)
+  const useReasoningField = modelEchoesReasoningContent(modelId)
 
   let pendingAssistant:
     | (ChatCompletionMessageParam & { tool_calls: Array<{ id: string }> })

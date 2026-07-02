@@ -1,3 +1,30 @@
+## 2026-07-02 — JM-9: Stream retry + tool-call accumulator + reasoning echo (CC-2, CC-14, CC-15)
+
+- **CC-2**: `chatStream`'s `fullContent` / `fullReasoning` /
+  `toolCallsAccumulator` were never reset between retry attempts. A
+  mid-stream stall + successful retry persisted `partial₁+full₂` (duplicated
+  prefix) and concatenated attempt-2 tool-call argument fragments onto
+  attempt-1's partial call — malformed JSON that then silently parsed to `{}`
+  (compounding CC-6). All three reset at the top of every attempt. Honest
+  note: the renderer's live buffer can briefly show retried text twice during
+  the retry window; `chat:done` replaces it with the correct persisted row.
+- **CC-14**: the streaming accumulator keyed on `tc.index` with no guard —
+  a compat layer omitting `index` on parallel calls merged everything into
+  one corrupt Map entry. New id ⇒ fresh slot; index-less fragment ⇒ continues
+  the last slot.
+- **CC-15**: `reasoning_content` echo now rides ONE gate at both sites —
+  exported `modelEchoesReasoningContent()` (chat-history.ts), which resolves
+  through `resolveModel` so retired aliases (`deepseek-chat`) get the v0.15.4
+  echo, while non-DeepSeek providers stop receiving the nonstandard field on
+  every in-turn tool round (strict compat layers 400 on it). The
+  chat-history test that pinned 'deepseek-chat' as a NON-V4 fixture codified
+  the defect (same class as the Reviewer Packet hotfix) — flipped, with
+  'qwen3-max' as the honest negative case.
+
+Gate: chat-history 14/14, registry + settlement suites green; tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-8: Every chat-turn failure path settles the turn (CC-1, CC-3, CC-20)
 
 The audit's worst chat-core class: failure paths that never settle

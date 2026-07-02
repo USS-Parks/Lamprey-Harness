@@ -198,10 +198,24 @@ describe('buildApiMessagesFromStoredMessages — reasoning_content field for Dee
     const api = buildApiMessagesFromStoredMessages('system', [
       { role: 'user', content: 'help' },
       { role: 'assistant', content: 'reply', reasoning: 'thought' }
-    ], 'deepseek-chat')
+    ], 'qwen3-max')
     const assistant = api[2] as any
     expect(assistant.reasoning_content).toBeUndefined()
     expect(assistant.content).toContain('<think>')
+  })
+
+  // JM-9 (CC-15) — this test used to assert the OPPOSITE with 'deepseek-chat'
+  // as the "non-V4" fixture, codifying the defect: the retired alias resolves
+  // to V4 via RETIRED_MODEL_MAP, so legacy conversations were silently denied
+  // the v0.15.4 reasoning echo across turns.
+  it('retired DeepSeek aliases resolve to V4 and DO get reasoning_content', () => {
+    const api = buildApiMessagesFromStoredMessages('system', [
+      { role: 'user', content: 'help' },
+      { role: 'assistant', content: 'reply', reasoning: 'thought' }
+    ], 'deepseek-chat')
+    const assistant = api[2] as any
+    expect(assistant.reasoning_content).toBe('thought')
+    expect(assistant.content).not.toContain('<think>')
   })
 
   it('does NOT include reasoning_content when modelId is undefined', () => {

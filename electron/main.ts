@@ -15,12 +15,7 @@ import { destroyAllBackgroundShells } from './services/shell-tool'
 import { destroyAllMonitors } from './services/monitor-service'
 import { fireHooks } from './services/hooks-runner'
 import { setUserDataPathProvider as setProviderUserDataPath } from './services/providers/registry'
-import {
-  setDebugTraceUserDataPath,
-  forceDebugTraceOn,
-  trace,
-  flushTrace
-} from './services/debug-trace'
+import { setDebugTraceUserDataPath, trace, flushTrace } from './services/debug-trace'
 import { startAutomations, stopAutomations } from './services/automations-runner'
 import { startLoopWakeups, stopLoopWakeups } from './services/loop-runner'
 import { startLoopController, stopLoopController } from './services/loop-controller'
@@ -537,11 +532,10 @@ app.whenReady().then(() => {
   // T1 — let chatStream's inactivity watchdog read settings.json without
   // dragging an electron import into provider-layer tests.
   setProviderUserDataPath(() => app.getPath('userData'))
-  // DBG1 — wire the diagnostic trace writer + force it on for this debug
-  // build so the user doesn't have to flip `debugTrace: true` themselves.
-  // Remove `forceDebugTraceOn()` before shipping a non-debug build.
+  // DBG1 — wire the diagnostic trace writer. Tracing is opt-in via
+  // `debugTrace: true` in settings.json; release builds must not force it
+  // (tool arguments land in the plaintext trace log).
   setDebugTraceUserDataPath(() => app.getPath('userData'))
-  forceDebugTraceOn()
   trace('main.boot', {
     version: app.getVersion(),
     electron: process.versions.electron,

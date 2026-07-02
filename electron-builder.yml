@@ -1,6 +1,6 @@
 appId: com.lamprey.harness
 productName: Lamprey
-copyright: Copyright © 2026 Lamprey Contributors
+copyright: Copyright © 2026 Basho Parks
 
 afterPack: scripts/embed-win-icon.js
 

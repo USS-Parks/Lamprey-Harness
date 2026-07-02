@@ -30,3 +30,4 @@ opencode.jsonc
 
 # One-off local research scratch (not part of the app)
 /research/
+output/

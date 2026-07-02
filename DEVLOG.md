@@ -1,3 +1,32 @@
+## 2026-07-02 — JM-1: Quick wins (July 2026 Maintenance Phase)
+
+Nine small, independent fixes from the audit's "cheap immediate wins" list:
+- **SEC-3**: removed `forceDebugTraceOn()` from `electron/main.ts` — v0.15.x
+  shipped with diagnostic tracing force-enabled, persisting tool arguments to
+  a plaintext `userData/lamprey-debug.log`. Tracing is opt-in again.
+- **HY-1**: `git rm --cached .bucket.json` — the ship-pipeline config was
+  tracked despite the ignore rule (leaked CF account/zone ids; live creds were
+  never in it). The existing `.gitignore` rule now takes effect.
+- **HY-5**: `memory-store.test.ts` "truncates at 200 entries" got a 60s
+  timeout — 210 file writes flaked at 15s under full-suite load.
+- **HY-6**: `js-yaml` declared in dependencies (`^4.1.1`, resolves 4.3.0) —
+  `snip/filter-loader.ts` imported it while only `@types/js-yaml` was declared;
+  resolution rode hoisted dev-dep transitives.
+- **HY-7**: deleted the two untracked PLANNING precursor drafts superseded by
+  the tracked `Lamprey_Function_Calling_PSPR_.md`.
+- **HY-11/12**: removed the empty `output/` dir (now gitignored) and the three
+  stale root logs.
+- **HY-14**: copyright/author aligned to Basho Parks in `package.json` +
+  `electron-builder.yml` (matches LICENSE).
+- **CC-16**: deep-research synthesizer default model `deepseek-v3` →
+  `deepseek-v4-flash` (was riding the retirement remap).
+- **RD-15**: removed the duplicate DeepSeek entries from ChatInput's fallback
+  model list (duplicate React keys).
+
+Gate: memory-store + synthesizer suites 38/38 green; lint + both tscs via hook.
+
+---
+
 ## 2026-07-02 — JM-0: Commit discipline hard rules (July 2026 Maintenance Phase)
 
 Phase kickoff. Full-repo audit report landed at `PLANNING/LAMPREY_JULY_2026_MAINTENANCE_AUDIT.md`

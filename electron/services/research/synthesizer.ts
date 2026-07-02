@@ -43,7 +43,7 @@ export interface SynthesizeDeps {
   accessedAt?: string
 }
 
-const DEFAULT_SYNTH_MODEL = 'deepseek-v3'
+const DEFAULT_SYNTH_MODEL = 'deepseek-v4-flash'
 const MAX_RETRIES = 1
 
 export class FabricatedCitationError extends Error {

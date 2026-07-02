@@ -165,6 +165,8 @@ export interface LoopStoreSeam {
   recordLoopRun(input: { loopId: string; iteration: number; backlogId?: string | null; startedAt?: number }): LoopRun
   finishLoopRun(id: string, patch: { status: 'running' | 'done' | 'error' | 'timeout'; tokensUsed?: number | null; finishedAt?: number }): LoopRun | null
   listDueLoops(now: number): Loop[]
+  /** JM-7 (LP-13) — atomic write group. Optional: pure tests run without it. */
+  transact?<T>(fn: () => T): T
 }
 
 export type LoopTurnFn = (input: {
@@ -210,6 +212,10 @@ export async function runLoopIteration(
 ): Promise<IterationOutcome> {
   const now = () => (deps.clock ?? Date.now)()
   const emit = deps.emit ?? (() => {})
+  // JM-7 (LP-13) — commit each iteration's run/item/loop writes as one group
+  // where the store provides a transaction; a crash between statements used
+  // to leave contradictory audit state (run done, item still in_progress).
+  const transact = deps.store.transact ?? (<T,>(fn: () => T): T => fn())
 
   // 1. Pre-flight ceilings — never run a turn past a cap.
   const pre = checkCeilings(loop, now())
@@ -295,8 +301,10 @@ export async function runLoopIteration(
     void turnPromise.catch(() => {})
     const turnTokens = tokensFrom(result)
     const finishedAt = now()
-    deps.store.finishLoopRun(run.id, { status: 'done', tokensUsed: turnTokens, finishedAt })
-    deps.store.updateBacklogItem(item.id, { status: 'done', finishedAt })
+    transact(() => {
+      deps.store.finishLoopRun(run.id, { status: 'done', tokensUsed: turnTokens, finishedAt })
+      deps.store.updateBacklogItem(item.id, { status: 'done', finishedAt })
+    })
 
     const newTokens = loop.tokensUsed + turnTokens
     const newActive = loop.activeMs + Math.max(0, finishedAt - startedAt)
@@ -392,11 +400,13 @@ export async function runLoopIteration(
     if (timedOut) {
       // Watchdog tripped — record the run as a timeout, mark the item error,
       // and advance (the iteration counter still ticks toward maxIterations).
-      deps.store.finishLoopRun(run.id, { status: 'timeout', finishedAt })
-      deps.store.updateBacklogItem(item.id, {
-        status: 'error',
-        result: `iteration timed out after ${iterationTimeoutMs} ms`,
-        finishedAt
+      transact(() => {
+        deps.store.finishLoopRun(run.id, { status: 'timeout', finishedAt })
+        deps.store.updateBacklogItem(item.id, {
+          status: 'error',
+          result: `iteration timed out after ${iterationTimeoutMs} ms`,
+          finishedAt
+        })
       })
       deps.store.updateLoop(loop.id, {
         iteration: nextIteration,
@@ -412,8 +422,10 @@ export async function runLoopIteration(
       return { ran: true, stopped: errPost.stop, reason: errPost.reason, error: 'iteration timed out', timedOut: true }
     }
     const msg = err instanceof Error ? err.message : String(err)
-    deps.store.finishLoopRun(run.id, { status: 'error', finishedAt })
-    deps.store.updateBacklogItem(item.id, { status: 'error', result: msg, finishedAt })
+    transact(() => {
+      deps.store.finishLoopRun(run.id, { status: 'error', finishedAt })
+      deps.store.updateBacklogItem(item.id, { status: 'error', result: msg, finishedAt })
+    })
     // A failed iteration marks the item error and advances; the loop keeps
     // going (the iteration counter still ticks toward maxIterations, so a
     // persistently-failing loop can't spin forever). Schedule the next fire.
@@ -471,7 +483,8 @@ function productionDeps(): LoopIterationDeps {
       listRecentDone: store.listRecentDone,
       recordLoopRun: store.recordLoopRun,
       finishLoopRun: store.finishLoopRun,
-      listDueLoops: store.listDueLoops
+      listDueLoops: store.listDueLoops,
+      transact: store.withLoopTransaction
     },
     runTurn: async (input) => {
       const runner = getLoopTurnRunner()
@@ -600,11 +613,38 @@ async function tickLoopsInner(now: number): Promise<void> {
 }
 
 let controllerTimer: NodeJS.Timeout | null = null
+let currentTick: Promise<void> | null = null
+
+/** JM-7 (LP-24) — the in-flight tick's promise, for the quit drain. */
+export function getInFlightLoopWork(): Promise<void> | null {
+  return currentTick
+}
+
+/** JM-7 (LP-24) — abort every running iteration (quit path). */
+export function abortAllLoopIterations(): void {
+  for (const controller of activeIterationAborts.values()) controller.abort()
+}
 
 export function startLoopController(): void {
   if (controllerTimer) return
+  // JM-7 (LP-12) — recover state stranded by a crash mid-iteration before the
+  // first tick. Nothing can genuinely be in flight this early.
+  try {
+    const swept = store.sweepStaleIterationState()
+    if (swept.items > 0 || swept.runs > 0) {
+      console.warn(
+        `[loops] startup sweep: re-queued ${swept.items} stranded backlog item(s), closed ${swept.runs} orphaned run(s)`
+      )
+    }
+  } catch (err) {
+    console.error('[loops] startup sweep failed:', err)
+  }
   const tick = (): void => {
-    void tickLoops().catch((err) => console.error('[loops] controller tick failed:', err))
+    const p = tickLoops().catch((err) => console.error('[loops] controller tick failed:', err))
+    currentTick = p
+    void p.finally(() => {
+      if (currentTick === p) currentTick = null
+    })
   }
   tick()
   controllerTimer = setInterval(tick, 30_000)

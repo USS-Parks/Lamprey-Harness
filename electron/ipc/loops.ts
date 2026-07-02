@@ -203,6 +203,11 @@ export function registerLoopsHandlers(): void {
 
   ipcMain.handle('loops:enqueue', async (_event, loopId: string, tasks: string[]) => {
     try {
+      // JM-7 (LP-21) — no FK on loop_backlog; a deleted/typo'd loopId used to
+      // insert permanently orphaned rows no code path would ever read.
+      if (!getLoop(loopId)) {
+        return { success: false, error: 'loop not found' }
+      }
       const clean = (Array.isArray(tasks) ? tasks : []).map((t) => String(t ?? '')).filter((t) => t.trim())
       return { success: true, data: enqueueBacklog(loopId, clean) }
     } catch (err) {

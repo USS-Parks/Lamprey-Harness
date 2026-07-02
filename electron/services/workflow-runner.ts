@@ -685,7 +685,13 @@ export function runWorkflow(input: WorkflowRunInput, deps: WorkflowRunnerDeps): 
       sandbox.budget = budgetApi
       // Standard library subset — JS built-ins the script can use safely.
       sandbox.JSON = JSON
-      sandbox.Math = Math
+      // JM-7 (LP-10): the sandbox gets a PROTOTYPE COPY of Math, never the
+      // host object. The preamble's `Math.random = __randomBlock` used to be
+      // a property write on the shared host Math — after one workflow ran,
+      // every later Math.random() call anywhere in the main process threw
+      // until restart. The copy shadows `random` on itself; the host object
+      // is untouched.
+      sandbox.Math = Object.create(Math)
       sandbox.Promise = Promise
       sandbox.Array = Array
       sandbox.Object = Object

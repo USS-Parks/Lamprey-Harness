@@ -66,12 +66,18 @@ export function getLoopTurnRunner(): LoopTurnRunner | null {
 // concurrent LLM calls, several possibly into the same conversation.
 const pendingWakeupTurns: Array<() => Promise<void>> = []
 let drainingWakeupTurns = false
+let wakeupDrainPromise: Promise<void> | null = null
+
+/** JM-7 (LP-24) — the in-flight wake-up drain, for the quit path. */
+export function getInFlightWakeupWork(): Promise<void> | null {
+  return drainingWakeupTurns ? wakeupDrainPromise : null
+}
 
 function enqueueWakeupTurn(fn: () => Promise<void>): void {
   pendingWakeupTurns.push(fn)
   if (drainingWakeupTurns) return
   drainingWakeupTurns = true
-  void (async () => {
+  wakeupDrainPromise = (async () => {
     while (pendingWakeupTurns.length > 0) {
       const next = pendingWakeupTurns.shift()!
       try {

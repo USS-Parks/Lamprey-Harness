@@ -416,9 +416,54 @@ export function reorderBacklog(loopId: string, orderedIds: string[]): void {
   const db = getDb()
   const update = db.prepare('UPDATE loop_backlog SET position = ? WHERE id = ? AND loop_id = ?')
   const tx = db.transaction(() => {
-    orderedIds.forEach((id, i) => update.run(i, id, loopId))
+    // JM-7 (LP-20) — reorder only PENDING rows, and re-append any pending row
+    // the caller's (possibly stale) list is missing. Blind renumbering let a
+    // stale renderer snapshot assign duplicate positions, making
+    // nextBacklogItem's ordering arbitrary among the tied rows.
+    const pending = db
+      .prepare(
+        "SELECT id FROM loop_backlog WHERE loop_id = ? AND status = 'pending' ORDER BY position ASC"
+      )
+      .all(loopId) as Array<{ id: string }>
+    const pendingIds = new Set(pending.map((r) => r.id))
+    let pos = 0
+    for (const id of orderedIds) {
+      if (!pendingIds.has(id)) continue
+      update.run(pos++, id, loopId)
+      pendingIds.delete(id)
+    }
+    for (const row of pending) {
+      if (!pendingIds.has(row.id)) continue
+      update.run(pos++, row.id, loopId)
+    }
   })
   tx()
+}
+
+/**
+ * JM-7 (LP-12) — startup crash recovery. A process death mid-iteration leaves
+ * the backlog item `in_progress` (never re-selected: nextBacklogItem pulls
+ * `pending` only) and its loop_runs row `running` forever. Sweep both back to
+ * a recoverable state; called once from startLoopController before the first
+ * tick, when nothing can genuinely be in flight.
+ */
+export function sweepStaleIterationState(now = Date.now()): { items: number; runs: number } {
+  const db = getDb()
+  const tx = db.transaction(() => {
+    const items = db
+      .prepare("UPDATE loop_backlog SET status = 'pending', started_at = NULL WHERE status = 'in_progress'")
+      .run().changes
+    const runs = db
+      .prepare("UPDATE loop_runs SET status = 'error', finished_at = ? WHERE status = 'running'")
+      .run(now).changes
+    return { items, runs }
+  })
+  return tx() as { items: number; runs: number }
+}
+
+/** JM-7 (LP-13) — run a group of loop-store writes atomically. */
+export function withLoopTransaction<T>(fn: () => T): T {
+  return getDb().transaction(fn)() as T
 }
 
 export function removeBacklogItem(id: string): boolean {

@@ -1,3 +1,30 @@
+## 2026-07-02 — JM-7: Crash recovery, atomic commits, sandbox Math, quit drain (LP-10, LP-12, LP-13, LP-20, LP-21, LP-24)
+
+- **LP-10**: the workflow vm sandbox received the HOST `Math` object, and the
+  script preamble's `Math.random = __randomBlock` mutated it process-wide —
+  after one workflow ran, every later `Math.random()` call anywhere in the
+  main process threw until restart. The sandbox now gets `Object.create(Math)`
+  so the block shadows the copy only.
+- **LP-12**: `sweepStaleIterationState()` at controller startup re-queues
+  backlog items stranded `in_progress` by a crash and closes orphaned
+  `running` run rows (they were never re-selected — nextBacklogItem pulls
+  `pending` only, so the task silently never retried).
+- **LP-13**: each iteration's run/item write pairs commit inside one
+  `db.transaction` via a new optional `transact` seam member (production
+  binds `withLoopTransaction`; pure tests run without it).
+- **LP-20**: `reorderBacklog` renumbers only pending rows and re-appends
+  pending rows missing from a stale caller list (no more duplicate positions).
+- **LP-21**: `loops:enqueue` verifies the loop exists (no FK on the child
+  tables; orphan inserts were permanent).
+- **LP-24**: the quit path aborts in-flight iterations, drains loop/wake-up
+  work for up to 3s (one preventDefault cycle), then proceeds to closeDb —
+  turn callbacks no longer hit a closed handle.
+
+Gate: loop-turn-wiring (4 new locks) + controller + db-integration + workflow
+suites green; tsc node OK. **Track A complete.**
+
+---
+
 ## 2026-07-02 — JM-6: Loop ceiling + scheduling semantics (LP-7, LP-11, LP-17, LP-18, LP-19, LP-22, LP-23)
 
 - **LP-11 / migration v18**: `loops.active_ms` — the max-wallclock ceiling now

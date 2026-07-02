@@ -94,3 +94,33 @@ describe('JM-4 watchdog signal + abort + headless ghost guard', () => {
     expect(fn).toMatch(/buildGhostReplyNotice\(/)
   })
 })
+
+describe('JM-7 recovery + integrity', () => {
+  it('the workflow sandbox never receives the host Math object', () => {
+    const src = read('electron/services/workflow-runner.ts')
+    expect(src).toMatch(/sandbox\.Math = Object\.create\(Math\)/)
+    expect(src).not.toMatch(/sandbox\.Math = Math\b/)
+  })
+
+  it('the controller sweeps stranded in_progress items at startup', () => {
+    const controller = read('electron/services/loop-controller.ts')
+    const start = controller.slice(controller.indexOf('export function startLoopController'))
+    expect(start).toMatch(/sweepStaleIterationState\(\)/)
+    const store = read('electron/services/loop-store.ts')
+    expect(store).toMatch(/status = 'pending', started_at = NULL WHERE status = 'in_progress'/)
+  })
+
+  it('the production seam supplies a real transaction for iteration commits', () => {
+    const controller = read('electron/services/loop-controller.ts')
+    expect(controller).toMatch(/transact: store\.withLoopTransaction/)
+  })
+
+  it('the quit path aborts and drains in-flight loop work before closeDb', () => {
+    const main = read('electron/main.ts')
+    const quit = main.slice(main.indexOf("app.on('will-quit'"))
+    const abortIdx = quit.indexOf('abortAllLoopIterations()')
+    const closeIdx = quit.lastIndexOf('\n  closeDb()')
+    expect(abortIdx).toBeGreaterThan(-1)
+    expect(closeIdx).toBeGreaterThan(abortIdx)
+  })
+})

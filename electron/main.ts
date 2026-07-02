@@ -17,8 +17,13 @@ import { fireHooks } from './services/hooks-runner'
 import { setUserDataPathProvider as setProviderUserDataPath } from './services/providers/registry'
 import { setDebugTraceUserDataPath, trace, flushTrace } from './services/debug-trace'
 import { startAutomations, stopAutomations } from './services/automations-runner'
-import { startLoopWakeups, stopLoopWakeups } from './services/loop-runner'
-import { startLoopController, stopLoopController } from './services/loop-controller'
+import { startLoopWakeups, stopLoopWakeups, getInFlightWakeupWork } from './services/loop-runner'
+import {
+  startLoopController,
+  stopLoopController,
+  getInFlightLoopWork,
+  abortAllLoopIterations
+} from './services/loop-controller'
 import { mcpManager } from './services/mcp-manager'
 import { ensureNodeReplDefaultServer } from './services/node-repl-default-server'
 import { initializeSkillLoader, shutdownSkillLoader } from './services/skill-loader'
@@ -636,7 +641,28 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('will-quit', () => {
+let loopDrainAttempted = false
+
+app.on('will-quit', (event) => {
+  // JM-7 (LP-24) — an in-flight loop/wake-up turn used to race closeDb():
+  // its completion callbacks hit a closed handle (noisy errors, orphaned
+  // 'running' rows). Abort the turns, give the drain a short window, then
+  // quit for real. One attempt only — the second will-quit falls through.
+  if (!loopDrainAttempted) {
+    loopDrainAttempted = true
+    const pending = [getInFlightLoopWork(), getInFlightWakeupWork()].filter(
+      (p): p is Promise<void> => p != null
+    )
+    if (pending.length > 0) {
+      abortAllLoopIterations()
+      event.preventDefault()
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3000))
+      void Promise.race([Promise.allSettled(pending).then(() => undefined), timeout]).then(() =>
+        app.quit()
+      )
+      return
+    }
+  }
   if (boundsPersistTimer) {
     clearTimeout(boundsPersistTimer)
     boundsPersistTimer = null

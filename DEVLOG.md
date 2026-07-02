@@ -1,3 +1,23 @@
+## 2026-07-02 — JM-30: Docs refresh + v0.16.0 (HY-4)
+
+- `package.json` bumped to **0.16.0**.
+- **CLAUDE.md** (repo + user-level mirror) corrected where it was materially
+  wrong (HY-4): the header now says single-agent harness with FIVE providers
+  (deepseek/google/dashscope/openrouter/zhipu — it said three, and described
+  the excised pipeline as live); the architecture quick-pointers stop citing
+  deleted modules (`runMultiAgent`, agent-store, AgentSettings,
+  AgentRunBanner-as-pipeline); the Loop Phase "slightly undercount" token note
+  is corrected to the JM-12 reality; new Current State entries cover
+  v0.15.2–v0.15.6 (Zhipu provider, DeepSeek V4 fixes, retirement map) and the
+  full July 2026 Maintenance Phase (JM-0–JM-31) with its honest gaps.
+- **README** download URLs → v0.16.0 and the "New in" paragraph now carries
+  the v0.16.0 maintenance-release summary (the owner's six-point PR preamble,
+  expanded): Loop integrity, chat-core correctness, data durability, security
+  hardening, renderer correctness/perf, currency (Electron 43 + embedder
+  migration + 0 audit vulnerabilities).
+
+---
+
 ## 2026-07-02 — JM-29: CI Windows leg, Node alignment, TS bump, noUncheckedIndexedAccess trial (HY-9, HY-10, HY-13, HY-15)
 
 - **HY-9**: the CI `test` job now runs vitest on a `[ubuntu-latest,

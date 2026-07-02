@@ -23,16 +23,16 @@ The target user is the developer who looked at Claude Code and Codex and said *"
 
 | Platform | Format | Link |
 |---|---|---|
-| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.15.6/Lamprey-x64.exe) |
-| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.15.6/Lamprey-x64.zip) |
-| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.15.6/Lamprey-arm64.dmg) |
-| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.15.6/Lamprey-x86_64.AppImage) |
+| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-x64.exe) |
+| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-x64.zip) |
+| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-arm64.dmg) |
+| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x64.AppImage` then run it.
 All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Parks/lamprey/releases)
 
-**New in v0.15.6:** Retired DeepSeek model cleanup &mdash; the deprecated `deepseek-chat`, `deepseek-reasoner`, `deepseek-v3`, and `deepseek-r1` API endpoints are removed from the catalog and silently remapped to their live V4 equivalents (`deepseek-v4-flash` / `deepseek-v4-pro`). Users with stale model selections get seamless continuity instead of a 400 error.
+**New in v0.16.0 — the July 2026 Maintenance release.** A full-repo audit (~90 findings across six domains) fixed stem to stern: (1) the **Loop feature** now works as designed and its safety rails actually hold &mdash; the iteration prompt reaches the model, the master toggle gates every entry point, and ceilings count real work; (2) **chat-core correctness** &mdash; hanging turns, retry corruption, dead fallback tool paths, and custom-model integration all fixed; (3) **data durability** &mdash; atomic settings/keys writes, scoped fallback latches, RAG vector-leak fix, transactional writes, audit-table retention; (4) **security hardening** &mdash; navigation guard, openExternal scheme filter, debug-trace removal, workspace file confinement, MCP spawn approval; (5) **renderer correctness + performance** &mdash; streaming-switch fixes, approval queueing, memoized transcript rendering; (6) **currency** &mdash; Electron 35 &rarr; 43, the embedder migrated off `@xenova/transformers`, and `npm audit` now reports **0 vulnerabilities** (was 1 critical / 4 high). Every commit is hook-verified under the new human-in-the-loop commit discipline.
 
 ---
 

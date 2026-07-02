@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { getDb } from './database'
+import { isDbUnavailableError } from './db-error-class'
 
 // Append-only event log. The cross-system audit/timeline complement to the
 // structured domain tables (tool_calls, permission_policies, automations,
@@ -433,13 +434,52 @@ function rowToEvent(row: EventRow): EventRecord {
 // inside the service so callers never have to know which path they hit.
 const memoryFallback: EventRecord[] = []
 let useFallback = false
+let fallbackSince = 0
+const FALLBACK_RETRY_MS = 30_000
+// JM-14 (DB-22) — the fallback array is a RING, not an unbounded sink: a
+// long session stuck in fallback used to accumulate every event in the heap.
+const MEMORY_FALLBACK_CAP = 1000
 
-function activateFallback(reason: string): void {
+function pushMemoryFallback(record: EventRecord): void {
+  memoryFallback.push(record)
+  if (memoryFallback.length > MEMORY_FALLBACK_CAP) {
+    memoryFallback.splice(0, memoryFallback.length - MEMORY_FALLBACK_CAP)
+  }
+}
+
+// JM-14 (DB-12) — latch ONLY when the database itself is unavailable. A
+// single per-operation failure (BUSY past timeout, constraint) used to flip
+// the audit spine into RAM for the whole session — a silent hole in the
+// tamper-evident trail.
+function activateFallback(err: unknown): void {
+  if (!isDbUnavailableError(err)) {
+    console.error(
+      '[event-log] event write failed (db still active):',
+      (err as Error)?.message ?? err
+    )
+    return
+  }
   if (!useFallback) {
     useFallback = true
+    fallbackSince = Date.now()
     console.warn(
-      `[event-log] persistence unavailable, falling back to memory: ${reason}`
+      `[event-log] persistence unavailable, falling back to memory: ${(err as Error)?.message ?? 'unknown'}`
     )
+  }
+}
+
+/** JM-14 — recovery probe: after 30s in fallback, try the DB again. */
+function dbAvailable(): boolean {
+  if (!useFallback) return true
+  if (Date.now() - fallbackSince < FALLBACK_RETRY_MS) return false
+  try {
+    getDb().prepare('SELECT 1').get()
+    useFallback = false
+    console.warn('[event-log] database recovered — leaving memory fallback')
+    return true
+  } catch {
+    fallbackSince = Date.now()
+    return false
   }
 }
 
@@ -487,7 +527,7 @@ export function recordEvent(input: RecordEventInput): EventRecord {
     redaction
   }
 
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       db.prepare(
@@ -519,10 +559,10 @@ export function recordEvent(input: RecordEventInput): EventRecord {
       )
       return record
     } catch (err: any) {
-      activateFallback(err?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
-  memoryFallback.push(record)
+  pushMemoryFallback(record)
   return record
 }
 
@@ -557,7 +597,7 @@ export function recordError(input: SeverityHelperInput): EventRecord {
 // ──────────────────── readers ────────────────────
 
 export function getEvent(id: string): EventRecord | null {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const row = db.prepare(`SELECT * FROM events WHERE id = ?`).get(id) as
@@ -565,7 +605,7 @@ export function getEvent(id: string): EventRecord | null {
         | undefined
       return row ? rowToEvent(row) : null
     } catch (err: any) {
-      activateFallback(err?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   return memoryFallback.find((e) => e.id === id) ?? null
@@ -664,14 +704,14 @@ function eventMatchesFilter(e: EventRecord, filter: EventFilter): boolean {
 }
 
 export function listEvents(filter: EventFilter = {}): EventRecord[] {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const { sql, params } = buildListQuery(filter)
       const rows = db.prepare(sql).all(...params) as EventRow[]
       return rows.map(rowToEvent)
     } catch (err: any) {
-      activateFallback(err?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const order = filter.order === 'asc' ? 'asc' : 'desc'

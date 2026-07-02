@@ -1,3 +1,32 @@
+## 2026-07-02 — JM-14: Fallback latches scoped to real unavailability (DB-3, DB-7, DB-12, DB-22)
+
+Four stores flipped into a session-long in-memory fallback on ANY SQLite
+error. One transient SQLITE_BUSY past the 5s timeout, or one constraint
+violation, silently moved every subsequent write into RAM — data that
+evaporates on quit while the real DB-backed rows vanish from view.
+
+- New shared `db-error-class.ts`: `isDbUnavailableError` (CANTOPEN / NOTADB /
+  CORRUPT / IOERR codes, closed-connection / no-such-table / headless-getDb
+  messages) + `isFtsSyntaxError`. 3 unit tests.
+- **rag/store.ts (DB-3)**: `activateFallback` latches only on unavailability
+  and THROWS per-operation errors through to the caller (RAG data is
+  DB-canonical — surfacing beats silent RAM loss); all 19 gates now go
+  through a `dbAvailable()` probe that retries the DB every 30s.
+- **event-log.ts (DB-12)**: same scoping + recovery probe; per-op failures
+  log loudly and still land in the memory ring, but never flip the audit
+  spine to RAM. Fallback array is a 1000-entry RING now (DB-22).
+- **memory-store.ts (DB-7)**: an FTS5 SYNTAX error from user-typed
+  operators/quotes degrades that one query to the in-memory scan — it no
+  longer latches the persistence fallback (typing a quote into search used
+  to stop all memory_index writes for the session).
+- **agent-run-store.ts (DB-12/22)**: the permanent getDb-throw latch became a
+  30s retry backoff; the fallback Map is capped at 500 entries.
+
+Gate: rag + event-log + agent-run + memory-store + db-error-class suites
+168 passed / 11 skipped; tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-13: Atomic keys.json + settings.json (DB-1, DB-2, DB-13)
 
 The audit's data-durability P1 pair. Both files were written with a bare

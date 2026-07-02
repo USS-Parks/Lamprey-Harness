@@ -99,13 +99,31 @@ function rowToDomain(row: AgentRunRawRow): AgentRunRow {
 
 let memoryFallbackForced = false
 const memory = new Map<string, AgentRunRow>()
+// JM-14 (DB-22) — bound the fallback map; it grew per agent run forever once
+// the fallback engaged.
+const MEMORY_CAP = 500
+
+function capMemory(): void {
+  while (memory.size > MEMORY_CAP) {
+    const oldest = memory.keys().next().value
+    if (oldest === undefined) break
+    memory.delete(oldest)
+  }
+}
+
+// JM-14 (DB-12) — a single early getDb() throw used to latch the fallback
+// permanently; now it backs off and retries every 30s, so a transient
+// boot-order hiccup doesn't pin the store to RAM for the session.
+let dbRetryAfter = 0
 
 function useDb(): Database.Database | null {
   if (memoryFallbackForced) return null
+  const now = Date.now()
+  if (dbRetryAfter > now) return null
   try {
     return getDb()
   } catch {
-    memoryFallbackForced = true
+    dbRetryAfter = now + 30_000
     return null
   }
 }
@@ -134,6 +152,7 @@ export function insertRun(args: AgentRunInsert): void {
     )
     return
   }
+  capMemory()
   memory.set(args.id, {
     id: args.id,
     parentConvId: args.parentConvId ?? null,
@@ -173,6 +192,7 @@ export function finishRun(args: AgentRunFinish): void {
   }
   const existing = memory.get(args.id)
   if (!existing) return
+  capMemory()
   memory.set(args.id, {
     ...existing,
     status: args.status,
@@ -193,6 +213,7 @@ export function updateRun(id: string, patch: AgentRunUpdate): void {
   }
   const existing = memory.get(id)
   if (!existing) return
+  capMemory()
   memory.set(id, {
     ...existing,
     ...(patch.label !== undefined ? { label: patch.label } : {})

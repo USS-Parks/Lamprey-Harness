@@ -11,6 +11,7 @@ import {
 import { basename, join, resolve } from 'path'
 import chokidar, { FSWatcher } from 'chokidar'
 import { getDb } from './database'
+import { isFtsSyntaxError } from './db-error-class'
 import {
   MemoryType,
   MemoryWriteInput,
@@ -721,6 +722,14 @@ export function searchMemoryFiles(query: string, limit = 50): MemoryFile[] {
       .all(q, limit) as any[]
     return rows.map(rowToMemoryFile)
   } catch (err) {
+    // JM-14 (DB-7) — user-typed FTS5 operators/quotes (`don"t`, `x AND`)
+    // throw a SYNTAX error. That is a per-QUERY problem: degrade to the
+    // in-memory scan for this query only. Latching the persistence fallback
+    // here silently stopped all memory_index writes for the session because
+    // someone typed a quote into search.
+    if (isFtsSyntaxError(err)) {
+      return fallbackSearch()
+    }
     console.warn('[memory-store] FTS query failed, falling back:', (err as Error).message)
     if (!useFallback) activateFallback((err as Error)?.message ?? 'unknown')
     return fallbackSearch()

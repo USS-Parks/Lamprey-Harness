@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { getDb } from '../database'
+import { isDbUnavailableError } from '../db-error-class'
 
 // rag_collections CRUD. The store owns id generation, timestamping, and the
 // row ↔ object conversion. Per the persistence-boundary doc, IPC handlers
@@ -80,13 +81,39 @@ function rowToCollection(row: CollectionRow): RagCollection {
 
 const memoryFallback: RagCollection[] = []
 let useFallback = false
+let fallbackSince = 0
+const FALLBACK_RETRY_MS = 30_000
 
-function activateFallback(reason: string): void {
+// JM-14 (DB-3) — latch ONLY on database-unavailable errors; everything else
+// (BUSY past the timeout, constraint violations, vec conflicts) PROPAGATES
+// to the caller. RAG data is DB-canonical: the old any-error latch silently
+// moved every subsequent write into RAM for the session — data that
+// evaporated on quit while the real library vanished from view.
+function activateFallback(err: unknown): void {
+  if (!isDbUnavailableError(err)) {
+    throw err instanceof Error ? err : new Error(String(err))
+  }
   if (!useFallback) {
     useFallback = true
+    fallbackSince = Date.now()
     console.warn(
-      `[rag-collections] persistence unavailable, falling back to memory: ${reason}`
+      `[rag-collections] persistence unavailable, falling back to memory: ${(err as Error)?.message ?? 'unknown'}`
     )
+  }
+}
+
+/** JM-14 — recovery probe: after 30s in fallback, try the DB again. */
+function dbAvailable(): boolean {
+  if (!useFallback) return true
+  if (Date.now() - fallbackSince < FALLBACK_RETRY_MS) return false
+  try {
+    getDb().prepare('SELECT 1').get()
+    useFallback = false
+    console.warn('[rag-collections] database recovered — leaving memory fallback')
+    return true
+  } catch {
+    fallbackSince = Date.now()
+    return false
   }
 }
 
@@ -118,7 +145,7 @@ export function createCollection(input: CollectionInput): RagCollection {
     updatedAt: now
   }
 
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       db.prepare(
@@ -140,7 +167,7 @@ export function createCollection(input: CollectionInput): RagCollection {
       )
       return record
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   memoryFallback.push({ ...record })
@@ -148,7 +175,7 @@ export function createCollection(input: CollectionInput): RagCollection {
 }
 
 export function listCollections(): RagCollection[] {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const rows = db
@@ -156,7 +183,7 @@ export function listCollections(): RagCollection[] {
         .all() as CollectionRow[]
       return rows.map(rowToCollection)
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   return [...memoryFallback]
@@ -165,7 +192,7 @@ export function listCollections(): RagCollection[] {
 }
 
 export function getCollection(id: string): RagCollection | null {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const row = db
@@ -173,7 +200,7 @@ export function getCollection(id: string): RagCollection | null {
         .get(id) as CollectionRow | undefined
       return row ? rowToCollection(row) : null
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const found = memoryFallback.find((c) => c.id === id)
@@ -203,7 +230,7 @@ export function updateCollection(id: string, patch: CollectionPatch): RagCollect
     updatedAt: now
   }
 
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       db.prepare(
@@ -226,7 +253,7 @@ export function updateCollection(id: string, patch: CollectionPatch): RagCollect
       )
       return next
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const idx = memoryFallback.findIndex((c) => c.id === id)
@@ -235,7 +262,7 @@ export function updateCollection(id: string, patch: CollectionPatch): RagCollect
 }
 
 export function deleteCollection(id: string): boolean {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       // rag_documents.collection_id has ON DELETE CASCADE, which cascades to
@@ -250,7 +277,7 @@ export function deleteCollection(id: string): boolean {
         .run(id)
       return result.changes > 0
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const idx = memoryFallback.findIndex((c) => c.id === id)
@@ -400,7 +427,7 @@ export function insertDocument(input: InsertDocumentInput): RagDocument {
     updatedAt: now
   }
 
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       db.prepare(
@@ -425,7 +452,7 @@ export function insertDocument(input: InsertDocumentInput): RagDocument {
       )
       return record
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   memoryDocuments.push({ ...record })
@@ -440,7 +467,7 @@ export interface DocumentPatch {
 }
 
 export function updateDocument(id: string, patch: DocumentPatch): RagDocument | null {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const sets: string[] = ['updated_at = ?']
@@ -470,7 +497,7 @@ export function updateDocument(id: string, patch: DocumentPatch): RagDocument | 
         .get(id) as DocumentRow | undefined
       return row ? rowToDocument(row) : null
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const idx = memoryDocuments.findIndex((d) => d.id === id)
@@ -495,7 +522,7 @@ export function updateDocument(id: string, patch: DocumentPatch): RagDocument | 
 }
 
 export function getDocument(id: string): RagDocument | null {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const row = db
@@ -503,7 +530,7 @@ export function getDocument(id: string): RagDocument | null {
         .get(id) as DocumentRow | undefined
       return row ? rowToDocument(row) : null
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const found = memoryDocuments.find((d) => d.id === id)
@@ -514,7 +541,7 @@ export function findDocumentByHash(
   collectionId: string,
   hashSha256: string
 ): RagDocument | null {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const row = db
@@ -526,7 +553,7 @@ export function findDocumentByHash(
         .get(collectionId, hashSha256) as DocumentRow | undefined
       return row ? rowToDocument(row) : null
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const found = memoryDocuments.find(
@@ -536,7 +563,7 @@ export function findDocumentByHash(
 }
 
 export function listDocuments(collectionId: string): RagDocument[] {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const rows = db
@@ -548,7 +575,7 @@ export function listDocuments(collectionId: string): RagDocument[] {
         .all(collectionId) as DocumentRow[]
       return rows.map(rowToDocument)
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   return memoryDocuments
@@ -558,7 +585,7 @@ export function listDocuments(collectionId: string): RagDocument[] {
 }
 
 export function deleteDocument(id: string): boolean {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       // rag_documents.id is the FK target for rag_chunks; the FK is ON
@@ -581,7 +608,7 @@ export function deleteDocument(id: string): boolean {
         .run(id)
       return result.changes > 0
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const idx = memoryDocuments.findIndex((d) => d.id === id)
@@ -635,7 +662,7 @@ export function insertChunks(
   const ids = chunks.map(() => randomUUID())
   const now = Date.now()
 
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -685,7 +712,7 @@ export function insertChunks(
       const rowids = tx()
       return { rowids, ids }
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
 
@@ -716,7 +743,7 @@ export function insertChunks(
 }
 
 export function deleteChunksForDocument(documentId: string): number {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       // Pre-fetch rowids so the vec rows can be removed alongside the
@@ -742,7 +769,7 @@ export function deleteChunksForDocument(documentId: string): number {
       })
       return tx()
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   let count = 0
@@ -756,7 +783,7 @@ export function deleteChunksForDocument(documentId: string): number {
 }
 
 export function getChunk(chunkId: string): RagChunkRow | null {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const row = db
@@ -800,7 +827,7 @@ export function getChunk(chunkId: string): RagChunkRow | null {
         createdAt: row.created_at
       }
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const found = memoryChunks.find((c) => c.id === chunkId)
@@ -808,7 +835,7 @@ export function getChunk(chunkId: string): RagChunkRow | null {
 }
 
 export function countChunksForDocument(documentId: string): number {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const row = db
@@ -816,7 +843,7 @@ export function countChunksForDocument(documentId: string): number {
         .get(documentId) as { n: number }
       return row.n
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   return memoryChunks.filter((c) => c.documentId === documentId).length
@@ -852,7 +879,7 @@ export function addAttachment(input: {
     attachedAt: Date.now()
   }
 
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       db.prepare(
@@ -871,7 +898,7 @@ export function addAttachment(input: {
       )
       return record
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const existing = memoryAttachments.find(
@@ -890,7 +917,7 @@ export function removeAttachment(input: {
   collectionId?: string
   documentId?: string
 }): boolean {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const result = db
@@ -907,7 +934,7 @@ export function removeAttachment(input: {
         )
       return result.changes > 0
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const idx = memoryAttachments.findIndex(
@@ -922,7 +949,7 @@ export function removeAttachment(input: {
 }
 
 export function listAttachments(conversationId: string): RagAttachment[] {
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const rows = db
@@ -944,7 +971,7 @@ export function listAttachments(conversationId: string): RagAttachment[] {
         attachedAt: r.attached_at
       }))
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   return memoryAttachments
@@ -958,7 +985,7 @@ export function copyAttachments(sourceConversationId: string, targetConversation
     throw new Error('copyAttachments: sourceConversationId and targetConversationId are required')
   }
   const now = Date.now()
-  if (!useFallback) {
+  if (dbAvailable()) {
     try {
       const db = getDb()
       const result = db
@@ -972,7 +999,7 @@ export function copyAttachments(sourceConversationId: string, targetConversation
         .run(targetConversationId, now, sourceConversationId)
       return result.changes
     } catch (err) {
-      activateFallback((err as Error)?.message ?? 'unknown')
+      activateFallback(err)
     }
   }
   const source = memoryAttachments.filter((a) => a.conversationId === sourceConversationId)
@@ -1009,6 +1036,9 @@ export function __resetCollectionStore(): void {
 
 export function __forceMemoryFallback(): void {
   useFallback = true
+  // Keep the recovery probe from immediately un-forcing it in tests that
+  // run against a live DB.
+  fallbackSince = Date.now()
 }
 
 /** Test-only: peek the chunk memory store without going through queries. */

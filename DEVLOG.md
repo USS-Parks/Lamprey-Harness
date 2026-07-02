@@ -1,3 +1,23 @@
+## 2026-07-02 — JM-26: Minor/patch dependency bumps
+
+Bumped every dependency to the latest within its current major (no breaking
+changes): playwright 1.61.1, tailwind + @tailwindcss/vite 4.3.2,
+@typescript-eslint 8.62.1, vitest + coverage 4.1.9, better-sqlite3 12.11.1,
+electron-builder 26.15.3, electron-updater 6.8.9, eslint 10.6.0,
+eslint-plugin-import-x 4.17.1, mermaid 11.16.0, openai 6.45.0, prettier 3.9.4,
+react + react-dom 19.2.7, shiki 4.3.0, @types/react 19.2.17. better-sqlite3
+native binding rebuilt for Electron via electron-rebuild.
+
+**npm audit --omit=dev: 7 → 6** (the mermaid bump cleared the dompurify
+moderate; the js-yaml moderate was already closed by JM-1's declaration). The
+remaining **1 critical + 4 high are ALL in the @xenova/transformers →
+onnxruntime-web → onnx-proto → protobufjs chain** — there is no within-major
+fix; JM-28's embedder migration is what closes them.
+
+Gate: lint OK, tsc node + web OK, **full vitest 2334 passed / 130 skipped**.
+
+---
+
 ## 2026-07-02 — JM-25: Renderer listener/cleanup batch (RD-7, RD-8, RD-9, RD-14, RD-17, RD-18, RD-20)
 
 - **RD-9**: `ipc-client.ts` snapshotted `window.api` at module scope, so

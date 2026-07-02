@@ -299,6 +299,20 @@ function closeSplashWhenReady(): void {
   }, wait)
 }
 
+// JM-19 (SEC-1) — the only top-frame navigations the app itself performs:
+// the dev-server origin in dev, and the packaged file:// renderer bundle.
+function isAppNavigationUrl(url: string): boolean {
+  const devUrl = process.env['ELECTRON_RENDERER_URL']
+  if (is.dev && devUrl) {
+    try {
+      return new URL(url).origin === new URL(devUrl).origin
+    } catch {
+      return false
+    }
+  }
+  return url.startsWith('file://')
+}
+
 function createWindow(): void {
   const bounds = readSavedBounds()
 
@@ -326,9 +340,29 @@ function createWindow(): void {
     closeSplashWhenReady()
   })
 
+  // JM-19 (SEC-2) — scheme filter. This handler used to forward ANY URL to
+  // shell.openExternal: a rendered `file://`, custom-protocol, or
+  // `\\attacker\share` UNC link could launch a local program or leak NTLM
+  // credentials on click. http/https only, matching the shell:openExternal
+  // IPC handler's existing guard.
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (/^https?:\/\//i.test(details.url)) {
+      void shell.openExternal(details.url)
+    }
     return { action: 'deny' }
+  })
+
+  // JM-19 (SEC-1) — the top frame must never navigate off the app. The
+  // preload exposes a privileged window.api (file read, MCP spawn, shell);
+  // without this guard, any content-driven top-level navigation handed the
+  // destination origin that whole surface. External http(s) targets open in
+  // the system browser instead.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isAppNavigationUrl(url)) return
+    event.preventDefault()
+    if (/^https?:\/\//i.test(url)) {
+      void shell.openExternal(url)
+    }
   })
 
   mainWindow.on('move', () => mainWindow && schedulePersistBounds(mainWindow))
@@ -360,6 +394,12 @@ function createWindow(): void {
 function getMainWindow(): BrowserWindow | null {
   return mainWindow
 }
+
+// JM-19 (SEC-1) — nothing in Lamprey uses <webview>; deny attachment
+// app-wide so injected markup can't create one.
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('will-attach-webview', (event) => event.preventDefault())
+})
 
 app.whenReady().then(() => {
   // Match electron-builder's appId so Windows associates pinned taskbar /

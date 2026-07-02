@@ -68,7 +68,10 @@ import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
 import { validateToolArguments } from '../services/tool-schema-validator'
 import { detectEmptyParams } from '../services/empty-params-guard'
-import { parseFallbackToolCalls } from '../services/fallback-tool-parser'
+import {
+  parseFallbackToolCalls,
+  FALLBACK_TOOL_INSTRUCTION
+} from '../services/fallback-tool-parser'
 import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { dispatchNativeTool } from '../services/native-dispatch'
 import { emitChatEvent } from '../services/chat-events'
@@ -790,6 +793,17 @@ export async function runChatRound(
   const actuallySupportsTools = descriptor.supportsTools && !isDowngraded(conversationId, model)
   const effectiveTools = actuallySupportsTools ? tools : undefined
 
+  // JM-10 (CC-4) — a fallback model must be TOLD the contract. Since FC-6/FC-8
+  // shipped, FALLBACK_TOOL_INSTRUCTION had zero injection sites: non-native
+  // and FC-10-downgraded models were expected to emit {"action":...,"input":...}
+  // without ever seeing the format or the tool list, so the whole fallback
+  // dispatch path was dead and a downgrade silently meant "tools stop working".
+  // Running here (every round, idempotent) also covers mid-conversation
+  // downgrades — the contract lands on the next round's system message.
+  if (!actuallySupportsTools && tools && tools.length > 0) {
+    ensureFallbackContract(messages, tools)
+  }
+
   const audit: ModelRequestAudit | undefined = correlationId
     ? { correlationId, conversationId, purpose: 'main' }
     : undefined
@@ -891,6 +905,63 @@ export async function runChatRound(
                 callCount: effectiveToolCalls.length,
                 provenance: 'fallback'
               })
+            } else if (fallbackResult?.validationError) {
+              // JM-10 (CC-13) — the model clearly ATTEMPTED a tool call but it
+              // failed validation (unknown tool / bad arguments). The old path
+              // rendered the raw JSON blob as the visible final answer and the
+              // model never learned why its call failed. Run one corrective
+              // round instead: the attempt and the correction are persisted so
+              // the transcript stays honest, and the feedback is fed back
+              // in-memory. round+1 still counts toward MAX_TOOL_ROUNDS, so a
+              // model stuck emitting bad JSON cannot loop forever.
+              const ve = fallbackResult.validationError
+              trace('runChatRound.fallback-validation-failed', {
+                conversationId,
+                round,
+                tool: ve.toolName,
+                errors: ve.errors.join('; ').slice(0, 300)
+              })
+              const feedback =
+                `Your "${ve.toolName}" tool call failed validation: ${ve.errors.join('; ')}. ` +
+                'Re-issue ONE corrected JSON object per the tool-calling instructions, ' +
+                'or output {"action":"final","answer":"..."} to answer without the tool.'
+              convStore.saveMessage({
+                id: randomUUID(),
+                conversationId,
+                role: 'assistant',
+                content: fullContent,
+                model,
+                reasoning: fullReasoning
+              })
+              convStore.saveMessage({
+                id: randomUUID(),
+                conversationId,
+                role: 'system',
+                content: `Tool-call validation failed (${ve.toolName}): ${ve.errors.join('; ')}`,
+                stage: 'system'
+              })
+              messages.push({ role: 'assistant', content: fullContent } as any)
+              messages.push({ role: 'user', content: feedback } as any)
+              const correctiveReasonings =
+                fullReasoning && fullReasoning.length > 0
+                  ? [...roundReasonings, fullReasoning]
+                  : roundReasonings
+              const next = await runChatRound(
+                conversationId,
+                model,
+                messages,
+                rebuildToolsForNextRound(conversationId, model, tools),
+                workspacePath,
+                signal,
+                round + 1,
+                params,
+                suppressDoneEvent,
+                correlationId,
+                correctiveReasonings,
+                turnStartedAt
+              )
+              resolve(next)
+              return
             }
           }
 
@@ -1143,6 +1214,31 @@ export async function runChatRound(
   })
 }
 
+// JM-10 (CC-4) — the marker doubles as the idempotence check: once the block
+// is appended to the system message it stays for the rest of the turn.
+const FALLBACK_CONTRACT_MARKER = 'Tool calling instructions:'
+
+function renderFallbackToolBlock(tools: ChatCompletionTool[]): string {
+  const lines = tools
+    .filter((t): t is Extract<ChatCompletionTool, { type: 'function' }> => t.type === 'function')
+    .map((t) => {
+      const fn = t.function
+      const desc = (fn.description ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
+      return `- ${fn.name}: ${desc}\n  input schema: ${JSON.stringify(fn.parameters ?? {})}`
+    })
+  return `Available tools:\n${lines.join('\n')}\n\n${FALLBACK_TOOL_INSTRUCTION}`
+}
+
+function ensureFallbackContract(
+  messages: ChatCompletionMessageParam[],
+  tools: ChatCompletionTool[]
+): void {
+  const sys = messages[0]
+  if (!sys || sys.role !== 'system' || typeof sys.content !== 'string') return
+  if (sys.content.includes(FALLBACK_CONTRACT_MARKER)) return
+  sys.content = `${sys.content}\n\n${renderFallbackToolBlock(tools)}`
+}
+
 interface ResolvedToolCall {
   callId: string
   result: string
@@ -1162,7 +1258,26 @@ async function resolveSingleToolCall(
   try {
     args = JSON.parse(rawArgs)
   } catch {
-    args = {}
+    // JM-10 (CC-6) — malformed argument JSON used to coerce silently to {},
+    // letting tools with no required fields execute with defaults instead of
+    // the model learning its call was broken (and, pre-JM-9, letting a
+    // mutating tool run with dropped parameters). Short-circuit with a
+    // corrective result mirroring the FC-5 validation envelope.
+    trace('resolveToolCall.argument-parse-failed', {
+      callId: tc.id,
+      conversationId,
+      toolName,
+      rawArgsPreview: (rawArgs || '').slice(0, 200)
+    })
+    return {
+      callId: tc.id,
+      result: JSON.stringify({
+        error: 'argument_parse_failed',
+        tool: toolName,
+        message: 'The arguments for this tool call were not valid JSON. Re-issue the call with corrected arguments.',
+        raw_arguments: (rawArgs || '').slice(0, 2000)
+      })
+    }
   }
 
   // Fix C — detect empty-parameter tool calls caused by reasoning token

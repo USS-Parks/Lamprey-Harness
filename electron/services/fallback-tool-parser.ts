@@ -116,10 +116,24 @@ interface FallbackJson {
  *   - parser returned null BUT action is "final" → intentional final answer
  *   - parser returned `ToolCallRequest[]` → fallback tool calls to dispatch
  */
+/** JM-10 (CC-13) — a fallback call that NAMED a tool but failed validation.
+ *  Distinct from `null` (no tool call at all): the caller feeds this back to
+ *  the model as a corrective round instead of rendering the raw JSON blob as
+ *  the visible final answer. */
+export interface FallbackValidationError {
+  toolName: string
+  errors: string[]
+  raw: string
+}
+
 export function parseFallbackToolCalls(
   text: string,
   tools: Array<{ name: string; inputSchema: unknown; description?: string }>
-): { calls: ToolCallRequest[]; isFinalAnswer: boolean } | null {
+): {
+  calls: ToolCallRequest[]
+  isFinalAnswer: boolean
+  validationError?: FallbackValidationError
+} | null {
   // Try to extract a JSON object
   const jsonStr = extractBalancedJson(text)
   if (!jsonStr) return null
@@ -153,16 +167,35 @@ export function parseFallbackToolCalls(
   const toolDef = tools.find((t) => t.name === toolName)
 
   if (!toolDef) {
-    // Tool not found in registry
-    return null
+    // JM-10 (CC-13) — the model clearly attempted a tool call; tell it the
+    // tool doesn't exist instead of publishing the JSON as its answer.
+    return {
+      calls: [],
+      isFinalAnswer: false,
+      validationError: {
+        toolName,
+        errors: [`unknown tool "${toolName}"`],
+        raw: jsonStr
+      }
+    }
   }
 
   // Validate arguments against the tool's schema
   const validation = validateToolArguments(toolName, parsed.input, toolDef.inputSchema)
   if (!validation.valid) {
-    // Invalid arguments — return null so the model gets corrective feedback
-    // in the next turn (caller should append validation errors to conversation)
-    return null
+    // JM-10 (CC-13) — the old contract returned null here with a comment
+    // promising "the caller should append validation errors" that no caller
+    // implemented; the raw JSON became the visible reply. Now the failure is
+    // structured and the caller runs a corrective round.
+    return {
+      calls: [],
+      isFinalAnswer: false,
+      validationError: {
+        toolName,
+        errors: validation.errors ?? ['invalid arguments'],
+        raw: jsonStr
+      }
+    }
   }
 
   // Generate a fallback-prefixed call id so native and fallback calls are

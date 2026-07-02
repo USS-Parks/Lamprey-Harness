@@ -97,12 +97,21 @@ describe('parseFallbackToolCalls', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null for unknown tool name', () => {
+  // JM-10 (CC-13) — these three used to assert `null`, the dead-end contract
+  // that made the raw JSON blob the model's visible reply. A named-but-broken
+  // tool attempt now returns a structured validationError for the corrective
+  // round in chat.ts.
+  it('returns a validationError for an unknown tool name', () => {
     const result = parseFallbackToolCalls(
       '{"action":"nonexistent_tool","input":{}}',
       tools
     )
-    expect(result).toBeNull()
+    expect(result).toMatchObject({
+      calls: [],
+      isFinalAnswer: false,
+      validationError: { toolName: 'nonexistent_tool' }
+    })
+    expect(result!.validationError!.errors[0]).toMatch(/unknown tool/)
   })
 
   it('returns null for missing input', () => {
@@ -113,20 +122,22 @@ describe('parseFallbackToolCalls', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null for invalid arguments (missing required)', () => {
+  it('returns a validationError for invalid arguments (missing required)', () => {
     const result = parseFallbackToolCalls(
       '{"action":"shell_command","input":{"wrong_key":"value"}}',
       tools
     )
-    expect(result).toBeNull()
+    expect(result?.validationError?.toolName).toBe('shell_command')
+    expect(result?.validationError?.errors.join(' ')).toMatch(/required/)
   })
 
-  it('returns null for invalid arguments (wrong type)', () => {
+  it('returns a validationError for invalid arguments (wrong type)', () => {
     const result = parseFallbackToolCalls(
       '{"action":"shell_command","input":{"command":123}}',
       tools
     )
-    expect(result).toBeNull()
+    expect(result?.validationError?.toolName).toBe('shell_command')
+    expect(result?.validationError?.errors.join(' ')).toMatch(/expected string/)
   })
 
   it('generates fallback-prefixed call ids', () => {

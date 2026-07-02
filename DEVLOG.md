@@ -1,3 +1,32 @@
+## 2026-07-02 — JM-10: The fallback tool contract is live (CC-4, CC-6, CC-13)
+
+- **CC-4**: `FALLBACK_TOOL_INSTRUCTION` (FC-6) had ZERO injection sites since
+  it shipped — non-native models (qwen3.5-plus/flash, qwen-long) and FC-10
+  downgraded models were expected to emit `{"action":...,"input":{...}}`
+  without ever being told the format, and they never received the tool list
+  either (native `tools` are dropped for them). The whole fallback dispatch
+  path was dead code; a downgrade silently meant "tools stop working".
+  `runChatRound` now appends the contract + a compact rendered tool list
+  (name, description, input schema) to the system message on every round
+  where the model lacks native calling — idempotent via marker, which also
+  covers mid-conversation downgrades on the next round.
+- **CC-6**: malformed JSON in a native call's `arguments` coerced silently to
+  `{}`, letting tools with no required fields execute with defaults. Now it
+  short-circuits with an `argument_parse_failed` corrective result echoing
+  the raw string, mirroring the FC-5 envelope.
+- **CC-13**: a fallback call that NAMED a tool but failed validation returned
+  `null` — the raw JSON blob was persisted and rendered as the visible reply,
+  and the in-file comment promised caller feedback no caller implemented.
+  The parser now returns a structured `validationError` (unknown tool or bad
+  args) and chat.ts runs ONE corrective round: attempt + correction persisted
+  (transcript honest), feedback fed back in-memory, round counter still
+  ticking toward MAX_TOOL_ROUNDS so bad-JSON loops terminate. Three parser
+  tests that pinned the dead-end null contract flipped to the new shape.
+
+Gate: fallback-parser 20/20, settlement 8/8 (3 new locks); tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-9: Stream retry + tool-call accumulator + reasoning echo (CC-2, CC-14, CC-15)
 
 - **CC-2**: `chatStream`'s `fullContent` / `fullReasoning` /

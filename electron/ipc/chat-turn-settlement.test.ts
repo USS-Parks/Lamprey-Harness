@@ -43,3 +43,23 @@ describe('JM-8 every runChatRound failure path settles the turn', () => {
     expect(matches.length).toBeGreaterThanOrEqual(2)
   })
 })
+
+describe('JM-10 fallback tool contract is live', () => {
+  it('non-native/downgraded rounds inject the fallback instruction + tool list (CC-4)', () => {
+    expect(src).toMatch(/if \(!actuallySupportsTools && tools && tools\.length > 0\) \{\s*\n\s*ensureFallbackContract\(messages, tools\)/)
+    expect(src).toMatch(/FALLBACK_TOOL_INSTRUCTION/)
+    expect(src).toMatch(/renderFallbackToolBlock/)
+  })
+
+  it('malformed native tool args return a corrective result, never silent {} (CC-6)', () => {
+    expect(src).toMatch(/argument_parse_failed/)
+    const parse = src.slice(src.indexOf('const rawArgs = tc.function.arguments'))
+    const catchBlock = parse.slice(parse.indexOf('catch'), parse.indexOf('// Fix C'))
+    expect(catchBlock).toMatch(/return \{/)
+  })
+
+  it('fallback validation failures run a corrective round (CC-13)', () => {
+    expect(src).toMatch(/fallbackResult\?\.validationError/)
+    expect(src).toMatch(/failed validation/)
+  })
+})

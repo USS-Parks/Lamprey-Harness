@@ -1,3 +1,32 @@
+## 2026-07-02 — JM-5: The loops master toggle gates every entry point (LP-4, LP-5, LP-6, LP-14)
+
+The v0.15.x `loopsEnabled` gate covered exactly loops:create + loops:resume —
+which is all `loop-safety.test.ts` locked. The audit found four ways loop-class
+work ran with the toggle OFF, including the worst one: `schedule_wakeup`
+(model-callable, approval-free, in the default full tool surface) could stack
+wake-ups whose fired turns schedule the next wake-up — a self-perpetuating
+autonomous loop with zero ceilings on a default install.
+
+Closed:
+- **scheduleWakeup** throws while disabled, and caps pending wake-ups at 10
+  per conversation (`MAX_PENDING_WAKEUPS_PER_CONVERSATION`).
+- **fireDueWakeups** fires nothing while disabled; pending wake-ups keep and
+  fire only if the user re-enables.
+- **tickLoops** early-returns while disabled — flipping the toggle off now
+  halts RUNNING loops, matching what "master toggle" implies.
+- **loop_control 'continue'** refuses while disabled AND refuses on paused
+  loops (it was a model-side resume bypass); pause/stop/mission_complete stay
+  allowed regardless — de-escalation is always permitted.
+- **Cron automations** (the undocumented pre-Loop layer) ride the same toggle
+  for background firing; manual `runAutomation()` from the panel still works.
+
+`loop-safety.test.ts` widened with five locks; three new pure tests on
+`applyLoopControl` pin the continue semantics.
+
+Gate: five loop suites 65/65 green; tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-4: Watchdog signal threading + stop aborts + headless ghost guard (LP-3, LP-15, CC-9)
 
 - **LP-3**: the per-iteration stall watchdog was disconnected in production —

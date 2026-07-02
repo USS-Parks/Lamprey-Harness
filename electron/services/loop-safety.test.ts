@@ -44,4 +44,39 @@ describe('LP-10 loop safety gates', () => {
     expect(read('electron/services/loop-controller.ts')).toMatch(/Math\.max\(floor,/)
     expect(read('electron/services/loop-tool-logic.ts')).toMatch(/Math\.max\(floor,/)
   })
+
+  // JM-5 — the master toggle now gates EVERY entry point, not just creation.
+  // The v0.15.x gate covered loops:create/resume only; schedule_wakeup,
+  // fireDueWakeups, tickLoops, loop_control(continue), and cron automations
+  // all ran with loopsEnabled:false (audit findings LP-4/LP-5/LP-6/LP-14).
+
+  it('scheduleWakeup refuses when loops are disabled and caps pending wake-ups', () => {
+    const src = read('electron/services/loop-runner.ts')
+    const fn = src.slice(src.indexOf('export function scheduleWakeup'))
+    expect(fn).toMatch(/if \(!readLoopConfig\(\)\.enabled\)/)
+    expect(fn).toMatch(/MAX_PENDING_WAKEUPS_PER_CONVERSATION/)
+  })
+
+  it('fireDueWakeups fires nothing while loops are disabled', () => {
+    const src = read('electron/services/loop-runner.ts')
+    const fn = src.slice(src.indexOf('export function fireDueWakeups'))
+    expect(fn).toMatch(/if \(!readLoopConfig\(\)\.enabled\) return \[\]/)
+  })
+
+  it('tickLoops halts running loops while loops are disabled', () => {
+    const src = read('electron/services/loop-controller.ts')
+    const fn = src.slice(src.indexOf('export async function tickLoops'))
+    expect(fn).toMatch(/if \(!readLoopConfig\(\)\.enabled\) return/)
+  })
+
+  it('loop_control passes the master toggle into the pure logic', () => {
+    const src = read('electron/services/loop-tool-pack.ts')
+    expect(src).toMatch(/loopsEnabled: readLoopConfig\(\)\.enabled/)
+  })
+
+  it('the cron automation tick rides the master toggle', () => {
+    const src = read('electron/services/automations-runner.ts')
+    const fn = src.slice(src.indexOf('function tick()'))
+    expect(fn).toMatch(/if \(!readLoopConfig\(\)\.enabled\) return/)
+  })
 })

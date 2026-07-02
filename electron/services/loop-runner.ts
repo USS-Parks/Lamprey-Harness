@@ -3,6 +3,12 @@ import { randomUUID } from 'crypto'
 import { getDb } from './database'
 import { saveMessage, getConversation } from './conversation-store'
 import { boundedJsonPreview, recordEvent } from './event-log'
+import { readLoopConfig } from './loop-config'
+
+// JM-5 (LP-4) — cap on pending wake-ups per conversation. schedule_wakeup is
+// model-callable with no approval; without a cap a single turn could stack an
+// unbounded queue of future self-invocations.
+export const MAX_PENDING_WAKEUPS_PER_CONVERSATION = 10
 
 export type LoopWakeupStatus = 'pending' | 'fired' | 'cancelled' | 'error'
 
@@ -108,11 +114,26 @@ export function isWakeupMessage(content: string): boolean {
 }
 
 export function scheduleWakeup(input: ScheduleWakeupInput): LoopWakeup {
+  // JM-5 (LP-4) — the master toggle gates wake-up creation. Before this,
+  // schedule_wakeup (model-callable, no approval, in the default tool surface)
+  // ran with loopsEnabled:false and each fired wake-up ran a real turn — a
+  // self-perpetuating loop with no ceiling on a default install.
+  if (!readLoopConfig().enabled) {
+    throw new Error('Loops are disabled. Enable them in Settings → Loops to schedule wake-ups.')
+  }
   if (!input.conversationId || typeof input.conversationId !== 'string') {
     throw new Error('conversationId required')
   }
   if (!getConversation(input.conversationId)) {
     throw new Error('conversation not found')
+  }
+  const pending = getDb()
+    .prepare("SELECT COUNT(*) AS n FROM loop_wakeups WHERE conversation_id = ? AND status = 'pending'")
+    .get(input.conversationId) as { n: number }
+  if (pending.n >= MAX_PENDING_WAKEUPS_PER_CONVERSATION) {
+    throw new Error(
+      `This conversation already has ${pending.n} pending wake-ups (max ${MAX_PENDING_WAKEUPS_PER_CONVERSATION}). Cancel one first.`
+    )
   }
   if (!Number.isFinite(input.delaySeconds) || input.delaySeconds < 0) {
     throw new Error('delaySeconds must be a non-negative number')
@@ -185,6 +206,9 @@ export function listWakeups(filter?: {
 }
 
 export function fireDueWakeups(now = Date.now()): LoopWakeup[] {
+  // JM-5 (LP-4) — nothing fires while the master toggle is off. Pending
+  // wake-ups stay pending and fire when (if) the user re-enables loops.
+  if (!readLoopConfig().enabled) return []
   const db = getDb()
   const rows = db
     .prepare(

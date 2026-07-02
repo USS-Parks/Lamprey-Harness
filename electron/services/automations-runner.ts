@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto'
 import { listAutomations, recordRun } from './automations-store'
 import { chatOnce } from './providers/registry'
 import { boundedJsonPreview, recordEvent } from './event-log'
+import { readLoopConfig } from './loop-config'
 
 type FieldSet = Set<number>
 
@@ -203,6 +204,11 @@ export async function runAutomation(id: string): Promise<void> {
 }
 
 function tick(): void {
+  // JM-5 (LP-14) — cron automations run background model turns, so they ride
+  // the same master toggle as loops. This pre-Loop layer had NO gate at all:
+  // "loops are off by default" was not true while an enabled automation row
+  // existed. Manual runs via runAutomation() stay available regardless.
+  if (!readLoopConfig().enabled) return
   let autos
   try {
     autos = listAutomations()

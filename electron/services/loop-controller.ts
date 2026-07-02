@@ -516,6 +516,10 @@ export function isLoopInFlight(id: string): boolean {
 export async function tickLoops(now = Date.now()): Promise<void> {
   // No runner wired → nothing can run; skip quietly (e.g. very early boot).
   if (!getLoopTurnRunner()) return
+  // JM-5 (LP-5) — the master toggle halts RUNNING loops too, not just
+  // creation. Flipping Settings → Loops off mid-mission now actually stops
+  // the burn; the loop resumes on its next due tick if re-enabled.
+  if (!readLoopConfig().enabled) return
   if (tickInFlight) return
   tickInFlight = true
   try {

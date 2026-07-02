@@ -1,4 +1,5 @@
 import { scheduleWakeup } from './loop-runner'
+import { readLoopConfig } from './loop-config'
 import { toolRegistry } from './tool-registry'
 import {
   applyLoopEnqueue,
@@ -161,7 +162,8 @@ toolRegistry.registerNative(
       applyLoopControl(productionLoopToolStore(), ctx.conversationId, action, {
         reason: typeof args.reason === 'string' ? args.reason : undefined,
         delaySeconds: typeof args.delaySeconds === 'number' ? args.delaySeconds : undefined,
-        now: Date.now()
+        now: Date.now(),
+        loopsEnabled: readLoopConfig().enabled
       })
     )
   }

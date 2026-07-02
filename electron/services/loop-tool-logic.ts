@@ -66,7 +66,15 @@ export function applyLoopControl(
   seam: LoopToolStore,
   conversationId: string,
   action: LoopControlAction,
-  opts: { reason?: string; delaySeconds?: number; now: number; minDelaySeconds?: number }
+  opts: {
+    reason?: string
+    delaySeconds?: number
+    now: number
+    minDelaySeconds?: number
+    /** JM-5 (LP-6) — pass `false` to refuse `continue` while the master
+     *  toggle is off. Undefined permits (pure tests, legacy callers). */
+    loopsEnabled?: boolean
+  }
 ): ToolResult {
   const loop = seam.getActiveLoopForConversation(conversationId)
   if (!loop) return noLoop()
@@ -86,6 +94,15 @@ export function applyLoopControl(
       })
       return { ok: true, status: 'done' }
     case 'continue': {
+      // JM-5 (LP-6) — `continue` may only set cadence on a RUNNING loop.
+      // It used to flip paused → running unconditionally, which made it a
+      // model-side bypass of both the user's pause and the disabled toggle.
+      if (opts.loopsEnabled === false) {
+        return { ok: false, error: 'loops are disabled in Settings' }
+      }
+      if (loop.status === 'paused') {
+        return { ok: false, error: 'loop is paused — only the user can resume it' }
+      }
       const floor = Math.max(1, opts.minDelaySeconds ?? MIN_LOOP_DELAY_SECONDS)
       const delay = Math.max(floor, Math.round(opts.delaySeconds ?? floor))
       const nextFireAt = opts.now + delay * 1000

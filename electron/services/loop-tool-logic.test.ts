@@ -141,4 +141,26 @@ describe('applyLoopControl', () => {
     const f = makeFake(null)
     expect(applyLoopControl(f.seam, 'conv-1', 'pause', { now: 0 }).ok).toBe(false)
   })
+
+  // JM-5 (LP-6) — continue is no longer a resume bypass.
+  it('continue refuses while the master toggle is off', () => {
+    const f = makeFake(makeLoop())
+    const r = applyLoopControl(f.seam, 'conv-1', 'continue', { now: 1000, loopsEnabled: false })
+    expect(r.ok).toBe(false)
+    expect(f.loopPatches).toHaveLength(0)
+  })
+
+  it('continue refuses on a paused loop (only the user resumes)', () => {
+    const f = makeFake(makeLoop({ status: 'paused' }))
+    const r = applyLoopControl(f.seam, 'conv-1', 'continue', { now: 1000, loopsEnabled: true })
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/paused/)
+    expect(f.loopPatches).toHaveLength(0)
+  })
+
+  it('pause and stop still work regardless of the toggle (de-escalation is always allowed)', () => {
+    const f = makeFake(makeLoop())
+    expect(applyLoopControl(f.seam, 'conv-1', 'pause', { now: 0, loopsEnabled: false }).ok).toBe(true)
+    expect(applyLoopControl(f.seam, 'conv-1', 'stop', { now: 0, loopsEnabled: false }).ok).toBe(true)
+  })
 })

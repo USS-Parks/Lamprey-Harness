@@ -1,3 +1,33 @@
+## 2026-07-02 — JM-13: Atomic keys.json + settings.json (DB-1, DB-2, DB-13)
+
+The audit's data-durability P1 pair. Both files were written with a bare
+`writeFileSync` and read with a parse-error→`{}` fallback: a crash mid-write
+left torn JSON, the next reader "healed" it to empty, and the next writer
+persisted the empty object — every provider key (potentially including a
+SQLCipher passphrase, making an encrypted DB permanently unopenable) or every
+setting gone with no signal.
+
+- New `electron/services/atomic-json.ts`: `writeJsonAtomic` (temp + rename —
+  atomic on the same volume; Windows rename maps to MoveFileExW with
+  REPLACE_EXISTING) and `readJsonGuarded` (a corrupt file is PRESERVED aside
+  as `<path>.corrupt-<ts>` before any fallback, so no later write can destroy
+  recoverable data). 6 tests, including the torn-file preservation case.
+- `keychain.ts` read/write routed through it (0o600 mode preserved); a
+  corrupt keys.json now logs loudly with the preserved path.
+- `settings-helper.ts` gains `writeSettingsFile` — THE settings writer —
+  with guarded reads feeding the JM-12 mtime cache.
+- The three remaining independent writers (`ipc/settings.ts`, `ipc/model.ts`,
+  `ipc/github.ts`) all route through the shared helper; their private
+  read/write pairs are deleted.
+
+**DB-13 residual (honest):** interleaved read-modify-write between the GUI
+and a headless CLI process is still last-write-wins on whole-file content —
+but torn files are no longer possible, which was the loss amplifier.
+
+Gate: atomic-json 6/6 + settings-sanitizer + keychain suites green; tsc node OK.
+
+---
+
 ## 2026-07-02 — JM-12: Chat-core misc batch (CC-10, CC-11, CC-17, CC-18, CC-19, CC-21, CC-22, CC-23)
 
 - **CC-10**: reasoning-trail truncation is byte-true (Buffer subarray + cut-

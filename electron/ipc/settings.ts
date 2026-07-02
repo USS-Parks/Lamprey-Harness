@@ -1,8 +1,9 @@
 import { ipcMain } from 'electron'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { join } from 'path'
-import { app } from 'electron'
 import * as keychain from '../services/keychain'
+import {
+  readSettings as readSettingsShared,
+  writeSettingsFile
+} from '../services/settings-helper'
 import { deepseekClient } from '../services/deepseek'
 import {
   PROVIDERS,
@@ -21,26 +22,19 @@ import { recordEvent } from '../services/event-log'
 // `default-app-settings.test.ts` now locks the renderer literal against this.
 import { DEFAULT_APP_SETTINGS } from '../services/default-app-settings'
 
-const getSettingsPath = () => join(app.getPath('userData'), 'settings.json')
-
 const defaultSettings = DEFAULT_APP_SETTINGS
 
+// JM-13 (DB-2) — reads and writes route through the shared atomic
+// settings-helper (guarded reads, temp+rename writes, one mtime cache).
 function readSettings() {
-  const settingsPath = getSettingsPath()
-  if (!existsSync(settingsPath)) return { ...defaultSettings }
-  try {
-    const data = JSON.parse(readFileSync(settingsPath, 'utf-8'))
-    // UB-7 (Unburdening Phase, 2026-06-10) — the agentMode coercion that
-    // lived here is gone along with every reader of the key. Stale keys in
-    // existing settings.json files ride through inert.
-    return { ...defaultSettings, ...data }
-  } catch {
-    return { ...defaultSettings }
-  }
+  // UB-7 (Unburdening Phase, 2026-06-10) — the agentMode coercion that
+  // lived here is gone along with every reader of the key. Stale keys in
+  // existing settings.json files ride through inert.
+  return { ...defaultSettings, ...readSettingsShared() }
 }
 
 function writeSettings(settings: Record<string, unknown>): void {
-  writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8')
+  writeSettingsFile(settings)
 }
 
 function isProvider(id: unknown): id is ProviderId {

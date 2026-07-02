@@ -1,8 +1,8 @@
 import { safeStorage } from 'electron'
 import { app } from 'electron'
-import { chmodSync, existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { recordEvent } from './event-log'
+import { writeJsonAtomic, readJsonGuarded } from './atomic-json'
 
 // Local credential store. Keys live in JSON at userData/keys.json, each value
 // either base64-encoded electron safeStorage ciphertext or a `plain:`-prefixed
@@ -62,31 +62,25 @@ export interface SetKeyOptions {
 }
 
 function readKeys(): Record<string, string> {
-  const keysPath = getKeysPath()
-  if (!existsSync(keysPath)) return {}
-  try {
-    return JSON.parse(readFileSync(keysPath, 'utf-8'))
-  } catch {
-    return {}
+  // JM-13 (DB-1) — guarded read. A crash mid-write used to leave torn JSON
+  // that this function silently "healed" to {}, after which the very next
+  // setKey persisted a file containing only that one key — every other
+  // provider/search/encryption key (including a SQLCipher passphrase) gone.
+  // Now the corrupt file is preserved aside first; recovery is possible.
+  const r = readJsonGuarded(getKeysPath())
+  if (r.corrupt) {
+    console.error(
+      '[keychain] keys.json was corrupt — stored credentials preserved at',
+      r.preservedAs ?? '(unrecoverable)',
+      '- re-enter keys in Settings → API Keys'
+    )
   }
+  return (r.value as Record<string, string> | null) ?? {}
 }
 
 function writeKeys(keys: Record<string, string>): void {
-  const path = getKeysPath()
-  // SEC-3: persist with 0o600. `writeFileSync` only honors `mode` on FILE
-  // CREATION; existing files keep their old mode. For the upgrade path
-  // (older builds wrote with the default 0o644) we chmod opportunistically
-  // after the write so subsequent reads come from a hardened file.
-  writeFileSync(path, JSON.stringify(keys, null, 2), {
-    encoding: 'utf-8',
-    mode: KEYS_FILE_MODE
-  })
-  try {
-    chmodSync(path, KEYS_FILE_MODE)
-  } catch {
-    // Windows can reject chmod for ACL-controlled paths; the mode bit is
-    // advisory there. We've already done what we can.
-  }
+  // JM-13 (DB-1) — atomic temp+rename with 0o600 (SEC-3 mode preserved).
+  writeJsonAtomic(getKeysPath(), keys, { mode: KEYS_FILE_MODE })
 }
 
 export function isEncryptionAvailable(): boolean {

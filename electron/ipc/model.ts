@@ -1,13 +1,14 @@
 import { ipcMain } from 'electron'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { join } from 'path'
-import { app } from 'electron'
 import {
   MODEL_CATALOG,
   PROVIDERS,
   verifyCatalog,
   type ProviderId
 } from '../services/providers/registry'
+import {
+  readSettings as readSettingsShared,
+  writeSettingsFile
+} from '../services/settings-helper'
 
 interface ModelInfo {
   id: string
@@ -33,20 +34,13 @@ const BUILTIN_MODELS: ModelInfo[] = MODEL_CATALOG.map((m) => ({
   description: m.description
 }))
 
-const getSettingsPath = () => join(app.getPath('userData'), 'settings.json')
-
+// JM-13 (DB-2) — routed through the shared atomic settings-helper.
 function readSettings(): Record<string, unknown> {
-  const settingsPath = getSettingsPath()
-  if (!existsSync(settingsPath)) return {}
-  try {
-    return JSON.parse(readFileSync(settingsPath, 'utf-8'))
-  } catch {
-    return {}
-  }
+  return readSettingsShared()
 }
 
 function writeSettings(settings: Record<string, unknown>): void {
-  writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8')
+  writeSettingsFile(settings)
 }
 
 function readCustomModels(): ModelInfo[] {

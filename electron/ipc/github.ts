@@ -1,7 +1,5 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
-import { app } from 'electron'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { join, resolve } from 'path'
+import { resolve } from 'path'
 import * as github from '../services/github-service'
 import * as keychain from '../services/keychain'
 import * as repoStore from '../services/github-repo-store'
@@ -11,26 +9,13 @@ import type {
   GitHubProjectRepoLink,
   GitHubRepository
 } from '../services/github-types'
-
-// Mode persistence: lives in settings.json so the renderer can poll it
-// without touching the keychain. The settings IPC writes a generic JSON
-// blob; we re-read/re-write the file directly here so we don't depend on
-// `settings.ts` exporting anything (it currently doesn't).
-const getSettingsPath = () => join(app.getPath('userData'), 'settings.json')
-
-function readSettingsFile(): Record<string, unknown> {
-  const p = getSettingsPath()
-  if (!existsSync(p)) return {}
-  try {
-    return JSON.parse(readFileSync(p, 'utf-8'))
-  } catch {
-    return {}
-  }
-}
-
-function writeSettingsFile(next: Record<string, unknown>): void {
-  writeFileSync(getSettingsPath(), JSON.stringify(next, null, 2), 'utf-8')
-}
+// JM-13 (DB-2) — mode persistence routes through the shared atomic
+// settings-helper (this module used to keep its own bare read/write pair,
+// one of the four independent non-atomic settings.json writers).
+import {
+  readSettings as readSettingsFile,
+  writeSettingsFile
+} from '../services/settings-helper'
 
 function readMode(): GitHubAuthMode {
   const settings = readSettingsFile()

@@ -39,7 +39,16 @@ jobs:
         run: npm run verify:proof -- --no-tests
 
   test:
-    runs-on: ubuntu-latest
+    # JM-29 (HY-9) — run the suite on BOTH platforms. Lamprey is Windows-first,
+    # but CI used to run vitest on ubuntu only, so the Windows-guarded tests
+    # (isWindows()/isWin32 cohort) never executed in CI and Windows-specific
+    # regressions were invisible. ubuntu still uploads coverage; windows is a
+    # correctness leg.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -70,6 +79,8 @@ jobs:
         run: npm test -- --coverage
 
       - name: Upload coverage report
+        # One coverage artifact is enough; upload from the ubuntu leg only.
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v6
         with:
           name: coverage-report

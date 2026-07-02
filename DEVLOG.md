@@ -1,3 +1,26 @@
+## 2026-07-02 — JM-29: CI Windows leg, Node alignment, TS bump, noUncheckedIndexedAccess trial (HY-9, HY-10, HY-13, HY-15)
+
+- **HY-9**: the CI `test` job now runs vitest on a `[ubuntu-latest,
+  windows-latest]` matrix (`fail-fast: false`). Lamprey is Windows-first but
+  the suite ran on ubuntu only, so the `isWindows()`/`isWin32` guarded tests
+  never executed in CI. Coverage uploads from the ubuntu leg only.
+- **HY-10**: `typescript` un-pinned from the caret-less `"5.7"` to `^5.9.3`
+  (latest 5.x — TS 6.0 is a separate major decision, deferred). Both tsc
+  configs pass on 5.9.3.
+- **HY-13**: Node version skew closed — `@types/node` aligned from `^25` to
+  `^22` to match Electron 43's bundled Node 22 (and CI's Node 22), and a
+  `"engines": { "node": ">=22" }` field declares the floor. Both tsc configs
+  pass on the @types/node 22 line.
+- **HY-15**: `noUncheckedIndexedAccess` was trialed and **deferred** — it
+  surfaces **700 errors** (538 in the node config, 162 in the web config)
+  across a 632-file codebase. Not tractable in a maintenance pass without
+  large churn and real regression risk; recorded here for a future dedicated
+  cleanup phase.
+
+Gate: ci.yml valid YAML, lint OK, tsc node + web OK.
+
+---
+
 ## 2026-07-02 — JM-28: Embedder migration @xenova → @huggingface/transformers (HY-3)
 
 The legacy, unmaintained `@xenova/transformers` 2.x dragged the ENTIRE

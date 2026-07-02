@@ -11,6 +11,9 @@
     "url": "https://github.com/USS-Parks/lamprey"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/USS-Parks/lamprey.git"
@@ -66,7 +69,7 @@
     "@tailwindcss/vite": "^4.3.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^25.9.1",
+    "@types/node": "^22.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.62.1",
@@ -88,7 +91,7 @@
     "rcedit": "^5.0.2",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.3.2",
-    "typescript": "5.7",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   }
 }

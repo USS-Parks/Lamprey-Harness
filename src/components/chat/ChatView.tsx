@@ -34,16 +34,18 @@ interface ChatViewProps {
 
 export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
   const reducedMotion = usePrefersReducedMotion()
-  const {
-    messages,
-    isStreaming,
-    streamingContent,
-    streamStartedAt,
-    activeConversationId,
-    sendMessage,
-    cancelStream,
-    activeModel
-  } = useChatStore()
+  // JM-24 (RD-6) — per-field selectors. The old selector-less useChatStore()
+  // subscribed to the ENTIRE store, so streamingVitals heartbeats (every ~2s)
+  // and every tool-call update re-rendered the whole chat tree. Each selector
+  // below re-renders ChatView only when THAT slice changes.
+  const messages = useChatStore((s) => s.messages)
+  const isStreaming = useChatStore((s) => s.isStreaming)
+  const streamingContent = useChatStore((s) => s.streamingContent)
+  const streamStartedAt = useChatStore((s) => s.streamStartedAt)
+  const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const sendMessage = useChatStore((s) => s.sendMessage)
+  const cancelStream = useChatStore((s) => s.cancelStream)
+  const activeModel = useChatStore((s) => s.activeModel)
   const activeSkillIds = useSkillsStore((s) => s.activeSkillIds)
 
   const handleSend = (content: string) => {

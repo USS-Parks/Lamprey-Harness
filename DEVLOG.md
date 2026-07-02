@@ -1,3 +1,24 @@
+## 2026-07-02 — JM-24: Render performance (RD-6, RD-16)
+
+- **RD-6**: `ChatView` subscribed to the ENTIRE chat store via a selector-less
+  `useChatStore()`, so streamingVitals heartbeats (~every 2s) and every
+  tool-call update re-rendered the whole chat tree; `MessageBubble` was not
+  memoized, so each already-rendered bubble re-ran its `ReactMarkdown` parse
+  on every stream frame, starving input handlers on long conversations.
+  ChatView now uses per-field selectors, and MessageBubble is `memo`-wrapped
+  with an identity/content comparator. (List virtualization — the third RD-6
+  lever — is deferred: it risks regressing scroll-to-bottom / jump-to-chapter,
+  and the memo + selectors remove the dominant per-frame cost.)
+- **RD-16**: the LoopsPanel 1s countdown ticker ran unconditionally, re-
+  rendering the panel every second even with zero loops — now gated on a
+  running loop existing. Expanding a loop clears the shared backlog buffer
+  first, so loop B no longer briefly shows loop A's tasks before its fetch
+  lands.
+
+Gate: tsc web OK.
+
+---
+
 ## 2026-07-02 — JM-23: Approval queue, focus-scoped hotkeys, modal a11y (RD-4, RD-5, RD-11)
 
 - **RD-4**: `setApprovalRequest` overwrote any modal-routed request already

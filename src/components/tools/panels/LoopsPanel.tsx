@@ -53,12 +53,21 @@ export function LoopsPanel(): React.ReactElement {
   useEffect(() => {
     void refresh()
     const unsub = window.api?.loops?.onLoopEvent?.(() => void refresh())
-    const ticker = window.setInterval(() => forceTick((n) => n + 1), 1000)
     return () => {
       unsub?.()
-      window.clearInterval(ticker)
     }
   }, [refresh])
+
+  // JM-24 (RD-16) — the 1s countdown ticker runs ONLY while a running loop
+  // exists (the countdown it drives renders for running loops only). It used
+  // to tick unconditionally, re-rendering the panel every second even with
+  // zero loops.
+  const hasRunningLoop = loops.some((l) => l.status === 'running')
+  useEffect(() => {
+    if (!hasRunningLoop) return
+    const ticker = window.setInterval(() => forceTick((n) => n + 1), 1000)
+    return () => window.clearInterval(ticker)
+  }, [hasRunningLoop])
 
   const refreshBacklog = useCallback(
     async (loopId: string) => setBacklog(await listBacklog(loopId)),
@@ -72,6 +81,9 @@ export function LoopsPanel(): React.ReactElement {
         return
       }
       setExpanded(loopId)
+      // JM-24 (RD-16) — clear the shared backlog buffer before the fetch so
+      // expanding loop B doesn't briefly show loop A's tasks.
+      setBacklog([])
       await refreshBacklog(loopId)
     },
     [expanded, refreshBacklog]

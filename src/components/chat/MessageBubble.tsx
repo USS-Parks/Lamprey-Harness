@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import type { Message } from '@/lib/types'
 import { MarkdownRenderer } from '@/components/artifacts/MarkdownRenderer'
 import { useMemoryStore } from '@/stores/memory-store'
@@ -32,7 +32,12 @@ function truncateForMemory(content: string): string {
   return trimmed.slice(0, REMEMBER_MAX).trimEnd() + '…'
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+// JM-24 (RD-6) — memoized. Every stream frame re-renders ChatView →
+// MessageList; without this, each already-rendered bubble re-ran its
+// ReactMarkdown parse on every frame, starving input handlers on long
+// conversations. A bubble only re-renders when its own message row (or a
+// store slice it selects) actually changes.
+function MessageBubbleImpl({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   const isTool = message.role === 'tool'
   const addMemory = useMemoryStore((s) => s.addMemory)
@@ -217,3 +222,13 @@ function parseWakeupContent(content: string): { reason?: string; body: string } 
     body: rest.join('\n').trimStart()
   }
 }
+
+// JM-24 (RD-6) — re-render only when the message row identity/content changes.
+export const MessageBubble = memo(
+  MessageBubbleImpl,
+  (prev, next) =>
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.reasoning === next.message.reasoning &&
+    prev.message.model === next.message.model
+)

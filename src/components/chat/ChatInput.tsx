@@ -699,8 +699,10 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           toast.error(res?.error ?? 'Fork failed')
         } else {
           await useChatStore.getState().loadConversations()
-          const forked = res.data as { id: string }
-          await useChatStore.getState().selectConversation(forked.id)
+          // JM-22 (RD-2) — conversation:fork returns { conversationId }, not
+          // { id }. Reading .id navigated to selectConversation(undefined).
+          const forked = res.data as { conversationId: string }
+          await useChatStore.getState().selectConversation(forked.conversationId)
           toast.success('Forked conversation.')
         }
         return true

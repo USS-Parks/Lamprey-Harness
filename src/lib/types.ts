@@ -755,6 +755,10 @@ export interface ProcessedFile {
   content: string
   previewText: string
   error?: string
+  /** JM-22 (RD-19) — stable client-side identity, stamped when the file is
+   *  added. Ingest progress/error updates match on this instead of
+   *  name+size, so two same-named same-size files don't cross-wire. */
+  clientId?: string
   /** Absolute path on disk. Set on `kind: 'rag-pending'` so the renderer
    *  can hand the path to window.api.rag.autoAttach. */
   sourcePath?: string

@@ -25,6 +25,14 @@ export interface SessionSearchHit {
 }
 
 const PAGE_SIZE = 50
+
+// JM-22 (RD-12) — search sequencing + debounce. setQuery fired a request per
+// keystroke with no ordering, so a slower earlier response could resolve last
+// and overwrite the newer query's results. A monotonic token discards stale
+// resolutions; a short debounce coalesces bursts of keystrokes.
+let loadSeq = 0
+let queryDebounce: ReturnType<typeof setTimeout> | null = null
+const QUERY_DEBOUNCE_MS = 180
 const PIN_ORDER_KEY = 'lamprey.sessions.pinOrder'
 
 interface SessionsState {
@@ -127,15 +135,23 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
   setQuery: (query) => {
     set({ query, page: 0, hasMore: true })
-    void get().loadFirstPage()
+    if (queryDebounce) clearTimeout(queryDebounce)
+    queryDebounce = setTimeout(() => {
+      queryDebounce = null
+      void get().loadFirstPage()
+    }, QUERY_DEBOUNCE_MS)
   },
 
   loadFirstPage: async () => {
     const api = getApi()?.sessions
     if (!api) return
+    const seq = ++loadSeq
     set({ loading: true, page: 0 })
     const { tab, query } = get()
     const res = await api.list({ tab, query: query || undefined, limit: PAGE_SIZE, offset: 0 })
+    // JM-22 (RD-12) — a newer query started while this one was in flight;
+    // drop this stale resolution so it can't overwrite the newer results.
+    if (seq !== loadSeq) return
     if (!res.success) {
       toast.error(`Failed to load sessions: ${res.error}`)
       set({ loading: false, entries: [], hasMore: false })
@@ -156,6 +172,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
     // search on every tab switch.
     if (query.trim()) {
       const hitsRes = await api.search(query.trim(), PAGE_SIZE)
+      if (seq !== loadSeq) return
       if (hitsRes.success) set({ hits: (hitsRes.data as SessionSearchHit[]) ?? [] })
     } else {
       set({ hits: [] })
@@ -220,7 +237,9 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       return null
     }
     await get().loadFirstPage()
-    return res.data.id
+    // JM-22 (RD-2) — conversation:fork returns { conversationId }; reading
+    // .id here silently returned undefined so Duplicate never navigated.
+    return (res.data as unknown as { conversationId: string }).conversationId
   },
 
   deleteSession: async (id) => {

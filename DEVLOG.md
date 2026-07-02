@@ -1,3 +1,34 @@
+## 2026-07-02 — JM-21 + JM-22: Chat/session store correctness (RD-1, RD-2, RD-3, RD-10, RD-12, RD-13, RD-19)
+
+**JM-21 — streaming state across conversation switches:**
+- **RD-1**: `selectConversation` cleared only toolCalls/runPhase, so switching
+  mid-stream left the old conversation's partial text + `isStreaming:true`
+  bleeding into the new view — `canSend` locked the input app-wide and Stop
+  cancelled the wrong conversation. Now clears the full streaming state block.
+- **RD-3**: added a staleness guard — a slower `getMessages` from a
+  now-inactive conversation can't overwrite the newly-selected one.
+- **RD-10**: `sendMessage` writes the auto-title to the conversation captured
+  at send time, not `get().activeConversationId!` (which a mid-stream switch
+  or delete made wrong / undefined).
+
+**JM-22 — envelopes, sequencing, identity:**
+- **RD-2**: `/fork` and sidebar Duplicate read `res.data.id`, but
+  `conversation:fork` returns `{ conversationId }` — `/fork` navigated to
+  `selectConversation(undefined)` and Duplicate never navigated. Fixed both.
+- **RD-12**: session search is debounced (180ms) and sequenced with a
+  monotonic token, so a slow earlier keystroke's response can't overwrite the
+  newer query's results.
+- **RD-13**: conversation delete and every loops-store mutation
+  (pause/resume/stop/remove) check their IPC envelope and toast on failure
+  instead of optimistically mutating state on a failed call.
+- **RD-19**: attachments carry a stable client-side `clientId` stamped at add
+  time; ingest progress/error updates match on it instead of name+size, so
+  two same-named same-size files don't cross-wire.
+
+Gate: renderer store suites 19/19 green; tsc web OK.
+
+---
+
 ## 2026-07-02 — JM-20: File-read confinement, MCP spawn approval, signing scaffold (SEC-4, SEC-5, SEC-6)
 
 - **SEC-4**: `files:readText` / `:listDir` / `:walkProject` read ANY absolute

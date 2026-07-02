@@ -238,8 +238,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
   selectConversation: async (id: string) => {
     if (get().activeConversationId === id) return
     useNavHistoryStore.getState().push(id)
-    set({ activeConversationId: id, toolCalls: [], runPhase: null })
+    // JM-21 (RD-1) — clear ALL streaming state on switch. selectConversation
+    // used to reset only toolCalls/runPhase, so switching mid-stream left the
+    // old conversation's partial text + isStreaming:true bleeding into the new
+    // view — `canSend` then locked the input app-wide and Stop cancelled the
+    // wrong conversation (useChat drops terminal events for the inactive one).
+    set({
+      activeConversationId: id,
+      toolCalls: [],
+      runPhase: null,
+      isStreaming: false,
+      streamingContent: '',
+      streamingReasoning: '',
+      streamingDocuments: [],
+      streamStartedAt: null,
+      streamingVitals: null
+    })
     const result = await window.api.conversation.getMessages(id)
+    // JM-21 (RD-3) — staleness guard. Rapid A→B switching can let A's slower
+    // getMessages resolve last; without this bail, B would render A's messages.
+    if (get().activeConversationId !== id) return
     if (result.success) {
       set({
         messages: result.data,
@@ -319,7 +337,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   deleteConversation: async (id: string) => {
-    await window.api.conversation.delete(id)
+    // JM-22 (RD-13) — check the envelope. The optimistic filter below used to
+    // run even when the IPC delete failed, so a failed delete vanished from
+    // the sidebar until reload, silently misreporting DB state.
+    const res = await window.api.conversation.delete(id)
+    if (res && !res.success) {
+      toast.error(res.error ?? 'Could not delete conversation')
+      return
+    }
     const wasActive = get().activeConversationId === id
     set((state) => ({
       conversations: state.conversations.filter((c) => c.id !== id),
@@ -419,11 +444,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     // Auto-title: first message sets conversation title
+    // JM-21 (RD-10) — write the title to the conversation that OWNED this
+    // send, captured at the top of the function. Using
+    // get().activeConversationId! here meant a mid-stream conversation switch
+    // (or delete, which nulls it and makes the `!` lie) landed the title on
+    // the wrong conversation or an undefined id.
+    const titleConversationId = result.data.conversationId ?? conversationId
     const msgs = get().messages
     const userMsgs = msgs.filter((m) => m.role === 'user')
-    if (userMsgs.length === 1) {
+    if (titleConversationId && userMsgs.length === 1) {
       const fallback = content.slice(0, 40)
-      const titleConversationId = get().activeConversationId!
       await window.api.conversation.updateTitle(titleConversationId, fallback)
       await get().loadConversations()
 
@@ -571,11 +601,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!files.length) return
     // Seed rag-pending files with a queued phase so the chip can render an
     // "Indexing…" state immediately, before the auto-attach IPC returns.
-    const seeded = files.map((f) =>
-      f.kind === 'rag-pending' && !f.ragPhase
-        ? { ...f, ragPhase: 'queued' as const, ragProgress: 0 }
-        : f
-    )
+    // JM-22 (RD-19) — stamp a stable clientId so ingest progress matches on
+    // identity, not name+size.
+    const seeded = files.map((f) => {
+      const withId = f.clientId ? f : { ...f, clientId: crypto.randomUUID() }
+      return withId.kind === 'rag-pending' && !withId.ragPhase
+        ? { ...withId, ragPhase: 'queued' as const, ragProgress: 0 }
+        : withId
+    })
     set((state) => ({ pendingAttachments: [...state.pendingAttachments, ...seeded] }))
     for (const f of files) {
       if (f.error) toast.warning(`${f.name}: ${f.error}`)
@@ -609,7 +642,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             toast.error(`${f.name}: ${errMsg}`)
             set((state) => ({
               pendingAttachments: state.pendingAttachments.map((a) =>
-                a.name === f.name && a.size === f.size && a.kind === 'rag-pending'
+                a.clientId === f.clientId && a.kind === 'rag-pending'
                   ? { ...a, ragPhase: 'error' as const, error: errMsg }
                   : a
               )
@@ -622,7 +655,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
           set((state) => ({
             pendingAttachments: state.pendingAttachments.map((a) =>
-              a.name === f.name && a.size === f.size && a.kind === 'rag-pending'
+              a.clientId === f.clientId && a.kind === 'rag-pending'
                 ? { ...a, ingestJobId: jobId, collectionId }
                 : a
             )

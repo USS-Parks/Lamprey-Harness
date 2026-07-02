@@ -89,24 +89,43 @@ export const useLoopsStore = create<LoopsState>((set, get) => ({
     return (res.data as LoopEntity) ?? null
   },
 
+  // JM-22 (RD-13) — every mutation checks its envelope + toasts on failure;
+  // the state change (or refresh) only runs on success. remove() in
+  // particular used to filter the row out unconditionally, so a failed
+  // delete made the loop vanish from the panel until reload.
   pause: async (id) => {
-    await window.api?.loops?.pause(id)
+    const res = await window.api?.loops?.pause(id)
+    if (res && !res.success) {
+      toast.error(`Pause failed: ${res.error}`)
+      return
+    }
     await get().refresh()
   },
 
   resume: async (id) => {
     const res = await window.api?.loops?.resume(id)
-    if (res && !res.success) toast.error(`Resume failed: ${res.error}`)
+    if (res && !res.success) {
+      toast.error(`Resume failed: ${res.error}`)
+      return
+    }
     await get().refresh()
   },
 
   stop: async (id, reason) => {
-    await window.api?.loops?.stop(id, reason)
+    const res = await window.api?.loops?.stop(id, reason)
+    if (res && !res.success) {
+      toast.error(`Stop failed: ${res.error}`)
+      return
+    }
     await get().refresh()
   },
 
   remove: async (id) => {
-    await window.api?.loops?.deleteLoop(id)
+    const res = await window.api?.loops?.deleteLoop(id)
+    if (res && !res.success) {
+      toast.error(`Delete failed: ${res.error}`)
+      return
+    }
     set((s) => ({ loops: s.loops.filter((l) => l.id !== id) }))
   },
 

@@ -1,3 +1,41 @@
+## 2026-07-02 — PHASE COMPLETE: July 2026 Maintenance (JM-0–JM-31, v0.16.0)
+
+Thirty-two prompts closing ~90 audit findings across six domains, each
+commit hook-verified under the new JM-0 commit discipline. Owner reviewed
+every commit and approved the release ("I've reviewed every commit you've put
+forth this morning - it's very clean and solid LOC").
+
+Owner's release summary (the v0.16.0 PR preamble):
+1) The Loop feature didn't work as designed and its safety rails weren't
+   holding. Since this was the newest code, it became the highest priority to
+   fix as a feature.
+2) Chat-core correct for hanging turns, retry corruption edge cases, dead
+   fallback paths, and custom model integration.
+3) Making data more durable. Revised atomic writes, fallback-latch scoping,
+   vec leak, getDb init, transactions, retention.
+4) Hardening Security. Navigation guard, openExternal filter, debug-trace
+   removal, file confinement, MCP approval, etc.
+5) Renderer correctness & performance upgrades.
+6) Currency and Hygiene round. Electron 43 upgrade for anchor prompt,
+   @xenova migration, other minor tool version bumps.
+
+Final gate (v0.16.0): lint OK · tsc node + web OK · full vitest **2334
+passed / 130 skipped / 0 failed** · electron-vite build OK · smoke:bundle +
+smoke:renderer PASS · `verify:proof` exit 0 — and the 15 ABI-guarded
+native-DB test files now RUN under vitest (Electron 43's Node 22 ABI matches
+local Node), closing the silent-skip class from the v0.9.2 postmortem.
+`npm audit --omit=dev`: **0 vulnerabilities** (phase baseline: 1 critical /
+4 high / 2 moderate).
+
+Deferred (owner actions): live GUI smoke of the Electron 43 build on first
+install; a real RAG ingest under @huggingface/transformers; Authenticode
+cert acquisition for signed auto-updates (config is env-gated and ready).
+
+Ship arc: push to main + Bucket (build:win → dist artifacts → tag v0.16.0 →
+R2 upload → GitHub release with the preamble notes → CF cache purge).
+
+---
+
 ## 2026-07-02 — JM-30: Docs refresh + v0.16.0 (HY-4)
 
 - `package.json` bumped to **0.16.0**.

@@ -1,3 +1,28 @@
+## 2026-07-02 — JM-27: Electron 35 → 43 major upgrade (HY-2)
+
+Electron 35 was ~8 majors / ~a year of unpatched Chromium/Node/V8 CVEs behind
+in a shipping desktop app, and the pin rationale was obsolete: better-sqlite3
+12.11.1 (JM-26) ships prebuilds through Electron ABI v146. Bumped
+`electron` to `^43.0.0` and re-ran `electron-rebuild -f -w better-sqlite3`
+(sharp + better-sqlite3 rebuilt clean).
+
+**Full static gate green under Electron 43:**
+- tsc node OK, tsc web OK
+- `electron-vite build` OK (built in ~5s)
+- `smoke:bundle` PASS (out/main/index.js loads), `smoke:renderer` PASS
+- full vitest **2334 passed / 130 skipped / 0 failed** (a single load-flake on
+  the first run — the memory-store 200-entry test under an abnormally long
+  cumulative import — cleared on the clean re-run)
+
+No source changes were needed — WebContentsView / safeStorage / single-instance
+/ updater APIs are all forward-compatible across 35→43. The stale pin rationale
+is corrected in both CLAUDE.md copies. **Honest note:** the static gate is
+thorough (bundler, native ABI, types, 2334 tests) but a live GUI smoke —
+launching the packaged app, exercising the artifact WebContentsView + safeStorage
+keychain — is the owner's final confirmation before shipping the .exe.
+
+---
+
 ## 2026-07-02 — JM-26: Minor/patch dependency bumps
 
 Bumped every dependency to the latest within its current major (no breaking

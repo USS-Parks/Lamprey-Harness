@@ -73,7 +73,7 @@
     "@typescript-eslint/parser": "^8.62.1",
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/coverage-v8": "^4.1.9",
-    "electron": "^35.7.5",
+    "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "electron-rebuild": "^3.2.9",
     "electron-updater": "^6.8.9",

@@ -85,7 +85,7 @@ npx electron-vite build
 - `mcp-manager.ts` is fully implemented (Prompt 10) with SSE + stdio transports, Google OAuth token refresh, and auto-restart
 - Tool approval lives in `electron/services/permissions-store.ts` + `electron/ipc/permissions.ts` (Phase 4). The legacy `mcp:approveToolCall` IPC is a thin shim over `permissionsService.respondLegacy`; the modern channel is `tools:approvalRequired` / `tools:respondToApproval`. Approval is gated by descriptor risk metadata on `electron/services/tool-registry.ts`, not by hard-coded server lists
 - Branding: display name "Lamprey", desktop icon = green 3D lamprey (`ASSETS/Lamprey Desktop Icon-1.png`), splash screen = `ASSETS/Lamprey New Startup Splash.png` (3s duration)
-- `WebContentsView` (Electron 35) replaces deprecated `BrowserView` — uses DIP coordinates (no scaleFactor multiplication needed). Electron is pinned to ^35.7.5 because better-sqlite3 12.10 doesn't yet support V8 13 (Electron 36+). Bump when better-sqlite3 ships V8 13 compat.
+- `WebContentsView` (Electron 35+) replaces deprecated `BrowserView` — uses DIP coordinates (no scaleFactor multiplication needed). **Electron is on ^43.0.0 as of the July 2026 Maintenance Phase (JM-27)** — the old ^35.7.5 pin (better-sqlite3 lacking V8 13 / Electron 36+ support) is obsolete: better-sqlite3 12.11.1 ships prebuilds through Electron ABI v146. The 35→43 jump passed the full static gate (tsc ×2, build, both smokes, full vitest 2334 passed) plus `electron-rebuild`; a live GUI smoke is the owner's final check on any future major bump.
 - React 19 has no UMD builds — JSX artifacts use a custom `react-shim.js` for createElement/createRoot
 - `react-markdown` v10 requires `pre` passthrough override to prevent double-wrapping CodeBlock components
 

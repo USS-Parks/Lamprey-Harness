@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type {
   ApprovalDecision,
   ApprovalScope,
@@ -35,6 +35,8 @@ const RISK_COLOR: Record<ToolRisk, string> = {
 export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprovalModalProps) {
   const [countdown, setCountdown] = useState(TIMEOUT_SECONDS)
   const [scope, setScope] = useState<ApprovalScope>('once')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const denyBtnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -46,6 +48,41 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
     return () => clearTimeout(timer)
   }, [countdown])
+
+  // JM-23 (RD-11) — a security modal must be reachable and dismissible by
+  // keyboard. Focus Deny on mount (the safe default), trap Tab inside the
+  // dialog, and map Esc → deny — before this, focus stayed in the chat
+  // textarea and a keyboard-only user couldn't reach Deny before the 30s
+  // auto-deny without tabbing across the whole app.
+  useEffect(() => {
+    denyBtnRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        respond('deny', scope)
+        return
+      }
+      if (e.key !== 'Tab') return
+      const root = dialogRef.current
+      if (!root) return
+      const focusable = root.querySelectorAll<HTMLElement>(
+        'button, select, [href], input, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, request.callId])
 
   const respond = (decision: ApprovalDecision, chosenScope: ApprovalScope) => {
     window.api?.tools.respondToApproval({
@@ -70,8 +107,17 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-md rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-6 shadow-2xl">
-        <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tool-approval-title"
+        className="w-full max-w-md rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+      >
+        <h2
+          id="tool-approval-title"
+          className="mb-4 text-lg font-semibold text-[var(--text-primary)]"
+        >
           Allow this action?
         </h2>
 
@@ -125,8 +171,9 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
 
         <div className="flex gap-3">
           <button
+            ref={denyBtnRef}
             onClick={() => respond('deny', scope)}
-            className="flex-1 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)]"
+            className="flex-1 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           >
             Deny
           </button>

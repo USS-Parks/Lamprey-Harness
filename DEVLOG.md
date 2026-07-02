@@ -1,3 +1,24 @@
+## 2026-07-02 — JM-23: Approval queue, focus-scoped hotkeys, modal a11y (RD-4, RD-5, RD-11)
+
+- **RD-4**: `setApprovalRequest` overwrote any modal-routed request already
+  showing — two gated calls in flight (main chat + side chat) meant the first
+  request's modal vanished and the tool was auto-denied at 30s unseen. App now
+  holds an approval QUEUE; the head is the visible modal and resolving it
+  advances to the next.
+- **RD-5**: InlineApprovalChip claimed Escape/1/2/3 GLOBALLY while pending —
+  an Escape meant for a dropdown denied the tool, and a stray `3` granted a
+  workspace-scoped "always allow" with no confirmation. The handler now fires
+  only when focus is inside the chip, and the workspace grant requires an
+  explicit `window.confirm`.
+- **RD-11**: ToolApprovalModal had no dialog semantics — a security modal a
+  keyboard-only user couldn't reach before the 30s auto-deny. Added
+  `role="dialog"` + `aria-modal` + labelledby, autofocus on Deny (the safe
+  default), a Tab focus trap, and Esc → deny.
+
+Gate: tsc web OK; renderer store suites unaffected.
+
+---
+
 ## 2026-07-02 — JM-21 + JM-22: Chat/session store correctness (RD-1, RD-2, RD-3, RD-10, RD-12, RD-13, RD-19)
 
 **JM-21 — streaming state across conversation switches:**

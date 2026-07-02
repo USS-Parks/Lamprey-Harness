@@ -47,7 +47,19 @@ function App(): React.ReactElement {
   const [artifactOpen, setArtifactOpen] = useState(false)
   const [artifactType, setArtifactType] = useState<string | null>(null)
   const [artifactSource, setArtifactSource] = useState<string | null>(null)
-  const [approvalRequest, setApprovalRequest] = useState<ToolApprovalRequest | null>(null)
+  // JM-23 (RD-4) — a QUEUE, not a single slot. setApprovalRequest used to
+  // overwrite any modal-routed request already showing; the replaced one had
+  // no surface and died to the main-process 30s auto-deny unseen (e.g. main
+  // chat + side chat each raising a gated call). The head of the queue is the
+  // visible modal; resolving it advances to the next.
+  const [approvalQueue, setApprovalQueue] = useState<ToolApprovalRequest[]>([])
+  const approvalRequest = approvalQueue[0] ?? null
+  const enqueueApproval = useCallback((req: ToolApprovalRequest) => {
+    setApprovalQueue((q) => (q.some((r) => r.callId === req.callId) ? q : [...q, req]))
+  }, [])
+  const dequeueApproval = useCallback(() => {
+    setApprovalQueue((q) => q.slice(1))
+  }, [])
   // Fluidity J5: inline approval chips for previously-approved,
   // non-destructive tool calls. The set tracks (server, tool) pairs we've
   // seen approved at least once this session — first sighting still gets
@@ -264,11 +276,11 @@ function App(): React.ReactElement {
       if (surface === 'chip') {
         pushInlineApproval(req)
       } else {
-        setApprovalRequest(req)
+        enqueueApproval(req)
       }
     })
     return unsubscribe
-  }, [pushInlineApproval])
+  }, [pushInlineApproval, enqueueApproval])
 
   useEffect(() => {
     if (!window.api) return
@@ -401,8 +413,9 @@ function App(): React.ReactElement {
 
       {approvalRequest && (
         <ToolApprovalModal
+          key={approvalRequest.callId}
           request={approvalRequest}
-          onResolved={() => setApprovalRequest(null)}
+          onResolved={dequeueApproval}
           onAllowed={(req) => {
             approvedSeenRef.current.add(approvalKey(req.serverId, req.name))
           }}

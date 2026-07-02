@@ -68,15 +68,15 @@ export function InlineApprovalChip({
   useEffect(() => {
     if (!autoFocus) return
     const handler = (e: KeyboardEvent) => {
-      // Don't steal keystrokes from inputs the user is typing into.
-      const target = e.target
-      if (target instanceof HTMLElement) {
-        const tag = target.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) {
-          // Allow when the focused element is *us* — chip root has tabIndex.
-          if (target !== rootRef.current) return
-        }
-      }
+      // JM-23 (RD-5) — only handle keys when focus is INSIDE this chip. The
+      // old handler claimed Escape/1/2/3 globally: an Escape meant to close a
+      // dropdown denied the tool, and a stray `3` on the body granted a
+      // workspace-scoped "always allow" with no confirmation. Now the chip
+      // must own focus (root or a descendant, e.g. its buttons).
+      const root = rootRef.current
+      if (!root) return
+      const active = document.activeElement
+      if (active !== root && !(active instanceof Node && root.contains(active))) return
       if (e.key === '1') {
         e.preventDefault()
         respond('allow', 'once')
@@ -85,12 +85,20 @@ export function InlineApprovalChip({
         respond('deny', 'once')
       } else if (e.key === '3') {
         e.preventDefault()
-        respond('allow', 'workspace')
+        // JM-23 (RD-5) — a persistent workspace grant is not a stray-keystroke
+        // action; confirm before whitelisting the tool for the whole project.
+        if (
+          window.confirm(
+            `Always allow "${request.name}" in this workspace without asking again?`
+          )
+        ) {
+          respond('allow', 'workspace')
+        }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [autoFocus, request.callId])
+  }, [autoFocus, request.callId, request.name])
 
   const providerLabel =
     request.providerKind === 'mcp'

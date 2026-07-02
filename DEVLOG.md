@@ -1,3 +1,36 @@
+## 2026-07-02 — JM-18: FTS quoting, retention sweep, encrypted backups, hot-path perf (DB-8, DB-9, DB-11, DB-16, DB-17)
+
+- **DB-8**: `searchSessions` quotes each token (the rag/retrieve strategy) so
+  user-typed FTS5 operators/quotes match as literals instead of throwing a
+  syntax error the catch turned into a silent "no results".
+- **DB-9**: new `retention-sweep.ts` — startup sweep (deferred with the spill
+  GC) prunes the five unbounded audit-class tables: `events` (~288 rows/day
+  from checkpoints alone), `tool_calls`, `snip_command_log` + `snip_events`,
+  non-pending `loop_wakeups`, finished `loop_runs`. Window configurable via
+  `auditRetentionDays` (default 90; 0 disables, app convention). Best-effort
+  per table for older DBs.
+- **DB-11**: the backup runner opens its source through the new encryption-
+  aware `openReadonlyHandleAt` — with PS9 encryption on, every nightly tick
+  used to throw "file is not a database" into a console.warn: the user
+  believed they had 14 days of backups and had zero. Three consecutive
+  failures now surface an `app:warning` toast via an injected emitter.
+- **DB-16**: hoisted the per-row `db.prepare` out of the listConversations /
+  listSessions map loops (better-sqlite3 does not cache prepares — a
+  500-conversation refresh compiled 500 identical COUNT statements).
+- **DB-17**: `readSpilledResult` serves pages from ≤4MB files in memory as
+  before; larger files get a positioned byte-window read (UTF-8-aware trim,
+  honest `approximate offsets` note) instead of loading a potentially
+  multi-hundred-MB file per `read_tool_result` call.
+
+Test-contract fix surfaced by the full run: event-log's
+`__forceMemoryFallback` now arms `fallbackSince` so the JM-14 recovery probe
+can't immediately un-force it under stubbed getDb.
+
+Gate: **FULL suite 2326 passed / 130 skipped / 0 failed**; tsc node OK.
+**Track C complete.**
+
+---
+
 ## 2026-07-02 — JM-17: Conversation-store write groups are transactional (DB-6, DB-10, DB-21)
 
 - **DB-6**: `saveMessage`'s INSERT + touchConversation + FTS insert ran as

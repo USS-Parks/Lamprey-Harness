@@ -4,9 +4,10 @@ import { readFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { registerAllIpcHandlers } from './ipc'
 import { closeDb, startPeriodicCheckpoint } from './services/database'
-import { startBackupRunner } from './services/backup-runner'
+import { startBackupRunner, setBackupWarningEmitter } from './services/backup-runner'
 // SP-6 — startup GC for the HY3 tool-result spill directory (D3).
 import { gcSpillDir } from './services/tool-result-spill'
+import { runRetentionSweep } from './services/retention-sweep'
 import { destroy as destroyArtifactSandbox } from './services/artifact-sandbox'
 import { ptyKillAll } from './services/pty-manager'
 import { destroyAll as destroyBrowserTabs } from './services/browser-manager'
@@ -411,12 +412,34 @@ app.whenReady().then(() => {
   // First tick is delayed 30 seconds (in the runner) so startup isn't
   // slowed and the first backup happens once the app is settled.
   // Subsequent ticks fire every 24 hours.
+  // JM-18 (DB-11) — repeated backup failures now surface as a renderer
+  // warning instead of dying in console.warn.
+  setBackupWarningEmitter((message) => reportToRenderer('app:warning', message))
   stopBackupRunner = startBackupRunner()
 
   // SP-6 (Sweet Spot Phase, 2026-06-10) — GC the HY3 tool-result spill
   // directory (D3: it previously grew unbounded — zero deletion call sites).
   // Deferred 10s so it never competes with launch; best-effort by contract.
   setTimeout(() => {
+    // JM-18 (DB-9) — prune the unbounded audit-class tables (events,
+    // tool_calls, snip logs, fired wake-ups, finished loop runs) to the
+    // configured retention window. Best-effort, same contract as the GC.
+    try {
+      const swept = runRetentionSweep()
+      const total = swept.reduce((n, s) => n + s.deleted, 0)
+      if (total > 0) {
+        console.info(
+          `[retention] pruned ${total} aged audit rows (` +
+            swept
+              .filter((s) => s.deleted > 0)
+              .map((s) => `${s.table}: ${s.deleted}`)
+              .join(', ') +
+            ')'
+        )
+      }
+    } catch (err) {
+      console.warn('[retention] sweep failed:', err)
+    }
     try {
       const outcome = gcSpillDir()
       if (outcome.deletedByAge > 0 || outcome.deletedBySize > 0) {

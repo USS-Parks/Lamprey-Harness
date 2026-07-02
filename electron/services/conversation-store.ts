@@ -228,10 +228,12 @@ export function listConversations() {
   const rows = db
     .prepare('SELECT * FROM conversations ORDER BY updated_at DESC')
     .all() as ConversationRow[]
+  // JM-18 (DB-16) — one prepared statement, hoisted. better-sqlite3 does not
+  // cache prepares: a 500-conversation sidebar refresh compiled 500 identical
+  // COUNT statements.
+  const countStmt = db.prepare('SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?')
   return rows.map((row) => {
-    const count = db.prepare(
-      'SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?'
-    ).get(row.id) as { cnt: number }
+    const count = countStmt.get(row.id) as { cnt: number }
     return rowToConversation(row, count.cnt)
   })
 }
@@ -310,10 +312,10 @@ export function listSessions(opts: ListSessionsOptions = {}) {
   params.push(limit, offset)
 
   const rows = db.prepare(sql).all(...params) as ConversationRow[]
+  // JM-18 (DB-16) — hoisted single prepare (see listConversations).
+  const countStmt = db.prepare('SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?')
   return rows.map((row) => {
-    const count = db
-      .prepare('SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?')
-      .get(row.id) as { cnt: number }
+    const count = countStmt.get(row.id) as { cnt: number }
     return rowToConversation(row, count.cnt)
   })
 }
@@ -348,7 +350,17 @@ export interface SessionSearchHit {
 }
 
 export function searchSessions(query: string, limit = 50): SessionSearchHit[] {
-  const q = query.trim()
+  // JM-18 (DB-8) — quote each token (the rag/retrieve.ts strategy) so
+  // user-typed FTS5 operators/quotes (`don"t`, `C++ AND rust`) match as
+  // literals instead of throwing a syntax error the catch turned into a
+  // silent empty result.
+  const q = query
+    .trim()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => `"${t.replace(/"/g, '""')}"`)
+    .join(' ')
   if (!q) return []
   const db = getDb()
   try {

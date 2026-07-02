@@ -14,6 +14,31 @@ import {
 let db: Database.Database | null = null
 let persistenceReadOnlyMode = false
 
+/**
+ * JM-18 (DB-11) — encryption-aware read-only open for the backup runner.
+ * The runner used to open the source with a bare `new Database(...)`; with
+ * PS9 encryption enabled every nightly tick threw "file is not a database"
+ * into a console.warn — the user believed they had 14 days of backups and
+ * had zero, discovered only at restore time.
+ */
+export function openReadonlyHandleAt(dbPath: string): Database.Database {
+  if (!isDatabaseEncrypted()) {
+    return new Database(dbPath, { readonly: true, fileMustExist: true })
+  }
+  const passphrase = readStoredPassphrase()
+  if (!passphrase) {
+    throw new Error('database is encrypted but no stored passphrase is available')
+  }
+  const handle = openEncryptedDatabase(passphrase, dbPath, {
+    readonly: true,
+    fileMustExist: true
+  })
+  if (!handle) {
+    throw new Error('database is encrypted but SQLCipher binding is unavailable')
+  }
+  return handle as unknown as Database.Database
+}
+
 function openDatabaseHandle(dbPath: string): Database.Database {
   if (!isDatabaseEncrypted()) {
     return new Database(

@@ -9,8 +9,17 @@ import {
   statSync,
   unlinkSync
 } from 'fs'
-import { getDb, checkpoint } from './database'
+import { getDb, checkpoint, openReadonlyHandleAt } from './database'
 import { recordEvent } from './event-log'
+
+// JM-18 (DB-11) — consecutive-failure tracking + injectable warning sink
+// (main.ts wires reportToRenderer so the renderer toasts it).
+let consecutiveBackupFailures = 0
+let backupWarningEmitter: ((message: string) => void) | null = null
+
+export function setBackupWarningEmitter(fn: ((message: string) => void) | null): void {
+  backupWarningEmitter = fn
+}
 
 // Persistence Phase / PS5 — daily SQLite backups + rolling retention +
 // restore.
@@ -93,7 +102,9 @@ export async function createBackup(
   // rather than using the cached `getDb()` — better-sqlite3's backup
   // API doesn't require shared handles, and opening fresh avoids any
   // interaction with the cached connection's transaction state.
-  const source = new Database(dbPath, { readonly: true, fileMustExist: true })
+  // JM-18 (DB-11): encryption-aware — a bare open threw on SQLCipher DBs,
+  // silently producing ZERO backups while the user believed they had 14 days.
+  const source = openReadonlyHandleAt(dbPath)
   try {
     // better-sqlite3 12.x ships `db.backup(destination, opts)` which
     // returns a Promise resolving once the page-by-page copy completes.
@@ -317,10 +328,22 @@ export function startBackupRunner(opts?: {
   const tick = (): void => {
     createBackup(dbPath, backupDir, 'periodic')
       .then(() => {
+        consecutiveBackupFailures = 0
         pruneOldBackups(backupDir, retentionDays)
       })
       .catch((err) => {
         console.warn('[backup-runner] periodic backup failed:', err)
+        // JM-18 (DB-11) — a silently-failing backup is worse than none: the
+        // user believes they're covered. After 3 consecutive failures,
+        // surface it in the renderer.
+        consecutiveBackupFailures++
+        if (consecutiveBackupFailures >= 3 && backupWarningEmitter) {
+          backupWarningEmitter(
+            `Database backups have failed ${consecutiveBackupFailures} times in a row: ${
+              (err as Error)?.message ?? 'unknown error'
+            }. Your data is NOT being backed up.`
+          )
+        }
       })
   }
   // Fire the first tick after a 30s delay so startup isn't slowed and

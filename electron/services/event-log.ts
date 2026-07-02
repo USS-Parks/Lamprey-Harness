@@ -770,9 +770,13 @@ export function listTimeline(filter: TimelineFilter): EventRecord[] {
 export function __resetEventLog(): void {
   memoryFallback.length = 0
   useFallback = false
+  fallbackSince = 0
 }
 
 /** Test-only: force the memory fallback path. */
 export function __forceMemoryFallback(): void {
   useFallback = true
+  // Keep the JM-14 recovery probe from immediately un-forcing it in tests
+  // whose getDb is stubbed to a working object.
+  fallbackSince = Date.now()
 }

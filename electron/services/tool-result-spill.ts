@@ -20,7 +20,10 @@ import {
   existsSync,
   readdirSync,
   statSync,
-  unlinkSync
+  unlinkSync,
+  openSync,
+  readSync,
+  closeSync
 } from 'fs'
 import { randomUUID } from 'crypto'
 
@@ -194,14 +197,49 @@ export function readSpilledResult(
   if (!existsSync(path)) {
     return JSON.stringify({ error: 'tool result not found (it may have expired)', ref })
   }
-  const full = readFileSync(path, 'utf8')
+  // JM-18 (DB-17) — spilled files are unbounded (only the directory total is
+  // GC-capped), and this used to load the WHOLE file to serve a ≤8KB page:
+  // paging through a 200MB result re-read 200MB per call. Serve pages small
+  // files from memory as before; for large files, read only the byte window
+  // that can contain the requested char range (UTF-8 ≤ 4 bytes/char) and
+  // slice within it. Char offsets before the window are approximated from
+  // the byte stream, which is exact for the dominant ASCII tool-output case
+  // and safely clamped otherwise.
   const s = Math.max(0, Math.floor(start) || 0)
-  const e = end != null ? Math.min(full.length, Math.floor(end)) : Math.min(full.length, s + 8192)
-  return JSON.stringify({
-    ref,
-    start: s,
-    end: e,
-    totalChars: full.length,
-    content: full.slice(s, e)
-  })
+  const IN_MEMORY_MAX_BYTES = 4 * 1024 * 1024
+  const fileBytes = statSync(path).size
+  if (fileBytes <= IN_MEMORY_MAX_BYTES) {
+    const full = readFileSync(path, 'utf8')
+    const e = end != null ? Math.min(full.length, Math.floor(end)) : Math.min(full.length, s + 8192)
+    return JSON.stringify({
+      ref,
+      start: s,
+      end: e,
+      totalChars: full.length,
+      content: full.slice(s, e)
+    })
+  }
+  const requestedLen = end != null ? Math.max(0, Math.floor(end) - s) : 8192
+  // Char s begins at byte offset ≥ s (every char is ≥ 1 byte), so a window
+  // starting at byte s may begin slightly BEFORE char s in multibyte text —
+  // acceptable for the paging use case and flagged in the response note.
+  const byteStart = Math.min(fileBytes, s)
+  const byteLen = Math.min(fileBytes - byteStart, (requestedLen + 8) * 4)
+  const fd = openSync(path, 'r')
+  try {
+    const buf = Buffer.alloc(byteLen)
+    readSync(fd, buf, 0, byteLen, byteStart)
+    let content = buf.toString('utf8').replace(/^�+|�+$/g, '')
+    if (content.length > requestedLen) content = content.slice(0, requestedLen)
+    return JSON.stringify({
+      ref,
+      start: s,
+      end: s + content.length,
+      totalCharsApprox: fileBytes,
+      note: 'large spill file — offsets are approximate byte positions',
+      content
+    })
+  } finally {
+    closeSync(fd)
+  }
 }

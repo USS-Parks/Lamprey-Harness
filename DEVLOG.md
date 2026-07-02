@@ -1,3 +1,24 @@
+## 2026-07-02 — JM-3: Loop/wake-up/automation overlap guards (LP-2, LP-8, LP-16)
+
+Three concurrency holes from the audit, one theme — nothing prevented the same
+work from running on top of itself:
+- **LP-2**: `tickLoops` re-selected a loop whose previous iteration was still
+  running (nextFireAt only advances after the turn), so one slow turn spawned
+  overlapping iterations reading the same stale row. Now: a module-level
+  `inFlightLoops` set filters due loops (cleared in `finally`), plus a
+  `tickInFlight` re-entrancy guard on the whole tick.
+- **LP-8**: after system sleep, `fireDueWakeups` launched every missed wake-up
+  turn fire-and-forget — up to 50 parallel LLM calls on one tick. Now all
+  wake-up turns feed a single sequential drainer queue.
+- **LP-16**: an every-minute automation whose `chatOnce` ran >60s stacked
+  concurrent runs of itself. Now `runOne` refuses re-entry per automation id.
+
+Source-locked in `loop-turn-wiring.test.ts` (JM-3 describe block).
+
+Gate: loop-turn-wiring + loop-controller + automations-runner 38/38 green.
+
+---
+
 ## 2026-07-02 — JM-2: Loop iteration prompt reaches the model (LP-1 fix)
 
 The audit's top P0: `runLoopIteration` handed `buildIterationPrompt`'s output

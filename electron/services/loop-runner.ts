@@ -50,6 +50,30 @@ export function getLoopTurnRunner(): LoopTurnRunner | null {
   return turnRunner
 }
 
+// JM-3 (LP-8) — wake-up turns run through a single sequential drainer instead
+// of fire-and-forget-per-wakeup. After a Windows sleep every missed wake-up is
+// due at once (SELECT … LIMIT 50); firing them in parallel meant up to 50
+// concurrent LLM calls, several possibly into the same conversation.
+const pendingWakeupTurns: Array<() => Promise<void>> = []
+let drainingWakeupTurns = false
+
+function enqueueWakeupTurn(fn: () => Promise<void>): void {
+  pendingWakeupTurns.push(fn)
+  if (drainingWakeupTurns) return
+  drainingWakeupTurns = true
+  void (async () => {
+    while (pendingWakeupTurns.length > 0) {
+      const next = pendingWakeupTurns.shift()!
+      try {
+        await next()
+      } catch (err) {
+        console.error('[loops] wake-up turn failed:', err)
+      }
+    }
+    drainingWakeupTurns = false
+  })()
+}
+
 function rowToWakeup(row: any): LoopWakeup {
   return {
     id: row.id,
@@ -187,12 +211,13 @@ export function fireDueWakeups(now = Date.now()): LoopWakeup[] {
       if (turnRunner) {
         const conv = getConversation(wakeup.conversationId)
         const model = conv?.model ?? 'deepseek-v4-pro'
-        void turnRunner({
-          conversationId: wakeup.conversationId,
-          model,
-          promptBody: wakeup.prompt
-        }).catch((err) => {
-          console.error('[loops] wake-up turn failed:', err)
+        const runner = turnRunner
+        enqueueWakeupTurn(async () => {
+          await runner({
+            conversationId: wakeup.conversationId,
+            model,
+            promptBody: wakeup.prompt
+          })
         })
       }
     } catch (err) {

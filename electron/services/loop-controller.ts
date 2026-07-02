@@ -467,14 +467,40 @@ function maybeGcSpill(now: number): void {
   }
 }
 
+// JM-3 (LP-2) — overlap guards. A loop iteration can outlive several 30s
+// ticks; without these, `listDueLoops` kept returning a loop whose turn was
+// still running (nextFireAt only advances after the turn), so one slow loop
+// spawned overlapping iterations, each reading a stale row: duplicated token
+// spend, lost-update on the iteration counter, under-enforced maxIterations.
+const inFlightLoops = new Set<string>()
+let tickInFlight = false
+
+export function isLoopInFlight(id: string): boolean {
+  return inFlightLoops.has(id)
+}
+
 export async function tickLoops(now = Date.now()): Promise<void> {
   // No runner wired → nothing can run; skip quietly (e.g. very early boot).
   if (!getLoopTurnRunner()) return
+  if (tickInFlight) return
+  tickInFlight = true
+  try {
+    await tickLoopsInner(now)
+  } finally {
+    tickInFlight = false
+  }
+}
+
+async function tickLoopsInner(now: number): Promise<void> {
   const deps = productionDeps()
   const maxConcurrent = readLoopConfig().maxConcurrent
-  const due = deps.store.listDueLoops(now).slice(0, Math.max(1, maxConcurrent))
+  const due = deps.store
+    .listDueLoops(now)
+    .filter((l) => !inFlightLoops.has(l.id))
+    .slice(0, Math.max(1, maxConcurrent))
   if (due.length > 0) maybeGcSpill(now)
   for (const loop of due) {
+    inFlightLoops.add(loop.id)
     try {
       const outcome = await runLoopIteration(loop, deps)
       try {
@@ -498,6 +524,8 @@ export async function tickLoops(now = Date.now()): Promise<void> {
       }
     } catch (err) {
       console.error('[loops] iteration failed:', err)
+    } finally {
+      inFlightLoops.delete(loop.id)
     }
   }
 }

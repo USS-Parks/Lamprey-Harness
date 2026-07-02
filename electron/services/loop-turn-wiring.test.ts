@@ -33,9 +33,32 @@ describe('JM-2 loop iteration prompt reaches the model', () => {
     const src = read('electron/services/loop-runner.ts')
     const fn = src.slice(src.indexOf('export function fireDueWakeups'))
     const saveIdx = fn.indexOf('saveMessage({')
-    const runIdx = fn.indexOf('turnRunner({')
+    const runIdx = fn.indexOf('runner({')
     expect(saveIdx).toBeGreaterThan(-1)
     expect(runIdx).toBeGreaterThan(-1)
     expect(saveIdx).toBeLessThan(runIdx)
+  })
+})
+
+describe('JM-3 overlap guards', () => {
+  it('tickLoops skips loops with an iteration already in flight', () => {
+    const src = read('electron/services/loop-controller.ts')
+    expect(src).toMatch(/const inFlightLoops = new Set<string>\(\)/)
+    expect(src).toMatch(/\.filter\(\(l\) => !inFlightLoops\.has\(l\.id\)\)/)
+    expect(src).toMatch(/inFlightLoops\.delete\(loop\.id\)/)
+    expect(src).toMatch(/if \(tickInFlight\) return/)
+  })
+
+  it('wake-up turns drain sequentially instead of firing in parallel', () => {
+    const src = read('electron/services/loop-runner.ts')
+    expect(src).toMatch(/enqueueWakeupTurn\(/)
+    const fn = src.slice(src.indexOf('export function fireDueWakeups'))
+    expect(fn).not.toMatch(/void turnRunner\(/)
+  })
+
+  it('an automation never runs concurrently with itself', () => {
+    const src = read('electron/services/automations-runner.ts')
+    expect(src).toMatch(/runningAutomations\.has\(autoId\)\) return/)
+    expect(src).toMatch(/runningAutomations\.delete\(autoId\)/)
   })
 })

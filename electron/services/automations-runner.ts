@@ -84,7 +84,22 @@ function matches(expr: CronExpr, d: Date): boolean {
 let timer: NodeJS.Timeout | null = null
 const lastFiredMinute = new Map<string, number>()
 
+// JM-3 (LP-16) — one run of an automation at a time. An every-minute
+// automation whose chatOnce takes >60s otherwise stacks unbounded
+// concurrent runs of itself.
+const runningAutomations = new Set<string>()
+
 async function runOne(autoId: string): Promise<void> {
+  if (runningAutomations.has(autoId)) return
+  runningAutomations.add(autoId)
+  try {
+    await runOneInner(autoId)
+  } finally {
+    runningAutomations.delete(autoId)
+  }
+}
+
+async function runOneInner(autoId: string): Promise<void> {
   const list = listAutomations()
   const a = list.find((x) => x.id === autoId)
   if (!a) return

@@ -10,12 +10,25 @@ const api = {
     }) => ipcRenderer.invoke('chat:send', request),
     cancel: (conversationId: string) => ipcRenderer.invoke('chat:cancel', conversationId),
     generateTitle: (content: string) => ipcRenderer.invoke('chat:generateTitle', content),
-    onChunk: (cb: (e: { conversationId: string; content: string }) => void) =>
-      ipcRenderer.on('chat:chunk', (_, e) => cb(e)),
-    onReasoning: (cb: (e: { conversationId: string; content: string }) => void) =>
-      ipcRenderer.on('chat:reasoning', (_, e) => cb(e)),
-    onDone: (cb: (e: { conversationId: string; message: unknown }) => void) =>
-      ipcRenderer.on('chat:done', (_, e) => cb(e)),
+    // JM-25 (RD-7) — each of these returns a per-listener disposer so useChat
+    // can clean up ITS OWN listeners instead of calling offAll(), which
+    // removeAllListeners on channels SideChatPanel also subscribes to (a
+    // useChat remount under StrictMode silently killed an open side chat).
+    onChunk: (cb: (e: { conversationId: string; content: string }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:chunk', h)
+      return () => ipcRenderer.removeListener('chat:chunk', h)
+    },
+    onReasoning: (cb: (e: { conversationId: string; content: string }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:reasoning', h)
+      return () => ipcRenderer.removeListener('chat:reasoning', h)
+    },
+    onDone: (cb: (e: { conversationId: string; message: unknown }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:done', h)
+      return () => ipcRenderer.removeListener('chat:done', h)
+    },
     /** Reasoning Audit Phase R4 — Planner row persisted during a
      *  multi-agent pipeline turn. Renderer treats it as audit-only:
      *  the row is appended to the conversation message list but R7's
@@ -25,13 +38,26 @@ const api = {
     onPlannerMessage: (
       cb: (e: { conversationId: string; message: unknown }) => void
     ) => ipcRenderer.on('chat:planner-message', (_, e) => cb(e)),
-    onError: (cb: (e: { conversationId: string; error: string }) => void) =>
-      ipcRenderer.on('chat:error', (_, e) => cb(e)),
-    onToolCall: (cb: (e: unknown) => void) => ipcRenderer.on('chat:tool-call', (_, e) => cb(e)),
-    onToolCallResult: (cb: (e: unknown) => void) =>
-      ipcRenderer.on('chat:tool-call-result', (_, e) => cb(e)),
-    onPhase: (cb: (e: { conversationId: string; phase: string }) => void) =>
-      ipcRenderer.on('chat:phase', (_, e) => cb(e)),
+    onError: (cb: (e: { conversationId: string; error: string }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:error', h)
+      return () => ipcRenderer.removeListener('chat:error', h)
+    },
+    onToolCall: (cb: (e: unknown) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:tool-call', h)
+      return () => ipcRenderer.removeListener('chat:tool-call', h)
+    },
+    onToolCallResult: (cb: (e: unknown) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:tool-call-result', h)
+      return () => ipcRenderer.removeListener('chat:tool-call-result', h)
+    },
+    onPhase: (cb: (e: { conversationId: string; phase: string }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:phase', h)
+      return () => ipcRenderer.removeListener('chat:phase', h)
+    },
     onStreamingVitals: (
       cb: (e: {
         conversationId: string
@@ -918,10 +944,19 @@ const api = {
   },
 
   update: {
-    onAvailable: (cb: (info: { version: string | null; releaseNotes: string | null }) => void) =>
-      ipcRenderer.on('update:available', (_, info) => cb(info)),
-    onDownloaded: (cb: (info: { version: string | null }) => void) =>
-      ipcRenderer.on('update:downloaded', (_, info) => cb(info)),
+    // JM-25 (RD-18) — disposers for UpdateBanner cleanup.
+    onAvailable: (
+      cb: (info: { version: string | null; releaseNotes: string | null }) => void
+    ): (() => void) => {
+      const h = (_: unknown, info: any): void => cb(info)
+      ipcRenderer.on('update:available', h)
+      return () => ipcRenderer.removeListener('update:available', h)
+    },
+    onDownloaded: (cb: (info: { version: string | null }) => void): (() => void) => {
+      const h = (_: unknown, info: any): void => cb(info)
+      ipcRenderer.on('update:downloaded', h)
+      return () => ipcRenderer.removeListener('update:downloaded', h)
+    },
     onError: (cb: (e: { message: string }) => void) =>
       ipcRenderer.on('update:error', (_, e) => cb(e)),
     restart: () => ipcRenderer.invoke('update:restart'),
@@ -1217,9 +1252,19 @@ const api = {
   },
 
   app: {
-    onError: (cb: (e: { message: string }) => void) => ipcRenderer.on('app:error', (_, e) => cb(e)),
-    onWarning: (cb: (e: { message: string }) => void) =>
-      ipcRenderer.on('app:warning', (_, e) => cb(e)),
+    // JM-25 (RD-8) — return disposers so App.tsx can clean up on unmount /
+    // StrictMode double-mount instead of accumulating duplicate toast
+    // listeners (every main-process error toasted twice in dev).
+    onError: (cb: (e: { message: string }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('app:error', h)
+      return () => ipcRenderer.removeListener('app:error', h)
+    },
+    onWarning: (cb: (e: { message: string }) => void): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('app:warning', h)
+      return () => ipcRenderer.removeListener('app:warning', h)
+    },
     getWorkingFolder: () => ipcRenderer.invoke('app:getWorkingFolder'),
     getDataDir: () => ipcRenderer.invoke('app:getDataDir'),
     openPath: (p: string) => ipcRenderer.invoke('app:openPath', p),

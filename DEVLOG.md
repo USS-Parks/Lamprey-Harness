@@ -1,3 +1,34 @@
+## 2026-07-02 — JM-25: Renderer listener/cleanup batch (RD-7, RD-8, RD-9, RD-14, RD-17, RD-18, RD-20)
+
+- **RD-9**: `ipc-client.ts` snapshotted `window.api` at module scope, so
+  browser dev mode crashed at IMPORT (whole bundle down) and it broke if
+  preload attached late. Now a Proxy resolves `window.api` on each access —
+  import always succeeds; a call only fails, guardably, outside Electron.
+- **RD-7**: the chat preload `on*` methods return per-listener disposers;
+  `useChat` collects and calls them on cleanup instead of `chat.offAll()`,
+  which `removeAllListeners` on channels SideChatPanel also subscribes to (a
+  StrictMode remount silently killed an open side chat).
+- **RD-8**: App-level `chat.onError`/`app.onError`/`app.onWarning`
+  subscriptions now return disposers and are cleaned up — no more double
+  toasts on StrictMode double-mount.
+- **RD-18**: same disposer treatment for UpdateBanner's update.on* subs.
+- **RD-14**: FTS snippet highlighting uses non-textual sentinels
+  (char(1)/char(2)) instead of `<<`/`>>`; the renderer escapes all HTML then
+  maps the sentinels to `<mark>`, so literal `<<`/`>>` in message text (C++
+  shifts, heredocs) survive as escaped entities instead of stray tags.
+- **RD-17**: SideChatPanel's init effect no longer depends on `activeModel`
+  (read lazily at create time) — it stopped creating orphan side
+  conversations on every main-model switch. Also fixed the RD-2-class fork
+  field read.
+- **RD-20**: the right-panel resize drag also detaches on `blur` /
+  `pointercancel`, so a drag interrupted by window blur or devtools no longer
+  leaves the col-resize cursor stuck with a live move listener.
+
+Gate: renderer + files suites 252 passed; tsc web + node OK.
+**Track E complete.**
+
+---
+
 ## 2026-07-02 — JM-24: Render performance (RD-6, RD-16)
 
 - **RD-6**: `ChatView` subscribed to the ENTIRE chat store via a selector-less

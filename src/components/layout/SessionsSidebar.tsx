@@ -258,12 +258,16 @@ function SearchHits({
               <span
                 className="block truncate text-[12px] text-[var(--text-primary)]"
                 dangerouslySetInnerHTML={{
+                  // JM-25 (RD-14) — escape ALL HTML first, then map the FTS
+                  // sentinels (U+0001/U+0002) to <mark>. Literal `<<`/`>>` in
+                  // message text now survive as escaped entities instead of
+                  // being turned into stray <mark> tags.
                   __html: hit.snippet
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;')
-                    .replace(/&lt;&lt;/g, '<mark>')
-                    .replace(/&gt;&gt;/g, '</mark>')
+                    .replace(new RegExp(String.fromCharCode(1), 'g'), '<mark>')
+                    .replace(new RegExp(String.fromCharCode(2), 'g'), '</mark>')
                 }}
               />
             </button>

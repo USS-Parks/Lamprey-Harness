@@ -367,7 +367,7 @@ export function searchSessions(query: string, limit = 50): SessionSearchHit[] {
     const rows = db
       .prepare(
         `SELECT source, conversation_id, message_id,
-                snippet(sessions_fts, 4, '<<', '>>', '…', 24) AS snippet,
+                snippet(sessions_fts, 4, char(1), char(2), '…', 24) AS snippet,
                 rank
            FROM sessions_fts
           WHERE sessions_fts MATCH ?

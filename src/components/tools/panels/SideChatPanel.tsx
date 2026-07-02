@@ -24,6 +24,10 @@ export function SideChatPanel() {
 
   // Initialize: load or create the side conversation. We persist its ID in
   // localStorage so reopening the panel keeps history.
+  // JM-25 (RD-17) — `activeModel` is deliberately NOT a dependency: this
+  // effect re-ran on every main-model switch, creating a fresh orphan side
+  // conversation whenever the stored id was missing/invalid. The model is
+  // only needed at CREATE time, read lazily below.
   useEffect(() => {
     let cancelled = false
     void (async () => {
@@ -71,21 +75,24 @@ export function SideChatPanel() {
           return
         }
       }
-      // Create new one tied to current active model
-      const created = await window.api.conversation.create(activeModel || 'deepseek-v4-flash')
+      // Create new one tied to the current active model, read lazily so this
+      // effect doesn't depend on it (RD-17).
+      const modelNow = useModelStore.getState().activeModel
+      const created = await window.api.conversation.create(modelNow || 'deepseek-v4-flash')
       if (cancelled) return
       if (!created.success) {
         setError(created.error ?? 'Failed to create side conversation')
         return
       }
-      const id = (created.data as any).id as string
+      const id = (created.data as { id: string }).id
       window.localStorage?.setItem(SIDE_CONV_KEY, id)
       setConvId(id)
     })()
     return () => {
       cancelled = true
     }
-  }, [activeModel, consumeSideChatSeed, sideChatSeed])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consumeSideChatSeed, sideChatSeed])
 
   useEffect(() => {
     streamBufRef.current = streamBuf

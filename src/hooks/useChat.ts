@@ -69,37 +69,59 @@ export function useChat(): void {
     const matchesActive = (e: { conversationId?: string }) =>
       e?.conversationId === useChatStore.getState().activeConversationId
 
-    window.api.chat.onChunk((e) => {
-      if (!matchesActive(e)) return
-      queueChunk(e.content)
-    })
+    // JM-25 (RD-7) — collect per-listener disposers instead of the
+    // channel-wide offAll() cudgel, which removeAllListeners on channels the
+    // SideChatPanel also subscribes to. The preload on* methods now return a
+    // disposer (they return `ipcRenderer`/void on older bundles, so we guard
+    // the type). Each is called on cleanup.
+    const disposers: Array<() => void> = []
+    const track = (d: unknown): void => {
+      if (typeof d === 'function') disposers.push(d as () => void)
+    }
 
-    window.api.chat.onReasoning((e) => {
-      if (!matchesActive(e)) return
-      queueReasoning(e.content)
-    })
+    track(
+      window.api.chat.onChunk((e) => {
+        if (!matchesActive(e)) return
+        queueChunk(e.content)
+      })
+    )
 
-    window.api.chat.onDone((e) => {
-      if (!matchesActive(e as { conversationId?: string })) return
-      flushNow()
-      useChatStore.getState().finishStream(e.message as any)
-    })
+    track(
+      window.api.chat.onReasoning((e) => {
+        if (!matchesActive(e)) return
+        queueReasoning(e.content)
+      })
+    )
 
-    window.api.chat.onError((e) => {
-      if (!matchesActive(e)) return
-      flushNow()
-      useChatStore.getState().streamError(e.error)
-    })
+    track(
+      window.api.chat.onDone((e) => {
+        if (!matchesActive(e as { conversationId?: string })) return
+        flushNow()
+        useChatStore.getState().finishStream(e.message as any)
+      })
+    )
 
-    window.api.chat.onToolCall((e) => {
-      if (!matchesActive(e as { conversationId?: string })) return
-      useChatStore.getState().addToolCall(e as any)
-    })
+    track(
+      window.api.chat.onError((e) => {
+        if (!matchesActive(e)) return
+        flushNow()
+        useChatStore.getState().streamError(e.error)
+      })
+    )
 
-    window.api.chat.onToolCallResult((e) => {
-      if (!matchesActive(e as { conversationId?: string })) return
-      useChatStore.getState().updateToolCall(e as any)
-    })
+    track(
+      window.api.chat.onToolCall((e) => {
+        if (!matchesActive(e as { conversationId?: string })) return
+        useChatStore.getState().addToolCall(e as any)
+      })
+    )
+
+    track(
+      window.api.chat.onToolCallResult((e) => {
+        if (!matchesActive(e as { conversationId?: string })) return
+        useChatStore.getState().updateToolCall(e as any)
+      })
+    )
 
     const onDocCreated = (window.api.chat as {
       onDocumentCreated?: (
@@ -113,18 +135,20 @@ export function useChat(): void {
         })
       : undefined
 
-    const onPhase = (window.api.chat as { onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => void }).onPhase
+    const onPhase = (window.api.chat as { onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => unknown }).onPhase
     if (onPhase) {
-      onPhase((e) => {
-        if (!matchesActive(e)) return
-        const phase = e.phase as AgentRunPhase
-        // Terminal phases retire the pill; transient phases drive it.
-        if (phase === 'done' || phase === 'error') {
-          useChatStore.getState().setRunPhase(null)
-        } else {
-          useChatStore.getState().setRunPhase(phase)
-        }
-      })
+      track(
+        onPhase((e) => {
+          if (!matchesActive(e)) return
+          const phase = e.phase as AgentRunPhase
+          // Terminal phases retire the pill; transient phases drive it.
+          if (phase === 'done' || phase === 'error') {
+            useChatStore.getState().setRunPhase(null)
+          } else {
+            useChatStore.getState().setRunPhase(phase)
+          }
+        })
+      )
     }
 
     // T4 — streaming-vitals heartbeat. The provider fires ~every 2s while
@@ -172,7 +196,9 @@ export function useChat(): void {
 
     return () => {
       if (rafHandle !== null) cancelAnimationFrame(rafHandle)
-      window.api?.chat.offAll()
+      // JM-25 (RD-7) — dispose only OUR listeners; no more offAll() nuking
+      // the SideChatPanel's subscriptions on a StrictMode remount.
+      for (const d of disposers) d()
       planUnsub?.()
       docUnsub?.()
       vitalsUnsub?.()

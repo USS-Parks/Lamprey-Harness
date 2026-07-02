@@ -20,7 +20,22 @@ import type {
   ForkParams
 } from './types'
 
-const api = window.api
+// JM-25 (RD-9) — lazy `window.api`. The old `const api = window.api` snapshot
+// at module scope violated the CLAUDE.md guard rule: in browser dev mode
+// window.api is undefined, so this module crashed at IMPORT (taking the whole
+// bundle down), and it also broke if preload ever attached after this module
+// loaded. The Proxy resolves window.api on each property access instead, so
+// import always succeeds and a call only fails (guardably) when made outside
+// Electron.
+const api = new Proxy({} as NonNullable<typeof window.api>, {
+  get(_target, prop) {
+    const real = typeof window !== 'undefined' ? window.api : undefined
+    if (!real) {
+      throw new Error('window.api is unavailable (running outside Electron)')
+    }
+    return real[prop as keyof typeof real]
+  }
+})
 
 export const chat = {
   send: (request: ChatRequest): Promise<IpcResponse<{ conversationId: string }>> =>

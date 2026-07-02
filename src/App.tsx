@@ -157,11 +157,18 @@ function App(): React.ReactElement {
       const onUp = () => {
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
+        // JM-25 (RD-20) — also detach on blur/pointercancel. A drag
+        // interrupted by window blur or devtools opening never fired mouseup,
+        // leaving the col-resize cursor stuck and the move listener live.
+        window.removeEventListener('blur', onUp)
+        document.removeEventListener('pointercancel', onUp)
         document.body.style.cursor = ''
       }
       document.body.style.cursor = 'col-resize'
       document.addEventListener('mousemove', onMove)
       document.addEventListener('mouseup', onUp)
+      window.addEventListener('blur', onUp)
+      document.addEventListener('pointercancel', onUp)
     },
     [rightPanelWidth, setRightPanelWidth]
   )
@@ -284,15 +291,31 @@ function App(): React.ReactElement {
 
   useEffect(() => {
     if (!window.api) return
-    window.api.chat.onError((e: { conversationId: string; error: string }) => {
-      toast.error(e.error || 'Chat error')
-    })
-    window.api.app.onError((e: { message: string }) => {
-      toast.error(e.message)
-    })
-    window.api.app.onWarning((e: { message: string }) => {
-      toast.warning(e.message)
-    })
+    // JM-25 (RD-8) — collect disposers so StrictMode's double-mount (and any
+    // future App remount) doesn't accumulate duplicate toast listeners. The
+    // preload on* methods now return a disposer.
+    const disposers: Array<() => void> = []
+    const track = (d: unknown): void => {
+      if (typeof d === 'function') disposers.push(d as () => void)
+    }
+    track(
+      window.api.chat.onError((e: { conversationId: string; error: string }) => {
+        toast.error(e.error || 'Chat error')
+      })
+    )
+    track(
+      window.api.app.onError((e: { message: string }) => {
+        toast.error(e.message)
+      })
+    )
+    track(
+      window.api.app.onWarning((e: { message: string }) => {
+        toast.warning(e.message)
+      })
+    )
+    return () => {
+      for (const d of disposers) d()
+    }
   }, [])
 
   // RAG ingest progress → forwarded to chat-store so rag-pending attachment

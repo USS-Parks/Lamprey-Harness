@@ -11,14 +11,27 @@ export function UpdateBanner() {
 
   useEffect(() => {
     if (!window.api) return
-    window.api.update.onAvailable((payload) => {
-      setInfo(payload as UpdateInfo)
-      setDismissed(false)
-    })
-    window.api.update.onDownloaded((payload) => {
-      setInfo((prev) => prev ?? { version: (payload as { version: string | null }).version, releaseNotes: null })
-      setDismissed(false)
-    })
+    // JM-25 (RD-18) — collect disposers; the preload on* methods now return
+    // them, so StrictMode's double-mount doesn't accumulate listeners.
+    const disposers: Array<() => void> = []
+    const track = (d: unknown): void => {
+      if (typeof d === 'function') disposers.push(d as () => void)
+    }
+    track(
+      window.api.update.onAvailable((payload) => {
+        setInfo(payload as UpdateInfo)
+        setDismissed(false)
+      })
+    )
+    track(
+      window.api.update.onDownloaded((payload) => {
+        setInfo((prev) => prev ?? { version: (payload as { version: string | null }).version, releaseNotes: null })
+        setDismissed(false)
+      })
+    )
+    return () => {
+      for (const d of disposers) d()
+    }
   }, [])
 
   if (!info || dismissed) return null

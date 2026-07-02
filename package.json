@@ -32,7 +32,8 @@
     "build:win": "electron-vite build && electron-builder --win --publish never",
     "build:mac": "electron-vite build && electron-builder --mac --publish never",
     "build:linux": "electron-vite build && electron-builder --linux --publish never",
-    "postinstall": "electron-rebuild -f -w better-sqlite3"
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "hooks:install": "git config core.hooksPath scripts/hooks"
   },
   "dependencies": {
     "@babel/standalone": "^7.29.7",

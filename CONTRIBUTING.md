@@ -93,6 +93,27 @@ docs: update SKILLS.md with hot-reload directory paths
 
 The body should explain **why**, not what — the diff already shows what.
 
+### Commit discipline (hard rules — hook-enforced)
+
+These are enforced mechanically by `scripts/hooks/commit-msg` and
+`scripts/check-ai-artifacts.cjs` (wired via `npm run hooks:install`, which sets
+`core.hooksPath` to `scripts/hooks`). They are not style suggestions.
+
+1. **Every commit carries the trailer** `Agentically Engineered and Reviewed by Basho Parks - 2026`
+   on its own line. It states the authorship model plainly: machine-drafted,
+   human-reviewed. No `Co-Authored-By` lines.
+2. **Plain speak.** Subject ≤ 72 chars, states the change, no filler openers
+   ("This commit…", "Various…", "Updated…"). Body caps at 12 lines — a commit
+   message is a label, not an essay; long rationale goes in `DEVLOG.md`.
+3. **No assistant voice or dogpile headers** in messages: "Certainly", "Key
+   changes:", "Summary of changes", robot emoji, and machine attribution
+   trailers are all rejected.
+4. **No machine-residue LOC.** The pre-commit scan blocks staged lines that
+   read as unreviewed model output: elision placeholders ("… existing code …",
+   "rest of the file unchanged"), assistant voice in comments, `TODO: implement`
+   stubs, placeholder secrets. Bypassing (`ALLOW_AI_ARTIFACTS=1`, `--no-verify`)
+   is a deliberate human decision and should be rare enough to remember.
+
 ---
 
 ## PR scope

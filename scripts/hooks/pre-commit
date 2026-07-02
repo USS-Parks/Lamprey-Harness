@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 
+node scripts/check-ai-artifacts.cjs
 npm run lint
 npx tsc --noEmit -p tsconfig.node.json
 npx tsc --noEmit -p tsconfig.web.json

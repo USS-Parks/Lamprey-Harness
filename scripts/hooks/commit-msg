@@ -1,0 +1,59 @@
+#!/bin/sh
+# Commit-message hard rules (JM-0, July 2026 maintenance phase).
+# Every commit must read like a person wrote it and carry the review trailer.
+# Bypassing requires --no-verify, which is a deliberate human decision.
+
+MSG_FILE="$1"
+TRAILER="Agentically Engineered and Reviewed by Basho Parks - 2026"
+
+fail() {
+  echo "commit-msg: $1" >&2
+  echo "commit-msg: hard rule — fix the message (see CONTRIBUTING.md, Commit discipline)." >&2
+  exit 1
+}
+
+# Strip comment lines before checking.
+BODY=$(grep -v '^#' "$MSG_FILE")
+
+# 1. Trailer required, verbatim, on its own line.
+echo "$BODY" | grep -qxF "$TRAILER" || fail "missing required trailer line: '$TRAILER'"
+
+# 2. Subject: non-empty, <= 72 chars.
+SUBJECT=$(echo "$BODY" | head -n 1)
+[ -n "$SUBJECT" ] || fail "empty subject line"
+[ ${#SUBJECT} -le 72 ] || fail "subject is ${#SUBJECT} chars (max 72) — say it plainer"
+
+# 3. No filler openers; the subject should state what changed, not narrate.
+case "$SUBJECT" in
+  "This commit"*|"this commit"*|"Updated "*|"Updates "*|"Various "*|"Misc"*|"WIP"*|"wip"*|"Changes "*|"Some "*)
+    fail "subject starts with filler ('$SUBJECT') — lead with the change itself" ;;
+esac
+
+# 4. Slop denylist — assistant voice, dogpile headers, machine trailers.
+for PATTERN in \
+  "Co-Authored-By: Claude" \
+  "Generated with" \
+  "🤖" \
+  "As an AI" \
+  "Certainly" \
+  "Here's what" \
+  "Here is what" \
+  "Key changes:" \
+  "Key Changes:" \
+  "Summary of changes" \
+  "In this commit" \
+  "This PR " \
+  "delve" \
+  "seamlessly" \
+  "leverages "
+do
+  echo "$BODY" | grep -qiF "$PATTERN" && fail "banned phrase in message: '$PATTERN'"
+done
+
+# 5. Body cap: subject + blank + up to 12 body lines (trailer excluded).
+#    Long explanations belong in DEVLOG.md, not the commit message.
+NON_TRAILER=$(echo "$BODY" | grep -vxF "$TRAILER" | sed '/^[[:space:]]*$/d')
+LINES=$(echo "$NON_TRAILER" | wc -l)
+[ "$LINES" -le 13 ] || fail "message body is $LINES lines (max subject + 12) — move detail to DEVLOG.md"
+
+exit 0

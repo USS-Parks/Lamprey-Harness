@@ -1,3 +1,28 @@
+## 2026-07-02 — JM-0: Commit discipline hard rules (July 2026 Maintenance Phase)
+
+Phase kickoff. Full-repo audit report landed at `PLANNING/LAMPREY_JULY_2026_MAINTENANCE_AUDIT.md`
+(~90 findings, six domains); the approved P-SPR is `PLANNING/LAMPREY_JULY_2026_MAINTENANCE_PLAN.md`
+(JM-0…JM-31, STS authorized by the owner 2026-07-02).
+
+JM-0 makes the human-in-the-loop commit policy mechanical instead of prose:
+- New `scripts/hooks/commit-msg`: requires the trailer
+  `Agentically Engineered and Reviewed by Basho Parks - 2026` on every commit,
+  caps the subject at 72 chars, rejects filler openers and assistant-voice /
+  dogpile-header phrases, and caps the body at 12 lines (rationale belongs here
+  in DEVLOG, not in commit messages).
+- New `scripts/check-ai-artifacts.cjs`: pre-commit staged-diff scan that blocks
+  machine-residue LOC — elision placeholders, assistant voice in comments,
+  `TODO: implement` stubs, placeholder secrets. Narrow, high-precision list;
+  bypass is `ALLOW_AI_ARTIFACTS=1` and is meant to be rare.
+- `scripts/hooks/pre-commit` now runs the scanner before lint + both tscs;
+  `core.hooksPath` wired to `scripts/hooks` (new `npm run hooks:install`).
+- CONTRIBUTING.md gains the "Commit discipline (hard rules)" section.
+
+Gate: hooks dry-run verified (good message passes; missing trailer, filler
+opener, and "Certainly"/"Key changes:" all block); scanner clean on its own diff.
+
+---
+
 ## 2026-06-18 — Retired DeepSeek model cleanup (v0.15.6)
 
 DeepSeek fully deprecated the `deepseek-chat` and `deepseek-reasoner` API endpoints — requests

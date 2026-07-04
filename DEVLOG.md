@@ -1,3 +1,43 @@
+## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
+
+A 16-skill knowledge library authored so junior/mid-level engineers and
+smaller (Sonnet-class) models can debug, extend, validate, and advance the
+project without the departing author. Not a code change — documentation of
+record, grounded against the repo at v0.16.0.
+
+Discovery first (six read-only survey passes over build/CI, git history, the
+DEVLOG/PLANNING corpus, runtime architecture, the config surface, and code
+hotspots), then the skills were written directly by the main session — the
+owner explicitly rejected mass subagent fan-out for the authoring itself.
+
+Skills (`.claude/skills/lamprey-*`): change-control, debugging-playbook,
+failure-archaeology, architecture-contract, provider-and-model-reference,
+config-and-flags, build-and-env, ship-and-release, validation-and-qa,
+database-and-persistence, docs-and-writing, diagnostics-and-tooling,
+loop-reliability-campaign, proof-and-analysis-toolkit, research-frontier,
+research-methodology.
+
+**Files changed:** `.claude/skills/**` (16 SKILL.md + 2 tested read-only
+scripts `db-health.cjs` / `loop-state.cjs`); this DEVLOG entry; CLAUDE.md
+Current-State pointer.
+**Verify gate:**
+- diagnostics scripts run green against a synthetic fixture DB (exit 0, graceful
+  degradation on missing tables, planted-orphan correctly detected)
+- frontmatter + cross-reference integrity checked across all 16 (name parity,
+  no dangling `lamprey-*` xrefs)
+- commit `44c6d27` pushed to main under the full pre-push gate: vitest suite,
+  smoke:bundle + smoke:renderer PASS, `verify:proof` exit 0, 15 ABI-guarded
+  native-DB suites RAN
+**Notes:** `.claude/` is gitignored, so `.claude/skills/` was force-added;
+future edits there need `git add -f` unless a `!.claude/skills/` negation is
+added to `.gitignore`. README untouched — no version bump, so the
+README-on-ship rule doesn't apply. Every skill carries a "Provenance and
+maintenance" section with re-verification commands for drift-prone facts.
+**Commit:** `44c6d27` (skills) + this governance follow-up.
+
+Owner-visible honest note: the skills' GUI-dependent claims (loop campaign
+phases 2–6, playbook runs) are labeled owner-run, not verified in-session.
+
 ## 2026-07-02 — PHASE COMPLETE: July 2026 Maintenance (JM-0–JM-31, v0.16.0)
 
 Thirty-two prompts closing ~90 audit findings across six domains, each

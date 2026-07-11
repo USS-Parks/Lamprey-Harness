@@ -253,7 +253,7 @@ spine, gated behind one master toggle that defaults off.
 - Verify: tsc ×2; source-read UI wiring tests (WC-8 pattern); event-payload shape tests.
 
 ### **AO-11 — Guard tests + smoke playbook**
-- [ ] `orchestration-safety.test.ts` completed: master-toggle gate asserted at EVERY entry
+- [x] `orchestration-safety.test.ts` completed: master-toggle gate asserted at EVERY entry
       point enumerated by AO-0 (tool registration, slash commands, IPC, loop envelope) —
       the LP-10 pattern; prompt-surface byte guard re-measured with toggle off (must equal
       AO-0 baseline); parity lock covers the new settings; grant/budget/kill invariants

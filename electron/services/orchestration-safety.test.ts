@@ -113,4 +113,53 @@ describe('AO-1 orchestration safety — defaults + config', () => {
     expect(src).toMatch(/agent_advisor requires Orchestration to be enabled/)
     expect(src).toMatch(/No advisor model is configured/)
   })
+
+  it('AO-11: all three strategy tools are in the dispatch-strip list', () => {
+    const src = read('electron/services/orchestration-tools.ts')
+    for (const id of ['agent_fanout', 'agent_critique', 'agent_advisor']) {
+      expect(src).toMatch(new RegExp(`'${id}'`))
+    }
+  })
+
+  it('AO-11: every strategy handler and the slash templates gate on the toggle', () => {
+    const pack = read('electron/services/orchestration-tool-pack.ts')
+    // Each of the three model tools refuses when off.
+    const refusals = pack.match(/requires Orchestration to be enabled/g) ?? []
+    expect(refusals.length).toBe(3)
+    // The slash templates all name the enable-check.
+    for (const cmd of ['fanout', 'critique', 'outcome']) {
+      expect(read(`resources/slash-commands/${cmd}.md`)).toMatch(/Settings . Orchestration/)
+    }
+  })
+
+  it('AO-11: ZERO orchestration surface leaked into the base system prompt', () => {
+    // The phase's byte contract: orchestration adds NOTHING to the system prompt
+    // (its surface is tools + slash + UI). If any orchestration token appears in
+    // the prompt builder, the L9/UB byte guards would have moved — this locks the
+    // prompt builder clean so those guards stay meaningful.
+    const src = read('electron/services/system-prompt-builder.ts')
+    expect(src).not.toMatch(/agent_fanout|agent_critique|agent_advisor/)
+    expect(src).not.toMatch(/orchestrationEnabled|orchestration/i)
+  })
+
+  it('AO-11: the loop outcome envelope is bounded by the loop slice', () => {
+    // clampOutcomeToLoopBudget keeps an inner outcome budget ≤ the loop's slice.
+    const src = read('electron/services/parse-outcome-command.ts')
+    expect(src).toMatch(/clampOutcomeToLoopBudget/)
+    expect(src).toMatch(/Math\.min\(outcomeTokens, loopTokenSlice\)/)
+  })
+
+  it('AO-11: orchestration config resolution is total (no NaN/negative escapes)', () => {
+    const cfg = resolveOrchestrationConfig({
+      orchestrationEnabled: true,
+      orchMaxTokensPerRun: Number.NaN,
+      orchMaxWallclockMs: -1,
+      orchMaxCandidates: undefined,
+      orchMaxDepth: 'x' as unknown as number
+    })
+    expect(cfg.maxTokensPerRun).toBe(ORCHESTRATION_CONFIG_DEFAULTS.maxTokensPerRun)
+    expect(cfg.maxWallclockMs).toBe(ORCHESTRATION_CONFIG_DEFAULTS.maxWallclockMs)
+    expect(cfg.maxCandidates).toBe(ORCHESTRATION_CONFIG_DEFAULTS.maxCandidates)
+    expect(cfg.maxDepth).toBe(ORCHESTRATION_CONFIG_DEFAULTS.maxDepth)
+  })
 })

@@ -297,6 +297,26 @@ path is fully wired (AO-3 built the mechanism; the auto-grant path emits its cou
 failed.
 **Commit:** see git log (AO-10).
 
+### AO-11 — Guard tests + smoke playbook
+
+`orchestration-safety.test.ts` completed (18 assertions): the LP-10 source-lock now covers the
+master default OFF, config resolution + totality (NaN/negative/undefined/wrong-type all fall to
+defaults), the Settings tab, `agents:list` gate, the multi_agent_run side-channel + envelope
+order, `tasks:stop` tree-kill, the chat dispatch strip (both build paths), all three strategy
+handlers refusing when off (exactly 3 refusals), the critic's empty-floor read-only-by-construction,
+the advisor unset-model honesty, all three strategy tools in the strip list, all three slash
+templates naming the enable-check, the loop-envelope clamp, and — the phase byte contract — a
+lock that ZERO orchestration surface leaked into the base system prompt (so the existing L9/UB
+prompt-byte guards stay meaningful; orchestration's surface is tools + slash + UI, never prose).
+`PLANNING/AO_SMOKE_PLAYBOOK.md` is the owner-run live gate: toggle-off nothing-visible pass, the
+grant flow, each strategy (fan-out cross-model, critic loop, advisor incl. unset-model), a
+deliberately-tiny `/outcome` budget (breach + honest report = PASS), and revoke/kill mid-run.
+
+**Files changed:** `electron/services/orchestration-safety.test.ts` (+6 consolidating gates),
+`PLANNING/AO_SMOKE_PLAYBOOK.md` (new).
+**Verify gate:** tsc node clean; orchestration-safety suite 18 passed / 0 failed.
+**Commit:** see git log (AO-11).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

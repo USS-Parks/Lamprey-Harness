@@ -89,6 +89,35 @@ invariant: `defaultMaxTokens` ⟺ `reasoningCapOnToolUse`, catalog-wide.
 **Verify gate:** tsc node + web clean; provider suite 63 passed / 0 failed.
 **Commit:** see git log (PX-3).
 
+### PX-4 — Local runtimes (keyless) + per-provider base-URL overrides
+
+`ollama` (127.0.0.1:11434) and `lmstudio` (127.0.0.1:1234) join as
+`keyOptional: true` providers with empty built-in catalogs (models are
+machine-specific — imported or added as Custom Models). `getClientForProvider` now
+consults `settings.json.providerBaseUrlOverrides` (mtime-cached; values validated
+http(s)-only at the consumption site) and keys the client cache on
+`provider::baseURL`, so an override change naturally misses the stale client;
+`resetProviderClient` deletes by prefix. ApiKeySettings renders keyless cards as
+"Local — no key needed" with Test enabled keylessly, uses `keyHint` as the input
+placeholder, and swaps the docs link to "Runtime docs →".
+
+Plan correction (documented deviation): PX-4's "sanitizer allowlist gains
+providerBaseUrlOverrides" premise was wrong — `sanitizeSettingsPartial` is
+open-by-design (strips pollution keys only, no allowlist), so no settings.ts change
+exists; shape validation lives at the registry consumption site instead, with a
+test proving a `file://` override is ignored. Also: the PX-2 parity test caught a
+real drift mid-prompt (registry union widened to 17, renderer mirror still 15) —
+first blood for the lock, fixed before commit.
+
+**Files changed:** `electron/services/providers/registry.ts`, `src/lib/types.ts`,
+`src/components/settings/ApiKeySettings.tsx`,
+`electron/services/providers/registry.test.ts` (+4: keyless placeholder ctor,
+stored-key-wins, override redirect + mtime cache invalidation, non-http override
+rejected).
+**Verify gate:** tsc node + web clean; provider suite + settings-sanitizer 75
+passed / 0 failed.
+**Commit:** see git log (PX-4).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

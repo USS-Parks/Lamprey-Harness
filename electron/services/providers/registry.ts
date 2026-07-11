@@ -73,6 +73,8 @@ export type ProviderId =
   | 'fireworks'
   | 'cerebras'
   | 'huggingface'
+  | 'ollama'
+  | 'lmstudio'
 
 export interface ProviderDescriptor {
   id: ProviderId
@@ -215,6 +217,27 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     keyEnv: 'huggingface',
     docsUrl: 'https://huggingface.co/settings/tokens',
     keyHint: 'hf_...'
+  },
+  // Local runtimes. Keyless — the running server IS the credential. Their
+  // built-in catalogs are empty by design (models are machine-specific);
+  // pull the live list via Settings → Models or add Custom Models. A LAN
+  // host or non-default port goes in settings.json
+  // `providerBaseUrlOverrides` (e.g. {"ollama": "http://192.168.1.10:11434/v1"}).
+  ollama: {
+    id: 'ollama',
+    label: 'Ollama (local)',
+    baseURL: 'http://127.0.0.1:11434/v1',
+    keyEnv: 'ollama',
+    docsUrl: 'https://ollama.com/download',
+    keyOptional: true
+  },
+  lmstudio: {
+    id: 'lmstudio',
+    label: 'LM Studio (local)',
+    baseURL: 'http://127.0.0.1:1234/v1',
+    keyEnv: 'lmstudio',
+    docsUrl: 'https://lmstudio.ai',
+    keyOptional: true
   }
 }
 
@@ -956,7 +979,44 @@ export function resetProviderClients(): void {
 }
 
 export function resetProviderClient(provider: string): void {
-  clientCache.delete(provider)
+  // Cache keys are `${provider}::${baseURL}` so a base-URL override change
+  // naturally misses the stale client; deleting by prefix covers both the
+  // default and any overridden entries for the provider.
+  for (const key of Array.from(clientCache.keys())) {
+    if (key === provider || key.startsWith(`${provider}::`)) clientCache.delete(key)
+  }
+}
+
+// settings.json `providerBaseUrlOverrides`: per-provider base-URL replacement
+// for LAN inference boxes and non-default local ports. Values must be
+// http(s) URLs — anything else is ignored at this consumption site (the
+// settings sanitizer is open-by-design and does not validate shapes).
+// Cached on settings.json mtime like the custom-model reader.
+let baseUrlOverrideCache: { mtimeMs: number; overrides: Record<string, string> } | null = null
+
+function readBaseUrlOverride(providerId: string): string | null {
+  if (!userDataPathProvider) return null
+  try {
+    const path = join(userDataPathProvider(), 'settings.json')
+    if (!existsSync(path)) return null
+    const mtimeMs = statSync(path).mtimeMs
+    if (!baseUrlOverrideCache || baseUrlOverrideCache.mtimeMs !== mtimeMs) {
+      const raw = JSON.parse(readFileSync(path, 'utf-8')) as {
+        providerBaseUrlOverrides?: unknown
+      }
+      const overrides: Record<string, string> = {}
+      const src = raw.providerBaseUrlOverrides
+      if (src && typeof src === 'object' && !Array.isArray(src)) {
+        for (const [k, v] of Object.entries(src as Record<string, unknown>)) {
+          if (typeof v === 'string' && /^https?:\/\//i.test(v)) overrides[k] = v
+        }
+      }
+      baseUrlOverrideCache = { mtimeMs, overrides }
+    }
+    return baseUrlOverrideCache.overrides[providerId] ?? null
+  } catch {
+    return null
+  }
 }
 
 /** Resolve a provider id to its descriptor, or null when unknown. The single
@@ -967,20 +1027,22 @@ export function resolveProviderDescriptor(id: string): ProviderDescriptor | null
 }
 
 function getClientForProvider(provider: string): OpenAI {
-  const cached = clientCache.get(provider)
-  if (cached) return cached
   const desc = resolveProviderDescriptor(provider)
   if (!desc) {
     throw new Error(
       `Unknown provider '${provider}'. Known providers: ${Object.keys(PROVIDERS).join(', ')}.`
     )
   }
+  const baseURL = readBaseUrlOverride(provider) ?? desc.baseURL
+  const cacheKey = `${provider}::${baseURL}`
+  const cached = clientCache.get(cacheKey)
+  if (cached) return cached
   const apiKey = getKey(desc.keyEnv) ?? (desc.keyOptional ? 'local' : null)
   if (!apiKey) {
     throw new Error(`${desc.label} API key not configured. Add one in Settings → API Keys.`)
   }
-  const client = new OpenAI({ apiKey, baseURL: desc.baseURL })
-  clientCache.set(provider, client)
+  const client = new OpenAI({ apiKey, baseURL })
+  clientCache.set(cacheKey, client)
   return client
 }
 

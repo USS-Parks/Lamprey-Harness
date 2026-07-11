@@ -144,7 +144,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
 - Verify: tsc ×2; same test files green; parity test still locks both unions.
 
 ### **PX-4 — Local runtimes: Ollama + LM Studio (keyless) + base-URL overrides**
-- [ ] Add `ollama` (`http://127.0.0.1:11434/v1`) and `lmstudio` (`http://127.0.0.1:1234/v1`) as
+- [x] Add `ollama` (`http://127.0.0.1:11434/v1`) and `lmstudio` (`http://127.0.0.1:1234/v1`) as
       `keyOptional: true` providers. New `settings.json.providerBaseUrlOverrides:
       Record<string,string>` consulted by `getClientForProvider` (mtime-cached like
       `customModels`; client cache invalidated when an override changes) — covers LAN hosts and

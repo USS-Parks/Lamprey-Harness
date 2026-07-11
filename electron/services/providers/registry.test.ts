@@ -5,9 +5,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // real network call. The mock has to live ABOVE the registry import so
 // vi.mock hoisting catches it before the module under test loads.
 const mockCreate = vi.fn()
+// Constructor options per instantiation, so tests can assert which apiKey /
+// baseURL the registry actually handed the SDK (keyless placeholder,
+// base-URL overrides).
+const mockCtorOpts: Array<{ apiKey?: string; baseURL?: string }> = []
 vi.mock('openai', () => {
   return {
     default: class FakeOpenAI {
+      constructor(opts: { apiKey?: string; baseURL?: string }) {
+        mockCtorOpts.push(opts)
+      }
       chat = {
         completions: {
           create: mockCreate
@@ -124,6 +131,7 @@ beforeEach(() => {
   mockCreate.mockReset()
   mockGetKey.mockReset()
   mockGetKey.mockImplementation(() => 'test-key')
+  mockCtorOpts.length = 0
   resetProviderClients()
 })
 
@@ -457,6 +465,115 @@ describe('provider descriptor resolution + key handling', () => {
     mockGetKey.mockImplementation(() => null)
     await expect(chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')).rejects.toThrow(
       /API key not configured.*Settings/i
+    )
+  })
+})
+
+describe('keyless local providers + base-URL overrides', () => {
+  const okCompletion = {
+    choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }]
+  }
+
+  // Point the registry's settings.json readers at a throwaway dir carrying a
+  // custom model on the ollama provider (its built-in catalog is empty by
+  // design) plus whatever overrides each test writes.
+  async function withUserDataDir(
+    settings: Record<string, unknown>,
+    run: (dir: string) => Promise<void>
+  ): Promise<void> {
+    const { mkdtempSync, writeFileSync: wf } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const dir = mkdtempSync(j(tmpdir(), 'lamprey-provider-expansion-'))
+    wf(j(dir, 'settings.json'), JSON.stringify(settings))
+    setUserDataPathProvider(() => dir)
+    try {
+      await run(dir)
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  }
+
+  const ollamaCustomModel = {
+    customModels: [
+      {
+        id: 'local-llama',
+        name: 'Local Llama',
+        provider: 'ollama',
+        contextWindow: 32_768,
+        supportsTools: false
+      }
+    ]
+  }
+
+  it('creates a keyless client with the placeholder key for keyOptional providers', async () => {
+    mockGetKey.mockImplementation(() => null)
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withUserDataDir(ollamaCustomModel, async () => {
+      const result = await chatOnce([{ role: 'user', content: 'q' }], 'local-llama')
+      expect(result.content).toBe('ok')
+      const ctor = mockCtorOpts[mockCtorOpts.length - 1]
+      expect(ctor.apiKey).toBe('local')
+      expect(ctor.baseURL).toBe('http://127.0.0.1:11434/v1')
+    })
+  })
+
+  it('a stored key wins over the keyless placeholder', async () => {
+    mockGetKey.mockImplementation(() => 'real-ollama-token')
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withUserDataDir(ollamaCustomModel, async () => {
+      await chatOnce([{ role: 'user', content: 'q' }], 'local-llama')
+      expect(mockCtorOpts[mockCtorOpts.length - 1].apiKey).toBe('real-ollama-token')
+    })
+  })
+
+  it('providerBaseUrlOverrides redirects the client and a changed override misses the stale cache', async () => {
+    mockGetKey.mockImplementation(() => null)
+    mockCreate.mockResolvedValue(okCompletion)
+    await withUserDataDir(
+      {
+        ...ollamaCustomModel,
+        providerBaseUrlOverrides: { ollama: 'http://192.168.7.20:11434/v1' }
+      },
+      async (dir) => {
+        const { writeFileSync: wf, utimesSync } = await import('fs')
+        const { join: j } = await import('path')
+
+        await chatOnce([{ role: 'user', content: 'q' }], 'local-llama')
+        expect(mockCtorOpts[mockCtorOpts.length - 1].baseURL).toBe('http://192.168.7.20:11434/v1')
+
+        // Rewrite the override WITHOUT resetting provider clients; bump the
+        // mtime explicitly so filesystems with coarse timestamps can't make
+        // the cache read stale data.
+        wf(
+          j(dir, 'settings.json'),
+          JSON.stringify({
+            ...ollamaCustomModel,
+            providerBaseUrlOverrides: { ollama: 'http://10.0.0.5:11434/v1' }
+          })
+        )
+        const bumped = new Date(Date.now() + 5_000)
+        utimesSync(j(dir, 'settings.json'), bumped, bumped)
+
+        await chatOnce([{ role: 'user', content: 'q' }], 'local-llama')
+        expect(mockCtorOpts[mockCtorOpts.length - 1].baseURL).toBe('http://10.0.0.5:11434/v1')
+      }
+    )
+  })
+
+  it('rejects non-http override values at the consumption site', async () => {
+    mockGetKey.mockImplementation(() => null)
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withUserDataDir(
+      {
+        ...ollamaCustomModel,
+        providerBaseUrlOverrides: { ollama: 'file:///C:/evil' }
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'local-llama')
+        expect(mockCtorOpts[mockCtorOpts.length - 1].baseURL).toBe('http://127.0.0.1:11434/v1')
+      }
     )
   })
 })

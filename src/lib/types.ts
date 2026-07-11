@@ -268,6 +268,8 @@ export type ProviderId =
   | 'fireworks'
   | 'cerebras'
   | 'huggingface'
+  | 'ollama'
+  | 'lmstudio'
 
 export interface ProviderInfo {
   id: ProviderId

@@ -78,12 +78,16 @@ export function ApiKeySettings() {
     try {
       const result = await window.api.settings.testProviderKey(providerId)
       // The IPC handler now returns { ok, reason?, modelCount? } in `data`.
-      const data = (result.success ? (result.data as { ok: boolean; reason?: string; modelCount?: number } | boolean | undefined) : undefined)
+      const data = result.success
+        ? (result.data as
+            { ok: boolean; reason?: string; modelCount?: number } | boolean | undefined)
+        : undefined
       if (typeof data === 'object' && data !== null) {
         if (data.ok) {
-          const detail = typeof data.modelCount === 'number'
-            ? `${label} authenticated (${data.modelCount} models exposed by /v1/models).`
-            : `${label} authenticated.`
+          const detail =
+            typeof data.modelCount === 'number'
+              ? `${label} authenticated (${data.modelCount} models exposed by /v1/models).`
+              : `${label} authenticated.`
           setTestStatus((s) => ({ ...s, [providerId]: { ok: true, message: detail } }))
           toast.success(`${label} key valid`)
         } else {
@@ -97,7 +101,9 @@ export function ApiKeySettings() {
         if (data) toast.success(`${label} key valid`)
         else toast.error(`Invalid ${label} key`)
       } else {
-        const reason = result.success ? 'No response from provider.' : (result.error || 'Unknown error.')
+        const reason = result.success
+          ? 'No response from provider.'
+          : result.error || 'Unknown error.'
         setTestStatus((s) => ({ ...s, [providerId]: { ok: false, message: reason } }))
         toast.error(`${label} test failed: ${reason}`)
       }
@@ -174,11 +180,10 @@ export function ApiKeySettings() {
           Search providers
         </h3>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
-          Deep Research needs a search API to find sources. The free zero-key path
-          (DuckDuckGo HTML) is unreliable and frequently returns no results; the
-          built-in Wikipedia adapter covers some queries but isn't enough for
-          exhaustive search. Add a Brave or SerpAPI key (free tiers below) for
-          reliable academic + web coverage.
+          Deep Research needs a search API to find sources. The free zero-key path (DuckDuckGo HTML)
+          is unreliable and frequently returns no results; the built-in Wikipedia adapter covers
+          some queries but isn't enough for exhaustive search. Add a Brave or SerpAPI key (free
+          tiers below) for reliable academic + web coverage.
         </p>
       </div>
 
@@ -214,9 +219,7 @@ export function ApiKeySettings() {
                     {p.hasKey ? 'Stored' : 'No key'}
                   </span>
                 </div>
-                {blurb && (
-                  <p className="mt-1 text-[12px] text-[var(--text-muted)]">{blurb}</p>
-                )}
+                {blurb && <p className="mt-1 text-[12px] text-[var(--text-muted)]">{blurb}</p>}
                 {p.docsUrl && (
                   <a
                     href={p.docsUrl}
@@ -236,17 +239,13 @@ export function ApiKeySettings() {
               <input
                 type={visible ? 'text' : 'password'}
                 value={draft}
-                onChange={(e) =>
-                  setSearchDrafts((s) => ({ ...s, [p.id]: e.target.value }))
-                }
+                onChange={(e) => setSearchDrafts((s) => ({ ...s, [p.id]: e.target.value }))}
                 placeholder={p.hasKey ? 'Replace key...' : 'Paste API key'}
                 className="flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               />
               <button
                 type="button"
-                onClick={() =>
-                  setShowSearchKey((s) => ({ ...s, [p.id]: !visible }))
-                }
+                onClick={() => setShowSearchKey((s) => ({ ...s, [p.id]: !visible }))}
                 className="rounded border border-[var(--panel-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
               >
                 {visible ? 'Hide' : 'Show'}
@@ -274,7 +273,9 @@ export function ApiKeySettings() {
       })}
 
       <div>
-        <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Provider API keys</h3>
+        <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">
+          Provider API keys
+        </h3>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Each model routes to a real provider over its published API endpoint. Add a key per
           provider to unlock that provider's models. Keys are encrypted with Electron safeStorage
@@ -290,8 +291,8 @@ export function ApiKeySettings() {
               encrypted
                 ? 'bg-[var(--success)]/15 text-[var(--success)]'
                 : encrypted === false
-                ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
-                : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+                  ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
             }`}
           >
             {encrypted === null ? 'checking' : encrypted ? 'encrypted' : 'plaintext'}
@@ -300,8 +301,8 @@ export function ApiKeySettings() {
             {encrypted === null
               ? 'Checking storage backend...'
               : encrypted
-              ? 'Stored using OS-level encryption (Electron safeStorage), persisted to userData/keys.json.'
-              : 'safeStorage is unavailable on this host. Keys are written as plaintext. Install libsecret (Linux) or run on a host with a native keychain.'}
+                ? 'Stored using OS-level encryption (Electron safeStorage), persisted to userData/keys.json.'
+                : 'safeStorage is unavailable on this host. Keys are written as plaintext. Install libsecret (Linux) or run on a host with a native keychain.'}
           </span>
         </div>
       </div>
@@ -311,21 +312,24 @@ export function ApiKeySettings() {
         const visible = showKey[p.id] || false
         const status = testStatus[p.id]
         return (
-          <div key={p.id} className="space-y-2 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3">
+          <div
+            key={p.id}
+            className="space-y-2 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
                   <span
                     aria-hidden
                     className={`inline-block h-2 w-2 rounded-full ${
-                      p.hasKey ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'
+                      p.hasKey || p.keyOptional ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'
                     }`}
                   />
                   <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">
                     {p.label}
                   </span>
                   <span className="font-mono text-[12px] text-[var(--text-muted)]">
-                    {p.hasKey ? 'Stored' : 'No key'}
+                    {p.hasKey ? 'Stored' : p.keyOptional ? 'Local — no key needed' : 'No key'}
                   </span>
                 </div>
                 <a
@@ -336,7 +340,7 @@ export function ApiKeySettings() {
                   }}
                   className="mt-1 inline-block font-mono text-[12px] text-[var(--accent)] hover:underline"
                 >
-                  Get a key →
+                  {p.keyOptional ? 'Runtime docs →' : 'Get a key →'}
                 </a>
               </div>
             </div>
@@ -346,7 +350,13 @@ export function ApiKeySettings() {
                 type={visible ? 'text' : 'password'}
                 value={draft}
                 onChange={(e) => setDrafts((s) => ({ ...s, [p.id]: e.target.value }))}
-                placeholder={p.hasKey ? 'Replace key...' : 'Paste API key'}
+                placeholder={
+                  p.hasKey
+                    ? 'Replace key...'
+                    : p.keyOptional
+                      ? 'Optional key (rarely needed)'
+                      : (p.keyHint ?? 'Paste API key')
+                }
                 className="flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               />
               <button
@@ -368,7 +378,7 @@ export function ApiKeySettings() {
               </button>
               <button
                 onClick={() => handleTest(p.id, p.label)}
-                disabled={busy === p.id || !p.hasKey}
+                disabled={busy === p.id || (!p.hasKey && !p.keyOptional)}
                 className="rounded border border-[var(--panel-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-40"
               >
                 Test

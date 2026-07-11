@@ -223,7 +223,7 @@ spine, gated behind one master toggle that defaults off.
       revise consumes critique, budget receipts per iteration).
 
 ### **AO-8 — Strategy: advisor escalation**
-- [ ] Pure `strategy-advisor.ts`: a running sub-agent (or the main turn) escalates ONE
+- [x] Pure `strategy-advisor.ts`: a running sub-agent (or the main turn) escalates ONE
       bounded question + context excerpt to `orchAdvisorModel` via `chatOnce`; answer
       returns as a tool result; spend receipts onto the caller's identity. Model tool
       `agent_advisor` (gated). Optional auto-offer after N consecutive failed tool rounds

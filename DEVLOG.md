@@ -220,6 +220,26 @@ template.
 **Verify gate:** tsc node + web clean; critic + safety suites 17 passed / 0 failed.
 **Commit:** see git log (AO-7).
 
+### AO-8 — Strategy: advisor escalation
+
+Pure `strategy-advisor.ts`: `runAdvisor` is a one-shot escalation — when no advisor is
+configured it returns `{ configured: false, answer: null }` and NEVER calls the model; else it
+asks the advisor once, receipts the spend, and returns the answer (breach reported honestly).
+`buildAdvisorPrompt` frames a stuck agent escalating. `agent_advisor` model tool (gated,
+governed identity): reads `orchAdvisorModel`, honestly reports "No advisor model is configured"
+when unset. Manual-only per decision 2 — no auto-offer-after-N-failures machinery this phase
+(deferred; no setting added for an unbuilt feature — YAGNI). No slash template: the advisor is
+mid-task escalation the model invokes when stuck, not a task-starting command.
+
+**Files changed:** `electron/services/strategy-advisor.ts` (new),
+`electron/services/orchestration-tool-pack.ts` (agent_advisor + import tidy — dropped the
+unused FANOUT_JUDGE_SCHEMA import),
+`electron/services/strategy-advisor.test.ts` (new, 5),
+`electron/services/orchestration-safety.test.ts` (+1 gate).
+**Verify gate:** tsc node + web clean; advisor + safety suites 18 passed / 0 failed;
+`verify:proof -- --no-tests` exits 0.
+**Commit:** see git log (AO-8).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

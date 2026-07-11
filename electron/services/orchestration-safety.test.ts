@@ -107,4 +107,10 @@ describe('AO-1 orchestration safety — defaults + config', () => {
     expect(src).toMatch(/agentType: 'agent_critique'[\s\S]*?floor: new Set<string>\(\)/)
     expect(src).toMatch(/agent_critique requires Orchestration to be enabled/)
   })
+
+  it('AO-8: agent_advisor refuses when off and honestly reports an unset advisor', () => {
+    const src = read('electron/services/orchestration-tool-pack.ts')
+    expect(src).toMatch(/agent_advisor requires Orchestration to be enabled/)
+    expect(src).toMatch(/No advisor model is configured/)
+  })
 })

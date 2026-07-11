@@ -3,8 +3,9 @@ import { toolRegistry } from './tool-registry'
 import { readOrchestrationConfig } from './orchestration-config'
 import { governFork, settleRunSpend } from './orchestration-governance'
 import { createBudget, resolveBudgetCeilings } from './orchestration-budget'
-import { runFanout, FANOUT_JUDGE_SCHEMA, type CandidateResult } from './strategy-fanout'
+import { runFanout, type CandidateResult } from './strategy-fanout'
 import { runCritic, type CriticVerdict } from './strategy-critic'
+import { runAdvisor } from './strategy-advisor'
 import { approximateTokenCount } from './multi-agent-run-tool'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 
@@ -304,6 +305,87 @@ toolRegistry.registerNative(
       iterations: result.iterations,
       finalVerdict: result.finalVerdict,
       finalOutput: result.finalOutput,
+      breached: result.breached,
+      breachNote: result.breachNote
+    }
+    return {
+      result: JSON.stringify(summary, null, 2),
+      status: result.breached ? 'error' : 'done'
+    }
+  }
+)
+
+// ── AO-8 — agent_advisor: escalate one question to a smarter model ─────────
+
+toolRegistry.registerNative(
+  {
+    id: 'agent_advisor',
+    name: 'agent_advisor',
+    title: 'Advisor escalation',
+    description:
+      'When you are stuck, escalate ONE specific question plus a short context excerpt to a ' +
+      'more capable advisor model configured in Settings → Orchestration. Returns the advisor’s ' +
+      'answer. Use sparingly, for the one insight you are missing — not for routine work. Only ' +
+      'available when Orchestration is enabled and an advisor model is set.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'The specific question you are stuck on.' },
+        context: {
+          type: 'string',
+          description: 'A short excerpt of what you have tried / the relevant state.'
+        }
+      },
+      required: ['question'],
+      additionalProperties: false
+    },
+    risks: ['network', 'read'],
+    requiresApproval: false,
+    enabled: true
+  },
+  async (rawArgs, ctx) => {
+    if (!readOrchestrationConfig().enabled) {
+      throw new Error('agent_advisor requires Orchestration to be enabled in Settings.')
+    }
+    const args = (rawArgs ?? {}) as { question?: unknown; context?: unknown }
+    const question = typeof args.question === 'string' ? args.question.trim() : ''
+    if (!question) throw new Error('agent_advisor: "question" is required.')
+    const context = typeof args.context === 'string' ? args.context : ''
+    const cfg = readOrchestrationConfig()
+    const signal = ctx.signal ?? new AbortController().signal
+
+    const { identityId } = governFork({
+      conversationId: ctx.conversationId ?? null,
+      scopeKind: 'conversation',
+      agentType: 'agent_advisor',
+      requestedTools: [],
+      floor: new Set<string>(),
+      label: `agent_advisor → ${cfg.advisorModel || '(unset)'}`
+    })
+
+    const result = await runAdvisor(
+      { question, context, advisorModel: cfg.advisorModel },
+      { budget: budgetForRun(), ask: (model, prompt) => oneShot(prompt, model, signal) }
+    )
+
+    if (!result.configured) {
+      return {
+        result:
+          'No advisor model is configured. Set one in Settings → Orchestration to enable ' +
+          'advisor escalation, then answer from your own reasoning for now.',
+        status: 'done'
+      }
+    }
+
+    settleRunSpend(identityId, result.budget.tokensSpent, result.budget.wallMsSpent)
+
+    const summary = {
+      strategy: 'advisor',
+      advisorModel: cfg.advisorModel,
+      answer: result.answer,
+      tokensEst: result.tokensEst,
       breached: result.breached,
       breachNote: result.breachNote
     }

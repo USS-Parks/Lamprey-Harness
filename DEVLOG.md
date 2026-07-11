@@ -29,6 +29,31 @@ v19 (ceiling is v18).
 recipe 2); reuse ledger maps each need to an existing seam.
 **Commit:** see git log (AO-0).
 
+### AO-1 — Master toggle + settings spine
+
+`orchestrationEnabled: false` + five bounded ceilings (`orchMaxTokensPerRun` 400k,
+`orchMaxWallclockMs` 30m, `orchMaxCandidates` 4, `orchMaxDepth` 2, `orchAdvisorModel` '')
+added to the canonical `DEFAULT_APP_SETTINGS`, the renderer literal, and the `AppSettings`
+type — SP-1 parity lock extended with an AO-1 case + the every-key check catches both.
+New pure `orchestration-config.ts` (`resolveOrchestrationConfig` / `readOrchestrationConfig`,
+mirrors loop-config.ts; 0-disables per ceiling, LP-7 convention). Settings →
+**Orchestration** panel (`OrchestrationSettings.tsx`) with the master toggle, ceiling rows,
+and an advisor-model select fed by `model:list` — registered in the SettingsDialog tab list
+after Loops. Seed `orchestration-safety.test.ts` starts the LP-10 source-lock: master
+default OFF, config resolution (enable, ceilings, 0-preserve, garbage-fallback,
+advisor-trim), and the tab registration; per-feature gate assertions accrete through
+AO-6..AO-11.
+
+**Files changed:** `electron/services/default-app-settings.ts`,
+`src/stores/settings-store.ts`, `src/lib/types.ts`,
+`electron/services/default-app-settings.test.ts`,
+`electron/services/orchestration-config.ts` (new),
+`src/components/settings/OrchestrationSettings.tsx` (new),
+`src/components/settings/SettingsDialog.tsx`,
+`electron/services/orchestration-safety.test.ts` (new).
+**Verify gate:** tsc node + web clean; parity + safety suites 14 passed / 0 failed.
+**Commit:** see git log (AO-1).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

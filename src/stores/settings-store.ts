@@ -44,7 +44,15 @@ const defaultSettings: AppSettings = {
   loopMaxWallclockMs: 1800000,
   loopTokenBudget: 500000,
   loopMaxConcurrent: 1,
-  loopMinIntervalSeconds: 30
+  loopMinIntervalSeconds: 30,
+  // Agentic Orchestration Phase AO-1 — OFF by default (deliberate past-era
+  // extension). Mirror of DEFAULT_APP_SETTINGS; parity test locks the two.
+  orchestrationEnabled: false,
+  orchMaxTokensPerRun: 400000,
+  orchMaxWallclockMs: 1800000,
+  orchMaxCandidates: 4,
+  orchMaxDepth: 2,
+  orchAdvisorModel: ''
 }
 
 interface SettingsState {

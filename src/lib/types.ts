@@ -456,6 +456,16 @@ export interface AppSettings {
   loopTokenBudget?: number
   loopMaxConcurrent?: number
   loopMinIntervalSeconds?: number
+  // Agentic Orchestration Phase AO-1 — local orchestration layer. OFF by
+  // default (deliberate past-era extension; see
+  // PLANNING/LAMPREY_AGENTIC_ORCHESTRATION_PLAN.md). Ceilings bound every
+  // orchestrated run; 0 disables an individual cap.
+  orchestrationEnabled?: boolean
+  orchMaxTokensPerRun?: number
+  orchMaxWallclockMs?: number
+  orchMaxCandidates?: number
+  orchMaxDepth?: number
+  orchAdvisorModel?: string
 }
 
 export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = ['plan', 'context', 'verify']

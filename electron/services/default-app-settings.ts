@@ -56,6 +56,17 @@ export interface DefaultAppSettings {
   loopTokenBudget: number
   loopMaxConcurrent: number
   loopMinIntervalSeconds: number
+  // Agentic Orchestration Phase AO-1 — the local orchestration layer (per-agent
+  // identity + grants, budgets + receipts, fan-out/critic/advisor strategies).
+  // OFF by default (deliberate past-era extension, like loops). When off: zero
+  // orchestration tools reach the model, slash commands refuse, agents:* IPC is
+  // inert. Ceilings bound every orchestrated run; 0 disables an individual cap.
+  orchestrationEnabled: boolean
+  orchMaxTokensPerRun: number
+  orchMaxWallclockMs: number
+  orchMaxCandidates: number
+  orchMaxDepth: number
+  orchAdvisorModel: string
 }
 
 export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
@@ -83,5 +94,11 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   loopMaxWallclockMs: 1800000,
   loopTokenBudget: 500000,
   loopMaxConcurrent: 1,
-  loopMinIntervalSeconds: 30
+  loopMinIntervalSeconds: 30,
+  orchestrationEnabled: false,
+  orchMaxTokensPerRun: 400000,
+  orchMaxWallclockMs: 1800000,
+  orchMaxCandidates: 4,
+  orchMaxDepth: 2,
+  orchAdvisorModel: ''
 }

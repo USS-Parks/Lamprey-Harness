@@ -7,6 +7,7 @@ import { AgenticCodingSettings } from './AgenticCodingSettings'
 import { HooksSettings } from './HooksSettings'
 import { AutomationsSettings } from './AutomationsSettings'
 import { LoopSettings } from './LoopSettings'
+import { OrchestrationSettings } from './OrchestrationSettings'
 import { WebToolsSettings } from './WebToolsSettings'
 import { CurrentInfoSettings } from './CurrentInfoSettings'
 import { ImageGenSettings } from './ImageGenSettings'
@@ -42,6 +43,7 @@ const TABS = [
   { id: 'hooks', label: 'Hooks' },
   { id: 'automations', label: 'Automations' },
   { id: 'loops', label: 'Loops' },
+  { id: 'orchestration', label: 'Orchestration' },
   { id: 'library', label: 'Library' },
   { id: 'rag', label: 'RAG' },
   { id: 'snip', label: 'Snip' },
@@ -116,6 +118,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'hooks' && <HooksSettings />}
             {activeTab === 'automations' && <AutomationsSettings />}
             {activeTab === 'loops' && <LoopSettings />}
+            {activeTab === 'orchestration' && <OrchestrationSettings />}
             {activeTab === 'library' && <LibraryView />}
             {activeTab === 'rag' && <RagSettings />}
             {activeTab === 'snip' && <SnipSettings />}

@@ -18,10 +18,7 @@ import { join } from 'path'
 import { DEFAULT_APP_SETTINGS } from './default-app-settings'
 
 const repoRoot = join(__dirname, '..', '..')
-const rendererSource = readFileSync(
-  join(repoRoot, 'src', 'stores', 'settings-store.ts'),
-  'utf-8'
-)
+const rendererSource = readFileSync(join(repoRoot, 'src', 'stores', 'settings-store.ts'), 'utf-8')
 const themePresetsSource = readFileSync(
   join(repoRoot, 'src', 'styles', 'theme-presets.ts'),
   'utf-8'
@@ -35,7 +32,10 @@ function esc(s: string): string {
 /** Assert `key: <value>` appears in the renderer defaults literal. */
 function expectRendererDefault(key: string, valueText: string): void {
   const re = new RegExp(`\\b${esc(key)}:\\s*${esc(valueText)}`)
-  expect(rendererSource, `renderer settings-store.ts must contain \`${key}: ${valueText}\``).toMatch(re)
+  expect(
+    rendererSource,
+    `renderer settings-store.ts must contain \`${key}: ${valueText}\``
+  ).toMatch(re)
 }
 
 describe('SP-1 defaults parity — canonical vs renderer literal', () => {
@@ -100,7 +100,20 @@ describe('SP-1 defaults parity — canonical vs renderer literal', () => {
     expectRendererDefault('loopMaxWallclockMs', String(DEFAULT_APP_SETTINGS.loopMaxWallclockMs))
     expectRendererDefault('loopTokenBudget', String(DEFAULT_APP_SETTINGS.loopTokenBudget))
     expectRendererDefault('loopMaxConcurrent', String(DEFAULT_APP_SETTINGS.loopMaxConcurrent))
-    expectRendererDefault('loopMinIntervalSeconds', String(DEFAULT_APP_SETTINGS.loopMinIntervalSeconds))
+    expectRendererDefault(
+      'loopMinIntervalSeconds',
+      String(DEFAULT_APP_SETTINGS.loopMinIntervalSeconds)
+    )
+  })
+
+  it('AO-1: orchestration defaults are OFF + bounded, and parity-locked', () => {
+    expect(DEFAULT_APP_SETTINGS.orchestrationEnabled).toBe(false)
+    expectRendererDefault('orchestrationEnabled', 'false')
+    expectRendererDefault('orchMaxTokensPerRun', String(DEFAULT_APP_SETTINGS.orchMaxTokensPerRun))
+    expectRendererDefault('orchMaxWallclockMs', String(DEFAULT_APP_SETTINGS.orchMaxWallclockMs))
+    expectRendererDefault('orchMaxCandidates', String(DEFAULT_APP_SETTINGS.orchMaxCandidates))
+    expectRendererDefault('orchMaxDepth', String(DEFAULT_APP_SETTINGS.orchMaxDepth))
+    expectRendererDefault('orchAdvisorModel', `'${DEFAULT_APP_SETTINGS.orchAdvisorModel}'`)
   })
 
   it('every canonical key appears in the renderer literal', () => {

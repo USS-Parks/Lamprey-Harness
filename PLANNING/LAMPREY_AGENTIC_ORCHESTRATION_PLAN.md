@@ -148,7 +148,7 @@ spine, gated behind one master toggle that defaults off.
 - Verify: doc complete; every claim carries a file:line cite (proof-toolkit recipe 2).
 
 ### **AO-1 — Master toggle + settings spine**
-- [ ] `orchestrationEnabled: false` plus bounded defaults — `orchMaxTokensPerRun`,
+- [x] `orchestrationEnabled: false` plus bounded defaults — `orchMaxTokensPerRun`,
       `orchMaxWallclockMs`, `orchMaxCandidates` (cap for fan-out N), `orchMaxDepth`
       (fork-tree depth), `orchAdvisorModel: ''` — added to `DEFAULT_APP_SETTINGS` AND the
       renderer literal (SP-1 parity lock extended). Settings → **Orchestration** panel

@@ -45,6 +45,29 @@ unknown→null, era keyOptional guard, no-key rejection message).
 **Verify gate:** tsc node + web clean; `registry.test.ts` 31 passed / 0 failed.
 **Commit:** see git log (PX-1).
 
+### PX-2 — Frontier tier: OpenAI, Anthropic, xAI, Mistral
+
+`ProviderId` widened 5 → 9 in both unions (registry + renderer mirror). Four
+`PROVIDERS` entries with key hints + console docs URLs; Anthropic rides its official
+OpenAI-compat endpoint (`https://api.anthropic.com/v1/`, trailing slash) with the
+layer's constraints quoted in the descriptor comment — `reasoning_effort` ignored
+there, so anthropic entries never set `reasoningCapOnToolUse`, and `isReasoner`
+stays false (no thinking channel through compat). Fourteen catalog models: GPT-5.6
+Sol/Terra/Luna + GPT-5.5 (Terra/Luna per OpenAI's 2026-07-09 GA naming;
+gpt-5.5-pro excluded as Responses-API-only), Claude Opus 4.8 / Sonnet 5 / Haiku 4.5
+(haiku tier `flash` so the key-validation chat probe picks the cheapest model),
+Grok 4.5 / 4.3 / Build 0.1, Mistral Large/Medium/Small/Codestral via the documented
+rolling `-latest` aliases. Every id's evidence status is in PX_BASELINE §3. New
+`provider-parity.test.ts` source-locks the two `ProviderId` unions member-identical
+(SP-1 pattern), asserts `PROVIDERS` covers exactly the union, and that every catalog
+model references a real provider.
+
+**Files changed:** `electron/services/providers/registry.ts`, `src/lib/types.ts`,
+`electron/services/providers/provider-parity.test.ts` (new).
+**Verify gate:** tsc node + web clean; provider suite 63 passed / 0 failed
+(registry, supports-tools audit, parity, schema-normalizer, capability-tracker).
+**Commit:** see git log (PX-2).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

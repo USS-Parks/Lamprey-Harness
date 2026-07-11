@@ -57,7 +57,16 @@ function readStreamInactivityMs(): number {
   }
 }
 
-export type ProviderId = 'deepseek' | 'google' | 'dashscope' | 'openrouter' | 'zhipu'
+export type ProviderId =
+  | 'deepseek'
+  | 'google'
+  | 'dashscope'
+  | 'openrouter'
+  | 'zhipu'
+  | 'openai'
+  | 'anthropic'
+  | 'xai'
+  | 'mistral'
 
 export interface ProviderDescriptor {
   id: ProviderId
@@ -110,6 +119,45 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     baseURL: 'https://open.bigmodel.cn/api/paas/v4/',
     keyEnv: 'zhipu',
     docsUrl: 'https://open.bigmodel.cn/usercenter/apikeys'
+  },
+  openai: {
+    id: 'openai',
+    label: 'OpenAI',
+    baseURL: 'https://api.openai.com/v1',
+    keyEnv: 'openai',
+    docsUrl: 'https://platform.openai.com/api-keys',
+    keyHint: 'sk-...'
+  },
+  // Anthropic is reached over its official OpenAI SDK compatibility endpoint
+  // (trailing slash required). Anthropic frames the layer as intended for
+  // testing/comparing model capabilities rather than as the long-term
+  // production surface, but commits to keeping it functional without
+  // breaking changes. Streaming + tool_calls are fully supported; `strict`,
+  // `response_format`, and `reasoning_effort` are silently ignored — so
+  // anthropic catalog entries must never set reasoningCapOnToolUse (no-op)
+  // and no thinking channel comes back (isReasoner stays false).
+  anthropic: {
+    id: 'anthropic',
+    label: 'Anthropic (Claude)',
+    baseURL: 'https://api.anthropic.com/v1/',
+    keyEnv: 'anthropic',
+    docsUrl: 'https://platform.claude.com/settings/keys',
+    keyHint: 'sk-ant-...'
+  },
+  xai: {
+    id: 'xai',
+    label: 'xAI (Grok)',
+    baseURL: 'https://api.x.ai/v1',
+    keyEnv: 'xai',
+    docsUrl: 'https://console.x.ai',
+    keyHint: 'xai-...'
+  },
+  mistral: {
+    id: 'mistral',
+    label: 'Mistral AI',
+    baseURL: 'https://api.mistral.ai/v1',
+    keyEnv: 'mistral',
+    docsUrl: 'https://console.mistral.ai/api-keys'
   }
 }
 
@@ -331,6 +379,176 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     supportsVision: true,
     tier: 'pro',
     description: 'GLM 5.2 with explicit 1M token context window.'
+  },
+
+  // ── OpenAI ── GPT-5.6 family GA'd 2026-07-09; the bare `gpt-5.6` alias
+  // routes to Sol (flagship). Ids pinned from OpenAI docs at that date —
+  // confirm against the live /v1/models via Settings → Models once a key
+  // is stored.
+  {
+    id: 'gpt-5.6',
+    name: 'GPT-5.6 (Sol)',
+    provider: 'openai',
+    apiModelId: 'gpt-5.6',
+    contextWindow: 1_050_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'OpenAI flagship — GPT-5.6 Sol tier, 1.05M context, tools + vision.'
+  },
+  {
+    id: 'gpt-5.6-terra',
+    name: 'GPT-5.6 Terra',
+    provider: 'openai',
+    apiModelId: 'gpt-5.6-terra',
+    contextWindow: 1_050_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Balanced lower-cost GPT-5.6 tier.'
+  },
+  {
+    id: 'gpt-5.6-luna',
+    name: 'GPT-5.6 Luna',
+    provider: 'openai',
+    apiModelId: 'gpt-5.6-luna',
+    contextWindow: 1_050_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'flash',
+    description: 'Fastest, most cost-efficient GPT-5.6 tier.'
+  },
+  {
+    id: 'gpt-5.5',
+    name: 'GPT-5.5',
+    provider: 'openai',
+    apiModelId: 'gpt-5.5',
+    contextWindow: 1_050_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'GPT-5.5 frontier model (gpt-5.5-pro is Responses-API-only and excluded).'
+  },
+
+  // ── Anthropic (Claude) ── served over the OpenAI-compat endpoint; see the
+  // PROVIDERS entry for the layer's constraints. reasoningCapOnToolUse must
+  // stay unset here (reasoning_effort is ignored by the compat layer).
+  {
+    id: 'claude-opus-4-8',
+    name: 'Claude Opus 4.8',
+    provider: 'anthropic',
+    apiModelId: 'claude-opus-4-8',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Anthropic Opus-tier flagship — 1M context, tools + vision.'
+  },
+  {
+    id: 'claude-sonnet-5',
+    name: 'Claude Sonnet 5',
+    provider: 'anthropic',
+    apiModelId: 'claude-sonnet-5',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Near-Opus coding/agentic quality at Sonnet cost — 1M context.'
+  },
+  {
+    id: 'claude-haiku-4-5',
+    name: 'Claude Haiku 4.5',
+    provider: 'anthropic',
+    apiModelId: 'claude-haiku-4-5',
+    contextWindow: 200_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'flash',
+    description: 'Fastest, most cost-effective Claude — also the key-validation probe model.'
+  },
+
+  // ── xAI (Grok) ── ids from docs.x.ai; capabilities cross-referenced from
+  // OpenRouter's live listing of the same models (tools + vision true).
+  {
+    id: 'grok-4.5',
+    name: 'Grok 4.5',
+    provider: 'xai',
+    apiModelId: 'grok-4.5',
+    contextWindow: 500_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'xAI flagship — 500K context, tools + vision.'
+  },
+  {
+    id: 'grok-4.3',
+    name: 'Grok 4.3',
+    provider: 'xai',
+    apiModelId: 'grok-4.3',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Grok 4.3 — 1M context.'
+  },
+  {
+    id: 'grok-build-0.1',
+    name: 'Grok Build 0.1',
+    provider: 'xai',
+    apiModelId: 'grok-build-0.1',
+    contextWindow: 256_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'coder',
+    description: 'xAI code model — 256K context.'
+  },
+
+  // ── Mistral ── rolling `-latest` aliases (Mistral's documented convention;
+  // they track the newest release of each line). Resolve live via
+  // Settings → Models → "Verify against providers".
+  {
+    id: 'mistral-large-latest',
+    name: 'Mistral Large (latest)',
+    provider: 'mistral',
+    apiModelId: 'mistral-large-latest',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Mistral flagship line — rolling latest release.'
+  },
+  {
+    id: 'mistral-medium-latest',
+    name: 'Mistral Medium (latest)',
+    provider: 'mistral',
+    apiModelId: 'mistral-medium-latest',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Mistral Medium line — rolling latest release.'
+  },
+  {
+    id: 'mistral-small-latest',
+    name: 'Mistral Small (latest)',
+    provider: 'mistral',
+    apiModelId: 'mistral-small-latest',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'flash',
+    description: 'Mistral Small line — rolling latest release, cheapest tier.'
+  },
+  {
+    id: 'codestral-latest',
+    name: 'Codestral (latest)',
+    provider: 'mistral',
+    apiModelId: 'codestral-latest',
+    contextWindow: 256_000,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'coder',
+    description: 'Mistral coding model — rolling latest release.'
   }
 ]
 

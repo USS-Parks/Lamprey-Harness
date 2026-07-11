@@ -125,7 +125,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   descriptor resolution.
 
 ### **PX-2 — Frontier tier: OpenAI, Anthropic, xAI, Mistral**
-- [ ] Widen `ProviderId` (registry + `src/lib/types.ts`); add 4 `PROVIDERS` entries
+- [x] Widen `ProviderId` (registry + `src/lib/types.ts`); add 4 `PROVIDERS` entries
       (base URLs per PX-0 matrix; Anthropic on its OpenAI-compat endpoint with limitations
       documented in the descriptor comment); add catalog models from the PX-0 matrix with
       honest capability flags (`supportsTools` empirically probed where a key exists;

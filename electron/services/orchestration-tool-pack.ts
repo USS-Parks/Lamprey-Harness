@@ -4,6 +4,7 @@ import { readOrchestrationConfig } from './orchestration-config'
 import { governFork, settleRunSpend } from './orchestration-governance'
 import { createBudget, resolveBudgetCeilings } from './orchestration-budget'
 import { runFanout, FANOUT_JUDGE_SCHEMA, type CandidateResult } from './strategy-fanout'
+import { runCritic, type CriticVerdict } from './strategy-critic'
 import { approximateTokenCount } from './multi-agent-run-tool'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 
@@ -191,6 +192,124 @@ toolRegistry.registerNative(
     return {
       result: JSON.stringify(summary, null, 2),
       status: result.breached ? 'error' : result.winner ? 'done' : 'error'
+    }
+  }
+)
+
+// ── AO-7 — agent_critique: generator + adversarial critic ──────────────────
+
+async function oneShot(
+  prompt: string,
+  modelId: string,
+  signal: AbortSignal
+): Promise<{ output: string; tokensEst: number; wallMs: number }> {
+  const startedAt = Date.now()
+  const r = await chatOnce([{ role: 'user', content: prompt }], modelId, signal)
+  return {
+    output: r.content,
+    tokensEst: approximateTokenCount(prompt) + approximateTokenCount(r.content),
+    wallMs: Math.max(0, Date.now() - startedAt)
+  }
+}
+
+function parseCritique(text: string): { verdict: CriticVerdict; notes: string } {
+  const trimmed = text.trim()
+  // Verdict is the first token; SHIP ends the loop, anything else revises.
+  const verdict: CriticVerdict = /^\s*ship\b/i.test(trimmed) ? 'ship' : 'revise'
+  const notes = trimmed.replace(/^\s*(ship|revise)\b[:.\-\s]*/i, '').trim()
+  return { verdict, notes: notes || trimmed }
+}
+
+toolRegistry.registerNative(
+  {
+    id: 'agent_critique',
+    name: 'agent_critique',
+    title: 'Generator + adversarial critic',
+    description:
+      'Draft an answer, have an adversarial critic try to break it, revise, and repeat to a ' +
+      'hard iteration cap. Use when a first pass is likely flawed and a skeptical second pass ' +
+      'improves it. The critic is read-only by construction (it runs with no tools). Budgeted; ' +
+      'iterations bounded by the Orchestration settings. Only available when Orchestration is ' +
+      'enabled.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task: { type: 'string', description: 'The task to draft and refine.' },
+        maxIterations: {
+          type: 'integer',
+          description: 'Max generate→critique→revise cycles. Defaults to 3, capped internally.'
+        }
+      },
+      required: ['task'],
+      additionalProperties: false
+    },
+    risks: ['network', 'read'],
+    requiresApproval: false,
+    enabled: true
+  },
+  async (rawArgs, ctx) => {
+    if (!readOrchestrationConfig().enabled) {
+      throw new Error('agent_critique requires Orchestration to be enabled in Settings.')
+    }
+    if (!ctx.model) throw new Error('agent_critique: active model unavailable (internal error).')
+    const args = (rawArgs ?? {}) as { task?: unknown; maxIterations?: unknown }
+    const task = typeof args.task === 'string' ? args.task.trim() : ''
+    if (!task) throw new Error('agent_critique: "task" is required.')
+    const maxIterations =
+      typeof args.maxIterations === 'number' && args.maxIterations > 0
+        ? Math.min(6, Math.floor(args.maxIterations))
+        : 3
+    const model = ctx.model
+    const signal = ctx.signal ?? new AbortController().signal
+
+    const { identityId } = governFork({
+      conversationId: ctx.conversationId ?? null,
+      scopeKind: 'conversation',
+      agentType: 'agent_critique',
+      requestedTools: [],
+      floor: new Set<string>(), // critic + generator are tool-less by construction
+      label: 'agent_critique'
+    })
+
+    const result = await runCritic(
+      { task, maxIterations },
+      {
+        budget: budgetForRun(),
+        generate: (t) => oneShot(`Complete this task as well as you can:\n\n${t}`, model, signal),
+        critique: async (t, draft) => {
+          const prompt =
+            `You are an adversarial critic. Try to find real flaws in the draft answer below ` +
+            `for the task. Reply with "SHIP" on the first line if it is genuinely good enough, ` +
+            `otherwise "REVISE" followed by the specific problems to fix.\n\nTask:\n${t}\n\nDraft:\n${draft}`
+          const r = await oneShot(prompt, model, signal)
+          const { verdict, notes } = parseCritique(r.output)
+          return { verdict, notes, tokensEst: r.tokensEst, wallMs: r.wallMs }
+        },
+        revise: (t, draft, notes) =>
+          oneShot(
+            `Revise the draft to fix the critic's problems. Return only the improved answer.\n\n` +
+              `Task:\n${t}\n\nDraft:\n${draft}\n\nProblems to fix:\n${notes}`,
+            model,
+            signal
+          )
+      }
+    )
+
+    settleRunSpend(identityId, result.budget.tokensSpent, result.budget.wallMsSpent)
+
+    const summary = {
+      strategy: 'critic',
+      iterations: result.iterations,
+      finalVerdict: result.finalVerdict,
+      finalOutput: result.finalOutput,
+      breached: result.breached,
+      breachNote: result.breachNote
+    }
+    return {
+      result: JSON.stringify(summary, null, 2),
+      status: result.breached ? 'error' : 'done'
     }
   }
 )

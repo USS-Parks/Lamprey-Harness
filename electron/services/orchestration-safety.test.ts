@@ -99,4 +99,12 @@ describe('AO-1 orchestration safety — defaults + config', () => {
     const src = read('electron/services/orchestration-tool-pack.ts')
     expect(src).toMatch(/if \(!readOrchestrationConfig\(\)\.enabled\)[\s\S]*?throw new Error/)
   })
+
+  it('AO-7: agent_critique runs the critic with an empty tool floor (read-only by construction)', () => {
+    const src = read('electron/services/orchestration-tool-pack.ts')
+    // The critique governance mints an identity whose floor is empty — the
+    // critic/generator are tool-less, so they cannot mutate regardless of prompt.
+    expect(src).toMatch(/agentType: 'agent_critique'[\s\S]*?floor: new Set<string>\(\)/)
+    expect(src).toMatch(/agent_critique requires Orchestration to be enabled/)
+  })
 })

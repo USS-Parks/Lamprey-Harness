@@ -215,7 +215,7 @@ spine, gated behind one master toggle that defaults off.
       cross-model candidate dispatch descriptors); safety test gains the gate assertion.
 
 ### **AO-7 — Strategy: generator + adversarial critic**
-- [ ] Pure `strategy-critic.ts`: generate → critique → revise loop with a hard iteration
+- [x] Pure `strategy-critic.ts`: generate → critique → revise loop with a hard iteration
       cap; the critic runs under a **read-only identity** (deterministic grants, not
       prompt language — the blog's advisory-vs-fact line implemented literally). Model tool
       `agent_critique` + `/critique` command, same gating + budgeting.

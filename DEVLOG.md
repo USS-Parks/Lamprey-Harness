@@ -200,6 +200,26 @@ slash surface; AO-9's `/outcome` gets a real budget parser).
 `verify:proof -- --no-tests` exits 0 (chat.ts touched).
 **Commit:** see git log (AO-6).
 
+### AO-7 — Strategy: generator + adversarial critic
+
+Pure `strategy-critic.ts`: `runCritic` runs generate → critique → revise to a hard iteration
+cap, recording budget spend per step, stopping early on a SHIP verdict or a budget breach, and
+never revising after the final critique (no infinite loop). The critic is **read-only by
+construction** — the `agent_critique` tool-pack runs the generator, critic, and reviser via
+`chatOnce` with an EMPTY tool floor, so they cannot mutate anything regardless of prompt (the
+blog's advisory-vs-fact line as code, not assertion; a safety source-lock asserts the empty
+floor). `agent_critique` model tool appended to the pack (gated + budgeted like fan-out,
+governed identity), verdict parsed from a SHIP/REVISE first line. Bundled `/critique` slash
+template.
+
+**Files changed:** `electron/services/strategy-critic.ts` (new),
+`electron/services/orchestration-tool-pack.ts` (agent_critique),
+`resources/slash-commands/critique.md` (new),
+`electron/services/strategy-critic.test.ts` (new, 5),
+`electron/services/orchestration-safety.test.ts` (+1 gate).
+**Verify gate:** tsc node + web clean; critic + safety suites 17 passed / 0 failed.
+**Commit:** see git log (AO-7).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

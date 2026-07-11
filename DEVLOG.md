@@ -1,3 +1,30 @@
+## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
+
+P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all
+five decision-menu answers at the recommended options; STS same message. Goal: 5 →
+~15 named provider connectors (frontier + open-source hosts), keyless local runtimes,
+base-URL overrides, and user-defined custom OpenAI-compatible endpoints.
+
+### PX-0 — Baseline + live endpoint verification matrix
+
+No code. `PLANNING/PX_BASELINE.md` records the v0.16.0 provider chain (fully
+data-driven, file:line cites) and a 12-provider verification matrix. Every base URL
+endpoint-probed unauthenticated (401/403 = live + auth-gated; HF router /v1/models is
+public 200). Model ids pinned with per-id status: OpenRouter public /v1/models pulled
+live (345 models — context/tools/vision per id), HF router list pulled live (120
+models, all 3 candidates present), official docs fetched for OpenAI (GPT-5.6
+Sol/Terra/Luna GA 2026-07-09), xAI, Mistral, Groq, Cerebras, Together, Kimi.
+Anthropic's OpenAI-compat layer confirmed live at `https://api.anthropic.com/v1/`
+with tools+streaming fully supported; its ignored-params list (strict,
+response_format, reasoning_effort) recorded as descriptor constraints. Kimi rebrand:
+console moved to platform.kimi.ai, API host stays api.moonshot.ai (api.kimi.com
+404s). Neither local runtime was running at probe time; defaults pinned from docs.
+
+**Files changed:** `PLANNING/PX_BASELINE.md` (new), plan checkbox.
+**Verify gate:** docs-only — matrix complete for all 12 providers, every id row
+carries an explicit verification status; no fabricated "verified" claims.
+**Commit:** see git log (PX-0).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

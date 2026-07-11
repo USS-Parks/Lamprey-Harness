@@ -103,7 +103,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
 ## §1 — Prompt Roster
 
 ### **PX-0 — Baseline + live endpoint verification matrix**
-- [ ] Write `PLANNING/PX_BASELINE.md`: current state (5 providers, 16 catalog models, the
+- [x] Write `PLANNING/PX_BASELINE.md`: current state (5 providers, 16 catalog models, the
       data-driven chain with file:line cites) and a per-candidate verification matrix — for each
       §3 provider: base URL, auth header, whether `/v1/models` is exposed, streaming +
       tool-calling support on the compat surface, and the **exact live model ids** (pulled via

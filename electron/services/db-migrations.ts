@@ -232,6 +232,23 @@ export const MIGRATIONS: Migration[] = [
         if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
       }
     }
+  },
+  {
+    version: 20,
+    description:
+      'Agentic Orchestration AO-4 — agent_runs receipt columns (tokens_est, ' +
+      'tool_calls) so each fork completion carries an auditable spend receipt',
+    up(db) {
+      const safeAdd = (table: string, ddl: string): void => {
+        try {
+          db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl};`)
+        } catch (err: any) {
+          if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+        }
+      }
+      safeAdd('agent_runs', 'tokens_est INTEGER NOT NULL DEFAULT 0')
+      safeAdd('agent_runs', 'tool_calls INTEGER NOT NULL DEFAULT 0')
+    }
   }
 ]
 

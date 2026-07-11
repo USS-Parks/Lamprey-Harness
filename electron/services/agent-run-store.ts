@@ -27,6 +27,10 @@ export interface AgentRunRow {
   error: string | null
   worktreePath: string | null
   background: boolean
+  // AO-4 receipt fields — optional so pre-AO-4 rows and the memory fallback
+  // remain valid without them.
+  tokensEst?: number
+  toolCalls?: number
 }
 
 export interface AgentRunInsert {
@@ -47,6 +51,9 @@ export interface AgentRunFinish {
   resultText?: string | null
   error?: string | null
   worktreePath?: string | null
+  // AO-4 receipt fields — estimated tokens + tool-call count for this run.
+  tokensEst?: number
+  toolCalls?: number
 }
 
 export interface AgentRunListFilter {
@@ -74,6 +81,8 @@ interface AgentRunRawRow {
   error: string | null
   worktree_path: string | null
   background: number
+  tokens_est?: number | null
+  tool_calls?: number | null
 }
 
 function rowToDomain(row: AgentRunRawRow): AgentRunRow {
@@ -89,7 +98,9 @@ function rowToDomain(row: AgentRunRawRow): AgentRunRow {
     resultText: row.result_text,
     error: row.error,
     worktreePath: row.worktree_path,
-    background: row.background === 1
+    background: row.background === 1,
+    tokensEst: row.tokens_est ?? 0,
+    toolCalls: row.tool_calls ?? 0
   }
 }
 
@@ -178,7 +189,9 @@ export function finishRun(args: AgentRunFinish): void {
               finished_at = ?,
               result_text = COALESCE(?, result_text),
               error = COALESCE(?, error),
-              worktree_path = COALESCE(?, worktree_path)
+              worktree_path = COALESCE(?, worktree_path),
+              tokens_est = COALESCE(?, tokens_est),
+              tool_calls = COALESCE(?, tool_calls)
         WHERE id = ?`
     ).run(
       args.status,
@@ -186,6 +199,8 @@ export function finishRun(args: AgentRunFinish): void {
       args.resultText ?? null,
       args.error ?? null,
       args.worktreePath ?? null,
+      args.tokensEst ?? null,
+      args.toolCalls ?? null,
       args.id
     )
     return
@@ -199,8 +214,48 @@ export function finishRun(args: AgentRunFinish): void {
     finishedAt: args.finishedAt,
     resultText: args.resultText ?? existing.resultText,
     error: args.error ?? existing.error,
-    worktreePath: args.worktreePath ?? existing.worktreePath
+    worktreePath: args.worktreePath ?? existing.worktreePath,
+    tokensEst: args.tokensEst ?? existing.tokensEst,
+    toolCalls: args.toolCalls ?? existing.toolCalls
   })
+}
+
+/** AO-4 — the per-run spend receipt (agent_runs projection). Null if the run
+ *  is unknown. Reads the v20 columns; 0 on pre-AO-4 rows. */
+export function getRunReceipt(
+  id: string
+): { tokensEst: number; toolCalls: number; wallMs: number; status: AgentRunStatus } | null {
+  const db = useDb()
+  if (db) {
+    const row = db
+      .prepare(
+        'SELECT status, started_at, finished_at, tokens_est, tool_calls FROM agent_runs WHERE id = ?'
+      )
+      .get(id) as
+      | {
+          status: AgentRunStatus
+          started_at: number
+          finished_at: number | null
+          tokens_est: number | null
+          tool_calls: number | null
+        }
+      | undefined
+    if (!row) return null
+    return {
+      tokensEst: row.tokens_est ?? 0,
+      toolCalls: row.tool_calls ?? 0,
+      wallMs: row.finished_at != null ? Math.max(0, row.finished_at - row.started_at) : 0,
+      status: row.status
+    }
+  }
+  const r = memory.get(id)
+  if (!r) return null
+  return {
+    tokensEst: r.tokensEst ?? 0,
+    toolCalls: r.toolCalls ?? 0,
+    wallMs: r.finishedAt != null ? Math.max(0, r.finishedAt - r.startedAt) : 0,
+    status: r.status
+  }
 }
 
 export function updateRun(id: string, patch: AgentRunUpdate): void {

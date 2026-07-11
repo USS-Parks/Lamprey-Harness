@@ -113,6 +113,31 @@ preload surface added. Safety test gains the `agents:list` gate assertion.
 failed.
 **Commit:** see git log (AO-3).
 
+### AO-4 — Budget meter, enforced outside the model
+
+Pure `orchestration-budget.ts`: `resolveBudgetCeilings` (per-call overrides may only
+TIGHTEN, never raise above the settings cap — a call can ask for less, never grant itself
+more; 0-override ignored, unbounded base adopts the override); `createBudget` /
+`recordSpend` (accumulate tokens + active wall-ms, breach on crossing a >0 ceiling, stays
+breached for an honest final receipt); `wouldBreach` non-mutating pre-flight;
+`budgetBreachNote` (the role:'system' text naming the reason + spend + the Settings knob);
+`buildRunReceipt`; `depthExceeded` + `clampCandidates` (0 = unbounded) for the fork-tree
+depth guard and fan-out N cap. Token estimation stays the caller's JM-12 chars/4 (the
+module only accumulates and decides). Receipt persistence: migration **v20** adds
+`agent_runs.tokens_est` + `tool_calls` (additive, defaults 0); `finishRun` writes them via
+COALESCE (pre-AO-4 rows untouched); new `getRunReceipt(id)` projects the row; `AgentRunRow`
++ `rowToDomain` expose the fields for AO-10's UI. The live wiring (fork completion →
+recordSpend → accumulate onto the identity → abort the tree on first breach) is AO-5.
+
+**Files changed:** `electron/services/orchestration-budget.ts` (new),
+`electron/services/db-migrations.ts` (migration v20),
+`electron/services/agent-run-store.ts` (receipt fields + `getRunReceipt`),
+`electron/services/orchestration-budget.test.ts` (new, 14 tests),
+`electron/services/agent-identity-db-integration.test.ts` (+1 receipt round-trip).
+**Verify gate:** tsc node + web clean; budget + receipt integration + run-store suites 38
+passed / 0 failed.
+**Commit:** see git log (AO-4).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

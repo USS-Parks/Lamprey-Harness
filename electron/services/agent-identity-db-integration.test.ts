@@ -108,6 +108,33 @@ describe('agent_identities DB integration (node:sqlite — never skips silently)
     expect(badStatus).toThrow()
   })
 
+  it.skipIf(!hasNodeSqlite)('AO-4 agent_runs receipt columns round-trip', () => {
+    // Mirror the v20 columns onto a minimal agent_runs so the receipt SQL shape
+    // is exercised (the full agent_runs DDL lives in schema-init, not shared).
+    db.exec(`
+      CREATE TABLE agent_runs (
+        id TEXT PRIMARY KEY, agent_type TEXT NOT NULL, label TEXT NOT NULL,
+        status TEXT NOT NULL, started_at INTEGER NOT NULL, finished_at INTEGER,
+        identity_id TEXT, tokens_est INTEGER NOT NULL DEFAULT 0,
+        tool_calls INTEGER NOT NULL DEFAULT 0
+      );
+    `)
+    db.prepare(
+      `INSERT INTO agent_runs (id, agent_type, label, status, started_at) VALUES ('r1','general','x','running',100)`
+    ).run()
+    db.prepare(
+      `UPDATE agent_runs SET status='done', finished_at=1600, tokens_est=COALESCE(?,tokens_est), tool_calls=COALESCE(?,tool_calls) WHERE id='r1'`
+    ).run(4200, 3)
+    const row = db
+      .prepare(
+        'SELECT status, started_at, finished_at, tokens_est, tool_calls FROM agent_runs WHERE id=?'
+      )
+      .get('r1')!
+    expect(row.tokens_est).toBe(4200)
+    expect(row.tool_calls).toBe(3)
+    expect((row.finished_at as number) - (row.started_at as number)).toBe(1500)
+  })
+
   it.skipIf(!hasNodeSqlite)('scope listing orders newest-first', () => {
     const ins = (id: string, at: number): void => {
       db.prepare(

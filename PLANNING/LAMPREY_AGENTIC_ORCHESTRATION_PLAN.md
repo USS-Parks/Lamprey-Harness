@@ -183,7 +183,7 @@ spine, gated behind one master toggle that defaults off.
       revoked identity resolves zero tools; auto-grant floor produces no approval event).
 
 ### **AO-4 — Budget meter, enforced outside the model**
-- [ ] Pure `orchestration-budget.ts`: per-identity and per-run-tree accounting using the
+- [x] Pure `orchestration-budget.ts`: per-identity and per-run-tree accounting using the
       JM-12 real-chars method; ceilings = settings defaults, per-call overrides accepted
       only downward (a call may tighten, never exceed). Breach → abort the whole fork tree,
       persist an honest `role:'system'` note naming identity + ceiling, receipt the partial

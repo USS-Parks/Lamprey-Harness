@@ -189,7 +189,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   `PX_BASELINE.md` §post (honest `no-key` rows allowed where the user holds no key).
 
 ### **PX-8 — Guard tests + smoke playbook**
-- [ ] Catalog invariants test: every catalog model's provider exists in `PROVIDERS`; every
+- [x] Catalog invariants test: every catalog model's provider exists in `PROVIDERS`; every
       non-`keyOptional` provider has ≥1 catalog model (so `validateViaChatProbe` can't strand);
       unique model ids; non-empty label/docsUrl/baseURL per provider; `RETIRED_MODEL_MAP`
       targets exist. Write `PLANNING/PX_SMOKE_PLAYBOOK.md`: per-tier live asks (one streamed

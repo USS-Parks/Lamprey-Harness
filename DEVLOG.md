@@ -196,6 +196,26 @@ add-provider checklist, description, and provenance stamp updated to v0.17.0.
 PX_BASELINE §6).
 **Commit:** see git log (PX-7).
 
+### PX-8 — Guard tests + owner smoke playbook
+
+New `catalog-invariants.test.ts` (7 structural locks): every model references a
+real provider; globally-unique model ids; per-provider-unique apiModelIds; every
+key-required provider keeps ≥1 catalog model (the chat-probe floor — keyless
+locals exempt by design); descriptors carry usable label/baseURL/docsUrl and
+`keyEnv === id`; sane context windows; non-empty names/descriptions. The retired-
+map targets stay covered by the existing resolveModel it.each. New
+`PLANNING/PX_SMOKE_PLAYBOOK.md` is the live gate the owner runs with real keys:
+per-provider Test → Verify → one tool turn (priority: anthropic compat layer,
+then the unverified Fireworks id), a keyless Ollama pass incl. the LAN override
+variant, and a full custom-endpoint round-trip whose removal-path pass condition
+is the clean "Unknown provider" error. `no-key` is documented as an honest
+result; `missing` chips get catalog fixes, never hand-relabeling.
+
+**Files changed:** `electron/services/providers/catalog-invariants.test.ts`
+(new), `PLANNING/PX_SMOKE_PLAYBOOK.md` (new).
+**Verify gate:** tsc node + web clean; provider suite 79 passed / 0 failed.
+**Commit:** see git log (PX-8).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

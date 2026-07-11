@@ -296,6 +296,8 @@ export interface ModelInfo {
   isReasoner?: boolean
   tier?: ModelTier
   description?: string
+  /** True for settings.json custom models (set by the main process). */
+  custom?: boolean
 }
 
 // UB-7 (Unburdening Phase, 2026-06-10) — AgentRole/AgentMode/AgentRoster/

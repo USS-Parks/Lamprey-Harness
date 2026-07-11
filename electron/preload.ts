@@ -35,9 +35,8 @@ const api = {
      *  MessageList attaches it to the next downstream Coder/Composer
      *  bubble behind a "Show pipeline trace" toggle instead of
      *  rendering it as its own visible message bubble. */
-    onPlannerMessage: (
-      cb: (e: { conversationId: string; message: unknown }) => void
-    ) => ipcRenderer.on('chat:planner-message', (_, e) => cb(e)),
+    onPlannerMessage: (cb: (e: { conversationId: string; message: unknown }) => void) =>
+      ipcRenderer.on('chat:planner-message', (_, e) => cb(e)),
     onError: (cb: (e: { conversationId: string; error: string }) => void): (() => void) => {
       const h = (_: unknown, e: any): void => cb(e)
       ipcRenderer.on('chat:error', h)
@@ -222,7 +221,8 @@ const api = {
       supportsVision: boolean
     }) => ipcRenderer.invoke('model:addCustom', model),
     removeCustom: (id: string) => ipcRenderer.invoke('model:removeCustom', id),
-    verifyCatalog: () => ipcRenderer.invoke('model:verifyCatalog')
+    verifyCatalog: () => ipcRenderer.invoke('model:verifyCatalog'),
+    listLive: (provider: string) => ipcRenderer.invoke('model:listLive', provider)
   },
 
   skills: {
@@ -545,11 +545,7 @@ const api = {
     }) => ipcRenderer.invoke('tasks:spawn', payload),
     list: (filter?: {
       status?:
-        | 'running'
-        | 'done'
-        | 'error'
-        | 'aborted'
-        | Array<'running' | 'done' | 'error' | 'aborted'>
+        'running' | 'done' | 'error' | 'aborted' | Array<'running' | 'done' | 'error' | 'aborted'>
       parentConvId?: string | null
       parentRunId?: string | null
       background?: boolean
@@ -668,11 +664,13 @@ const api = {
     stop: (id: string, reason?: string) => ipcRenderer.invoke('loops:stop', id, reason),
     deleteLoop: (id: string) => ipcRenderer.invoke('loops:deleteLoop', id),
     listBacklog: (loopId: string) => ipcRenderer.invoke('loops:listBacklog', loopId),
-    enqueue: (loopId: string, tasks: string[]) => ipcRenderer.invoke('loops:enqueue', loopId, tasks),
+    enqueue: (loopId: string, tasks: string[]) =>
+      ipcRenderer.invoke('loops:enqueue', loopId, tasks),
     reorderBacklog: (loopId: string, orderedIds: string[]) =>
       ipcRenderer.invoke('loops:reorderBacklog', loopId, orderedIds),
     removeBacklog: (id: string) => ipcRenderer.invoke('loops:removeBacklog', id),
-    listRuns: (loopId: string, limit?: number) => ipcRenderer.invoke('loops:listRuns', loopId, limit),
+    listRuns: (loopId: string, limit?: number) =>
+      ipcRenderer.invoke('loops:listRuns', loopId, limit),
     onLoopEvent: (cb: (event: { channel: string; payload: unknown }) => void): (() => void) => {
       const channels = [
         'loop:iteration:start',
@@ -685,7 +683,8 @@ const api = {
         ipcRenderer.on(channel, handler)
         return { channel, handler }
       })
-      return () => handlers.forEach(({ channel, handler }) => ipcRenderer.removeListener(channel, handler))
+      return () =>
+        handlers.forEach(({ channel, handler }) => ipcRenderer.removeListener(channel, handler))
     }
   },
 
@@ -775,8 +774,10 @@ const api = {
     ensureForPath: (path: string, fallbackName?: string) =>
       ipcRenderer.invoke('projects:ensureForPath', path, fallbackName),
     select: (id: string) => ipcRenderer.invoke('projects:select', id),
-    update: (id: string, patch: { name?: string | null; description?: string | null; path?: string | null }) =>
-      ipcRenderer.invoke('projects:update', id, patch)
+    update: (
+      id: string,
+      patch: { name?: string | null; description?: string | null; path?: string | null }
+    ) => ipcRenderer.invoke('projects:update', id, patch)
   },
 
   review: {
@@ -1001,8 +1002,11 @@ const api = {
   },
 
   research: {
-    start: (request: { question: string; depth?: 'quick' | 'standard' | 'exhaustive'; conversationId: string }) =>
-      ipcRenderer.invoke('research:start', request),
+    start: (request: {
+      question: string
+      depth?: 'quick' | 'standard' | 'exhaustive'
+      conversationId: string
+    }) => ipcRenderer.invoke('research:start', request),
     cancel: (runId: string) => ipcRenderer.invoke('research:cancel', runId),
     status: (runId: string) => ipcRenderer.invoke('research:status', runId),
     list: () => ipcRenderer.invoke('research:list'),

@@ -167,7 +167,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   provider dispatch descriptor, shadow-guard), `settings-sanitizer.test.ts` green.
 
 ### **PX-6 — Settings UI: grouped providers + custom-endpoint manager + model import**
-- [ ] `ApiKeySettings.tsx`: 15+ cards organized into collapsible groups (Frontier /
+- [x] `ApiKeySettings.tsx`: 15+ cards organized into collapsible groups (Frontier /
       Open-source hosts / Local / Custom endpoints), `keyHint` as input placeholder, and a
       Custom endpoints section (add/edit/remove: id, label, base URL, requires-key toggle)
       writing through `settings:set`. `ModelSettings.tsx`: custom-model provider select lists

@@ -4,7 +4,8 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { toast } from '@/stores/toast-store'
 import { DEFAULT_MODEL_CONFIG, type ModelConfig, type ModelInfo } from '@/lib/types'
 
-type CatalogStatus = 'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
+type CatalogStatus =
+  'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
 
 interface CatalogVerification {
   generatedAt: number
@@ -42,13 +43,6 @@ function statusChip(status: CatalogStatus | undefined): { label: string; tone: s
       return { label: 'unchecked', tone: 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]' }
   }
 }
-
-const BUILTIN_IDS = new Set([
-  'deepseek-v4-pro',
-  'deepseek-v4-flash',
-  'gemma-3-27b-it',
-  'qwen3-coder-plus'
-])
 
 const PRESET_TEMPLATES: ModelInfo[] = [
   {
@@ -108,6 +102,21 @@ export function ModelSettings() {
     supportsTools: true,
     supportsVision: false
   })
+  const [providers, setProviders] = useState<
+    Array<{ id: string; label: string; keyOptional?: boolean }>
+  >([])
+  const [importProvider, setImportProvider] = useState<string>('ollama')
+  const [liveIds, setLiveIds] = useState<string[] | null>(null)
+  const [loadingLive, setLoadingLive] = useState(false)
+
+  useEffect(() => {
+    if (!window.api) return
+    window.api.model.listProviders().then((r) => {
+      if (r.success && Array.isArray(r.data)) {
+        setProviders(r.data as Array<{ id: string; label: string; keyOptional?: boolean }>)
+      }
+    })
+  }, [])
 
   useEffect(() => {
     if (!models.find((m) => m.id === selectedId) && models.length > 0) {
@@ -134,10 +143,10 @@ export function ModelSettings() {
     toast.success(`${selectedModel?.name ?? selectedId} set as default`)
   }
 
-  const customModels = useMemo(
-    () => models.filter((m) => !BUILTIN_IDS.has(m.id)),
-    [models]
-  )
+  // Origin comes from the main process (`custom: true` on settings.json
+  // models) — never from a hardcoded builtin-id list, which went stale the
+  // moment the catalog grew past its first four entries.
+  const customModels = useMemo(() => models.filter((m) => m.custom), [models])
 
   const applyPreset = (preset: ModelInfo) => {
     setDraft({ ...preset })
@@ -156,6 +165,7 @@ export function ModelSettings() {
     const result = await window.api.model.addCustom({
       id: draft.id.trim(),
       name: draft.name.trim(),
+      provider: draft.provider,
       contextWindow: draft.contextWindow,
       supportsTools: draft.supportsTools,
       supportsVision: draft.supportsVision
@@ -188,6 +198,44 @@ export function ModelSettings() {
     if (selectedId === id) {
       setSelectedId(models.find((m) => m.id !== id)?.id ?? 'deepseek-v4-pro')
     }
+  }
+
+  const handleLoadLive = async () => {
+    if (!window.api) return
+    setLoadingLive(true)
+    setLiveIds(null)
+    try {
+      const result = await window.api.model.listLive(importProvider)
+      if (!result.success) {
+        toast.error(`Live model list failed: ${result.error}`)
+        return
+      }
+      const ids = result.data as string[]
+      setLiveIds(ids)
+      if (ids.length === 0) toast.warning(`${importProvider} returned no models`)
+    } catch (err) {
+      toast.error(`Live model list failed: ${(err as Error).message ?? 'unknown error'}`)
+    } finally {
+      setLoadingLive(false)
+    }
+  }
+
+  const handleImportOne = async (liveId: string) => {
+    if (!window.api) return
+    const result = await window.api.model.addCustom({
+      id: liveId,
+      name: liveId,
+      provider: importProvider,
+      contextWindow: 65536,
+      supportsTools: true,
+      supportsVision: false
+    })
+    if (!result.success) {
+      toast.error(`Failed to add ${liveId}: ${result.error}`)
+      return
+    }
+    await loadModels()
+    toast.success(`${liveId} added from ${importProvider}`)
   }
 
   const statusByModelId = useMemo(() => {
@@ -270,8 +318,8 @@ export function ModelSettings() {
         <h3 className="font-mono text-sm font-semibold text-[var(--text-primary)]">Models</h3>
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
           Per-model temperature, top-p, max tokens, and an optional system prompt override applied
-          on every chat with this model. Use "Verify against providers" to confirm every model id
-          in the picker actually exists at the provider it's routed to — the check calls each
+          on every chat with this model. Use "Verify against providers" to confirm every model id in
+          the picker actually exists at the provider it's routed to — the check calls each
           provider's live /v1/models endpoint with your stored key, no inferences.
         </p>
       </div>
@@ -292,10 +340,10 @@ export function ModelSettings() {
                   p.status === 'ok'
                     ? 'text-[var(--success)]'
                     : p.status === 'no-key'
-                    ? 'text-[var(--text-muted)]'
-                    : p.status === 'unsupported-endpoint'
-                    ? 'text-[var(--warning)]'
-                    : 'text-[var(--error)]'
+                      ? 'text-[var(--text-muted)]'
+                      : p.status === 'unsupported-endpoint'
+                        ? 'text-[var(--warning)]'
+                        : 'text-[var(--error)]'
                 return (
                   <span key={p.provider} className={`mr-3 ${tone}`}>
                     {p.provider}:
@@ -308,8 +356,8 @@ export function ModelSettings() {
         </div>
         {verification && (
           <p className="mt-2 text-[12px] text-[var(--text-muted)]">
-            Chips on each model below show whether the apiModelId is present in the provider's
-            live /v1/models response. Missing = the provider does not currently serve that id;
+            Chips on each model below show whether the apiModelId is present in the provider's live
+            /v1/models response. Missing = the provider does not currently serve that id;
             unverifiable = the provider does not expose /v1/models (no auto-check possible).
           </p>
         )}
@@ -333,7 +381,9 @@ export function ModelSettings() {
             >
               {m.name}
               {settings.defaultModel === m.id && (
-                <span className="ml-1.5 text-[11px] uppercase text-[var(--text-muted)]">default</span>
+                <span className="ml-1.5 text-[11px] uppercase text-[var(--text-muted)]">
+                  default
+                </span>
               )}
               {verification && (
                 <span
@@ -429,9 +479,7 @@ export function ModelSettings() {
             {testStatus && (
               <span
                 className={`text-[13px] ${
-                  testStatus.startsWith('Error')
-                    ? 'text-[var(--error)]'
-                    : 'text-[var(--success)]'
+                  testStatus.startsWith('Error') ? 'text-[var(--error)]' : 'text-[var(--success)]'
                 }`}
               >
                 {testStatus}
@@ -447,8 +495,9 @@ export function ModelSettings() {
             Custom models
           </h4>
           <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
-            Add any model id your DeepSeek key can call - e.g. <span className="font-mono">deepseek-v4-pro</span>.
-            Builtins stay; customs override built-ins with the same id.
+            Add any model id one of your providers can serve — pick the provider it routes to, or
+            import straight from a provider's live /v1/models below. Builtins stay; customs override
+            built-ins with the same id.
           </p>
         </div>
 
@@ -472,7 +521,14 @@ export function ModelSettings() {
                   className="rounded p-1 text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--error)]"
                   title="Remove"
                 >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </button>
@@ -498,6 +554,22 @@ export function ModelSettings() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
+                Provider
+              </span>
+              <select
+                value={draft.provider ?? 'deepseek'}
+                onChange={(e) => setDraft({ ...draft, provider: e.target.value })}
+                className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+              >
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="flex flex-col gap-1">
               <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
                 Model id
@@ -532,7 +604,10 @@ export function ModelSettings() {
                 step={1024}
                 value={draft.contextWindow}
                 onChange={(e) =>
-                  setDraft({ ...draft, contextWindow: Math.max(1024, Number(e.target.value) || 65536) })
+                  setDraft({
+                    ...draft,
+                    contextWindow: Math.max(1024, Number(e.target.value) || 65536)
+                  })
                 }
                 className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               />
@@ -571,6 +646,60 @@ export function ModelSettings() {
           >
             Add model
           </button>
+        </div>
+
+        <div className="space-y-2 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
+              Import from /v1/models:
+            </span>
+            <select
+              value={importProvider}
+              onChange={(e) => {
+                setImportProvider(e.target.value)
+                setLiveIds(null)
+              }}
+              className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+            >
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleLoadLive}
+              disabled={loadingLive}
+              className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              {loadingLive ? 'Loading...' : 'Load live models'}
+            </button>
+          </div>
+          {liveIds && liveIds.length > 0 && (
+            <div className="max-h-48 space-y-1 overflow-y-auto">
+              {liveIds.map((id) => (
+                <div
+                  key={id}
+                  className="flex items-center gap-2 rounded border border-[var(--panel-border)] px-2 py-1 text-xs"
+                >
+                  <span className="min-w-0 flex-1 truncate font-mono text-[var(--text-secondary)]">
+                    {id}
+                  </span>
+                  <button
+                    onClick={() => handleImportOne(id)}
+                    className="rounded bg-[var(--bg-tertiary)] px-2 py-0.5 font-mono text-[12px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
+                  >
+                    Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
+            Pulls the provider's live model list with your stored key (local runtimes need no key).
+            Imported models land in Custom models with default capability flags — adjust after
+            import if a model lacks tools or has vision.
+          </p>
         </div>
       </div>
     </div>

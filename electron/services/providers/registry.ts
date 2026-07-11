@@ -1098,6 +1098,20 @@ export function listAllProviders(): ProviderDescriptor[] {
   return [...Object.values(PROVIDERS), ...Array.from(readCustomProviderDescriptors().values())]
 }
 
+/** Live model ids from one provider's /v1/models — the import affordance in
+ *  Settings → Models. Throws on unknown provider / missing key / endpoint
+ *  errors; the caller surfaces the message verbatim. */
+export async function listLiveModelIds(provider: string): Promise<string[]> {
+  const client = getClientForProvider(provider)
+  const response = await client.models.list()
+  return (Array.isArray(response.data) ? response.data : [])
+    .map((m: unknown) =>
+      m && typeof (m as { id?: unknown }).id === 'string' ? (m as { id: string }).id : null
+    )
+    .filter((id): id is string => !!id)
+    .sort()
+}
+
 function getClientForProvider(provider: string): OpenAI {
   const desc = resolveProviderDescriptor(provider)
   if (!desc) {

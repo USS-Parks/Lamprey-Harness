@@ -147,6 +147,31 @@ requiresKey refusal, shadow guard, malformed-entry skips, list ordering).
 suites 142 passed / 0 failed; `verify:proof -- --no-tests` green (chat.ts touched).
 **Commit:** see git log (PX-5).
 
+### PX-6 — Settings UI: grouped providers, custom-endpoint manager, model import
+
+ApiKeySettings: the flat card list becomes four native `<details>` groups —
+Frontier labs / Open-source hosts & aggregators / Local runtimes / Custom endpoints
+— each summarizing "N/M keyed"; anything not in a group is a custom endpoint by
+definition. The Custom endpoints group carries the add form (id, label, base URL,
+requires-key) writing `settings.customProviders` through the existing
+`settings:set` (renderer-side shape hints only — the registry stays the enforcing
+site) and a per-card "Remove endpoint" action. ModelSettings: the custom-model form
+gains a Provider select fed by `model:listProviders` (built-ins + customs), and a
+new "Import from /v1/models" block — pick a provider, pull its live ids over new
+`model:listLive` IPC (registry `listLiveModelIds`), one-click add each as a custom
+model. Fixed in passing: the stale 4-id `BUILTIN_IDS` set that would have rendered
+every post-expansion built-in as removable "custom" — origin now comes from the
+main process as `custom: true` on settings.json models.
+
+**Files changed:** `src/components/settings/ApiKeySettings.tsx`,
+`src/components/settings/ModelSettings.tsx`, `electron/ipc/model.ts`,
+`electron/services/providers/registry.ts` (listLiveModelIds), `electron/preload.ts`,
+`src/lib/types.ts`.
+**Verify gate:** tsc node + web clean; provider/sanitizer/era-chrome/Sidebar
+source-lock suites 99 passed / 0 failed; ESLint clean. Live GUI pass is the
+owner's first-install check (house convention for Electron surfaces).
+**Commit:** see git log (PX-6).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

@@ -3,6 +3,7 @@ import {
   MODEL_CATALOG,
   isKnownProvider,
   listAllProviders,
+  listLiveModelIds,
   verifyCatalog
 } from '../services/providers/registry'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
@@ -18,6 +19,10 @@ interface ModelInfo {
   isReasoner?: boolean
   tier?: string
   description?: string
+  /** True for settings.json custom models. The renderer must not infer
+   *  origin from a hardcoded id list — that list went stale the moment the
+   *  catalog grew. */
+  custom?: boolean
 }
 
 const BUILTIN_MODELS: ModelInfo[] = MODEL_CATALOG.map((m) => ({
@@ -57,7 +62,8 @@ function readCustomModels(): ModelInfo[] {
 function combinedModels(): ModelInfo[] {
   const customs = readCustomModels().map((m) => ({
     ...m,
-    provider: isKnownProvider(m.provider) ? m.provider : 'deepseek'
+    provider: isKnownProvider(m.provider) ? m.provider : 'deepseek',
+    custom: true
   }))
   const customIds = new Set(customs.map((m) => m.id))
   // Custom entries override built-ins with the same id.
@@ -138,6 +144,20 @@ export function registerModelHandlers(): void {
       return { success: true, data: report }
     } catch (err: any) {
       return { success: false, error: err?.message || 'Catalog verification failed.' }
+    }
+  })
+
+  // Live /v1/models pull for ONE provider — feeds the import affordance so
+  // local runtimes and custom endpoints are usable without hand-typing ids.
+  ipcMain.handle('model:listLive', async (_event, provider: unknown) => {
+    try {
+      if (!isKnownProvider(provider)) {
+        return { success: false, error: `Unknown provider: ${String(provider)}` }
+      }
+      const ids = await listLiveModelIds(provider)
+      return { success: true, data: ids }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Live model listing failed.' }
     }
   })
 }

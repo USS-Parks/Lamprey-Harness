@@ -233,7 +233,7 @@ spine, gated behind one master toggle that defaults off.
       auto-offer stays inert at default).
 
 ### **AO-9 — Outcome + budget entry point**
-- [ ] The blog's closing line as a command: `/outcome "<goal>" [--tokens 200k]
+- [x] The blog's closing line as a command: `/outcome "<goal>" [--tokens 200k]
       [--wall 20m] [--candidates 3] [--strategy fanout|critic|single]` — pure
       `parse-outcome-command.ts` (LP-8 pattern) → an orchestrated run in-conversation under
       one outcome-scoped identity tree; defaults from settings; ceilings clamp downward.

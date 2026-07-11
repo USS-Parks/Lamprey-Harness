@@ -240,6 +240,32 @@ unused FANOUT_JUDGE_SCHEMA import),
 `verify:proof -- --no-tests` exits 0.
 **Commit:** see git log (AO-8).
 
+### AO-9 — Outcome + budget entry point
+
+The blog's "I want this outcome and here's a budget. Go." as `/outcome "<goal>" [--tokens
+200k] [--wall 20m] [--candidates 3] [--strategy fanout|critic|single]`. Pure
+`parse-outcome-command.ts` (LP-8 pattern): `parseOutcomeCommand` handles a quoted or bare goal,
+token suffixes (k/m), duration suffixes (s/m/h, bare = minutes), and collects honest errors for
+a missing goal or bad flag values; `resolveOutcomeSpec` applies settings defaults and clamps
+every ceiling **downward** (a request tightens, never exceeds; an unbounded 0 setting adopts
+the request); `clampOutcomeToLoopBudget` keeps a loop-enveloped outcome's inner budget ≤ the
+loop slice. Bundled `/outcome` slash template expands to a prompt that reads the flags and
+routes to `agent_fanout` / `agent_critique` / single per `--strategy`, with the note that the
+hard ceiling is the Settings value (flags can only ask for less).
+
+Honest scope note: the parser + resolver + clamp are fully tested (the LP-8 deliverable); the
+`/outcome` execution path drives the model to the gated strategy tools via the template, and
+the HARD budget enforcement is those tools' settings-derived ceilings (already enforced in
+AO-4/AO-6). Threading a per-run downward budget override from the parsed spec into the strategy
+tools' `budgetForRun`, and a dedicated `scope_kind: 'outcome'` identity tree, is the documented
+follow-up — the settings ceiling still hard-caps, so nothing is unbounded.
+
+**Files changed:** `electron/services/parse-outcome-command.ts` (new),
+`resources/slash-commands/outcome.md` (new),
+`electron/services/parse-outcome-command.test.ts` (new, 11).
+**Verify gate:** tsc node + web clean; outcome parser suite 11 passed / 0 failed.
+**Commit:** see git log (AO-9).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

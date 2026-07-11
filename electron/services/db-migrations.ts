@@ -3,6 +3,7 @@ import { applyChangeContractSchema } from './change-contract-schema'
 import { applyProofReceiptSchema } from './proof-receipt-schema'
 import { applyFailureLedgerSchema } from './failure-ledger-schema'
 import { LOOP_SCHEMA_SQL } from './loop-schema'
+import { AGENT_IDENTITY_SCHEMA_SQL } from './agent-identity-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -70,9 +71,7 @@ export const MIGRATIONS: Migration[] = [
       // recovery case, not a migration case, and we want to fail loudly
       // rather than mark it migrated.
       const required = ['conversations', 'messages', 'events']
-      const stmt = db.prepare(
-        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?"
-      )
+      const stmt = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
       for (const name of required) {
         const row = stmt.get(name)
         if (!row) {
@@ -86,8 +85,7 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     version: 2,
-    description:
-      'PS7 embedder meta — record active embedder + dimensions for vec0 dim-guard',
+    description: 'PS7 embedder meta — record active embedder + dimensions for vec0 dim-guard',
     up(db) {
       // Singleton table. The PRIMARY KEY constraint on `id` + the
       // hard-coded 'singleton' value means there is at most one row,
@@ -213,6 +211,23 @@ export const MIGRATIONS: Migration[] = [
       // v17, so tolerate the duplicate.
       try {
         db.exec('ALTER TABLE loops ADD COLUMN active_ms INTEGER NOT NULL DEFAULT 0;')
+      } catch (err: any) {
+        if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+      }
+    }
+  },
+  {
+    version: 19,
+    description:
+      'Agentic Orchestration AO-2 — agent_identities ledger + agent_runs.identity_id ' +
+      '(per-agent identity with approve/refuse tool grants and budget; off by default ' +
+      'via orchestrationEnabled). Additive only — historical agent_runs stay readable.',
+    up(db) {
+      // DDL lives in agent-identity-schema.ts so the node:sqlite integration
+      // test runs the EXACT same statements.
+      db.exec(AGENT_IDENTITY_SCHEMA_SQL)
+      try {
+        db.exec('ALTER TABLE agent_runs ADD COLUMN identity_id TEXT;')
       } catch (err: any) {
         if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
       }

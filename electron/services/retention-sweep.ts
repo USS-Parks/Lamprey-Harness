@@ -52,10 +52,13 @@ export function runRetentionSweep(now = Date.now()): SweepResult[] {
   sweep('tool_calls', 'DELETE FROM tool_calls WHERE started_at < ?')
   sweep('snip_command_log', 'DELETE FROM snip_command_log WHERE ts < ?')
   sweep('snip_events', 'DELETE FROM snip_events WHERE ts < ?')
-  sweep(
-    'loop_wakeups',
-    "DELETE FROM loop_wakeups WHERE status != 'pending' AND fire_at < ?"
-  )
+  sweep('loop_wakeups', "DELETE FROM loop_wakeups WHERE status != 'pending' AND fire_at < ?")
   sweep('loop_runs', 'DELETE FROM loop_runs WHERE finished_at IS NOT NULL AND finished_at < ?')
+  // AO-2 — revoked identities are terminal; active/pending ones may still be
+  // spending, so only revoked rows age out.
+  sweep(
+    'agent_identities',
+    "DELETE FROM agent_identities WHERE status = 'revoked' AND created_at < ?"
+  )
   return results
 }

@@ -54,6 +54,38 @@ AO-6..AO-11.
 **Verify gate:** tsc node + web clean; parity + safety suites 14 passed / 0 failed.
 **Commit:** see git log (AO-1).
 
+### AO-2 — Agent identity ledger (migration v19)
+
+Migration **v19** (ceiling was v18): `agent_identities` (id, label, agent_type, scope
+kind+id CHECK, requested/granted tools JSON, status CHECK pending/active/revoked, tokens +
+wall ceilings, tokens + wall spent, created_at, revoked_at) + additive
+`agent_runs.identity_id TEXT` (K2 rule — NULL on pre-phase rows, readable forever). DDL in
+shared `agent-identity-schema.ts` (the LOOP_SCHEMA_SQL pattern) so a node:sqlite integration
+test runs the exact production statements. `agent-identity-store.ts`: create (pending, or
+active when an up-front floor grant is supplied) / grant (persist approve-refuse + activate)
+/ revoke / accumulateSpend (clamped non-negative ints) / getIdentity / listIdentitiesByScope
+/ deleteTerminalIdentitiesBefore — getDb-with-Map-fallback + JM-14 backoff, mirroring
+agent-run-store. Retention sweep (JM-18) gains an `agent_identities` line: only revoked rows
+age out (active/pending may still be spending).
+
+Plan-premise correction (documented deviation): the roster said "schema-init.test.ts updated
+table list green" — but `agent_identities` is migration-created, and migration tables (loops,
+proof_receipts, …) are deliberately ABSENT from schema-init's `EXPECTED_TABLES` (that set is
+only what `initLegacySchema` produces). Verified by reading; schema-init.test.ts is correctly
+untouched. Coverage instead lands in the new node:sqlite integration test (5 tests, RUN not
+skipped — DDL, both CHECK constraints, round-trip, scope ordering).
+
+**Files changed:** `electron/services/agent-identity-schema.ts` (new),
+`electron/services/db-migrations.ts` (migration v19),
+`electron/services/agent-identity-store.ts` (new),
+`electron/services/retention-sweep.ts`,
+`electron/services/agent-identity-store.test.ts` (new, 8 logic tests via the fallback),
+`electron/services/agent-identity-db-integration.test.ts` (new, 5 node:sqlite tests).
+**Verify gate:** tsc node + web clean; identity store + node:sqlite integration green (13
+RUN, DB integration confirmed 5/5 non-skipping); schema-init + retention native suites skip
+under the ABI mismatch as expected.
+**Commit:** see git log (AO-2).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

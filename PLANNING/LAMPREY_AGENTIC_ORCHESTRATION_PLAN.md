@@ -158,7 +158,7 @@ spine, gated behind one master toggle that defaults off.
 - Verify: tsc ×2; `default-app-settings.test.ts` + new safety test green.
 
 ### **AO-2 — Agent identity ledger (migration v19)**
-- [ ] `agent_identities` table: id, label, agent_type, scope kind+id (conversation / loop /
+- [x] `agent_identities` table: id, label, agent_type, scope kind+id (conversation / loop /
       workflow / outcome), requested_tools JSON, granted_tools JSON, status
       (`pending`/`active`/`revoked`), created_at, revoked_at, budget columns
       (tokens_ceiling, wall_ms_ceiling), tokens_spent, wall_ms_spent. `safeAddColumn`

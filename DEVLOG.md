@@ -171,6 +171,35 @@ affordance lives in the Agents pill (AO-10).
 suites 109 passed / 0 failed (byte-compat of the era-kept tool held).
 **Commit:** see git log (AO-5).
 
+### AO-6 — Strategy: fan-out + judge
+
+Pure `strategy-fanout.ts`: `runFanout(spec, deps)` runs candidates sequentially (deterministic
+budget breach mid-fan-out — the AO-4 semantics; a ponytail note flags parallelize-if-latency),
+recordSpend after each, and if the budget survives, judges the usable candidates and returns
+the winner + rationale. Shortcuts: a single usable candidate wins with no judge cost; all-failed
+yields no winner and no judge call. `FANOUT_JUDGE_SCHEMA` (strict winnerIndex+rationale) shared
+with the tool-pack. The **master-toggle zero-byte strip**: new `orchestration-tools.ts`
+(`ORCHESTRATION_MODEL_TOOL_IDS` + `filterOrchestrationTools`) removes the strategy tools from
+the dispatch array when off; wired into both `buildDispatchTools` and `rebuildToolsForNextRound`
+in chat.ts (so no orchestration tool-schema bytes reach the model by default — stronger than the
+loop precedent). `agent_fanout` model tool (`orchestration-tool-pack.ts`, registered in
+tool-packs): candidates via `chatOnce` (per-candidate model override — the v0.17.0 connector
+substrate is the point), a schema-shaped judge, an auto-granted identity via governFork, budget
+from the settings ceilings, spend settled onto the identity; refuses if called while off.
+Bundled `/fanout` slash template steers the model to the tool (the template system is the light
+slash surface; AO-9's `/outcome` gets a real budget parser).
+
+**Files changed:** `electron/services/strategy-fanout.ts` (new),
+`electron/services/orchestration-tools.ts` (new),
+`electron/services/orchestration-tool-pack.ts` (new), `electron/services/tool-packs.ts`,
+`electron/ipc/chat.ts` (dispatch strip ×2 build paths), `resources/slash-commands/fanout.md`
+(new), `electron/services/strategy-fanout.test.ts` (new, 6),
+`electron/services/orchestration-tools.test.ts` (new, 3),
+`electron/services/orchestration-safety.test.ts` (+2 gates).
+**Verify gate:** tsc node + web clean; fanout/tools/safety suites 20 passed / 0 failed;
+`verify:proof -- --no-tests` exits 0 (chat.ts touched).
+**Commit:** see git log (AO-6).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

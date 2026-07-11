@@ -204,7 +204,7 @@ spine, gated behind one master toggle that defaults off.
       toggle-OFF byte-compat lock; receipts appear on the card (source-read test).
 
 ### **AO-6 — Strategy: fan-out + judge**
-- [ ] Pure `strategy-fanout.ts`: N candidate forks (per-candidate `modelId` override — the
+- [x] Pure `strategy-fanout.ts`: N candidate forks (per-candidate `modelId` override — the
       v0.17.0 seventeen-connector substrate is the point: cheap/local generators, distinct
       judge), judge fork receives candidates + rubric and returns winner + rationale
       (schema-forced via the existing forkAgent schema seam); envelope persists all

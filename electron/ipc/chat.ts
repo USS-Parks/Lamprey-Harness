@@ -2,6 +2,8 @@ import { ipcMain, app } from 'electron'
 import { randomUUID } from 'crypto'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
+import { filterOrchestrationTools } from '../services/orchestration-tools'
+import { readOrchestrationConfig } from '../services/orchestration-config'
 import {
   chatOnce,
   chatStream,
@@ -718,14 +720,21 @@ function buildDispatchTools(
   provider: string,
   settingsRaw: unknown
 ): ChatCompletionTool[] {
+  // AO-6 — strip the orchestration tools unless the master toggle is on, so
+  // ZERO orchestration tool-schema bytes reach the model by default.
+  const orchOn =
+    (settingsRaw as { orchestrationEnabled?: boolean } | undefined)?.orchestrationEnabled === true
   const mode = (settingsRaw as { toolSurface?: string } | undefined)?.toolSurface ?? 'full'
   if (mode === 'lazy' && !isSurfaceDowngraded(conversationId)) {
     activateLazySurface(conversationId)
-    return toolRegistry.getModelToolSurface(provider, {
-      unlockedNames: getUnlockedTools(conversationId)
-    })
+    return filterOrchestrationTools(
+      toolRegistry.getModelToolSurface(provider, {
+        unlockedNames: getUnlockedTools(conversationId)
+      }),
+      orchOn
+    )
   }
-  return toolRegistry.getNormalizedToolsForRole('coder', provider)
+  return filterOrchestrationTools(toolRegistry.getNormalizedToolsForRole('coder', provider), orchOn)
 }
 
 /**
@@ -739,13 +748,20 @@ function rebuildToolsForNextRound(
   model: string,
   currentTools: ChatCompletionTool[] | undefined
 ): ChatCompletionTool[] | undefined {
+  const orchOn = readOrchestrationConfig().enabled
   if (isLazyActive(conversationId)) {
-    return toolRegistry.getModelToolSurface(getProviderForModel(model), {
-      unlockedNames: getUnlockedTools(conversationId)
-    })
+    return filterOrchestrationTools(
+      toolRegistry.getModelToolSurface(getProviderForModel(model), {
+        unlockedNames: getUnlockedTools(conversationId)
+      }),
+      orchOn
+    )
   }
   if (isSurfaceDowngraded(conversationId)) {
-    return toolRegistry.getNormalizedToolsForRole('coder', getProviderForModel(model))
+    return filterOrchestrationTools(
+      toolRegistry.getNormalizedToolsForRole('coder', getProviderForModel(model)),
+      orchOn
+    )
   }
   return currentTools
 }

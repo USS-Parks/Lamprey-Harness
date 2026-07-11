@@ -17,9 +17,12 @@ vi.mock('openai', () => {
   }
 })
 
-// Keychain returns a non-empty key so getClientForProvider doesn't throw.
+// Keychain defaults to a non-empty key so getClientForProvider doesn't throw;
+// individual tests override the implementation to exercise the no-key and
+// keyless (keyOptional) paths.
+const mockGetKey = vi.fn((_provider: string): string | null => 'test-key')
 vi.mock('../keychain', () => ({
-  getKey: () => 'test-key'
+  getKey: (provider: string) => mockGetKey(provider)
 }))
 
 // event-log is a pure-side-effect module; stub it to no-op.
@@ -119,6 +122,8 @@ function makeChunk(content: string) {
 
 beforeEach(() => {
   mockCreate.mockReset()
+  mockGetKey.mockReset()
+  mockGetKey.mockImplementation(() => 'test-key')
   resetProviderClients()
 })
 
@@ -142,22 +147,17 @@ describe('chatStream — SSE inactivity watchdog (T1)', () => {
     let onDoneCalled = false
 
     const start = Date.now()
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      undefined,
-      {
-        onChunk: () => {
-          /* no-op */
-        },
-        onDone: () => {
-          onDoneCalled = true
-        },
-        onError: (msg) => {
-          errorMessage = msg
-        }
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', undefined, {
+      onChunk: () => {
+        /* no-op */
+      },
+      onDone: () => {
+        onDoneCalled = true
+      },
+      onError: (msg) => {
+        errorMessage = msg
       }
-    )
+    })
     const elapsed = Date.now() - start
 
     expect(onDoneCalled).toBe(false)
@@ -186,23 +186,18 @@ describe('chatStream — SSE inactivity watchdog (T1)', () => {
     let received = ''
     let errored = false
     let done = false
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      undefined,
-      {
-        onChunk: (c) => {
-          received += c
-        },
-        onDone: (full) => {
-          done = true
-          received = full
-        },
-        onError: () => {
-          errored = true
-        }
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', undefined, {
+      onChunk: (c) => {
+        received += c
+      },
+      onDone: (full) => {
+        done = true
+        received = full
+      },
+      onError: () => {
+        errored = true
       }
-    )
+    })
 
     expect(errored).toBe(false)
     expect(done).toBe(true)
@@ -225,20 +220,15 @@ describe('chatStream — SSE inactivity watchdog (T1)', () => {
 
     let errored = false
     let done = false
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      undefined,
-      {
-        onChunk: () => {},
-        onDone: () => {
-          done = true
-        },
-        onError: () => {
-          errored = true
-        }
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', undefined, {
+      onChunk: () => {},
+      onDone: () => {
+        done = true
+      },
+      onError: () => {
+        errored = true
       }
-    )
+    })
 
     expect(errored).toBe(false)
     expect(done).toBe(true)
@@ -311,20 +301,14 @@ describe('chatStream — streaming-vitals heartbeat (T4)', () => {
 
     const vitalsCalls: Array<{ lastChunkAt: number; chunkCount: number }> = []
     let done = false
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      undefined,
-      {
-        onChunk: () => {},
-        onVitals: (v) =>
-          vitalsCalls.push({ lastChunkAt: v.lastChunkAt, chunkCount: v.chunkCount }),
-        onDone: () => {
-          done = true
-        },
-        onError: () => {}
-      }
-    )
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', undefined, {
+      onChunk: () => {},
+      onVitals: (v) => vitalsCalls.push({ lastChunkAt: v.lastChunkAt, chunkCount: v.chunkCount }),
+      onDone: () => {
+        done = true
+      },
+      onError: () => {}
+    })
 
     expect(done).toBe(true)
     // At least one heartbeat fired in the ~2.4s window. Provider lifts the
@@ -355,10 +339,7 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
         }
       ]
     })
-    const result = await chatOnce(
-      [{ role: 'user', content: 'q' }],
-      'deepseek-v4-pro'
-    )
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
     expect(result.content).toBe('plain body')
     expect(result.reasoning).toBeUndefined()
   })
@@ -375,10 +356,7 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
         }
       ]
     })
-    const result = await chatOnce(
-      [{ role: 'user', content: 'q' }],
-      'deepseek-v4-pro'
-    )
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
     expect(result.content).toBe('final answer')
     expect(result.reasoning).toBe('I thought through it like this')
   })
@@ -395,10 +373,7 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
         }
       ]
     })
-    const result = await chatOnce(
-      [{ role: 'user', content: 'q' }],
-      'deepseek-v4-pro'
-    )
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
     expect(result.content).toBe('final answer')
     expect(result.reasoning).toBe('CoT on the other field name')
   })
@@ -416,10 +391,7 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
         }
       ]
     })
-    const result = await chatOnce(
-      [{ role: 'user', content: 'q' }],
-      'deepseek-v4-pro'
-    )
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
     expect(result.reasoning).toBe('primary CoT')
   })
 
@@ -432,10 +404,7 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
         }
       ]
     })
-    const result = await chatOnce(
-      [{ role: 'user', content: 'q' }],
-      'deepseek-v4-pro'
-    )
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
     expect(result.reasoning).toBeUndefined()
   })
 
@@ -451,16 +420,46 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
         }
       ]
     })
-    const result = await chatOnce(
-      [{ role: 'user', content: 'q' }],
-      'deepseek-v4-pro'
-    )
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
     expect(result.reasoning).toBe('actual reasoning')
   })
 })
 
 // ── Fix A/B descriptor field tests ──────────────────────────────────
-import { MODEL_CATALOG, resolveModel } from './registry'
+import { MODEL_CATALOG, resolveModel, resolveProviderDescriptor, PROVIDERS } from './registry'
+
+describe('provider descriptor resolution + key handling', () => {
+  it('resolves every built-in provider id to its own descriptor', () => {
+    for (const id of Object.keys(PROVIDERS)) {
+      const desc = resolveProviderDescriptor(id)
+      expect(desc).not.toBeNull()
+      expect(desc!.id).toBe(id)
+      expect(desc!.baseURL.length).toBeGreaterThan(0)
+      expect(desc!.label.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('returns null for an unknown provider id', () => {
+    expect(resolveProviderDescriptor('definitely-not-a-provider')).toBeNull()
+  })
+
+  it('every built-in provider still requires a key (keyOptional unset)', () => {
+    // Era-lock guard: the five original providers never become keyless by
+    // accident. Local runtimes opt in explicitly when they are added.
+    for (const desc of Object.values(PROVIDERS)) {
+      const id: string = desc.id
+      if (id === 'ollama' || id === 'lmstudio') continue
+      expect(desc.keyOptional ?? false).toBe(false)
+    }
+  })
+
+  it('a key-required provider with no stored key rejects with the Settings hint', async () => {
+    mockGetKey.mockImplementation(() => null)
+    await expect(chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')).rejects.toThrow(
+      /API key not configured.*Settings/i
+    )
+  })
+})
 
 describe('reasoning token exhaustion guards (Fix A/B)', () => {
   const deepseekIds = ['deepseek-v4-pro', 'deepseek-v4-flash']
@@ -550,12 +549,11 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
       return Promise.resolve(controllable.stream)
     })
 
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      undefined,
-      { onChunk: () => {}, onDone: () => {}, onError: () => {} }
-    )
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', undefined, {
+      onChunk: () => {},
+      onDone: () => {},
+      onError: () => {}
+    })
 
     const createArg = mockCreate.mock.calls[0][0]
     expect(createArg.max_tokens).toBe(16_384)
@@ -583,12 +581,11 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
       }
     ]
 
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      tools,
-      { onChunk: () => {}, onDone: () => {}, onError: () => {} }
-    )
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', tools, {
+      onChunk: () => {},
+      onDone: () => {},
+      onError: () => {}
+    })
 
     const createArg = mockCreate.mock.calls[0][0]
     expect(createArg.reasoning_effort).toBe('low')
@@ -605,12 +602,11 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
       return Promise.resolve(controllable.stream)
     })
 
-    await chatStream(
-      [{ role: 'user', content: 'hi' }],
-      'deepseek-v4-pro',
-      undefined,
-      { onChunk: () => {}, onDone: () => {}, onError: () => {} }
-    )
+    await chatStream([{ role: 'user', content: 'hi' }], 'deepseek-v4-pro', undefined, {
+      onChunk: () => {},
+      onDone: () => {},
+      onError: () => {}
+    })
 
     const createArg = mockCreate.mock.calls[0][0]
     expect(createArg.reasoning_effort).toBeUndefined()

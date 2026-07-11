@@ -1,9 +1,6 @@
 import { ipcMain } from 'electron'
 import * as keychain from '../services/keychain'
-import {
-  readSettings as readSettingsShared,
-  writeSettingsFile
-} from '../services/settings-helper'
+import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
 import { deepseekClient } from '../services/deepseek'
 import {
   PROVIDERS,
@@ -113,6 +110,8 @@ export function registerSettingsHandlers(): void {
         id: p.id,
         label: p.label,
         docsUrl: p.docsUrl,
+        keyOptional: p.keyOptional === true,
+        keyHint: p.keyHint,
         hasKey: keychain.hasKey(p.id)
       }))
       return { success: true, data }
@@ -134,8 +133,7 @@ export function registerSettingsHandlers(): void {
   }
   function isSearchProviderWithKey(id: unknown): id is WebSearchProviderId {
     return (
-      typeof id === 'string' &&
-      ALL_WEB_SEARCH_PROVIDERS.some((p) => p.id === id && p.requiresKey)
+      typeof id === 'string' && ALL_WEB_SEARCH_PROVIDERS.some((p) => p.id === id && p.requiresKey)
     )
   }
 
@@ -287,11 +285,7 @@ const POLLUTION_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
  */
 function sanitizeSettingsPartial(raw: unknown): Record<string, unknown> {
   const cleaned = stripPollutionKeys(raw)
-  if (
-    !cleaned ||
-    typeof cleaned !== 'object' ||
-    Array.isArray(cleaned)
-  ) {
+  if (!cleaned || typeof cleaned !== 'object' || Array.isArray(cleaned)) {
     return {}
   }
   return cleaned as Record<string, unknown>

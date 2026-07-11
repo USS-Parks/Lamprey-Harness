@@ -114,7 +114,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   `live-verified` or `unverified` with source.
 
 ### **PX-1 — Provider descriptor generalization (zero behavior change)**
-- [ ] `ProviderDescriptor` gains `keyOptional?: boolean` (client uses placeholder key `'local'`
+- [x] `ProviderDescriptor` gains `keyOptional?: boolean` (client uses placeholder key `'local'`
       when set and no key stored — the OpenAI SDK requires a non-empty string) and
       `keyHint?: string` (placeholder format, e.g. `sk-…`). `getClientForProvider` honors
       `keyOptional`; `settings:listProviderKeys` returns both new fields. New

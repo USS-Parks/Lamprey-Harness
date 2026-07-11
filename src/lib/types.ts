@@ -259,6 +259,10 @@ export interface ProviderInfo {
   label: string
   docsUrl: string
   hasKey?: boolean
+  /** Provider works without a stored key (local runtimes). */
+  keyOptional?: boolean
+  /** Key-format hint for the settings input placeholder. */
+  keyHint?: string
 }
 
 export type ModelTier = 'pro' | 'flash' | 'open' | 'coder' | 'reasoner'
@@ -338,7 +342,6 @@ export interface WindowBounds {
   width: number
   height: number
 }
-
 
 export interface AppSettings {
   theme: 'dark'
@@ -434,11 +437,7 @@ export interface AppSettings {
   loopMinIntervalSeconds?: number
 }
 
-export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = [
-  'plan',
-  'context',
-  'verify'
-]
+export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = ['plan', 'context', 'verify']
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   temperature: 1,
@@ -641,13 +640,7 @@ export interface LampreyToolDescriptor {
  *  to get the full descriptor for any tool the renderer wants to inspect. */
 export type LampreyToolStub = Omit<LampreyToolDescriptor, 'inputSchema'>
 
-export type LampreyToolCallStatus =
-  | 'pending'
-  | 'approved'
-  | 'denied'
-  | 'running'
-  | 'done'
-  | 'error'
+export type LampreyToolCallStatus = 'pending' | 'approved' | 'denied' | 'running' | 'done' | 'error'
 
 export interface LampreyToolCall {
   id: string
@@ -740,7 +733,7 @@ export type ArtifactType = 'html' | 'svg' | 'mermaid' | 'jsx' | 'react' | 'markd
 export type AttachmentKind = 'text' | 'image' | 'pdf' | 'binary' | 'rag-pending'
 
 export type RagPendingPhase =
-  | 'queued'      // waiting for auto-attach IPC to fire
+  | 'queued' // waiting for auto-attach IPC to fire
   | 'loading'
   | 'chunking'
   | 'embedding'
@@ -1043,21 +1036,9 @@ export interface RagCollection {
 }
 
 export type RagDocumentStatus =
-  | 'queued'
-  | 'loading'
-  | 'chunking'
-  | 'embedding'
-  | 'ready'
-  | 'error'
-  | 'stale'
+  'queued' | 'loading' | 'chunking' | 'embedding' | 'ready' | 'error' | 'stale'
 
-export type RagDocumentSourceKind =
-  | 'file'
-  | 'paste'
-  | 'workspace'
-  | 'skill'
-  | 'memory'
-  | 'planning'
+export type RagDocumentSourceKind = 'file' | 'paste' | 'workspace' | 'skill' | 'memory' | 'planning'
 
 export interface RagDocument {
   id: string

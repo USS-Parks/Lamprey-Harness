@@ -65,6 +65,14 @@ export interface ProviderDescriptor {
   baseURL: string
   keyEnv: string
   docsUrl: string
+  /** No API key required (local runtimes such as Ollama / LM Studio). The
+   *  OpenAI SDK rejects an empty key string, so a placeholder is sent when
+   *  none is stored. A stored key still wins — some local proxies gate on
+   *  a real bearer token. */
+  keyOptional?: boolean
+  /** Key-format hint rendered as the input placeholder in
+   *  Settings → API Keys (e.g. "sk-..."). Purely cosmetic. */
+  keyHint?: string
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
@@ -157,7 +165,8 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     defaultMaxTokens: 16_384,
     reasoningCapOnToolUse: true,
     tier: 'flash',
-    description: 'Fast DeepSeek V4 — supports both non-thinking and thinking modes (default), 1M context.'
+    description:
+      'Fast DeepSeek V4 — supports both non-thinking and thinking modes (default), 1M context.'
   },
   {
     id: 'gemma-3-27b-it',
@@ -368,21 +377,14 @@ export interface ChatStreamCallbacks {
    *  renderer show "last chunk Ns ago / N tokens" so the user can tell a
    *  slow think from a dead socket without canceling. */
   onVitals?: (vitals: StreamingVitals) => void
-  onDone: (
-    fullContent: string,
-    toolCalls?: ToolCallAccumulator[],
-    fullReasoning?: string
-  ) => void
+  onDone: (fullContent: string, toolCalls?: ToolCallAccumulator[], fullReasoning?: string) => void
   /** Called when the stream gives up. `partial` carries whatever body +
    *  reasoning had already arrived before the failure, so the caller can
    *  persist it as a partial assistant message instead of letting the user's
    *  on-screen content evaporate. Partial in-flight tool calls are NOT
    *  exposed because their args may be incomplete and would break the next
    *  tool round. */
-  onError: (
-    error: string,
-    partial?: { content: string; reasoning?: string }
-  ) => void
+  onError: (error: string, partial?: { content: string; reasoning?: string }) => void
 }
 
 export interface ToolCallAccumulator {
@@ -391,21 +393,33 @@ export interface ToolCallAccumulator {
   function: { name: string; arguments: string }
 }
 
-const clientCache = new Map<ProviderId, OpenAI>()
+const clientCache = new Map<string, OpenAI>()
 
 export function resetProviderClients(): void {
   clientCache.clear()
 }
 
-export function resetProviderClient(provider: ProviderId): void {
+export function resetProviderClient(provider: string): void {
   clientCache.delete(provider)
 }
 
-function getClientForProvider(provider: ProviderId): OpenAI {
+/** Resolve a provider id to its descriptor, or null when unknown. The single
+ *  lookup point for dispatch + validation, so provider-id resolution has one
+ *  owner; user-defined custom providers from settings.json merge in here. */
+export function resolveProviderDescriptor(id: string): ProviderDescriptor | null {
+  return (PROVIDERS as Record<string, ProviderDescriptor>)[id] ?? null
+}
+
+function getClientForProvider(provider: string): OpenAI {
   const cached = clientCache.get(provider)
   if (cached) return cached
-  const desc = PROVIDERS[provider]
-  const apiKey = getKey(desc.keyEnv)
+  const desc = resolveProviderDescriptor(provider)
+  if (!desc) {
+    throw new Error(
+      `Unknown provider '${provider}'. Known providers: ${Object.keys(PROVIDERS).join(', ')}.`
+    )
+  }
+  const apiKey = getKey(desc.keyEnv) ?? (desc.keyOptional ? 'local' : null)
   if (!apiKey) {
     throw new Error(`${desc.label} API key not configured. Add one in Settings → API Keys.`)
   }
@@ -508,7 +522,9 @@ export interface KeyValidationResult {
   modelCount?: number
 }
 
-export async function validateProviderKeyDetailed(provider: ProviderId): Promise<KeyValidationResult> {
+export async function validateProviderKeyDetailed(
+  provider: ProviderId
+): Promise<KeyValidationResult> {
   let client: OpenAI
   try {
     client = getClientForProvider(provider)
@@ -580,7 +596,8 @@ export async function validateProviderKey(provider: ProviderId): Promise<boolean
   return result.ok
 }
 
-export type CatalogStatus = 'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
+export type CatalogStatus =
+  'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
 
 export interface ProviderCatalogReport {
   provider: ProviderId
@@ -666,7 +683,7 @@ export async function verifyCatalog(): Promise<CatalogVerificationReport> {
     let reason: string | undefined
     if (!report || report.status === 'no-key') {
       status = 'no-key'
-      reason = `Add a ${PROVIDERS[m.provider].label} key in Settings → API Keys to verify.`
+      reason = `Add a ${resolveProviderDescriptor(m.provider)?.label ?? m.provider} key in Settings → API Keys to verify.`
     } else if (report.status === 'auth-failed') {
       status = 'auth-failed'
       reason = report.reason
@@ -850,9 +867,7 @@ export async function chatStream(
     vitalsTimer = setInterval(() => {
       try {
         const now = Date.now()
-        const tokenEstimate = Math.round(
-          (fullContent.length + fullReasoning.length) / 4
-        )
+        const tokenEstimate = Math.round((fullContent.length + fullReasoning.length) / 4)
         callbacks.onVitals?.({
           lastChunkAt,
           msSinceLastChunk: lastChunkAt === 0 ? now - attemptStartedAt : now - lastChunkAt,
@@ -940,9 +955,7 @@ export async function chatStream(
       // maxTokens, use the model's defaultMaxTokens so reasoning models
       // can't exhaust the entire output budget on chain-of-thought.
       const effectiveMaxTokens =
-        params?.maxTokens != null
-          ? params.maxTokens
-          : desc.defaultMaxTokens ?? undefined
+        params?.maxTokens != null ? params.maxTokens : (desc.defaultMaxTokens ?? undefined)
 
       // Fix B — cap reasoning effort on tool-use turns. When the model
       // emits extended reasoning AND tools are offered, the reasoning can
@@ -1021,11 +1034,7 @@ export async function chatStream(
         chunkCount++
         if (signal?.aborted) {
           stopVitalsHeartbeat()
-          callbacks.onDone(
-            fullContent + ' [cancelled]',
-            undefined,
-            fullReasoning || undefined
-          )
+          callbacks.onDone(fullContent + ' [cancelled]', undefined, fullReasoning || undefined)
           emitModelRequestCompleted(desc, audit, {
             streaming: true,
             toolCount: offeredToolCount,
@@ -1038,7 +1047,7 @@ export async function chatStream(
         }
 
         const delta = chunk.choices[0]?.delta as
-          | (typeof chunk.choices[0]['delta'] & {
+          | ((typeof chunk.choices)[0]['delta'] & {
               reasoning_content?: string | null
               reasoning?: string | null
             })
@@ -1122,9 +1131,8 @@ export async function chatStream(
       stopVitalsHeartbeat()
       if (signal) signal.removeEventListener('abort', onUserAbort)
 
-      const toolCalls = toolCallsAccumulator.size > 0
-        ? Array.from(toolCallsAccumulator.values())
-        : undefined
+      const toolCalls =
+        toolCallsAccumulator.size > 0 ? Array.from(toolCallsAccumulator.values()) : undefined
 
       callbacks.onDone(fullContent, toolCalls, fullReasoning || undefined)
       emitModelRequestCompleted(desc, audit, {
@@ -1159,11 +1167,7 @@ export async function chatStream(
       // not the watchdog. Treat as a clean cancellation regardless of which
       // error the SDK threw on the way out.
       if (signal?.aborted) {
-        callbacks.onDone(
-          fullContent + ' [cancelled]',
-          undefined,
-          fullReasoning || undefined
-        )
+        callbacks.onDone(fullContent + ' [cancelled]', undefined, fullReasoning || undefined)
         emitModelRequestCompleted(desc, audit, {
           streaming: true,
           toolCount: offeredToolCount,
@@ -1211,8 +1215,11 @@ export async function chatStream(
 
       if (err?.status === 401 || err?.status === 403) {
         callbacks.onError(
-          `Invalid ${PROVIDERS[desc.provider].label} API key`,
-          { content: fullContent, reasoning: fullReasoning || undefined }
+          `Invalid ${resolveProviderDescriptor(desc.provider)?.label ?? desc.provider} API key`,
+          {
+            content: fullContent,
+            reasoning: fullReasoning || undefined
+          }
         )
         emitModelRequestFailed(desc, audit, {
           streaming: true,
@@ -1240,10 +1247,10 @@ export async function chatStream(
         continue
       }
 
-      callbacks.onError(
-        err?.message || 'Unknown error',
-        { content: fullContent, reasoning: fullReasoning || undefined }
-      )
+      callbacks.onError(err?.message || 'Unknown error', {
+        content: fullContent,
+        reasoning: fullReasoning || undefined
+      })
       emitModelRequestFailed(desc, audit, {
         streaming: true,
         toolCount: offeredToolCount,

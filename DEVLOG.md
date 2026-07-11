@@ -25,6 +25,26 @@ console moved to platform.kimi.ai, API host stays api.moonshot.ai (api.kimi.com
 carries an explicit verification status; no fabricated "verified" claims.
 **Commit:** see git log (PX-0).
 
+### PX-1 — Provider descriptor generalization (zero behavior change)
+
+`ProviderDescriptor` gains `keyOptional?` (client sends placeholder key `'local'`
+when set and none stored; a stored key still wins) and `keyHint?` (settings input
+placeholder). New exported `resolveProviderDescriptor(id: string)` is the single
+lookup point for dispatch + validation — `getClientForProvider` (param widened to
+`string`, unknown ids throw a named error instead of crashing on undefined), the
+chatStream 401 label, and the verifyCatalog no-key reason all route through it;
+custom providers will merge in there. `settings:listProviderKeys` returns both new
+fields; renderer `ProviderInfo` mirrors them. Existing five providers byte-identical
+in behavior — a new guard test locks all key-required built-ins as `keyOptional`
+unset.
+
+**Files changed:** `electron/services/providers/registry.ts`,
+`electron/ipc/settings.ts`, `src/lib/types.ts`,
+`electron/services/providers/registry.test.ts` (+4 tests: per-id resolution,
+unknown→null, era keyOptional guard, no-key rejection message).
+**Verify gate:** tsc node + web clean; `registry.test.ts` 31 passed / 0 failed.
+**Commit:** see git log (PX-1).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

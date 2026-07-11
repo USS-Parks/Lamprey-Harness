@@ -3,6 +3,7 @@ import { readOrchestrationConfig, type OrchestrationConfig } from './orchestrati
 import * as identities from './agent-identity-store'
 import type { IdentityScopeKind } from './agent-identity-store'
 import { classifyGrant } from './agent-grants'
+import { recordEvent } from './event-log'
 
 // Agentic Orchestration Phase AO-5 — the governance seam that threads identity +
 // budget onto the EXISTING fork paths. Its defining property: when the master
@@ -59,6 +60,27 @@ export function governFork(scope: GovernScope, deps: GovernDeps = {}): GovernRes
     wallMsCeiling: cfg.maxWallclockMs,
     createdAt: now()
   })
+  // AO-10 — audit ledger. Payload carries ids + COUNTS only, never tool
+  // arguments (the keychain-event contract). Failures are swallowed: the
+  // identity write is the load-bearing side-effect.
+  try {
+    recordEvent({
+      type: 'security.decision',
+      actorKind: 'user',
+      entityKind: 'agent-identity',
+      entityId: id,
+      payload: {
+        action: 'created',
+        identityId: id,
+        agentType: scope.agentType,
+        scopeKind: scope.scopeKind,
+        grantedCount: decision.autoGranted.length,
+        pendingCount: decision.needsApproval.length
+      }
+    })
+  } catch (err) {
+    console.error('[orchestration] identity.created event failed:', err)
+  }
   return { identityId: id, needsApproval: decision.needsApproval }
 }
 

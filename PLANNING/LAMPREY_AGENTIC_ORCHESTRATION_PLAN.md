@@ -243,7 +243,7 @@ spine, gated behind one master toggle that defaults off.
       tree + receipts; loop-enveloped outcome respects both ceilings).
 
 ### **AO-10 — Inventory + audit surface**
-- [ ] Right-panel **Agents** pill (LoopsPanel pattern): identities with type, scope,
+- [x] Right-panel **Agents** pill (LoopsPanel pattern): identities with type, scope,
       grants (granted vs refused), status, live spend vs ceiling, per-run receipts, and
       **Revoke** / **Kill** actions; run-tree drill-down reuses `tasks:*` reads. After-action
       panel gains an Agents section (identities touched this conversation + totals).

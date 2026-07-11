@@ -20,7 +20,8 @@ const TOOL_TITLES: Record<ToolId, string> = {
   plan: 'Plan',
   background: 'Background tasks',
   afterAction: 'After action',
-  loop: 'Loops'
+  loop: 'Loops',
+  agents: 'Agents'
 }
 
 interface TitlebarProps {
@@ -266,10 +267,7 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
   ]
 
   return (
-    <div
-      className="flex flex-col bg-transparent"
-      style={DRAG}
-    >
+    <div className="flex flex-col bg-transparent" style={DRAG}>
       {/* ─── Row 1 ─── nav + menus (left) · centered logo (over chat column) · window controls (right) */}
       <div className="relative flex h-9 items-stretch">
         <div className="flex items-center gap-3 pl-3" style={NO_DRAG}>
@@ -356,12 +354,7 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           aria-hidden
         >
           <span className="flex items-center gap-2 font-mono text-[13px] font-semibold text-[var(--text-primary)]">
-            <img
-              src={lampreyLogo}
-              alt=""
-              aria-hidden
-              className="h-6 w-6 object-contain"
-            />
+            <img src={lampreyLogo} alt="" aria-hidden className="h-6 w-6 object-contain" />
             <span className="tracking-wide">Lamprey</span>
           </span>
         </div>
@@ -369,11 +362,7 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
         <div className="flex-1" />
 
         <div className="flex" style={NO_DRAG}>
-          <WindowControlButton
-            onClick={handleMinimize}
-            title="Minimize"
-            aria-label="Minimize"
-          >
+          <WindowControlButton onClick={handleMinimize} title="Minimize" aria-label="Minimize">
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
               <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.2" />
             </svg>
@@ -431,7 +420,6 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           </WindowControlButton>
         </div>
       </div>
-
     </div>
   )
 }
@@ -460,10 +448,7 @@ export function SecondaryToolbar({ onSettingsClick }: SecondaryToolbarProps) {
   const [launcherOpen, setLauncherOpen] = useState(false)
 
   return (
-    <div
-      className="flex h-9 items-center gap-2 bg-[var(--bg-tertiary)] px-3"
-      style={NO_DRAG}
-    >
+    <div className="flex h-9 items-center gap-2 bg-[var(--bg-tertiary)] px-3" style={NO_DRAG}>
       {/* Tool launcher button: opens the Codex-style VS Code / File Explorer
           / Terminal / Git Bash / WSL popover. The mode label sits next to it
           so the active tool is always identified on the toolbar. */}
@@ -476,11 +461,31 @@ export function SecondaryToolbar({ onSettingsClick }: SecondaryToolbarProps) {
         aria-expanded={launcherOpen}
         className="flex items-center gap-1 rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
           <path d="M16 4l4 2v12l-4 2-9-7 9-9z" />
           <path d="M16 4L4 12l12 8" />
         </svg>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
@@ -492,7 +497,17 @@ export function SecondaryToolbar({ onSettingsClick }: SecondaryToolbarProps) {
           className="flex items-center gap-1.5 rounded border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
         >
           {TOOL_TITLES[activeTool]}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -574,11 +589,7 @@ export function SecondaryToolbar({ onSettingsClick }: SecondaryToolbarProps) {
         className="rounded p-1 transition-colors hover:bg-[var(--bg-tertiary)]"
         title="Settings (Ctrl+,)"
       >
-        <img
-          src={settingsIconUrl}
-          alt="Settings"
-          className="icon-asset h-7 w-7 object-contain"
-        />
+        <img src={settingsIconUrl} alt="Settings" className="icon-asset h-7 w-7 object-contain" />
       </button>
 
       <button
@@ -622,13 +633,7 @@ interface NavIconButtonProps {
   children: React.ReactNode
 }
 
-function NavIconButton({
-  onClick,
-  title,
-  ariaLabel,
-  disabled,
-  children
-}: NavIconButtonProps) {
+function NavIconButton({ onClick, title, ariaLabel, disabled, children }: NavIconButtonProps) {
   return (
     <button
       type="button"

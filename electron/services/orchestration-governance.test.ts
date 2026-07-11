@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { governFork, settleRunSpend } from './orchestration-governance'
 import { ORCHESTRATION_CONFIG_DEFAULTS } from './orchestration-config'
 
@@ -64,6 +66,18 @@ describe('governFork', () => {
     )
     expect(res.needsApproval).toEqual(['apply_patch'])
     expect(createIdentity.mock.calls[0][0].grantedTools).toEqual(['read_file'])
+  })
+})
+
+describe('AO-10 audit event on mint', () => {
+  it('emits an id + counts payload, never tool arguments', () => {
+    // The created-event payload shape is source-locked here: ids + counts only.
+    const src = readFileSync(join(__dirname, 'orchestration-governance.ts'), 'utf-8')
+    expect(src).toMatch(/action: 'created'/)
+    expect(src).toMatch(/grantedCount: decision\.autoGranted\.length/)
+    expect(src).toMatch(/pendingCount: decision\.needsApproval\.length/)
+    // No tool-name arrays in the event payload.
+    expect(src).not.toMatch(/payload:[\s\S]*?grantedTools:/)
   })
 })
 

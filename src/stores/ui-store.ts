@@ -34,6 +34,7 @@ export type ToolId =
   | 'background'
   | 'afterAction'
   | 'loop'
+  | 'agents'
 
 export type ShellKind = 'powershell' | 'cmd' | 'git-bash' | 'wsl'
 

@@ -96,6 +96,12 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
       label: 'Loops',
       description: 'Recurring loops — status, backlog, pause and stop',
       icon: backgroundIcon
+    },
+    {
+      id: 'agents',
+      label: 'Agents',
+      description: 'Orchestration identities — grants, spend, revoke and kill',
+      icon: backgroundIcon
     }
   ]
 
@@ -135,8 +141,7 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
               : 'ring-2 ring-[var(--accent)]/50 shadow-[0_0_18px_-2px_var(--accent)]'
           const planAccentText =
             planState === 'gated' ? 'text-[var(--warning)]' : 'text-[var(--accent)]'
-          const planAccentBg =
-            planState === 'gated' ? 'bg-[var(--warning)]' : 'bg-[var(--accent)]'
+          const planAccentBg = planState === 'gated' ? 'bg-[var(--warning)]' : 'bg-[var(--accent)]'
           const planStatusText =
             planState === 'gated'
               ? `${planSnapshot?.totals.done ?? 0}/${planSnapshot?.totals.total ?? 0} · gated · awaiting approval`
@@ -149,13 +154,11 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
               className={`group flex min-h-[58px] flex-1 basis-0 items-center gap-3 rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] ${
                 planSignal ? planRingClass : ''
               }`}
-              aria-label={
-                planSignal
-                  ? `${pill.label} — ${planStatusText}`
-                  : pill.label
-              }
+              aria-label={planSignal ? `${pill.label} — ${planStatusText}` : pill.label}
             >
-              <span className={`relative flex ${pill.iconSizeClass ?? 'h-9 w-9'} shrink-0 items-center justify-center`}>
+              <span
+                className={`relative flex ${pill.iconSizeClass ?? 'h-9 w-9'} shrink-0 items-center justify-center`}
+              >
                 <img
                   src={pill.icon}
                   alt=""
@@ -177,7 +180,9 @@ export function RightPanelHome({ onCollapse }: RightPanelHomeProps): React.React
                   {pill.description}
                 </span>
                 {planSignal && (
-                  <span className={`mt-1 flex items-center gap-1.5 text-[11px] font-medium ${planAccentText}`}>
+                  <span
+                    className={`mt-1 flex items-center gap-1.5 text-[11px] font-medium ${planAccentText}`}
+                  >
                     <span
                       aria-hidden
                       className={`h-1.5 w-1.5 rounded-full ${planAccentBg} animate-pulse`}

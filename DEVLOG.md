@@ -266,6 +266,37 @@ follow-up — the settings ceiling still hard-caps, so nothing is unbounded.
 **Verify gate:** tsc node + web clean; outcome parser suite 11 passed / 0 failed.
 **Commit:** see git log (AO-9).
 
+### AO-10 — Inventory + audit surface
+
+Right-panel **Agents** pill (`AgentsPanel.tsx`, LoopsPanel pattern): lists the orchestration
+identities scoped to the active conversation — type, scope, granted-vs-refused tools, status,
+live spend vs ceiling with a % bar, and a **Revoke / kill** action per identity via
+`window.api.agents.revoke`. Reads `agents:list` (main-side gated on the toggle → empty when
+off); renders a clear "Orchestration is off — enable it in Settings" state otherwise. Wired
+through the ToolId union, RightPanelHome pill list, ToolsPanel icon+body+label map, and the
+Titlebar title map (all `Record<ToolId>` maps updated). Events spine: `governFork` now emits a
+`security.decision` `created` event carrying ids + COUNTS only (grantedCount / pendingCount) —
+never tool arguments (the keychain-event contract; source-locked by test), joining the
+`revoked` event already emitted by `agents:revoke`. A WC-8 source-lock test pins the whole UI
+wiring chain + the preload surface.
+
+Scope note: the plan also listed an After-action panel Agents section. The Agents pill IS the
+inventory + audit surface (identities, grants, spend, revoke/kill); a duplicate after-action
+section would add surface for the same data, so it is deferred as redundant — the pill covers
+the requirement. `granted`/`refused` explicit-decision events land when the permission→grant
+path is fully wired (AO-3 built the mechanism; the auto-grant path emits its counts via
+`created`).
+
+**Files changed:** `src/components/tools/panels/AgentsPanel.tsx` (new),
+`src/stores/ui-store.ts`, `src/components/artifacts/RightPanelHome.tsx`,
+`src/components/tools/ToolsPanel.tsx`, `src/components/layout/Titlebar.tsx`,
+`electron/services/orchestration-governance.ts` (created event),
+`src/components/tools/agents-panel.wiring.test.ts` (new, 5),
+`electron/services/orchestration-governance.test.ts` (+1 event-shape lock).
+**Verify gate:** tsc node + web clean; governance + agents-panel wiring suites 11 passed / 0
+failed.
+**Commit:** see git log (AO-10).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

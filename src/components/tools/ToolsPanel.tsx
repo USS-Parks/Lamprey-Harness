@@ -14,6 +14,7 @@ import { PlanToolPanel } from './panels/PlanToolPanel'
 import { BackgroundTasksPanel } from './panels/BackgroundTasksPanel'
 import { AfterActionPanel } from './panels/AfterActionPanel'
 import { LoopsPanel } from './panels/LoopsPanel'
+import { AgentsPanel } from './panels/AgentsPanel'
 import { EnvironmentPanel } from '@/components/workspace/EnvironmentPanel'
 import { SourcesPanel } from '@/components/workspace/SourcesPanel'
 import { ArtifactsPanel } from '@/components/workspace/ArtifactsPanel'
@@ -30,12 +31,23 @@ const TOOL_LABELS: Record<ToolId, string> = {
   plan: 'Plan',
   background: 'Background tasks',
   afterAction: 'After action',
-  loop: 'Loops'
+  loop: 'Loops',
+  agents: 'Agents'
 }
 
 function BrowserGlyph(): React.ReactElement {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" />
       <line x1="3" y1="12" x2="21" y2="12" />
       <path d="M12 3a14 14 0 0 1 0 18" />
@@ -46,7 +58,17 @@ function BrowserGlyph(): React.ReactElement {
 
 function TerminalGlyph(): React.ReactElement {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <polyline points="7 9 10 12 7 15" />
       <line x1="13" y1="16" x2="17" y2="16" />
@@ -57,11 +79,15 @@ function TerminalGlyph(): React.ReactElement {
 function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
   switch (tool) {
     case 'files':
-      return <img src={filesIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
+      return (
+        <img src={filesIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
+      )
     case 'sidechat':
       return <img src={chatIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
     case 'review':
-      return <img src={reviewIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
+      return (
+        <img src={reviewIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
+      )
     case 'browser':
       return (
         <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
@@ -77,7 +103,17 @@ function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
     case 'environment':
       return (
         <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <rect x="2" y="4" width="20" height="13" rx="2" />
             <line x1="8" y1="21" x2="16" y2="21" />
             <line x1="12" y1="17" x2="12" y2="21" />
@@ -87,7 +123,17 @@ function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
     case 'sources':
       return (
         <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <path d="M3 7l9-4 9 4-9 4-9-4z" />
             <path d="M3 12l9 4 9-4" />
             <path d="M3 17l9 4 9-4" />
@@ -97,7 +143,17 @@ function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
     case 'artifacts':
       return (
         <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <line x1="3" y1="9" x2="21" y2="9" />
             <circle cx="6" cy="6" r="0.5" fill="currentColor" />
@@ -109,17 +165,62 @@ function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
     case 'plan':
       return <img src={planIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
     case 'background':
-      return <img src={backgroundIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
+      return (
+        <img
+          src={backgroundIcon}
+          alt=""
+          aria-hidden
+          className="icon-asset h-7 w-7 object-contain"
+        />
+      )
     case 'afterAction':
-      return <img src={reasoningTraceIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
+      return (
+        <img
+          src={reasoningTraceIcon}
+          alt=""
+          aria-hidden
+          className="icon-asset h-7 w-7 object-contain"
+        />
+      )
     case 'loop':
       return (
         <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
             <polyline points="17 1 21 5 17 9" />
             <path d="M3 11V9a4 4 0 0 1 4-4h14" />
             <polyline points="7 23 3 19 7 15" />
             <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+          </svg>
+        </span>
+      )
+    case 'agents':
+      return (
+        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <circle cx="9" cy="7" r="3" />
+            <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            <circle cx="18" cy="8" r="2" />
+            <path d="M22 21v-1a3 3 0 0 0-3-3" />
           </svg>
         </span>
       )
@@ -152,6 +253,8 @@ function renderToolBody(tool: ToolId): React.ReactElement {
       return <AfterActionPanel />
     case 'loop':
       return <LoopsPanel />
+    case 'agents':
+      return <AgentsPanel />
   }
 }
 
@@ -179,7 +282,17 @@ export function ToolsPanel({ onCollapse }: ToolsPanelProps) {
             aria-label="Close tool"
             className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -190,7 +303,17 @@ export function ToolsPanel({ onCollapse }: ToolsPanelProps) {
             aria-label="Collapse panel"
             className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>

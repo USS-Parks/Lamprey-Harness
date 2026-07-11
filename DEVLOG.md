@@ -138,6 +138,39 @@ recordSpend → accumulate onto the identity → abort the tree on first breach)
 passed / 0 failed.
 **Commit:** see git log (AO-4).
 
+### AO-5 — Govern the existing paths (identity + budget, byte-compatible when off)
+
+New `orchestration-governance.ts` is the seam whose defining property is that OFF ⇒
+`governFork` returns `{ identityId: null }` and writes NOTHING (existing fork paths run
+byte-for-byte as before); ON ⇒ mints an auto-granted identity (within-floor tools granted,
+anything beyond lands in `needsApproval`) carrying the run's budget ceilings. `settleRunSpend`
+accumulates a run's total spend onto its identity (no-op on null). Threading: `ForkAgentOptions.identityId`
++ `AgentRunInsert.identityId` + the `AgentRunStoreLike` interface widened, so every
+forkAgent-based run (tasks IPC, workflow-runner) links to its identity and `forkAgent` writes
+a receipt (`tokensEst`) on completion. The `multi_agent_run` tool-pack calls governFork as a
+pure side-channel after execution — the returned envelope is UNCHANGED (a source-lock asserts
+governFork is gated and the envelope return follows it), so `validateMultiAgentArgs` + the
+result shape are byte-compatible (existing multi-agent + subagent suites stay green, 109
+passed). Tree-wide kill: `agent-run-store.listRunningChildRunIds` + a breadth-first `killTree`
+in `tasks:stop` aborts running children (visited-set guarded) before the target.
+
+Happy pre-existing finding: `AgentRunInlineGroup` (the MultiAgentRunCard's row renderer)
+ALREADY shows per-agent elapsed + `≈Nt` token estimate — the "per-agent receipt line" the
+plan wanted is already on screen, so AO-5 adds zero card code. Scope note: multi_agent_run
+runs synchronously inside a turn, so its "kill" is turn-cancel; the tracked-run revoke/kill
+affordance lives in the Agents pill (AO-10).
+
+**Files changed:** `electron/services/orchestration-governance.ts` (new),
+`electron/services/subagent-runner.ts` (identityId + receipt threading, interface widened),
+`electron/services/agent-run-store.ts` (identityId insert, `listRunningChildRunIds`),
+`electron/services/multi-agent-run-tool-pack.ts` (governance side-channel),
+`electron/ipc/tasks.ts` (tree-kill), `electron/services/orchestration-governance.test.ts`
+(new, 6 tests), `electron/services/orchestration-safety.test.ts` (+2 gates),
+`electron/services/agent-run-store.test.ts` (+2 tree-kill/receipt).
+**Verify gate:** tsc node + web clean; governance/safety/run-store/multi-agent/subagent
+suites 109 passed / 0 failed (byte-compat of the era-kept tool held).
+**Commit:** see git log (AO-5).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

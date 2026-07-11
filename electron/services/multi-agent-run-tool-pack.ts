@@ -1,5 +1,6 @@
 import { chatOnce } from './providers/registry'
 import { toolRegistry } from './tool-registry'
+import { governFork, settleRunSpend } from './orchestration-governance'
 import {
   classifyMultiAgentRunResult,
   executeMultiAgentRun,
@@ -127,13 +128,38 @@ toolRegistry.registerNative(
         const auditStatus = r.error ? 'error' : 'done'
         toolRegistry.recordCallEnd(r.callId, {
           status: auditStatus,
-          result: auditStatus === 'error' ? undefined : r.output ?? undefined,
+          result: auditStatus === 'error' ? undefined : (r.output ?? undefined),
           error: r.error,
           finishedAt: startedAt + r.elapsedMs,
           parentCallId,
           correlationId: ctx.correlationId
         })
       }
+    }
+
+    // AO-5 — orchestration governance side-channel. When the master toggle is
+    // OFF, governFork returns { identityId: null } and writes NOTHING, so the
+    // envelope + everything above is byte-identical to the pre-AO-5 path. When
+    // ON, the tool-less fan-out gets an auto-granted (read-only floor, zero
+    // pending) identity and its total estimated spend is receipted onto it.
+    // The returned envelope is UNCHANGED either way — the card reads its receipt
+    // line from the per-sub-agent fields already present in `result`.
+    try {
+      const { identityId } = governFork({
+        conversationId: ctx.conversationId ?? null,
+        scopeKind: 'conversation',
+        agentType: MULTI_AGENT_TOOL_ID,
+        requestedTools: [], // sub-agents are tool-less by contract
+        floor: new Set<string>(),
+        label: `multi_agent_run (${result.results.length} sub-agents)`
+      })
+      if (identityId) {
+        const tokens = result.results.reduce((n, r) => n + (r.tokensUsedEstimate ?? 0), 0)
+        const wallMs = result.results.reduce((n, r) => n + r.elapsedMs, 0)
+        settleRunSpend(identityId, tokens, wallMs)
+      }
+    } catch (err) {
+      console.error('[multi-agent-run] orchestration governance failed (continuing):', err)
     }
 
     return {

@@ -42,6 +42,9 @@ export interface AgentRunInsert {
   startedAt: number
   background?: boolean
   worktreePath?: string | null
+  /** AO-5 — link the run to its orchestration identity (v19 column). NULL when
+   *  orchestration is off, so the existing paths are byte-compatible. */
+  identityId?: string | null
 }
 
 export interface AgentRunFinish {
@@ -148,9 +151,9 @@ export function insertRun(args: AgentRunInsert): void {
   if (db) {
     db.prepare(
       `INSERT INTO agent_runs
-         (id, parent_conv_id, parent_run_id, agent_type, label, status, started_at, background, worktree_path)
+         (id, parent_conv_id, parent_run_id, agent_type, label, status, started_at, background, worktree_path, identity_id)
        VALUES
-         (?, ?, ?, ?, ?, 'running', ?, ?, ?)`
+         (?, ?, ?, ?, ?, 'running', ?, ?, ?, ?)`
     ).run(
       args.id,
       args.parentConvId ?? null,
@@ -159,7 +162,8 @@ export function insertRun(args: AgentRunInsert): void {
       args.label,
       args.startedAt,
       args.background ? 1 : 0,
-      args.worktreePath ?? null
+      args.worktreePath ?? null,
+      args.identityId ?? null
     )
     return
   }
@@ -387,6 +391,20 @@ export function listRunningRunIdsByIdentity(identityId: string): string[] {
   // Memory rows don't carry the identity link (added at the DB layer in v19);
   // the DB path is the one that matters for live kill propagation.
   return []
+}
+
+/** AO-5 — running child run ids under a parent run, for tree-wide kill. */
+export function listRunningChildRunIds(parentRunId: string): string[] {
+  const db = useDb()
+  if (db) {
+    const rows = db
+      .prepare("SELECT id FROM agent_runs WHERE parent_run_id = ? AND status = 'running'")
+      .all(parentRunId) as Array<{ id: string }>
+    return rows.map((r) => r.id)
+  }
+  return [...memory.values()]
+    .filter((r) => r.parentRunId === parentRunId && r.status === 'running')
+    .map((r) => r.id)
 }
 
 // Test seam for stores that want to wire the runner without touching the

@@ -71,4 +71,20 @@ describe('AO-1 orchestration safety — defaults + config', () => {
       /'agents:list'[\s\S]*?if \(!readOrchestrationConfig\(\)\.enabled\) return \{ success: true, data: \[\] \}/
     )
   })
+
+  it('AO-5: multi_agent_run governance is a side-channel (governFork gated, envelope after it)', () => {
+    const src = read('electron/services/multi-agent-run-tool-pack.ts')
+    expect(src).toMatch(/governFork\(\{/)
+    expect(src).toMatch(/if \(identityId\) \{[\s\S]*?settleRunSpend/)
+    const govIdx = src.indexOf('governFork(')
+    const returnIdx = src.lastIndexOf('return {')
+    expect(govIdx).toBeGreaterThan(-1)
+    expect(returnIdx).toBeGreaterThan(govIdx) // envelope return comes after governance
+  })
+
+  it('AO-5: tasks:stop propagates the kill to running children', () => {
+    const src = read('electron/ipc/tasks.ts')
+    expect(src).toMatch(/killTree/)
+    expect(src).toMatch(/listRunningChildRunIds/)
+  })
 })

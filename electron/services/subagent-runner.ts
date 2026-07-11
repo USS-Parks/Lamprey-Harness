@@ -64,9 +64,10 @@ export interface ForkAgentRunner {
 /** Normalise a `ForkAgentRunnerOutput` to `{raw, rawReasoning}` so internal
  *  call sites always see the same shape regardless of which runner form
  *  the caller used. */
-export function normalizeForkRunnerOutput(
-  result: ForkAgentRunnerOutput
-): { raw: string; rawReasoning?: string } {
+export function normalizeForkRunnerOutput(result: ForkAgentRunnerOutput): {
+  raw: string
+  rawReasoning?: string
+} {
   if (typeof result === 'string') return { raw: result }
   return { raw: result.output, rawReasoning: result.reasoning }
 }
@@ -90,6 +91,8 @@ export interface AgentRunStoreLike {
     startedAt: number
     background?: boolean
     worktreePath?: string | null
+    /** AO-5 — orchestration identity link (NULL when orchestration is off). */
+    identityId?: string | null
   }): void
   finishRun(args: {
     id: string
@@ -98,6 +101,9 @@ export interface AgentRunStoreLike {
     resultText?: string | null
     error?: string | null
     worktreePath?: string | null
+    /** AO-5 — receipt fields written on completion. */
+    tokensEst?: number
+    toolCalls?: number
   }): void
 }
 
@@ -162,6 +168,9 @@ export interface ForkAgentOptions {
   signal?: AbortSignal
   /** Optional label for UIs. Defaults to the agent type. */
   label?: string
+  /** AO-5 — orchestration identity this fork runs under. Threaded to the
+   *  agent_runs row so revoke/kill can find it. NULL when orchestration is off. */
+  identityId?: string | null
 }
 
 export interface ForkAgentResult<T = string | Record<string, unknown>> {
@@ -361,12 +370,12 @@ export function validateAgainstSchema(value: unknown, schema: JsonSchemaLike): v
         pType === 'array'
           ? Array.isArray(actual)
           : pType === 'object'
-          ? !!actual && typeof actual === 'object' && !Array.isArray(actual)
-          : pType === 'null'
-          ? actual === null
-          : pType === 'integer'
-          ? typeof actual === 'number' && Number.isInteger(actual)
-          : typeof actual === pType
+            ? !!actual && typeof actual === 'object' && !Array.isArray(actual)
+            : pType === 'null'
+              ? actual === null
+              : pType === 'integer'
+                ? typeof actual === 'number' && Number.isInteger(actual)
+                : typeof actual === pType
       if (!ok) {
         throw new SubagentSchemaError(
           `property "${key}" should be ${pType}, got ${
@@ -499,7 +508,8 @@ export function forkAgent<T = string | Record<string, unknown>>(
         agentType: opts.agentType,
         label,
         startedAt,
-        background: !!opts.runInBackground
+        background: !!opts.runInBackground,
+        identityId: opts.identityId ?? null
       })
     } catch (err) {
       console.error('[subagent-runner] insertRun failed (continuing):', err)
@@ -538,9 +548,7 @@ export function forkAgent<T = string | Record<string, unknown>>(
       // path and the agent_runs row never stays stuck in 'running'.
       if (opts.isolation === 'worktree') {
         if (!deps.worktreeManager) {
-          throw new Error(
-            'forkAgent: isolation: "worktree" requires deps.worktreeManager'
-          )
+          throw new Error('forkAgent: isolation: "worktree" requires deps.worktreeManager')
         }
         worktreeCtx = await deps.worktreeManager.create(runId)
       }
@@ -639,7 +647,8 @@ export function forkAgent<T = string | Record<string, unknown>>(
             status: 'done',
             finishedAt,
             resultText: raw,
-            worktreePath: finalWorktreePath
+            worktreePath: finalWorktreePath,
+            tokensEst: approxTokens(raw)
           })
         } catch (err) {
           console.error('[subagent-runner] finishRun(done) failed (continuing):', err)
@@ -677,14 +686,13 @@ export function forkAgent<T = string | Record<string, unknown>>(
     } catch (err) {
       let finalErr: Error
       if (controller.signal.aborted && !(err instanceof SubagentSchemaError)) {
-        finalErr = new SubagentAbortError(
-          timedOut ? `timed out after ${timeoutMs} ms` : undefined
-        )
+        finalErr = new SubagentAbortError(timedOut ? `timed out after ${timeoutMs} ms` : undefined)
       } else {
         finalErr = err as Error
       }
       const finishedAt = clock()
-      const status: 'error' | 'aborted' = finalErr instanceof SubagentAbortError ? 'aborted' : 'error'
+      const status: 'error' | 'aborted' =
+        finalErr instanceof SubagentAbortError ? 'aborted' : 'error'
       const errorMessage = finalErr instanceof Error ? finalErr.message : String(finalErr)
 
       // A3: finalize the worktree on the failure path too. If any work
@@ -696,7 +704,10 @@ export function forkAgent<T = string | Record<string, unknown>>(
           const result = await deps.worktreeManager.finalize(worktreeCtx)
           if (result.keep) finalWorktreePath = result.path
         } catch (wtErr) {
-          console.error('[subagent-runner] worktree finalize (after err) threw (continuing):', wtErr)
+          console.error(
+            '[subagent-runner] worktree finalize (after err) threw (continuing):',
+            wtErr
+          )
         }
       }
 
@@ -743,9 +754,7 @@ export function forkAgent<T = string | Record<string, unknown>>(
   // A2: register so tasks:stop(runId) can find the live handle. Deregister on
   // settle regardless of outcome — the DB row carries final state forward.
   liveHandles.set(runId, handle as ForkAgentHandle)
-  promise
-    .then(() => liveHandles.delete(runId))
-    .catch(() => liveHandles.delete(runId))
+  promise.then(() => liveHandles.delete(runId)).catch(() => liveHandles.delete(runId))
   return handle
 }
 

@@ -1,9 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import * as store from '../services/agent-run-store'
-import {
-  getLiveHandle,
-  type AgentRunNotifyEvent
-} from '../services/subagent-runner'
+import { getLiveHandle, type AgentRunNotifyEvent } from '../services/subagent-runner'
 import { enqueueAgentRunNotification } from '../services/async-event-bridge'
 import { spawnTask } from '../services/spawn-task'
 import { getActiveWorkspace } from '../services/workspace-state'
@@ -93,12 +90,37 @@ export function registerTasksHandlers(): void {
   ipcMain.handle('tasks:stop', async (_e, id: string) => {
     try {
       if (typeof id !== 'string' || !id) return { success: false, error: 'id required' }
+      // AO-5 — tree-wide kill: abort running children first (breadth-first via
+      // the parent_run_id chain) so a stopped run doesn't leave orphaned forks
+      // still spending. Bounded by max fork-tree depth (a shallow tree in
+      // practice); a visited set guards against any cyclic parent linkage.
+      const killTree = (rootId: string): number => {
+        let aborted = 0
+        const seen = new Set<string>()
+        const queue = [rootId]
+        while (queue.length) {
+          const cur = queue.shift()!
+          if (seen.has(cur)) continue
+          seen.add(cur)
+          for (const child of store.listRunningChildRunIds(cur)) {
+            const ch = getLiveHandle(child)
+            if (ch) {
+              ch.abort('parent-stopped')
+              aborted++
+            }
+            queue.push(child)
+          }
+        }
+        return aborted
+      }
+
       const handle = getLiveHandle(id)
       if (handle) {
+        const childrenAborted = killTree(id)
         handle.abort('user-stop')
         // The forkAgent catch path will write 'aborted' to the DB + fire the
         // notify event; we return success to the caller now.
-        return { success: true, data: { stopped: true, wasLive: true } }
+        return { success: true, data: { stopped: true, wasLive: true, childrenAborted } }
       }
       // Not live — maybe finished, or never tracked. If the row exists and
       // is still marked running (which would be a stale row), correct it.

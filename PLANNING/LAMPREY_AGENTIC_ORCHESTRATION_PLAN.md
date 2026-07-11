@@ -194,7 +194,7 @@ spine, gated behind one master toggle that defaults off.
       downward-only overrides, 0-disables).
 
 ### **AO-5 — Govern the existing paths: multi_agent_run + forkAgent callers**
-- [ ] Every fork acquires an identity + budget slice: `multi_agent_run` (auto-granted
+- [x] Every fork acquires an identity + budget slice: `multi_agent_run` (auto-granted
       tool-less floor; behavior byte-compatible when the toggle is OFF — locked by test),
       tasks IPC forks, and workflow-runner forks. Kill propagation verified tree-wide
       (`tasks:stop` → children). `MultiAgentRunCard` gains a per-agent receipt line

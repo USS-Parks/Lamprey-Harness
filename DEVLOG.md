@@ -172,6 +172,30 @@ source-lock suites 99 passed / 0 failed; ESLint clean. Live GUI pass is the
 owner's first-install check (house convention for Electron surfaces).
 **Commit:** see git log (PX-6).
 
+### PX-7 — Catalog honesty + per-provider quirks pass
+
+Keyless-verifiable claims verified NOW: all 9 OpenRouter catalog apiModelIds
+(4 pre-existing gemma-4 + 5 new) live on the public /v1/models; all 3 HF-router
+hub ids live on the public router list; all 10 new cloud endpoints reachable.
+Keyed verification (per-model live checks for the other nine cloud providers,
+empirical supportsTools probes, the local-runtime import flow) is explicitly
+deferred to the owner's keyed run — recorded in PX_BASELINE §6 with the exact
+one-click path (Settings → Models → Verify against providers). No fabricated
+"verified" claims; the Fireworks entry keeps its `unverified` label.
+`ARCHITECTURE/FUNCTION_CALLING.md` gains §16 (per-provider wire notes: reasoning
+field names, Anthropic compat-layer ignored params, moonshot rebrand hosts,
+keyless local semantics, custom-endpoint rules), its provider count updated, and
+§13 rewritten for the two-tier reality (custom endpoints = zero code; built-in
+promotion = union parity + descriptor + catalog). The
+`lamprey-provider-and-model-reference` skill's provider list, catalog table,
+add-provider checklist, description, and provenance stamp updated to v0.17.0.
+
+**Files changed:** `ARCHITECTURE/FUNCTION_CALLING.md`, `PLANNING/PX_BASELINE.md`
+(§6), `.claude/skills/lamprey-provider-and-model-reference/SKILL.md`.
+**Verify gate:** docs-only; live-id checks above are the gate (evidence in
+PX_BASELINE §6).
+**Commit:** see git log (PX-7).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

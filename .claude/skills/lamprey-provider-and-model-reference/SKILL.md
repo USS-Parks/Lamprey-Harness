@@ -1,6 +1,6 @@
 ---
 name: lamprey-provider-and-model-reference
-description: The multi-provider LLM domain pack for Lamprey — OpenAI-compatible streaming, per-provider quirks (DeepSeek reasoning_content, Google's OpenAI-compat layer, DashScope, OpenRouter, Zhipu), capability flags, the native-vs-fallback tool-calling contract, retry/backoff, retired-model handling, and the checklists for adding a model or a provider. Load when touching electron/services/providers/, debugging provider HTTP errors, or adding/retiring models.
+description: The multi-provider LLM domain pack for Lamprey — OpenAI-compatible streaming across 17 built-in providers (frontier labs, open-source hosts, keyless local runtimes) plus user-defined custom endpoints, per-provider quirks (reasoning field names, Anthropic's compat-layer limits, base-URL overrides), capability flags, the native-vs-fallback tool-calling contract, retry/backoff, retired-model handling, and the checklists for adding a model or a provider. Load when touching electron/services/providers/, debugging provider HTTP errors, or adding/retiring models.
 ---
 
 # Lamprey Provider & Model Reference
@@ -19,20 +19,45 @@ description: The multi-provider LLM domain pack for Lamprey — OpenAI-compatibl
 
 ## The registry (`electron/services/providers/registry.ts`)
 
-### Providers (5) — ids are also the keychain ids
+### Providers (17 built-in + custom) — ids are also the keychain ids
 
-`deepseek`, `google`, `dashscope`, `openrouter`, `zhipu`. All dispatched through the OpenAI-compatible protocol; Google goes through its `v1beta/openai/` compat endpoint, **not** the native Gemini SDK (an FC-0 decision — one wire protocol for all).
+Built-ins since the Provider Expansion Phase (2026-07-11): `deepseek`, `google`,
+`dashscope`, `openrouter`, `zhipu`, `openai`, `anthropic`, `xai`, `mistral`,
+`moonshot`, `groq`, `together`, `fireworks`, `cerebras`, `huggingface`, plus
+keyless local runtimes `ollama` and `lmstudio` (`keyOptional: true`, placeholder
+key `'local'`, empty built-in catalogs — import live ids). User-defined **custom
+providers** (`settings.json.customProviders`: `{id, baseURL, label?, requiresKey?}`)
+resolve like built-ins everywhere via `resolveProviderDescriptor(id)`; built-in ids
+cannot be shadowed. All dispatch rides the one OpenAI-compatible protocol; Google
+goes through its `v1beta/openai/` compat endpoint (FC-0), Anthropic through its
+official OpenAI-compat layer at `api.anthropic.com/v1/` (tools+streaming supported;
+`strict`/`response_format`/`reasoning_effort` silently ignored — never set
+`reasoningCapOnToolUse` on anthropic models). `providerBaseUrlOverrides` in
+settings.json redirects any provider's base URL (http/https only, validated at the
+registry). Per-provider wire notes: `ARCHITECTURE/FUNCTION_CALLING.md` §16.
 
-### MODEL_CATALOG (verified 2026-07-02, v0.16.0 — re-verify command in Provenance)
+### MODEL_CATALOG (verified 2026-07-11, Provider Expansion Phase — re-verify command in Provenance)
 
-| id | provider | notes |
+39 entries. Per-id evidence status lives in `PLANNING/PX_BASELINE.md` §3.
+
+| provider | ids (summary) | notes |
 |---|---|---|
-| `deepseek-v4-pro` | deepseek | default model; reasoner |
-| `deepseek-v4-flash` | deepseek | |
-| `gemma-3-27b-it`, `gemma-3-12b-it` | google | |
-| `gemma-4-31b-it-free`, `gemma-4-31b-it`, `gemma-4-26b-a4b-it-free`, `gemma-4-26b-a4b-it` | openrouter | |
-| `qwen3-max`, `qwen3-coder-plus`, `qwen3-coder-flash`, `qwen3.5-plus`, `qwen3.5-flash`, `qwen-long` | dashscope | `qwen-long`: huge context, no tools |
-| `glm-5.2`, `glm-5.2-1m` | zhipu | added v0.15.2/.3 |
+| deepseek | `deepseek-v4-pro` (default), `deepseek-v4-flash` | reasoners, full v0.15.5 guard |
+| google | `gemma-3-27b-it`, `gemma-3-12b-it` | |
+| openrouter | 4× gemma-4 + `or-claude-sonnet-5`, `or-gpt-5.6-terra`, `or-grok-4.5`, `or-kimi-k2.5`, `or-llama-4-maverick` | `or-` prefix avoids first-party id collisions; all live-verified on the public list |
+| dashscope | `qwen3-max`, `qwen3-coder-plus/flash`, `qwen3.5-plus/flash`, `qwen-long` | `qwen-long`: huge context, no tools |
+| zhipu | `glm-5.2`, `glm-5.2-1m` | `[1m]` suffix is a literal apiModelId |
+| openai | `gpt-5.6` (=Sol), `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5` | GA 2026-07-09; `gpt-5.5-pro` excluded (Responses-API-only) |
+| anthropic | `claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5` | haiku is tier `flash` = the key-validation chat probe |
+| xai | `grok-4.5`, `grok-4.3`, `grok-build-0.1` | |
+| mistral | `mistral-large/medium/small-latest`, `codestral-latest` | rolling aliases |
+| moonshot | `kimi-k2.6`, `kimi-k2.5`, `kimi-k2-thinking` | thinking model carries the full reasoning guard |
+| groq | `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `openai/gpt-oss-120b`, `openai/gpt-oss-20b` | |
+| together | Llama-3.3-70B-Turbo, DeepSeek-V4-Pro, gpt-oss-120b, Kimi-K2.6 (hub-style ids) | |
+| fireworks | `accounts/fireworks/models/gpt-oss-120b` | UNVERIFIED until a key exists |
+| cerebras | `gpt-oss-120b`, `gemma-4-31b`, `zai-glm-4.7` | |
+| huggingface | `openai/gpt-oss-120b`, `meta-llama/Llama-3.3-70B-Instruct`, `zai-org/GLM-5.2` | hub ids; optional `:policy`/`:provider` suffix |
+| ollama / lmstudio | (none — import) | keyless local runtimes |
 
 ### Capability flags and what each changes at dispatch
 
@@ -86,17 +111,31 @@ and a brace-balanced parser (FC-6) extracts it from prose. Two hard rules:
 4. Verify: `npx tsc --noEmit -p tsconfig.node.json && npx tsc --noEmit -p tsconfig.web.json`, then a live smoke: stream a reply, force a tool call, confirm reasoning lands if applicable.
 5. Route through `lamprey-change-control` (trivial catalog append = small change; new behavior = plan).
 
-## Checklist: adding a provider (trace of what the Zhipu addition touched, v0.15.2)
+## Checklist: adding a provider (post-Provider-Expansion, 2026-07-11)
 
-1. Extend the `ProviderId` union + provider entry (base URL, auth header shape) in `providers/registry.ts`.
-2. Keychain: the provider id becomes a valid key id; add the entry to the Settings → API Keys provider list (`src/components/settings/ApiKeySettings.tsx`) with label + docs URL.
-3. Add catalog models (checklist above).
-4. Validate `validateProviderKey` works against the provider's cheapest endpoint.
+**User-controlled OpenAI-compatible endpoint → zero code.** Settings → API Keys →
+Custom endpoints (persists `settings.json.customProviders`); the id becomes valid
+across keychain, dispatch, Custom Models, verifyCatalog, and the /v1/models import.
+
+Promoting a built-in:
+
+1. Add the id to BOTH `ProviderId` unions — `providers/registry.ts` and
+   `src/lib/types.ts` (`provider-parity.test.ts` source-locks them; it caught a
+   real one-sided widening the day it landed).
+2. Add the `PROVIDERS` entry: baseURL, keyEnv (= id), docsUrl, `keyHint`
+   ("sk-...") where the format is known, `keyOptional: true` for keyless runtimes.
+3. Add catalog models (checklist above). The Settings → API Keys card renders
+   automatically from `settings:listProviderKeys` — no UI edit; only extend the
+   renderer's `PROVIDER_GROUPS` display map in `ApiKeySettings.tsx` if the new id
+   should sit in a specific group (ungrouped ids show under Custom endpoints).
+4. Validate `validateProviderKey` against the provider's cheapest endpoint (the
+   chat-probe fallback uses the provider's `flash`-tier catalog entry — give
+   every key-required provider one).
 5. Both tsc configs + `npm test` + live key test in Settings.
 
 ## Provenance and maintenance
 
-Based on direct reads of `electron/services/providers/registry.ts` (catalog ids, retired map, watchdog constants verified 2026-07-02) plus `ARCHITECTURE/FUNCTION_CALLING.md` and DEVLOG v0.15.x entries, at v0.16.0.
+Based on direct reads of `electron/services/providers/registry.ts` (catalog ids, retired map, watchdog constants re-verified 2026-07-11 during the Provider Expansion Phase) plus `ARCHITECTURE/FUNCTION_CALLING.md` §16 and `PLANNING/PX_BASELINE.md`, at v0.17.0.
 
 Re-verify:
 - Catalog: `grep -n "id: '" electron/services/providers/registry.ts`

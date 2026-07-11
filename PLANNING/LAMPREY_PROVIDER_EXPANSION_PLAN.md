@@ -178,7 +178,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   add a custom endpoint, import a model from it, see it in the model picker.
 
 ### **PX-7 — Catalog honesty + per-provider quirks pass**
-- [ ] With every key the user supplies: run `verifyCatalog` live, correct any `missing` ids,
+- [x] With every key the user supplies: run `verifyCatalog` live, correct any `missing` ids,
       and empirically probe `supportsTools` per new model (structured `tool_calls` delta or
       flag flipped false). Set `defaultMaxTokens`/`reasoningCapOnToolUse` on any new reasoner
       exhibiting the v0.15.5 empty-params failure mode. Append a per-provider quirks section

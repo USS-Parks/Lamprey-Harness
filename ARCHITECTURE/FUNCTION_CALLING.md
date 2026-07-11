@@ -13,7 +13,7 @@ Lamprey uses **two parallel pathways** for tool calling:
 | **Native** | Model has `supportsTools: true` | API returns structured `tool_calls[]` in SSE stream | Full trust — dispatched directly |
 | **Fallback** | Model has `supportsTools: false` or capability-downgraded | Text parsed for JSON contract `{"action":"...","input":{...}}` | Degraded trust — mutating calls require explicit approval |
 
-All four providers (DeepSeek, Google, DashScope, OpenRouter) use OpenAI-compatible endpoints with identical tool schemas.
+Every provider — seventeen built-ins (DeepSeek, Google, DashScope, OpenRouter, Zhipu, OpenAI, Anthropic, xAI, Mistral, Moonshot, Groq, Together, Fireworks, Cerebras, Hugging Face router, Ollama, LM Studio) plus any user-defined custom endpoint — is reached over the same OpenAI-compatible chat-completions wire with identical tool schemas. Per-provider constraints live in §16.
 
 ---
 
@@ -241,11 +241,23 @@ MCP-originating tools are **in scope** for the function-calling pathway:
 
 ## 13. Adding a New Provider
 
-1. Add entry to `PROVIDERS` in `registry.ts` (id, label, baseURL, keyEnv, docsUrl)
-2. Add models to `MODEL_CATALOG` with correct `supportsTools` flag
-3. If provider has different schema acceptance, add per-provider logic to `schema-normalizer.ts`
-4. Update `ProviderId` type in `registry.ts`
-5. Add a row to `docs/function-calling-matrix.md` and smoke-test
+For an OpenAI-compatible endpoint the user controls, **no code is needed**: add it
+under Settings → API Keys → Custom endpoints (persisted as
+`settings.json.customProviders`) and it becomes a first-class provider id across
+the keychain, dispatch, Custom Models, and `verifyCatalog`.
+
+To promote a provider to a built-in:
+
+1. Add the id to the `ProviderId` union in `registry.ts` AND the renderer mirror
+   in `src/lib/types.ts` (`provider-parity.test.ts` fails the build if they drift)
+2. Add the entry to `PROVIDERS` (id, label, baseURL, keyEnv, docsUrl, and
+   `keyOptional`/`keyHint` where applicable)
+3. Add models to `MODEL_CATALOG` with honest `supportsTools`/`supportsVision`
+   flags — pair `defaultMaxTokens` with `reasoningCapOnToolUse` on reasoners
+   (the guard-pairing test enforces this)
+4. If the provider accepts a different schema subset, add per-provider logic to
+   `schema-normalizer.ts` (none of the seventeen built-ins needs any)
+5. Add a row to `docs/function-calling-matrix.md` and smoke-test with a live key
 
 ---
 
@@ -265,6 +277,34 @@ Native models (with `supportsTools: true`) skip both layers.
 - Mutating tools (`mutates: true` or `risks` includes `write`/`destructive`) execute serially
 - Read-only tools may batch execute in parallel via `partitionToolCallWindows()`
 - A fresh workspace snapshot is conceptually taken between mutating calls (enforced by sequential dispatch)
+
+---
+
+## 16. Per-Provider Wire Notes (2026-07-11 expansion)
+
+Everything below rides the one OpenAI-compatible pathway; these are the known
+deviations that matter to dispatch or capability flags. Endpoint existence was
+probed live 2026-07-11; see `PLANNING/PX_BASELINE.md` for per-model evidence.
+
+| Provider | Reasoning channel | `/v1/models` | Notes |
+|---|---|---|---|
+| deepseek | `reasoning_content` | yes | `defaultMaxTokens` + `reasoning_effort: low` guard on tool turns (v0.15.5) |
+| google | — | yes | OpenAI-compat layer at `v1beta/openai/`, not the native Gemini SDK (FC-0) |
+| dashscope | `reasoning_content` | no → chat-probe fallback validates keys | |
+| openrouter | `reasoning` | yes (public, keyless) | Slugged ids (`vendor/model[:variant]`) |
+| zhipu | — | yes | `[1m]` context-suffix ids are literal apiModelIds |
+| openai | — (not exposed over chat completions) | yes | GPT-5.6 family: bare `gpt-5.6` aliases to Sol |
+| anthropic | none through compat | probe at first live key | Official compat layer at `api.anthropic.com/v1/` (trailing slash). Tools + streaming fully supported; `strict`, `response_format`, `reasoning_effort` silently ignored ⇒ never set `reasoningCapOnToolUse` on anthropic models; `isReasoner` stays false. Anthropic frames the layer as a capability-testing surface and commits to no breaking changes. |
+| xai | — | yes | |
+| mistral | — | yes | Catalog uses documented rolling `-latest` aliases |
+| moonshot | `reasoning_content` (thinking models) | yes | API host stays `api.moonshot.ai` after the Kimi rebrand; console is `platform.kimi.ai`. `kimi-k2-thinking` carries the full reasoning guard. |
+| groq | — | yes | Ids may be vendor-prefixed (`openai/gpt-oss-120b`) |
+| together | — | yes | Hub-style ids (`meta-llama/...`) |
+| fireworks | — | yes | `accounts/fireworks/models/...` ids; shipped entry is unverified until a key exists — use Verify/import |
+| cerebras | — | yes | 403 (not 401) on unauthenticated probes |
+| huggingface | — | yes (public, keyless) | Hub ids with optional `:fastest`/`:cheapest`/`:provider` routing suffix; fine-grained token with Inference Providers permission |
+| ollama / lmstudio | model-dependent | yes when running | Keyless (`keyOptional`); placeholder key `'local'` sent (SDK rejects empty). Empty built-in catalogs — import live ids. `providerBaseUrlOverrides` covers LAN hosts/ports. |
+| custom endpoints | unknown | endpoint-dependent | settings.json `customProviders`; validated at the registry (kebab id, http(s) URL, built-ins unshadowable); `requiresKey` default false |
 
 ---
 

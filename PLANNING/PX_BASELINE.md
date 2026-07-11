@@ -176,7 +176,19 @@ models are machine-specific and imported via the PX-6 "Import from /v1/models" f
 or added as Custom Models. `providerBaseUrlOverrides` (PX-4) covers LAN hosts and
 non-default ports.
 
-## §6 — Post-phase verification (appended at PX-7)
+## §6 — Post-phase verification (PX-7, 2026-07-11)
 
-*(placeholder — verifyCatalog results with whatever keys the owner stores, plus
-empirical supportsTools probe outcomes, land here at PX-7.)*
+What could be verified WITHOUT the owner's keys was verified; the rest is
+explicitly deferred to the owner's keyed run (PX_SMOKE_PLAYBOOK):
+
+- **OpenRouter (public /v1/models):** all 9 catalog `apiModelId`s LIVE — the 4
+  pre-existing gemma-4 entries AND the 5 new `or-*` entries.
+- **HF router (public /v1/models):** all 3 catalog hub ids LIVE.
+- **Endpoint reachability:** all 10 new cloud base URLs live (§2 probe column).
+- **Deferred to keyed runs:** per-model live verification for
+  openai/anthropic/xai/mistral/moonshot/groq/together/fireworks/cerebras
+  (Settings → Models → "Verify against providers" — one click per stored key),
+  empirical `supportsTools` probes (playbook asks), local-runtime import flow
+  (needs a running Ollama/LM Studio), and the Anthropic compat layer's
+  /v1/models behavior through the OpenAI SDK (chat-probe fallback covers a
+  failure). Fireworks' single catalog entry remains `unverified` until then.

@@ -534,6 +534,12 @@ const api = {
   // when a background fork completes; E6 (this branch) layers the
   // async-event-bridge on top so the next user turn sees a synthetic
   // <task-notifications> block.
+  // Agentic Orchestration Phase AO-3 — agent identity inventory + kill surface.
+  agents: {
+    list: (conversationId: string) => ipcRenderer.invoke('agents:list', conversationId),
+    get: (id: string) => ipcRenderer.invoke('agents:get', id),
+    revoke: (id: string) => ipcRenderer.invoke('agents:revoke', id)
+  },
   tasks: {
     spawn: (payload: {
       sourceConversationId: string

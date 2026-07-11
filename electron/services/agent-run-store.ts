@@ -224,8 +224,7 @@ export function getRun(id: string): AgentRunRow | null {
   const db = useDb()
   if (db) {
     const row = db.prepare('SELECT * FROM agent_runs WHERE id = ?').get(id) as
-      | AgentRunRawRow
-      | undefined
+      AgentRunRawRow | undefined
     return row ? rowToDomain(row) : null
   }
   return memory.get(id) ?? null
@@ -271,7 +270,8 @@ export function listRuns(filter: AgentRunListFilter = {}): AgentRunRow[] {
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : ''
     const limitClause =
       filter.limit !== undefined && filter.limit > 0 ? `LIMIT ${Math.floor(filter.limit)}` : ''
-    const sql = `SELECT * FROM agent_runs ${whereClause} ORDER BY started_at DESC ${limitClause}`.trim()
+    const sql =
+      `SELECT * FROM agent_runs ${whereClause} ORDER BY started_at DESC ${limitClause}`.trim()
     const rows = db.prepare(sql).all(...params) as AgentRunRawRow[]
     return rows.map(rowToDomain)
   }
@@ -303,18 +303,35 @@ export function listRuns(filter: AgentRunListFilter = {}): AgentRunRow[] {
 
 /** Read the full result_text for a run. Separate from getRun so the UI can
  *  list runs without paying the per-row blob cost. */
-export function getRunOutput(id: string): { resultText: string | null; error: string | null } | null {
+export function getRunOutput(
+  id: string
+): { resultText: string | null; error: string | null } | null {
   const db = useDb()
   if (db) {
-    const row = db
-      .prepare('SELECT result_text, error FROM agent_runs WHERE id = ?')
-      .get(id) as { result_text: string | null; error: string | null } | undefined
+    const row = db.prepare('SELECT result_text, error FROM agent_runs WHERE id = ?').get(id) as
+      { result_text: string | null; error: string | null } | undefined
     if (!row) return null
     return { resultText: row.result_text, error: row.error }
   }
   const r = memory.get(id)
   if (!r) return null
   return { resultText: r.resultText, error: r.error }
+}
+
+/** AO-3 — running run ids linked to an identity, for revoke/kill propagation.
+ *  Reads the v19 `identity_id` column; AO-5 populates it on every fork, so this
+ *  returns [] on pre-AO-5 rows (harmless — nothing to abort). */
+export function listRunningRunIdsByIdentity(identityId: string): string[] {
+  const db = useDb()
+  if (db) {
+    const rows = db
+      .prepare("SELECT id FROM agent_runs WHERE identity_id = ? AND status = 'running'")
+      .all(identityId) as Array<{ id: string }>
+    return rows.map((r) => r.id)
+  }
+  // Memory rows don't carry the identity link (added at the DB layer in v19);
+  // the DB path is the one that matters for live kill propagation.
+  return []
 }
 
 // Test seam for stores that want to wire the runner without touching the

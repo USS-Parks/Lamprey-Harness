@@ -64,4 +64,11 @@ describe('AO-1 orchestration safety — defaults + config', () => {
     expect(src).toMatch(/id: 'orchestration'/)
     expect(src).toMatch(/activeTab === 'orchestration' && <OrchestrationSettings/)
   })
+
+  it('AO-3: agents:list gates on the master toggle (empty when off)', () => {
+    const src = read('electron/ipc/agents.ts')
+    expect(src).toMatch(
+      /'agents:list'[\s\S]*?if \(!readOrchestrationConfig\(\)\.enabled\) return \{ success: true, data: \[\] \}/
+    )
+  })
 })

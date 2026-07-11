@@ -169,7 +169,7 @@ spine, gated behind one master toggle that defaults off.
       skip — v0.16.0+ reality); `schema-init.test.ts` updated table list green.
 
 ### **AO-3 — Grant flow: "approve A, B, C; refuse D" + revocation**
-- [ ] The blog's signal 1 made deterministic: a fork whose requested tools exceed its
+- [x] The blog's signal 1 made deterministic: a fork whose requested tools exceed its
       type's floor produces a **grant request** through the existing
       `tools:approvalRequired` permissions channel (chips UI already exists) listing the
       requested descriptor ids; the user's per-tool approve/refuse decisions persist to the

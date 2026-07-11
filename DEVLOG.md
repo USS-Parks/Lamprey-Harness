@@ -86,6 +86,33 @@ RUN, DB integration confirmed 5/5 non-skipping); schema-init + retention native 
 under the ABI mismatch as expected.
 **Commit:** see git log (AO-2).
 
+### AO-3 — Grant flow: "approve A, B, C; refuse D" + revocation
+
+The blog's signal 1 as deterministic code, not prompt language. Pure `agent-grants.ts`:
+`classifyGrant(requested, floor)` splits a fork's requested tools into auto-granted (within
+the read-only floor — Explore/Plan/code-reviewer and the tool-less multi_agent_run roles
+raise NO prompt) and needs-approval (each a chip the user approves/refuses);
+`resolveEffectiveTools(typeFloor, identity)` is the enforcement point AO-5 wires as the
+identity layer of `resolveAllowedTools` — a REVOKED identity yields ZERO tools, a refused
+tool is absent because it was never in `grantedTools`, a null identity (auto-grant path)
+passes the floor through; `concreteFloor` resolves `'*'` against parent tools; `buildGrantRequest`
+shapes the payload for the existing permission chips (decision 3). New `agents:*` IPC
+(`agents.ts`): `agents:list` (gated — empty when the master toggle is off), `agents:get`,
+`agents:revoke` (flip status → revoked, abort in-flight runs via the live-handle registry,
+emit an id-only `security.decision` event). `agent-run-store` gains
+`listRunningRunIdsByIdentity` (reads the v19 `identity_id`; returns [] until AO-5 populates
+it — the abort becomes live then). Registered in the IPC index; `window.api.agents.*`
+preload surface added. Safety test gains the `agents:list` gate assertion.
+
+**Files changed:** `electron/services/agent-grants.ts` (new),
+`electron/services/agent-run-store.ts`, `electron/ipc/agents.ts` (new),
+`electron/ipc/index.ts`, `electron/preload.ts`,
+`electron/services/agent-grants.test.ts` (new, 11 tests),
+`electron/services/orchestration-safety.test.ts` (+1 gate).
+**Verify gate:** tsc node + web clean; grants + safety + run-store suites 36 passed / 0
+failed.
+**Commit:** see git log (AO-3).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

@@ -1,3 +1,34 @@
+## 2026-07-11 — Agentic Orchestration Phase (AO-0–AO-12)
+
+P-SPR at `PLANNING/LAMPREY_AGENTIC_ORCHESTRATION_PLAN.md`, approved 2026-07-11 with all five
+decision-menu answers at the recommended options (strategies as model tools AND slash
+commands; advisor auto-offer manual-only; grants on the permission chips; `/outcome` in
+scope; v0.18.0); STS same message. Design brief: the Island Mountain post "Agentic
+Infrastructure Is Shedding Its Scaffolding. The Controls Have to Land Somewhere." Thesis =
+architecture: controls that hold are deterministic and live outside the model, so this phase
+builds identity / grants / budgets / receipts / kill / audit underneath and fan-out /
+critic / advisor / outcome composition on top — OFF by default (`orchestrationEnabled:
+false`, deliberate past-era extension like Loop). Branch `feat/agentic-orchestration`.
+
+### AO-0 — Baseline + documented-vs-wired seam audit
+
+No code. `PLANNING/AO_BASELINE.md` inventories the undocumented A/B-series spine
+(`subagent-types` typed registry, `forkAgent` with `resolveAllowedTools` deterministic
+grant intersection, the `agent_runs` table + store + `tasks:*` IPC incl. `tasks:stop` kill,
+workflow/worktree runners, the era-kept tool-less `multi_agent_run`) with a file:line cite
+per claim, and separates what exists from what the blog demands and is genuinely missing
+(identity ledger, enforced budgets+receipts, the three strategies, inventory surface).
+Enumerates all four master-toggle gate points (dispatch-array strip at
+[chat.ts:716](electron/ipc/chat.ts:716)/[:737](electron/ipc/chat.ts:737) for the zero-byte
+guarantee, slash commands, `agents:*` IPC, loop outcome envelope), records the
+prompt-surface byte baseline AO-11 must match unchanged, and fixes the migration target at
+v19 (ceiling is v18).
+
+**Files changed:** `PLANNING/AO_BASELINE.md` (new), plan checkbox.
+**Verify gate:** docs-only — every seam claim carries a file:line cite (proof-toolkit
+recipe 2); reuse ledger maps each need to an existing seam.
+**Commit:** see git log (AO-0).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

@@ -138,7 +138,7 @@ spine, gated behind one master toggle that defaults off.
 ## §1 — Prompt Roster
 
 ### **AO-0 — Baseline + documented-vs-wired seam audit**
-- [ ] Write `PLANNING/AO_BASELINE.md`: full inventory of the A/B-series spine
+- [x] Write `PLANNING/AO_BASELINE.md`: full inventory of the A/B-series spine
       (subagent-types, forkAgent, agent_runs + tasks IPC, workflow-runner,
       worktree-runner, any activity/dashboard surface) — for each seam: documented?,
       wired?, reachable from (model tool / IPC / UI / dormant), and the exact call sites.

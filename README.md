@@ -23,35 +23,43 @@ The target user is the developer who looked at Claude Code and Codex and said *"
 
 | Platform | Format | Link |
 |---|---|---|
-| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-x64.exe) |
-| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-x64.zip) |
-| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-arm64.dmg) |
-| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.16.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.17.0/Lamprey-x64.exe) |
+| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.17.0/Lamprey-x64.zip) |
+| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.17.0/Lamprey-arm64.dmg) |
+| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.17.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x64.AppImage` then run it.
 All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Parks/lamprey/releases)
 
-**New in v0.16.0 — the July 2026 Maintenance release.** A full-repo audit (~90 findings across six domains) fixed stem to stern: (1) the **Loop feature** now works as designed and its safety rails actually hold &mdash; the iteration prompt reaches the model, the master toggle gates every entry point, and ceilings count real work; (2) **chat-core correctness** &mdash; hanging turns, retry corruption, dead fallback tool paths, and custom-model integration all fixed; (3) **data durability** &mdash; atomic settings/keys writes, scoped fallback latches, RAG vector-leak fix, transactional writes, audit-table retention; (4) **security hardening** &mdash; navigation guard, openExternal scheme filter, debug-trace removal, workspace file confinement, MCP spawn approval; (5) **renderer correctness + performance** &mdash; streaming-switch fixes, approval queueing, memoized transcript rendering; (6) **currency** &mdash; Electron 35 &rarr; 43, the embedder migrated off `@xenova/transformers`, and `npm audit` now reports **0 vulnerabilities** (was 1 critical / 4 high). Every commit is hook-verified under the new human-in-the-loop commit discipline.
+**New in v0.17.0 — the Provider Expansion release.** Lamprey's connector surface grows from five providers to **seventeen built-ins plus unlimited bring-your-own endpoints**: the frontier labs (OpenAI GPT-5.6, Anthropic Claude via its official OpenAI-compat layer, xAI Grok, Mistral, Moonshot Kimi) and the open-source hosts (Groq, Together, Fireworks, Cerebras, Hugging Face's provider router) join DeepSeek, Google, DashScope, OpenRouter, and Zhipu. **Ollama and LM Studio** run keyless out of the box, with settings-level base-URL overrides for LAN inference boxes, and any other OpenAI-compatible endpoint — vLLM, llama.cpp, a LiteLLM proxy — can be added as a first-class provider from Settings with zero code. A per-provider **"Import from /v1/models"** pulls live model lists straight into the picker, key cards are grouped by tier with format hints, and every catalog id ships with its verification evidence documented (nothing is labeled verified that wasn't checked live). 39 built-in catalog models and counting.
+
+<details><summary>Previously in v0.16.0 — the July 2026 Maintenance release</summary>
+ A full-repo audit (~90 findings across six domains) fixed stem to stern: (1) the **Loop feature** now works as designed and its safety rails actually hold &mdash; the iteration prompt reaches the model, the master toggle gates every entry point, and ceilings count real work; (2) **chat-core correctness** &mdash; hanging turns, retry corruption, dead fallback tool paths, and custom-model integration all fixed; (3) **data durability** &mdash; atomic settings/keys writes, scoped fallback latches, RAG vector-leak fix, transactional writes, audit-table retention; (4) **security hardening** &mdash; navigation guard, openExternal scheme filter, debug-trace removal, workspace file confinement, MCP spawn approval; (5) **renderer correctness + performance** &mdash; streaming-switch fixes, approval queueing, memoized transcript rendering; (6) **currency** &mdash; Electron 35 &rarr; 43, the embedder migrated off `@xenova/transformers`, and `npm audit` now reports **0 vulnerabilities** (was 1 critical / 4 high). Every commit is hook-verified under the new human-in-the-loop commit discipline.
+</details>
 
 ---
 
 ## Quick start
 
 1. **Download** your platform's installer above and run it.
-2. **Get a key.**
-3. **DeepSeek:** [platform.deepseek.com](https://platform.deepseek.com)
-4. **Gemma:** (https://openrouter.ai/google/gemma-4-31b-it:free#api)
-   **Qwen:** 
-   **GLM:** (https://z.ai/manage-apikey/apikey-list)
-5. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
-6. **Type something.** Let's go.
+2. **Get a key — any one provider is enough to start.** DeepSeek
+   ([platform.deepseek.com](https://platform.deepseek.com)) and OpenRouter's free
+   Gemma tier ([openrouter.ai](https://openrouter.ai/google/gemma-4-31b-it:free#api))
+   are the cheapest doors in; OpenAI, Anthropic, xAI, Mistral, Kimi, Groq,
+   Together, Fireworks, Cerebras, Hugging Face, Qwen, and GLM cards all live in
+   Settings &rarr; API Keys with a "Get a key" link and format hint on each.
+3. **Or skip keys entirely** — a local [Ollama](https://ollama.com/download) or
+   LM Studio is detected keylessly, and any other OpenAI-compatible endpoint can
+   be added under Settings &rarr; API Keys &rarr; Custom endpoints.
+4. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
+5. **Type something.** Let's go.
 
 ---
 
 ## What you get
 
-- **Multi-provider chat** &mdash; pick a model per task. Cheap for boilerplate, smart for hard bugs.
+- **Multi-provider chat** &mdash; seventeen built-in providers (frontier labs, open-source hosts, keyless local runtimes) plus unlimited custom OpenAI-compatible endpoints. Pick a model per task: cheap for boilerplate, smart for hard bugs, local for air-gapped.
 - **Codex-style developer panes** &mdash; file tree (`Ctrl+P`), multi-tab browser (`Ctrl+T`), git diff review with "Fix this" per-hunk seeding (`Ctrl+Shift+G`), shell terminal (`` Ctrl+` ``), side-thread chat.
 - **Deep Research** &mdash; research-shaped turns fan out across search providers, corroborate claims by independent domain, and kill the report if they detect fabricated citations. `/research <q>` forces it; coding turns are never escalated.
 - **Snip** &mdash; an in-process token filter (same idea as [rtk](https://github.com/rtk-ai/rtk)) that strips noisy shell output down to signal before it hits the model context. ~120 built-in YAML filters, hot-reloadable, extensible.

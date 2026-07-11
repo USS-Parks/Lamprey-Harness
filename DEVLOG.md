@@ -216,6 +216,31 @@ result; `missing` chips get catalog fixes, never hand-relabeling.
 **Verify gate:** tsc node + web clean; provider suite 79 passed / 0 failed.
 **Commit:** see git log (PX-8).
 
+### PX-9 — Phase wrap (v0.17.0)
+
+Phase complete: five providers → seventeen built-ins + unlimited custom
+OpenAI-compatible endpoints, keyless local runtimes with base-URL overrides,
+39-model catalog with per-id evidence, live /v1/models import, grouped key
+settings with an endpoint manager. Era posture unchanged: no defaults moved,
+default model stays `deepseek-v4-pro`, no new key required for anything that
+worked yesterday; this extends the documented multi-provider identity, not the
+era lock. Version 0.17.0; README download links + "New in" + Quick start +
+multi-provider bullet refreshed (v0.16.0 notes fold into a details block);
+CLAUDE.md What-This-Is / quick-pointers / Current State updated and the
+reference-only plan list gains Provider Expansion.
+
+**Files changed:** `package.json`, `package-lock.json`, `README.md`,
+`CLAUDE.md`, `DEVLOG.md`, plan checkboxes.
+**Verify gate (final):** lint OK; tsc node + web OK; full vitest **2358 passed /
+130 skipped / 0 failed** (+24 vs the v0.16.0 baseline, zero new skips);
+`npm run build` OK; `npm run verify:proof` green (both smokes PASS, 15
+ABI-guarded native-DB suites RAN).
+**Honest gaps:** owner-run PX_SMOKE_PLAYBOOK (keyed per-provider verification —
+priority anthropic compat + the unverified Fireworks id), live GUI pass of the
+grouped settings + import surfaces, local-runtime import flow (needs a running
+Ollama/LM Studio).
+**Commit:** see git log (PX-9).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

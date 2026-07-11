@@ -198,7 +198,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
 - Verify: tsc ×2; full new-test files green; playbook complete.
 
 ### **PX-9 — Phase wrap**
-- [ ] Full gate green (vitest + build + verify:proof), DEVLOG phase-complete entry, CLAUDE.md
+- [x] Full gate green (vitest + build + verify:proof), DEVLOG phase-complete entry, CLAUDE.md
       Current State + architecture quick-pointers updated (provider count, new receptivity
       layers), README "New in 0.17.0" paragraph + roadmap top entry, `package.json` → 0.17.0.
       Push/Bucket only on explicit instruction.

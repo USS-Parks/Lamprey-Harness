@@ -22,7 +22,6 @@
  */
 
 import type { ChatCompletionTool } from 'openai/resources/chat/completions'
-import type { ProviderId } from './registry'
 
 export interface ProviderTool {
   type: 'function'
@@ -69,12 +68,7 @@ const UNSUPPORTED_SCHEMA_KEYWORDS = new Set([
  * Structural keywords — if present, the schema cannot be meaningfully
  * normalized and the tool must be dropped (or failed for core tools).
  */
-const STRUCTURAL_UNSUPPORTED = new Set([
-  '$ref',
-  'oneOf',
-  'anyOf',
-  'allOf'
-])
+const STRUCTURAL_UNSUPPORTED = new Set(['$ref', 'oneOf', 'anyOf', 'allOf'])
 
 /**
  * Core tools. These are the essential tools Lamprey requires to function.
@@ -170,7 +164,7 @@ function stripUnsupportedKeywords(schema: Record<string, unknown>): Record<strin
  */
 export function normalizeToolsForProvider(
   tools: Array<{ name: string; description: string; inputSchema: unknown; providerKind?: string }>,
-  _provider: ProviderId
+  _provider: string
 ): NormalizerResult {
   const result: ProviderTool[] = []
   const warnings: string[] = []
@@ -197,7 +191,7 @@ export function normalizeToolsForProvider(
       if (isCore) {
         throw new Error(
           `Core tool "${tool.name}" uses unsupported JSON Schema keyword "${structural}" which cannot be stripped. ` +
-          `Fix the tool's inputSchema to remove this keyword before normalizing for provider "${_provider}".`
+            `Fix the tool's inputSchema to remove this keyword before normalizing for provider "${_provider}".`
         )
       }
       warnings.push(

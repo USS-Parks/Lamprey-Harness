@@ -272,7 +272,8 @@ export type ProviderId =
   | 'lmstudio'
 
 export interface ProviderInfo {
-  id: ProviderId
+  /** Built-in ProviderId or a user-defined custom provider id. */
+  id: string
   label: string
   docsUrl: string
   hasKey?: boolean
@@ -287,7 +288,8 @@ export type ModelTier = 'pro' | 'flash' | 'open' | 'coder' | 'reasoner'
 export interface ModelInfo {
   id: string
   name: string
-  provider?: ProviderId
+  /** Built-in ProviderId or a user-defined custom provider id. */
+  provider?: string
   contextWindow: number
   supportsTools: boolean
   supportsVision: boolean

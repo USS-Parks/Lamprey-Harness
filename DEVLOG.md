@@ -118,6 +118,35 @@ rejected).
 passed / 0 failed.
 **Commit:** see git log (PX-4).
 
+### PX-5 — Custom endpoint providers (bring-your-own OpenAI-compatible endpoint)
+
+`settings.json.customProviders` (`{id, baseURL, label?, requiresKey?}`) becomes a
+first-class provider source: entries are validated at the registry consumption site
+(kebab-safe id, http(s) baseURL, built-ins unshadowable, `requiresKey` default
+false → keyless), mtime-cached, and merged into `resolveProviderDescriptor`. New
+exports `isKnownProvider` + `listAllProviders` back the settings key gate
+(save/test/delete now accept custom ids — keychain was already string-keyed),
+`settings:listProviderKeys`, and `model:listProviders`. The JM-11 custom-model
+reader's silent `'deepseek'` coercion is fixed: a custom model naming a custom
+provider now dispatches to that endpoint. `verifyCatalog` iterates built-ins AND
+customs (feeding the import affordance). Type widening: `ProviderDescriptor.id`,
+`ModelDescriptor.provider`, `getProviderForModel`, key-validation params, catalog
+report fields, tool-registry/schema-normalizer/chat-dispatch provider params, and
+renderer `ProviderInfo.id`/`ModelInfo.provider` all go `ProviderId → string`; the
+`ProviderId` union survives as the built-in registry + parity anchor. Two missed
+`PROVIDERS[...]` index sites in system-prompt-builder routed through the resolver
+(caught by tsc, not by grep — the compiler as wiring auditor).
+
+**Files changed:** `electron/services/providers/registry.ts`,
+`electron/services/tool-registry.ts`, `electron/services/providers/schema-normalizer.ts`,
+`electron/services/system-prompt-builder.ts`, `electron/ipc/chat.ts`,
+`electron/ipc/model.ts`, `electron/ipc/settings.ts`, `src/lib/types.ts`,
+`electron/services/providers/registry.test.ts` (+5: keyless custom dispatch,
+requiresKey refusal, shadow guard, malformed-entry skips, list ordering).
+**Verify gate:** tsc node + web clean; provider + sanitizer + prompt-builder
+suites 142 passed / 0 failed; `verify:proof -- --no-tests` green (chat.ts touched).
+**Commit:** see git log (PX-5).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

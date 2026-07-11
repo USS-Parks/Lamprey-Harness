@@ -1,4 +1,4 @@
-import { PROVIDERS, resolveModel } from './providers/registry'
+import { resolveModel, resolveProviderDescriptor } from './providers/registry'
 
 // Lamprey operating contract — one tight section of imperatives the model
 // reads literally. L2 (2026-06-09, Lampshade Phase) collapsed the prior
@@ -8,12 +8,7 @@ import { PROVIDERS, resolveModel } from './providers/registry'
 // <think> bullet conditional rather than mandatory.
 
 export type ContractRole =
-  | 'coding'
-  | 'review'
-  | 'planning'
-  | 'frontend'
-  | 'document'
-  | 'non_technical_user'
+  'coding' | 'review' | 'planning' | 'frontend' | 'document' | 'non_technical_user'
 
 interface ContractSection {
   key: 'how_you_work' | 'project_conventions'
@@ -208,7 +203,7 @@ function identityHead(modelId?: string): string {
   // persona name and look like they're misrepresenting themselves.
   if (modelId) {
     const desc = resolveModel(modelId)
-    const providerLabel = PROVIDERS[desc.provider]?.label ?? desc.provider
+    const providerLabel = resolveProviderDescriptor(desc.provider)?.label ?? desc.provider
     return (
       `You are ${desc.name} (served by ${providerLabel}), running inside the Lamprey ` +
       `multi-agent coding harness. When asked which model you are, answer honestly with ` +
@@ -233,7 +228,12 @@ function defaultBaseFor(modelId?: string): string {
 }
 
 export function buildSystemPrompt(
-  activeSkillContents: { name: string; content: string; allowedTools?: string[]; description?: string }[],
+  activeSkillContents: {
+    name: string
+    content: string
+    allowedTools?: string[]
+    description?: string
+  }[],
   memoryBlock: string,
   systemPromptOverride?: string,
   agentsMd?: string,
@@ -304,7 +304,10 @@ export function buildSystemPrompt(
       // when no description is set, and to the full body if the skill is tiny.
       const desc =
         skill.description?.trim() ||
-        skill.content.split('\n').find((l) => l.trim())?.trim() ||
+        skill.content
+          .split('\n')
+          .find((l) => l.trim())
+          ?.trim() ||
         '(no description)'
       parts.push(
         `<skill ${attrs.join(' ')} status="available">\n${desc}\n` +
@@ -324,9 +327,7 @@ export function buildSystemPrompt(
   // — L6 removed every injection site, so the ~500-byte needle scan found
   // nothing on every prompt build.)
   if (supportsNativeTools) {
-    result = result
-      .replace(`- ${THINK_BULLET}\n`, '')
-      .replace(/\n{3,}/g, '\n\n')
+    result = result.replace(`- ${THINK_BULLET}\n`, '').replace(/\n{3,}/g, '\n\n')
   }
 
   return result
@@ -378,7 +379,7 @@ export const AGENT_ROLE_PROMPTS: Record<string, string> = {
 function slimIdentityHead(modelId?: string): string {
   if (modelId) {
     const desc = resolveModel(modelId)
-    const providerLabel = PROVIDERS[desc.provider]?.label ?? desc.provider
+    const providerLabel = resolveProviderDescriptor(desc.provider)?.label ?? desc.provider
     return (
       `You are ${desc.name} (served by ${providerLabel}), running inside the Lamprey ` +
       `multi-agent coding harness. Be honest about which underlying model you are.`
@@ -430,9 +431,7 @@ export function buildAgentSystemPrompt(
 
   let result = parts.join('\n\n')
   if (supportsNativeTools) {
-    result = result
-      .replace(`- ${THINK_BULLET}\n`, '')
-      .replace(/\n{3,}/g, '\n\n')
+    result = result.replace(`- ${THINK_BULLET}\n`, '').replace(/\n{3,}/g, '\n\n')
   }
   return result
 }

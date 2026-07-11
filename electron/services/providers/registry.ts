@@ -77,7 +77,9 @@ export type ProviderId =
   | 'lmstudio'
 
 export interface ProviderDescriptor {
-  id: ProviderId
+  /** Built-in ids are ProviderId union members; user-defined custom
+   *  providers (settings.json `customProviders`) carry arbitrary ids. */
+  id: string
   label: string
   baseURL: string
   keyEnv: string
@@ -244,7 +246,8 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
 export interface ModelDescriptor {
   id: string
   name: string
-  provider: ProviderId
+  /** A built-in ProviderId or a custom provider id from settings.json. */
+  provider: string
   apiModelId: string
   contextWindow: number
   supportsTools: boolean
@@ -1019,11 +1022,80 @@ function readBaseUrlOverride(providerId: string): string | null {
   }
 }
 
+// settings.json `customProviders`: user-defined OpenAI-compatible endpoints
+// promoted to first-class provider ids — accepted by the keychain, the
+// key-settings UI, Custom Models, and dispatch. Entry shape:
+//   { id, baseURL, label?, requiresKey? }
+// Rules enforced at this consumption site (the settings sanitizer is
+// open-by-design): id must be kebab-safe and MUST NOT shadow a built-in;
+// baseURL must be http(s). requiresKey defaults to false — most self-hosted
+// endpoints are unauthenticated, and a stored key always wins anyway.
+export interface CustomProviderConfig {
+  id: string
+  baseURL: string
+  label?: string
+  requiresKey?: boolean
+}
+
+const CUSTOM_PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/
+
+let customProviderCache: {
+  mtimeMs: number
+  providers: Map<string, ProviderDescriptor>
+} | null = null
+
+function readCustomProviderDescriptors(): Map<string, ProviderDescriptor> {
+  const empty = new Map<string, ProviderDescriptor>()
+  if (!userDataPathProvider) return empty
+  try {
+    const path = join(userDataPathProvider(), 'settings.json')
+    if (!existsSync(path)) return empty
+    const mtimeMs = statSync(path).mtimeMs
+    if (customProviderCache && customProviderCache.mtimeMs === mtimeMs) {
+      return customProviderCache.providers
+    }
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as { customProviders?: unknown }
+    const arr = Array.isArray(raw.customProviders) ? raw.customProviders : []
+    const providers = new Map<string, ProviderDescriptor>()
+    for (const p of arr as Array<Record<string, unknown>>) {
+      if (!p || typeof p.id !== 'string' || !CUSTOM_PROVIDER_ID_RE.test(p.id)) continue
+      if (p.id in PROVIDERS) continue // built-ins cannot be shadowed
+      if (typeof p.baseURL !== 'string' || !/^https?:\/\//i.test(p.baseURL)) continue
+      providers.set(p.id, {
+        id: p.id,
+        label: typeof p.label === 'string' && p.label.trim() ? p.label.trim() : p.id,
+        baseURL: p.baseURL,
+        keyEnv: p.id,
+        docsUrl: '',
+        keyOptional: p.requiresKey !== true
+      })
+    }
+    customProviderCache = { mtimeMs, providers }
+    return providers
+  } catch {
+    return empty
+  }
+}
+
 /** Resolve a provider id to its descriptor, or null when unknown. The single
- *  lookup point for dispatch + validation, so provider-id resolution has one
- *  owner; user-defined custom providers from settings.json merge in here. */
+ *  lookup point for dispatch + validation: built-ins first, then user-defined
+ *  custom providers from settings.json. */
 export function resolveProviderDescriptor(id: string): ProviderDescriptor | null {
-  return (PROVIDERS as Record<string, ProviderDescriptor>)[id] ?? null
+  return (
+    (PROVIDERS as Record<string, ProviderDescriptor>)[id] ??
+    readCustomProviderDescriptors().get(id) ??
+    null
+  )
+}
+
+export function isKnownProvider(id: unknown): id is string {
+  return typeof id === 'string' && resolveProviderDescriptor(id) !== null
+}
+
+/** Built-in providers followed by custom providers — the list surface for
+ *  Settings → API Keys and the model-provider pickers. */
+export function listAllProviders(): ProviderDescriptor[] {
+  return [...Object.values(PROVIDERS), ...Array.from(readCustomProviderDescriptors().values())]
 }
 
 function getClientForProvider(provider: string): OpenAI {
@@ -1075,10 +1147,12 @@ function readCustomModelDescriptors(): ModelDescriptor[] {
     const models: ModelDescriptor[] = []
     for (const m of arr as Array<Record<string, unknown>>) {
       if (!m || typeof m.id !== 'string' || !m.id) continue
+      // Custom providers are legal targets here — only a truly unknown
+      // provider string falls back to deepseek (the pre-expansion behavior
+      // silently coerced ANY non-built-in string, including valid custom
+      // endpoints, onto api.deepseek.com).
       const provider =
-        typeof m.provider === 'string' && m.provider in PROVIDERS
-          ? (m.provider as ProviderId)
-          : 'deepseek'
+        typeof m.provider === 'string' && isKnownProvider(m.provider) ? m.provider : 'deepseek'
       models.push({
         id: m.id,
         name: typeof m.name === 'string' && m.name ? m.name : m.id,
@@ -1126,7 +1200,7 @@ export function resolveModel(modelId: string): ModelDescriptor {
   }
 }
 
-export function getProviderForModel(modelId: string): ProviderId {
+export function getProviderForModel(modelId: string): string {
   return resolveModel(modelId).provider
 }
 
@@ -1140,9 +1214,7 @@ export interface KeyValidationResult {
   modelCount?: number
 }
 
-export async function validateProviderKeyDetailed(
-  provider: ProviderId
-): Promise<KeyValidationResult> {
+export async function validateProviderKeyDetailed(provider: string): Promise<KeyValidationResult> {
   let client: OpenAI
   try {
     client = getClientForProvider(provider)
@@ -1168,7 +1240,7 @@ export async function validateProviderKeyDetailed(
 }
 
 async function validateViaChatProbe(
-  provider: ProviderId,
+  provider: string,
   client: OpenAI,
   originalError: any
 ): Promise<KeyValidationResult> {
@@ -1209,7 +1281,7 @@ async function validateViaChatProbe(
 
 // Boolean wrapper retained for the legacy single-key path
 // (settings:testApiKey -> DeepSeekClient.validateKey).
-export async function validateProviderKey(provider: ProviderId): Promise<boolean> {
+export async function validateProviderKey(provider: string): Promise<boolean> {
   const result = await validateProviderKeyDetailed(provider)
   return result.ok
 }
@@ -1218,7 +1290,7 @@ export type CatalogStatus =
   'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
 
 export interface ProviderCatalogReport {
-  provider: ProviderId
+  provider: string
   status: 'ok' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
   reason?: string
   // Sample of live ids returned by /v1/models (capped for size).
@@ -1232,7 +1304,7 @@ export interface CatalogVerificationReport {
   models: Array<{
     modelId: string
     name: string
-    provider: ProviderId
+    provider: string
     apiModelId: string
     status: CatalogStatus
     reason?: string
@@ -1244,7 +1316,10 @@ export interface CatalogVerificationReport {
 // structured report so the UI can show per-model status — no inferences, no
 // fabricated "verified" claims.
 export async function verifyCatalog(): Promise<CatalogVerificationReport> {
-  const providerIds = Object.keys(PROVIDERS) as ProviderId[]
+  // Built-ins AND custom providers: the live-id pull is also what the
+  // model-import affordance feeds on, and custom endpoints deserve the same
+  // no-inference verification surface.
+  const providerIds = listAllProviders().map((p) => p.id)
 
   const providerReports = await Promise.all(
     providerIds.map(async (pid): Promise<ProviderCatalogReport> => {
@@ -1291,7 +1366,7 @@ export async function verifyCatalog(): Promise<CatalogVerificationReport> {
     })
   )
 
-  const providerReportByProvider = new Map<ProviderId, ProviderCatalogReport>(
+  const providerReportByProvider = new Map<string, ProviderCatalogReport>(
     providerReports.map((r) => [r.provider, r])
   )
 

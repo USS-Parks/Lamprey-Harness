@@ -434,7 +434,14 @@ describe('chatOnce — reasoning channel extraction (R2)', () => {
 })
 
 // ── Fix A/B descriptor field tests ──────────────────────────────────
-import { MODEL_CATALOG, resolveModel, resolveProviderDescriptor, PROVIDERS } from './registry'
+import {
+  MODEL_CATALOG,
+  resolveModel,
+  resolveProviderDescriptor,
+  isKnownProvider,
+  listAllProviders,
+  PROVIDERS
+} from './registry'
 
 describe('provider descriptor resolution + key handling', () => {
   it('resolves every built-in provider id to its own descriptor', () => {
@@ -764,5 +771,123 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     const createArg = mockCreate.mock.calls[0][0]
     expect(createArg.max_tokens).toBe(4096)
     __setStreamInactivityForTesting(null)
+  })
+})
+
+describe('custom endpoint providers (settings.json customProviders)', () => {
+  const okCompletion = {
+    choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }]
+  }
+
+  async function withCustomDir(
+    settings: Record<string, unknown>,
+    run: () => Promise<void>
+  ): Promise<void> {
+    const { mkdtempSync, writeFileSync: wf } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const dir = mkdtempSync(j(tmpdir(), 'lamprey-custom-provider-'))
+    wf(j(dir, 'settings.json'), JSON.stringify(settings))
+    setUserDataPathProvider(() => dir)
+    try {
+      await run()
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  }
+
+  it('resolves a custom provider and dispatches a custom model to its endpoint keylessly', async () => {
+    mockGetKey.mockImplementation(() => null)
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withCustomDir(
+      {
+        customProviders: [{ id: 'gpu-box', baseURL: 'http://gpu-box:8000/v1', label: 'GPU Box' }],
+        customModels: [
+          {
+            id: 'my-vllm-model',
+            name: 'My vLLM Model',
+            provider: 'gpu-box',
+            contextWindow: 8192,
+            supportsTools: false
+          }
+        ]
+      },
+      async () => {
+        expect(isKnownProvider('gpu-box')).toBe(true)
+        expect(resolveProviderDescriptor('gpu-box')?.label).toBe('GPU Box')
+        const desc = resolveModel('my-vllm-model')
+        expect(desc.provider).toBe('gpu-box')
+        const result = await chatOnce([{ role: 'user', content: 'q' }], 'my-vllm-model')
+        expect(result.content).toBe('ok')
+        const ctor = mockCtorOpts[mockCtorOpts.length - 1]
+        expect(ctor.baseURL).toBe('http://gpu-box:8000/v1')
+        expect(ctor.apiKey).toBe('local')
+      }
+    )
+  })
+
+  it('requiresKey: true custom providers refuse to dispatch without a stored key', async () => {
+    mockGetKey.mockImplementation(() => null)
+    await withCustomDir(
+      {
+        customProviders: [
+          { id: 'paid-endpoint', baseURL: 'https://api.example.com/v1', requiresKey: true }
+        ],
+        customModels: [
+          {
+            id: 'paid-model',
+            name: 'Paid Model',
+            provider: 'paid-endpoint',
+            contextWindow: 8192,
+            supportsTools: false
+          }
+        ]
+      },
+      async () => {
+        await expect(chatOnce([{ role: 'user', content: 'q' }], 'paid-model')).rejects.toThrow(
+          /API key not configured/i
+        )
+      }
+    )
+  })
+
+  it('a custom provider cannot shadow a built-in id', async () => {
+    await withCustomDir(
+      { customProviders: [{ id: 'deepseek', baseURL: 'http://evil.example:1/v1' }] },
+      async () => {
+        expect(resolveProviderDescriptor('deepseek')?.baseURL).toBe('https://api.deepseek.com/v1')
+      }
+    )
+  })
+
+  it('malformed entries are skipped (bad id, non-http baseURL)', async () => {
+    await withCustomDir(
+      {
+        customProviders: [
+          { id: 'Bad Id!', baseURL: 'http://ok.example/v1' },
+          { id: 'ftp-endpoint', baseURL: 'ftp://not-http.example/v1' },
+          { id: 'no-base-url' }
+        ]
+      },
+      async () => {
+        expect(resolveProviderDescriptor('Bad Id!')).toBeNull()
+        expect(resolveProviderDescriptor('ftp-endpoint')).toBeNull()
+        expect(resolveProviderDescriptor('no-base-url')).toBeNull()
+      }
+    )
+  })
+
+  it('listAllProviders returns built-ins first, then customs', async () => {
+    await withCustomDir(
+      { customProviders: [{ id: 'zzz-custom', baseURL: 'http://z.example/v1' }] },
+      async () => {
+        const all = listAllProviders()
+        const builtinCount = Object.keys(PROVIDERS).length
+        expect(all.length).toBe(builtinCount + 1)
+        expect(all[all.length - 1].id).toBe('zzz-custom')
+        expect(all.slice(0, builtinCount).map((p) => p.id)).toEqual(Object.keys(PROVIDERS))
+      }
+    )
   })
 })

@@ -7,17 +7,8 @@ import {
   listToolCallsForConversation,
   updateToolCall
 } from './tool-calls-store'
-import {
-  boundedJsonPreview,
-  recordEvent,
-  type EventActorKind,
-  type EventType
-} from './event-log'
-import {
-  executeShellCommand,
-  formatShellResultForModel,
-  type ShellArgs
-} from './shell-tool'
+import { boundedJsonPreview, recordEvent, type EventActorKind, type EventType } from './event-log'
+import { executeShellCommand, formatShellResultForModel, type ShellArgs } from './shell-tool'
 import { applySnip } from './snip'
 import { readSettings } from './settings-helper'
 import {
@@ -37,12 +28,7 @@ import {
 } from './tool-search'
 import { normalizeToolsForProvider } from './providers/schema-normalizer'
 import { filterToolsForRole, type PipelineRole } from './role-tool-access'
-import type { ProviderId } from './providers/registry'
-import {
-  buildModelToolSurface,
-  isAlreadyAvailable,
-  CORE_TOOL_NAMES
-} from './model-tool-surface'
+import { buildModelToolSurface, isAlreadyAvailable, CORE_TOOL_NAMES } from './model-tool-surface'
 
 // Types are duplicated between main and renderer the same way mcp-manager.ts
 // keeps its own McpTool/McpServerConfig — the two tsconfig roots can't reach
@@ -155,12 +141,11 @@ export type LampreyToolStub = Omit<LampreyToolDescriptor, 'inputSchema'>
  * the registry normalizes them on insert. Every other field stays required
  * as before.
  */
-export type LampreyToolRegistration =
-  Omit<LampreyToolDescriptor, 'tags' | 'lazy' | 'mutates'> & {
-    tags?: string[]
-    lazy?: boolean
-    mutates?: boolean
-  }
+export type LampreyToolRegistration = Omit<LampreyToolDescriptor, 'tags' | 'lazy' | 'mutates'> & {
+  tags?: string[]
+  lazy?: boolean
+  mutates?: boolean
+}
 
 /**
  * Track 2 / C3 — true when invoking the tool may mutate the workspace,
@@ -169,9 +154,7 @@ export type LampreyToolRegistration =
  * function exists for callers that want to derive intent from an arbitrary
  * descriptor shape (e.g. tests, future plugin scaffolds).
  */
-export function isMutatingDescriptor(
-  descriptor: LampreyToolDescriptor | undefined
-): boolean {
+export function isMutatingDescriptor(descriptor: LampreyToolDescriptor | undefined): boolean {
   if (!descriptor) return false
   return descriptor.mutates === true
 }
@@ -188,9 +171,7 @@ export function isMutatingDescriptor(
  * `network` and `read` risks are fine — fan-out web searches and parallel
  * reads are the primary motivating cases.
  */
-export function isParallelizableDescriptor(
-  descriptor: LampreyToolDescriptor | undefined
-): boolean {
+export function isParallelizableDescriptor(descriptor: LampreyToolDescriptor | undefined): boolean {
   if (!descriptor) return false
   if (descriptor.parallelizable !== true) return false
   if (descriptor.requiresApproval) return false
@@ -200,13 +181,7 @@ export function isParallelizableDescriptor(
   return true
 }
 
-export type LampreyToolCallStatus =
-  | 'pending'
-  | 'approved'
-  | 'denied'
-  | 'running'
-  | 'done'
-  | 'error'
+export type LampreyToolCallStatus = 'pending' | 'approved' | 'denied' | 'running' | 'done' | 'error'
 
 export interface LampreyToolCall {
   id: string
@@ -280,9 +255,7 @@ export interface ToolExecutionContext {
  * Validation failures should be thrown — chat.ts wraps the message in an
  * "Error:" prefix and records the call as 'error'.
  */
-export type NativeToolHandlerResult =
-  | string
-  | { result: string; status: AuditStatus }
+export type NativeToolHandlerResult = string | { result: string; status: AuditStatus }
 
 export type NativeToolHandler = (
   args: Record<string, unknown>,
@@ -298,23 +271,13 @@ export type NativeToolHandler = (
 // Chrome MCP destructive tools get requiresApproval marked at descriptor
 // build time. A future generalised network/destructive policy will subsume
 // this; for now the set is hard-coded.
-const CHROME_DESTRUCTIVE = new Set([
-  'click',
-  'fill',
-  'submit',
-  'type',
-  'press',
-  'select_option'
-])
+const CHROME_DESTRUCTIVE = new Set(['click', 'fill', 'submit', 'type', 'press', 'select_option'])
 
 class ToolRegistry {
   private natives = new Map<string, LampreyToolDescriptor>()
   private nativeHandlers = new Map<string, NativeToolHandler>()
 
-  registerNative(
-    input: LampreyToolRegistration,
-    handler?: NativeToolHandler
-  ): void {
+  registerNative(input: LampreyToolRegistration, handler?: NativeToolHandler): void {
     if (input.providerKind !== 'native') {
       throw new Error(
         `registerNative: refusing to register descriptor with providerKind="${input.providerKind}"`
@@ -327,9 +290,7 @@ class ToolRegistry {
     // override (e.g. enter_plan_mode mutates session state but not the
     // workspace, so it ships mutates: false).
     const lazy = input.lazy ?? false
-    const mutates =
-      input.mutates ??
-      input.risks.some((r) => r === 'write' || r === 'destructive')
+    const mutates = input.mutates ?? input.risks.some((r) => r === 'write' || r === 'destructive')
     const tags =
       input.tags ??
       computeToolTags({
@@ -379,18 +340,14 @@ class ToolRegistry {
     for (const { serverId, tools } of mcpGroups) {
       for (const tool of tools) {
         const id = `${serverId}__${tool.name}`
-        const isDestructive =
-          serverId === 'chrome' && CHROME_DESTRUCTIVE.has(tool.name)
-        const risks: ToolRisk[] = isDestructive
-          ? ['destructive', 'write', 'network']
-          : ['network']
+        const isDestructive = serverId === 'chrome' && CHROME_DESTRUCTIVE.has(tool.name)
+        const risks: ToolRisk[] = isDestructive ? ['destructive', 'write', 'network'] : ['network']
         const lazy = true
         // C3 — MCP tools opt in to plan-mode gating by default when their
         // risks include write/destructive. Chrome's destructive set
         // (click/fill/submit/type/press/select_option) thus mutates: true;
         // every other MCP read tool stays unmuted.
-        const mutates =
-          risks.some((r) => r === 'write' || r === 'destructive')
+        const mutates = risks.some((r) => r === 'write' || r === 'destructive')
         const tags = computeToolTags({
           providerKind: 'mcp',
           risks,
@@ -406,8 +363,7 @@ class ToolRegistry {
           description: tool.description || '',
           providerKind: 'mcp',
           providerId: serverId,
-          inputSchema:
-            (tool.inputSchema as unknown) || { type: 'object', properties: {} },
+          inputSchema: (tool.inputSchema as unknown) || { type: 'object', properties: {} },
           risks,
           requiresApproval: isDestructive,
           enabled: true,
@@ -430,10 +386,7 @@ class ToolRegistry {
     return this.getDescriptors().map((d) => {
       // Strip inputSchema cleanly so renderer-side JSON.stringify doesn't
       // accidentally include `undefined` properties.
-      const {
-        inputSchema: _omit,
-        ...stub
-      } = d
+      const { inputSchema: _omit, ...stub } = d
       void _omit
       return stub
     })
@@ -535,7 +488,7 @@ class ToolRegistry {
    * `getOpenAITools()` remains for callers that need the un-normalized array
    * (tests, internal inspection).
    */
-  getNormalizedToolsForProvider(provider: ProviderId): ChatCompletionTool[] {
+  getNormalizedToolsForProvider(provider: string): ChatCompletionTool[] {
     return this.normalizeDescriptors(this.getDescriptors(), provider)
   }
 
@@ -553,10 +506,7 @@ class ToolRegistry {
    * `subAgentRunner` paths that ignore the `tools` parameter today, but
    * filtering by role here keeps the wire ready for future stage upgrades.
    */
-  getNormalizedToolsForRole(
-    role: PipelineRole,
-    provider: ProviderId
-  ): ChatCompletionTool[] {
+  getNormalizedToolsForRole(role: PipelineRole, provider: string): ChatCompletionTool[] {
     const descriptors = filterToolsForRole(this.getDescriptors(), role)
     return this.normalizeDescriptors(descriptors, provider)
   }
@@ -576,7 +526,7 @@ class ToolRegistry {
    * what the full surface would have sent.
    */
   getModelToolSurface(
-    provider: ProviderId,
+    provider: string,
     opts: { unlockedNames?: Iterable<string> } = {}
   ): ChatCompletionTool[] {
     const all = this.getNormalizedToolsForRole('coder', provider)
@@ -589,10 +539,7 @@ class ToolRegistry {
    * the always-on core + the `tool_search` meta-tool, since surfacing tools
    * the model already has would waste its turn.
    */
-  resolveToolSearch(
-    query: string,
-    maxResults = 8
-  ): { name: string; description: string }[] {
+  resolveToolSearch(query: string, maxResults = 8): { name: string; description: string }[] {
     return this.search(query, maxResults)
       .filter((d) => !isAlreadyAvailable(d.name, CORE_TOOL_NAMES))
       .map((d) => ({ name: d.name, description: d.description }))
@@ -600,7 +547,7 @@ class ToolRegistry {
 
   private normalizeDescriptors(
     descriptors: LampreyToolDescriptor[],
-    provider: ProviderId
+    provider: string
   ): ChatCompletionTool[] {
     const { tools, warnings } = normalizeToolsForProvider(
       descriptors.map((d) => ({
@@ -712,13 +659,12 @@ class ToolRegistry {
         patch.status === 'done'
           ? 'tool.call.completed'
           : patch.status === 'error'
-          ? 'tool.call.failed'
-          : patch.status === 'denied' && isSelfDenialSource(patch.approvalSource)
-          ? 'tool.call.denied'
-          : null
+            ? 'tool.call.failed'
+            : patch.status === 'denied' && isSelfDenialSource(patch.approvalSource)
+              ? 'tool.call.denied'
+              : null
       if (lifecycleType) {
-        const actorKind: EventActorKind =
-          lifecycleType === 'tool.call.failed' ? 'tool' : 'tool'
+        const actorKind: EventActorKind = lifecycleType === 'tool.call.failed' ? 'tool' : 'tool'
         recordEvent({
           type: lifecycleType,
           actorKind,
@@ -726,8 +672,8 @@ class ToolRegistry {
             lifecycleType === 'tool.call.failed'
               ? 'error'
               : lifecycleType === 'tool.call.denied'
-              ? 'warning'
-              : 'info',
+                ? 'warning'
+                : 'info',
           conversationId,
           correlationId: patch.correlationId,
           toolCallId: callId,
@@ -835,7 +781,7 @@ toolRegistry.registerNative(
       ' - GitHub work → `gh` CLI (clones, PRs, issues, releases).',
       '',
       'HEREDOC PATTERN (multi-line strings to native exes):',
-      ' - PowerShell: use single-quoted here-strings — `@\'\\n…content…\\n\'@`. The closing `\'@` MUST be at column 0. Single-quoted prevents `$` interpolation.',
+      " - PowerShell: use single-quoted here-strings — `@'\\n…content…\\n'@`. The closing `'@` MUST be at column 0. Single-quoted prevents `$` interpolation.",
       ' - bash: `git commit -m "$(cat <<\'EOF\' \\n…\\nEOF\\n)"`.',
       '',
       'DEFAULTS: timeout 120s (raise via `timeout_ms`, ceiling 600s). stdout/stderr capped at 30 KB each. cwd defaults to the persisted session cwd (workspace root if none).',
@@ -1108,7 +1054,7 @@ toolRegistry.registerNative({
   name: 'mark_chapter',
   title: 'Mark a session chapter',
   description:
-    "Mark the start of a new chapter in this session. Use when the work shifts to a meaningfully different phase — e.g. after finishing exploration and starting implementation, after a fix lands and you move to verification, or when the user pivots to an unrelated request. The user sees a divider in the transcript and a floating table of contents for jumping between chapters. Use sparingly: a chapter should cover a coherent stretch of work, not every tool call.",
+    'Mark the start of a new chapter in this session. Use when the work shifts to a meaningfully different phase — e.g. after finishing exploration and starting implementation, after a fix lands and you move to verification, or when the user pivots to an unrelated request. The user sees a divider in the transcript and a floating table of contents for jumping between chapters. Use sparingly: a chapter should cover a coherent stretch of work, not every tool call.',
   providerKind: 'native',
   providerId: 'internal',
   inputSchema: {
@@ -1157,7 +1103,8 @@ toolRegistry.registerNative({
       },
       header: {
         type: 'string',
-        description: 'Short chip label (max 12 chars). Examples: "Auth method", "Library", "Approach".'
+        description:
+          'Short chip label (max 12 chars). Examples: "Auth method", "Library", "Approach".'
       },
       options: {
         type: 'array',
@@ -1207,7 +1154,7 @@ toolRegistry.registerNative({
   name: 'create_document',
   title: 'Create document',
   description:
-    "Emit a standalone document for the user — a plan, draft, report, code file, or any deliverable they may want to keep, open, copy, or save. The document renders as a card below your message with an \"Open in\" action; do NOT also paste the body into your reply. Use only for content the user is meant to take away as a discrete file. Do not use for casual prose, short answers, or transient explanations — write those inline. One call per discrete deliverable; for a multi-file change, call once per file. mimeType drives the icon and \"Open in\" routing (text/markdown → Artifact panel, text/* → file panel / VS Code, anything else → save dialog). Content is capped at 256 KB.",
+    'Emit a standalone document for the user — a plan, draft, report, code file, or any deliverable they may want to keep, open, copy, or save. The document renders as a card below your message with an "Open in" action; do NOT also paste the body into your reply. Use only for content the user is meant to take away as a discrete file. Do not use for casual prose, short answers, or transient explanations — write those inline. One call per discrete deliverable; for a multi-file change, call once per file. mimeType drives the icon and "Open in" routing (text/markdown → Artifact panel, text/* → file panel / VS Code, anything else → save dialog). Content is capped at 256 KB.',
   providerKind: 'native',
   providerId: 'internal',
   inputSchema: {

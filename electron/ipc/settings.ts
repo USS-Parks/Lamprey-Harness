@@ -3,10 +3,10 @@ import * as keychain from '../services/keychain'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
 import { deepseekClient } from '../services/deepseek'
 import {
-  PROVIDERS,
+  isKnownProvider,
+  listAllProviders,
   resetProviderClient,
-  validateProviderKeyDetailed,
-  type ProviderId
+  validateProviderKeyDetailed
 } from '../services/providers/registry'
 import {
   ALL_WEB_SEARCH_PROVIDERS,
@@ -34,8 +34,10 @@ function writeSettings(settings: Record<string, unknown>): void {
   writeSettingsFile(settings)
 }
 
-function isProvider(id: unknown): id is ProviderId {
-  return typeof id === 'string' && id in PROVIDERS
+// Registry-backed: accepts built-in provider ids AND user-defined custom
+// providers from settings.json (which cannot shadow built-ins).
+function isProvider(id: unknown): id is string {
+  return isKnownProvider(id)
 }
 
 export function registerSettingsHandlers(): void {
@@ -106,7 +108,7 @@ export function registerSettingsHandlers(): void {
 
   ipcMain.handle('settings:listProviderKeys', async () => {
     try {
-      const data = Object.values(PROVIDERS).map((p) => ({
+      const data = listAllProviders().map((p) => ({
         id: p.id,
         label: p.label,
         docsUrl: p.docsUrl,

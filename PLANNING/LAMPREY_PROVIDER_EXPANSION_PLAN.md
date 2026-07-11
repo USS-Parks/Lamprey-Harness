@@ -155,7 +155,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   green; with a local Ollama running, Test succeeds with zero keys stored.
 
 ### **PX-5 — Custom endpoint providers (Layer 3, main process)**
-- [ ] `settings.json.customProviders: Array<{id,label,baseURL,requiresKey?}>` — read by
+- [x] `settings.json.customProviders: Array<{id,label,baseURL,requiresKey?}>` — read by
       `resolveProviderDescriptor` (mtime-cached), merged into `settings:listProviderKeys`, and
       accepted by the `isProvider` gate on `saveProviderKey`/`testProviderKey`/`deleteProviderKey`
       (keychain is already string-keyed — zero keychain changes). Fix the custom-model reader at

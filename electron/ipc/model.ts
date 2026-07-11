@@ -1,19 +1,17 @@
 import { ipcMain } from 'electron'
 import {
   MODEL_CATALOG,
-  PROVIDERS,
-  verifyCatalog,
-  type ProviderId
+  isKnownProvider,
+  listAllProviders,
+  verifyCatalog
 } from '../services/providers/registry'
-import {
-  readSettings as readSettingsShared,
-  writeSettingsFile
-} from '../services/settings-helper'
+import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
 
 interface ModelInfo {
   id: string
   name: string
-  provider: ProviderId
+  /** Built-in ProviderId or a custom provider id from settings.json. */
+  provider: string
   contextWindow: number
   supportsTools: boolean
   supportsVision: boolean
@@ -59,7 +57,7 @@ function readCustomModels(): ModelInfo[] {
 function combinedModels(): ModelInfo[] {
   const customs = readCustomModels().map((m) => ({
     ...m,
-    provider: (m.provider as ProviderId) || 'deepseek'
+    provider: isKnownProvider(m.provider) ? m.provider : 'deepseek'
   }))
   const customIds = new Set(customs.map((m) => m.id))
   // Custom entries override built-ins with the same id.
@@ -73,7 +71,7 @@ export function registerModelHandlers(): void {
   })
 
   ipcMain.handle('model:listProviders', async () => {
-    return { success: true, data: Object.values(PROVIDERS) }
+    return { success: true, data: listAllProviders() }
   })
 
   ipcMain.handle('model:getActive', async () => {
@@ -106,7 +104,7 @@ export function registerModelHandlers(): void {
       filtered.push({
         id: model.id.trim(),
         name: model.name.trim(),
-        provider: (model.provider as ProviderId) || 'deepseek',
+        provider: isKnownProvider(model.provider) ? model.provider : 'deepseek',
         contextWindow:
           typeof model.contextWindow === 'number' && model.contextWindow > 0
             ? model.contextWindow

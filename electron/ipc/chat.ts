@@ -7,8 +7,7 @@ import {
   chatStream,
   getProviderForModel,
   resolveModel,
-  type ModelRequestAudit,
-  type ProviderId
+  type ModelRequestAudit
 } from '../services/providers/registry'
 import { boundedJsonPreview, recordEvent } from '../services/event-log'
 import { validateChatSendRequest } from './chat-validation'
@@ -20,10 +19,7 @@ import {
 } from '../services/conversation-store'
 import * as memStore from '../services/memory-store'
 import { buildChaptersBlock, createChapter } from '../services/chapters-store'
-import {
-  compressOldestMessages,
-  getEffectiveMessages
-} from '../services/context-compressor'
+import { compressOldestMessages, getEffectiveMessages } from '../services/context-compressor'
 import {
   buildTaskNotificationsBlock,
   drainAsyncEventsForPrompt
@@ -48,14 +44,8 @@ import {
   getUnlockedTools,
   recordMalformedSearch
 } from '../services/tool-unlock-state'
-import {
-  maybeSpillToolResult,
-  DEFAULT_SPILL_THRESHOLD
-} from '../services/tool-result-spill'
-import {
-  partitionToolCallWindows,
-  type ProviderToolCall
-} from '../services/tool-call-windowing'
+import { maybeSpillToolResult, DEFAULT_SPILL_THRESHOLD } from '../services/tool-result-spill'
+import { partitionToolCallWindows, type ProviderToolCall } from '../services/tool-call-windowing'
 // SP-4 — ghost-reply guard (D5): persist a system notice when a turn fails
 // before any visible reply row landed.
 import {
@@ -69,10 +59,7 @@ import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
 import { validateToolArguments } from '../services/tool-schema-validator'
 import { detectEmptyParams } from '../services/empty-params-guard'
-import {
-  parseFallbackToolCalls,
-  FALLBACK_TOOL_INSTRUCTION
-} from '../services/fallback-tool-parser'
+import { parseFallbackToolCalls, FALLBACK_TOOL_INSTRUCTION } from '../services/fallback-tool-parser'
 import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { dispatchNativeTool } from '../services/native-dispatch'
 import { emitChatEvent } from '../services/chat-events'
@@ -94,7 +81,10 @@ import { loadAgenticCodingConfig } from '../services/agentic-coding-config'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
 // LP-1 (Loop Phase) — wire the headless turn runner into the loop runner.
 import { setLoopTurnRunner } from '../services/loop-runner'
-import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool
+} from 'openai/resources/chat/completions'
 
 interface ModelParams {
   temperature?: number
@@ -128,8 +118,8 @@ function loadModelConfig(
         typeof cfg.maxTokens === 'number'
           ? cfg.maxTokens
           : cfg.maxTokens === null
-          ? null
-          : undefined
+            ? null
+            : undefined
     },
     systemPromptOverride:
       typeof cfg.systemPromptOverride === 'string' ? cfg.systemPromptOverride : undefined
@@ -462,7 +452,10 @@ export function registerChatHandlers(): void {
         // ~10-minute default); a stalled provider pinned this IPC for minutes.
         AbortSignal.timeout(30_000)
       )
-      const cleaned = rawResult.content.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.!?]+$/g, '').slice(0, 60)
+      const cleaned = rawResult.content
+        .replace(/^["'\s]+|["'\s]+$/g, '')
+        .replace(/[.!?]+$/g, '')
+        .slice(0, 60)
       return { success: true, data: cleaned || content.slice(0, 40) }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'Title generation failed' }
@@ -722,7 +715,7 @@ export async function runHeadlessTurn(input: {
  */
 function buildDispatchTools(
   conversationId: string,
-  provider: ProviderId,
+  provider: string,
   settingsRaw: unknown
 ): ChatCompletionTool[] {
   const mode = (settingsRaw as { toolSurface?: string } | undefined)?.toolSurface ?? 'full'
@@ -866,284 +859,290 @@ export async function runChatRound(
           // this wrapper never settled (the v0.9.2 class of failure: renderer
           // hangs, no error row, no ghost notice).
           try {
-          trace('runChatRound.onDone', {
-            conversationId,
-            round,
-            contentLen: fullContent.length,
-            reasoningLen: fullReasoning?.length ?? 0,
-            toolCallsCount: toolCalls?.length ?? 0
-          })
-
-          if (charCounter) {
-            charCounter.received += fullContent.length + (fullReasoning?.length ?? 0)
-          }
-
-          // FC-10 — capability mismatch detection. When the model is flagged
-          // supportsTools but returns tool-like text without tool_calls,
-          // track consecutive mismatches. Downgraded models bypass future
-          // native-tool attempts and go straight to fallback parsing.
-          if (descriptor.supportsTools) {
-            const gotToolCalls = !!(toolCalls && toolCalls.length > 0)
-            const toolsWereSent = effectiveTools !== undefined
-            const warning = recordCapabilityCheck(
+            trace('runChatRound.onDone', {
               conversationId,
-              model,
-              toolsWereSent,
-              gotToolCalls,
-              fullContent
-            )
-            if (warning) {
-              trace('runChatRound.capability-mismatch', {
+              round,
+              contentLen: fullContent.length,
+              reasoningLen: fullReasoning?.length ?? 0,
+              toolCallsCount: toolCalls?.length ?? 0
+            })
+
+            if (charCounter) {
+              charCounter.received += fullContent.length + (fullReasoning?.length ?? 0)
+            }
+
+            // FC-10 — capability mismatch detection. When the model is flagged
+            // supportsTools but returns tool-like text without tool_calls,
+            // track consecutive mismatches. Downgraded models bypass future
+            // native-tool attempts and go straight to fallback parsing.
+            if (descriptor.supportsTools) {
+              const gotToolCalls = !!(toolCalls && toolCalls.length > 0)
+              const toolsWereSent = effectiveTools !== undefined
+              const warning = recordCapabilityCheck(
                 conversationId,
                 model,
-                warning
-              })
-              // Log but don't block — the user's current turn proceeds normally
+                toolsWereSent,
+                gotToolCalls,
+                fullContent
+              )
+              if (warning) {
+                trace('runChatRound.capability-mismatch', {
+                  conversationId,
+                  model,
+                  warning
+                })
+                // Log but don't block — the user's current turn proceeds normally
+              }
             }
-          }
 
-          // FC-8 — when the model does not support native tool calling
-          // (toolCalls is empty/null), attempt fallback parsing from the
-          // text content. Fallback models are instructed to output JSON
-          // following the fallback contract. If a valid fallback call is
-          // found, convert it to the native toolCalls format and dispatch
-          // through the same pathway.
-          //
-          // FC-10 — also run capability mismatch detection. When a native
-          // model returns tool-like syntax but no tool_calls, track
-          // consecutive mismatches. After 3, temporarily downgrade to
-          // fallback mode so the user's turn isn't wasted.
-          let effectiveToolCalls = toolCalls
-          // Fallback parsing triggers when: (a) model doesn't support tools
-          // natively, OR (b) model has been downgraded due to capability mismatch.
-          const needsFallbackParsing = !descriptor.supportsTools || isDowngraded(conversationId, model)
-          if ((!effectiveToolCalls || effectiveToolCalls.length === 0) && needsFallbackParsing) {
-            const descriptors = toolRegistry.getDescriptors()
-            const fallbackResult = parseFallbackToolCalls(fullContent, descriptors)
-            if (fallbackResult && !fallbackResult.isFinalAnswer && fallbackResult.calls.length > 0) {
-              // Convert fallback ToolCallRequest[] to ProviderToolCall[]
-              effectiveToolCalls = fallbackResult.calls.map((fc) => ({
-                id: fc.id,
-                type: 'function' as const,
-                function: { name: fc.name, arguments: JSON.stringify(fc.arguments) }
-              }))
-              trace('runChatRound.fallback-parsed', {
-                conversationId,
-                round,
-                callCount: effectiveToolCalls.length,
-                provenance: 'fallback'
-              })
-            } else if (fallbackResult?.validationError) {
-              // JM-10 (CC-13) — the model clearly ATTEMPTED a tool call but it
-              // failed validation (unknown tool / bad arguments). The old path
-              // rendered the raw JSON blob as the visible final answer and the
-              // model never learned why its call failed. Run one corrective
-              // round instead: the attempt and the correction are persisted so
-              // the transcript stays honest, and the feedback is fed back
-              // in-memory. round+1 still counts toward MAX_TOOL_ROUNDS, so a
-              // model stuck emitting bad JSON cannot loop forever.
-              const ve = fallbackResult.validationError
-              trace('runChatRound.fallback-validation-failed', {
-                conversationId,
-                round,
-                tool: ve.toolName,
-                errors: ve.errors.join('; ').slice(0, 300)
-              })
-              const feedback =
-                `Your "${ve.toolName}" tool call failed validation: ${ve.errors.join('; ')}. ` +
-                'Re-issue ONE corrected JSON object per the tool-calling instructions, ' +
-                'or output {"action":"final","answer":"..."} to answer without the tool.'
-              convStore.saveMessage({
+            // FC-8 — when the model does not support native tool calling
+            // (toolCalls is empty/null), attempt fallback parsing from the
+            // text content. Fallback models are instructed to output JSON
+            // following the fallback contract. If a valid fallback call is
+            // found, convert it to the native toolCalls format and dispatch
+            // through the same pathway.
+            //
+            // FC-10 — also run capability mismatch detection. When a native
+            // model returns tool-like syntax but no tool_calls, track
+            // consecutive mismatches. After 3, temporarily downgrade to
+            // fallback mode so the user's turn isn't wasted.
+            let effectiveToolCalls = toolCalls
+            // Fallback parsing triggers when: (a) model doesn't support tools
+            // natively, OR (b) model has been downgraded due to capability mismatch.
+            const needsFallbackParsing =
+              !descriptor.supportsTools || isDowngraded(conversationId, model)
+            if ((!effectiveToolCalls || effectiveToolCalls.length === 0) && needsFallbackParsing) {
+              const descriptors = toolRegistry.getDescriptors()
+              const fallbackResult = parseFallbackToolCalls(fullContent, descriptors)
+              if (
+                fallbackResult &&
+                !fallbackResult.isFinalAnswer &&
+                fallbackResult.calls.length > 0
+              ) {
+                // Convert fallback ToolCallRequest[] to ProviderToolCall[]
+                effectiveToolCalls = fallbackResult.calls.map((fc) => ({
+                  id: fc.id,
+                  type: 'function' as const,
+                  function: { name: fc.name, arguments: JSON.stringify(fc.arguments) }
+                }))
+                trace('runChatRound.fallback-parsed', {
+                  conversationId,
+                  round,
+                  callCount: effectiveToolCalls.length,
+                  provenance: 'fallback'
+                })
+              } else if (fallbackResult?.validationError) {
+                // JM-10 (CC-13) — the model clearly ATTEMPTED a tool call but it
+                // failed validation (unknown tool / bad arguments). The old path
+                // rendered the raw JSON blob as the visible final answer and the
+                // model never learned why its call failed. Run one corrective
+                // round instead: the attempt and the correction are persisted so
+                // the transcript stays honest, and the feedback is fed back
+                // in-memory. round+1 still counts toward MAX_TOOL_ROUNDS, so a
+                // model stuck emitting bad JSON cannot loop forever.
+                const ve = fallbackResult.validationError
+                trace('runChatRound.fallback-validation-failed', {
+                  conversationId,
+                  round,
+                  tool: ve.toolName,
+                  errors: ve.errors.join('; ').slice(0, 300)
+                })
+                const feedback =
+                  `Your "${ve.toolName}" tool call failed validation: ${ve.errors.join('; ')}. ` +
+                  'Re-issue ONE corrected JSON object per the tool-calling instructions, ' +
+                  'or output {"action":"final","answer":"..."} to answer without the tool.'
+                convStore.saveMessage({
+                  id: randomUUID(),
+                  conversationId,
+                  role: 'assistant',
+                  content: fullContent,
+                  model,
+                  reasoning: fullReasoning
+                })
+                convStore.saveMessage({
+                  id: randomUUID(),
+                  conversationId,
+                  role: 'system',
+                  content: `Tool-call validation failed (${ve.toolName}): ${ve.errors.join('; ')}`,
+                  stage: 'system'
+                })
+                messages.push({ role: 'assistant', content: fullContent } as any)
+                messages.push({ role: 'user', content: feedback } as any)
+                const correctiveReasonings =
+                  fullReasoning && fullReasoning.length > 0
+                    ? [...roundReasonings, fullReasoning]
+                    : roundReasonings
+                const next = await runChatRound(
+                  conversationId,
+                  model,
+                  messages,
+                  rebuildToolsForNextRound(conversationId, model, tools),
+                  workspacePath,
+                  signal,
+                  round + 1,
+                  params,
+                  suppressDoneEvent,
+                  correlationId,
+                  correctiveReasonings,
+                  turnStartedAt,
+                  charCounter
+                )
+                resolve(next)
+                return
+              }
+            }
+
+            if (!effectiveToolCalls || effectiveToolCalls.length === 0) {
+              // UB-5 (Unburdening Phase, 2026-06-10) — the final-response
+              // composer that used to rewrite the reply here is EXCISED. The
+              // content the model streamed IS the reply, byte-for-byte. The
+              // UB-4 note still applies: no proof gate, no trust notice, no
+              // proof_status write.
+              const documents = drainPendingDocuments(correlationId)
+              // R6 (kept) — fold every round's chain-of-thought into the saved
+              // row. Single-shot turns (no prior tool rounds) persist the raw
+              // reasoning unchanged; multi-round turns get the numbered trail,
+              // capped at MAX_REASONING_BYTES with the honest truncation marker.
+              const finalReasoning =
+                roundReasonings.length > 0
+                  ? concatReasoningTrail([...roundReasonings, fullReasoning ?? ''], undefined)
+                  : fullReasoning
+              const assistantMsg = convStore.saveMessage({
                 id: randomUUID(),
                 conversationId,
                 role: 'assistant',
                 content: fullContent,
                 model,
-                reasoning: fullReasoning
+                reasoning: finalReasoning,
+                documents
               })
-              convStore.saveMessage({
-                id: randomUUID(),
-                conversationId,
-                role: 'system',
-                content: `Tool-call validation failed (${ve.toolName}): ${ve.errors.join('; ')}`,
-                stage: 'system'
-              })
-              messages.push({ role: 'assistant', content: fullContent } as any)
-              messages.push({ role: 'user', content: feedback } as any)
-              const correctiveReasonings =
-                fullReasoning && fullReasoning.length > 0
-                  ? [...roundReasonings, fullReasoning]
-                  : roundReasonings
-              const next = await runChatRound(
-                conversationId,
-                model,
-                messages,
-                rebuildToolsForNextRound(conversationId, model, tools),
-                workspacePath,
-                signal,
-                round + 1,
-                params,
-                suppressDoneEvent,
-                correlationId,
-                correctiveReasonings,
-                turnStartedAt,
-                charCounter
-              )
-              resolve(next)
+              if (!suppressDoneEvent) {
+                emitPhase(conversationId, 'done')
+                emitChatEvent('chat:done', { conversationId, message: assistantMsg })
+                void fireHooks('agentStop', { conversationId })
+              }
+              resolve({ message: assistantMsg })
               return
             }
-          }
 
-          if (!effectiveToolCalls || effectiveToolCalls.length === 0) {
-            // UB-5 (Unburdening Phase, 2026-06-10) — the final-response
-            // composer that used to rewrite the reply here is EXCISED. The
-            // content the model streamed IS the reply, byte-for-byte. The
-            // UB-4 note still applies: no proof gate, no trust notice, no
-            // proof_status write.
-            const documents = drainPendingDocuments(correlationId)
-            // R6 (kept) — fold every round's chain-of-thought into the saved
-            // row. Single-shot turns (no prior tool rounds) persist the raw
-            // reasoning unchanged; multi-round turns get the numbered trail,
-            // capped at MAX_REASONING_BYTES with the honest truncation marker.
-            const finalReasoning =
-              roundReasonings.length > 0
-                ? concatReasoningTrail([...roundReasonings, fullReasoning ?? ''], undefined)
-                : fullReasoning
-            const assistantMsg = convStore.saveMessage({
-              id: randomUUID(),
-              conversationId,
-              role: 'assistant',
-              content: fullContent,
-              model,
-              reasoning: finalReasoning,
-              documents
-            })
-            if (!suppressDoneEvent) {
-              emitPhase(conversationId, 'done')
-              emitChatEvent('chat:done', { conversationId, message: assistantMsg })
-              void fireHooks('agentStop', { conversationId })
-            }
-            resolve({ message: assistantMsg })
-            return
-          }
+            const persistedToolCalls = effectiveToolCalls.map((tc) => ({
+              id: tc.id,
+              type: 'function' as const,
+              function: { name: tc.function.name, arguments: tc.function.arguments }
+            }))
 
-          const persistedToolCalls = effectiveToolCalls.map((tc) => ({
-            id: tc.id,
-            type: 'function' as const,
-            function: { name: tc.function.name, arguments: tc.function.arguments }
-          }))
-
-          convStore.saveMessage({
-            id: randomUUID(),
-            conversationId,
-            role: 'assistant',
-            content: fullContent || '',
-            model,
-            toolCalls: persistedToolCalls,
-            reasoning: fullReasoning
-          })
-
-          messages.push({
-            role: 'assistant',
-            content: fullContent || null,
-            tool_calls: persistedToolCalls,
-            // JM-9 (CC-15) — echo reasoning only to models whose API contract
-            // wants it (DeepSeek V4, resolved through the retirement map);
-            // strict compat layers 400 on the nonstandard field.
-            ...(fullReasoning &&
-              modelEchoesReasoningContent(model) && { reasoning_content: fullReasoning })
-          } as any)
-
-          // Group the model's tool_calls into execution windows: contiguous
-          // spans of parallelizable calls run via Promise.all; non-parallel
-          // calls run one at a time. The final tool-role messages are pushed
-          // in tool_call array order regardless of completion order so the
-          // next API round sees a consistent sequence.
-          const resolved: ResolvedToolCall[] = new Array(effectiveToolCalls.length)
-          const windows = partitionToolCallWindows(effectiveToolCalls, (id) =>
-            toolRegistry.getById(id)
-          )
-          for (const win of windows) {
-            if (win.kind === 'parallel') {
-              const settled = await Promise.all(
-                win.indices.map((idx) =>
-                  resolveSingleToolCall(
-                    effectiveToolCalls[idx],
-                    conversationId,
-                    model,
-                    workspacePath,
-                    signal,
-                    correlationId
-                  )
-                )
-              )
-              for (let i = 0; i < win.indices.length; i++) {
-                resolved[win.indices[i]] = settled[i]
-              }
-            } else {
-              resolved[win.index] = await resolveSingleToolCall(
-                effectiveToolCalls[win.index],
-                conversationId,
-                model,
-                workspacePath,
-                signal,
-                correlationId
-              )
-            }
-          }
-
-          // HY3 — spill threshold (chars). Default DEFAULT_SPILL_THRESHOLD;
-          // `toolResultSpill: false` or `toolResultSpillBytes: 0` disables it.
-          const spillSettings = readSettingsJson() ?? {}
-          const spillThreshold =
-            spillSettings.toolResultSpill === false
-              ? 0
-              : typeof spillSettings.toolResultSpillBytes === 'number'
-                ? spillSettings.toolResultSpillBytes
-                : DEFAULT_SPILL_THRESHOLD
-          for (const r of resolved) {
-            // Persist the FULL result — the UI shows it in full.
             convStore.saveMessage({
               id: randomUUID(),
               conversationId,
-              role: 'tool',
-              content: r.result,
-              toolCallId: r.callId
+              role: 'assistant',
+              content: fullContent || '',
+              model,
+              toolCalls: persistedToolCalls,
+              reasoning: fullReasoning
             })
-            // Feed the MODEL a head+tail preview when the result is large; the
-            // full text stays on disk, reachable via read_tool_result.
-            const spill = maybeSpillToolResult(r.result, { threshold: spillThreshold })
-            messages.push({
-              role: 'tool',
-              content: spill.result,
-              tool_call_id: r.callId
-            } as any)
-          }
 
-          // R6 — fold THIS round's reasoning into the cumulative trail
-          // before recursing. The final round (no tool calls + composer
-          // ran) reads the trail off the `roundReasonings` parameter
-          // and folds it into the saved composer-row's reasoning column.
-          const nextRoundReasonings = fullReasoning && fullReasoning.length > 0
-            ? [...roundReasonings, fullReasoning]
-            : roundReasonings
-          const next = await runChatRound(
-            conversationId,
-            model,
-            messages,
-            // HY2 — fold in any tools unlocked by a tool_search this round.
-            rebuildToolsForNextRound(conversationId, model, tools),
-            workspacePath,
-            signal,
-            round + 1,
-            params,
-            suppressDoneEvent,
-            correlationId,
-            nextRoundReasonings,
-            turnStartedAt,
-            charCounter
-          )
-          resolve(next)
+            messages.push({
+              role: 'assistant',
+              content: fullContent || null,
+              tool_calls: persistedToolCalls,
+              // JM-9 (CC-15) — echo reasoning only to models whose API contract
+              // wants it (DeepSeek V4, resolved through the retirement map);
+              // strict compat layers 400 on the nonstandard field.
+              ...(fullReasoning &&
+                modelEchoesReasoningContent(model) && { reasoning_content: fullReasoning })
+            } as any)
+
+            // Group the model's tool_calls into execution windows: contiguous
+            // spans of parallelizable calls run via Promise.all; non-parallel
+            // calls run one at a time. The final tool-role messages are pushed
+            // in tool_call array order regardless of completion order so the
+            // next API round sees a consistent sequence.
+            const resolved: ResolvedToolCall[] = new Array(effectiveToolCalls.length)
+            const windows = partitionToolCallWindows(effectiveToolCalls, (id) =>
+              toolRegistry.getById(id)
+            )
+            for (const win of windows) {
+              if (win.kind === 'parallel') {
+                const settled = await Promise.all(
+                  win.indices.map((idx) =>
+                    resolveSingleToolCall(
+                      effectiveToolCalls[idx],
+                      conversationId,
+                      model,
+                      workspacePath,
+                      signal,
+                      correlationId
+                    )
+                  )
+                )
+                for (let i = 0; i < win.indices.length; i++) {
+                  resolved[win.indices[i]] = settled[i]
+                }
+              } else {
+                resolved[win.index] = await resolveSingleToolCall(
+                  effectiveToolCalls[win.index],
+                  conversationId,
+                  model,
+                  workspacePath,
+                  signal,
+                  correlationId
+                )
+              }
+            }
+
+            // HY3 — spill threshold (chars). Default DEFAULT_SPILL_THRESHOLD;
+            // `toolResultSpill: false` or `toolResultSpillBytes: 0` disables it.
+            const spillSettings = readSettingsJson() ?? {}
+            const spillThreshold =
+              spillSettings.toolResultSpill === false
+                ? 0
+                : typeof spillSettings.toolResultSpillBytes === 'number'
+                  ? spillSettings.toolResultSpillBytes
+                  : DEFAULT_SPILL_THRESHOLD
+            for (const r of resolved) {
+              // Persist the FULL result — the UI shows it in full.
+              convStore.saveMessage({
+                id: randomUUID(),
+                conversationId,
+                role: 'tool',
+                content: r.result,
+                toolCallId: r.callId
+              })
+              // Feed the MODEL a head+tail preview when the result is large; the
+              // full text stays on disk, reachable via read_tool_result.
+              const spill = maybeSpillToolResult(r.result, { threshold: spillThreshold })
+              messages.push({
+                role: 'tool',
+                content: spill.result,
+                tool_call_id: r.callId
+              } as any)
+            }
+
+            // R6 — fold THIS round's reasoning into the cumulative trail
+            // before recursing. The final round (no tool calls + composer
+            // ran) reads the trail off the `roundReasonings` parameter
+            // and folds it into the saved composer-row's reasoning column.
+            const nextRoundReasonings =
+              fullReasoning && fullReasoning.length > 0
+                ? [...roundReasonings, fullReasoning]
+                : roundReasonings
+            const next = await runChatRound(
+              conversationId,
+              model,
+              messages,
+              // HY2 — fold in any tools unlocked by a tool_search this round.
+              rebuildToolsForNextRound(conversationId, model, tools),
+              workspacePath,
+              signal,
+              round + 1,
+              params,
+              suppressDoneEvent,
+              correlationId,
+              nextRoundReasonings,
+              turnStartedAt,
+              charCounter
+            )
+            resolve(next)
           } catch (err) {
             // CC-3 — settle the wrapper on ANY onDone-body throw.
             reject(err instanceof Error ? err : new Error(String(err)))
@@ -1151,77 +1150,75 @@ export async function runChatRound(
         },
         onError: (error, partial) => {
           try {
-          trace('runChatRound.onError', {
-            conversationId,
-            round,
-            errorPreview: String(error).slice(0, 200),
-            partialContentLen: partial?.content?.length ?? 0,
-            partialReasoningLen: partial?.reasoning?.length ?? 0
-          })
-          // Permanently fix data loss on stream errors: if the provider
-          // streamed body or reasoning before failing, persist it as an
-          // assistant message instead of letting it evaporate. Without
-          // this, every stream error silently discarded everything the
-          // user already saw on screen — including thousands of tokens
-          // of chain-of-thought from reasoning models.
-          //
-          // We emit `chat:done` FIRST with the persisted partial so the
-          // renderer transitions the on-screen streaming buffers into a
-          // durable message via finishStream (which adds it to the
-          // messages array and clears the streaming state). Then we emit
-          // `chat:error` so the failure still surfaces as a toast.
-          const hasPartial = !!(
-            partial && (partial.content || partial.reasoning)
-          )
-          if (hasPartial) {
-            try {
-              const documents = drainPendingDocuments(correlationId)
-              const errorMarker = `\n\n_[stream interrupted: ${error}]_`
-              const assistantMsg = convStore.saveMessage({
-                id: randomUUID(),
-                conversationId,
-                role: 'assistant',
-                content: (partial!.content || '') + errorMarker,
-                model,
-                reasoning: partial!.reasoning,
-                documents
-              })
-              if (!suppressDoneEvent) {
-                emitChatEvent('chat:done', {
+            trace('runChatRound.onError', {
+              conversationId,
+              round,
+              errorPreview: String(error).slice(0, 200),
+              partialContentLen: partial?.content?.length ?? 0,
+              partialReasoningLen: partial?.reasoning?.length ?? 0
+            })
+            // Permanently fix data loss on stream errors: if the provider
+            // streamed body or reasoning before failing, persist it as an
+            // assistant message instead of letting it evaporate. Without
+            // this, every stream error silently discarded everything the
+            // user already saw on screen — including thousands of tokens
+            // of chain-of-thought from reasoning models.
+            //
+            // We emit `chat:done` FIRST with the persisted partial so the
+            // renderer transitions the on-screen streaming buffers into a
+            // durable message via finishStream (which adds it to the
+            // messages array and clears the streaming state). Then we emit
+            // `chat:error` so the failure still surfaces as a toast.
+            const hasPartial = !!(partial && (partial.content || partial.reasoning))
+            if (hasPartial) {
+              try {
+                const documents = drainPendingDocuments(correlationId)
+                const errorMarker = `\n\n_[stream interrupted: ${error}]_`
+                const assistantMsg = convStore.saveMessage({
+                  id: randomUUID(),
                   conversationId,
-                  message: assistantMsg
+                  role: 'assistant',
+                  content: (partial!.content || '') + errorMarker,
+                  model,
+                  reasoning: partial!.reasoning,
+                  documents
                 })
-              }
-            } catch (e) {
-              console.error('[chat] failed to persist partial on stream error:', e)
-            }
-          }
-
-          emitPhase(conversationId, 'error')
-          emitChatEvent('chat:error', { conversationId, error })
-          // Mirror provider-side stream errors into the spine. `model.request.failed`
-          // is already emitted from inside chatStream for the underlying API
-          // failure; this `chat.error` row pins the orchestration-layer
-          // outcome so the chat-turn timeline reads cleanly even when the
-          // provider stream short-circuits before any tool round runs.
-          if (correlationId) {
-            try {
-              recordEvent({
-                type: 'chat.error',
-                actorKind: 'system',
-                severity: 'error',
-                conversationId,
-                correlationId,
-                payload: {
-                  errorPreview: boundedJsonPreview(error),
-                  source: 'stream'
+                if (!suppressDoneEvent) {
+                  emitChatEvent('chat:done', {
+                    conversationId,
+                    message: assistantMsg
+                  })
                 }
-              })
-            } catch (e) {
-              console.error('[chat] chat.error event failed:', e)
+              } catch (e) {
+                console.error('[chat] failed to persist partial on stream error:', e)
+              }
             }
-          }
-          reject(new Error(error))
+
+            emitPhase(conversationId, 'error')
+            emitChatEvent('chat:error', { conversationId, error })
+            // Mirror provider-side stream errors into the spine. `model.request.failed`
+            // is already emitted from inside chatStream for the underlying API
+            // failure; this `chat.error` row pins the orchestration-layer
+            // outcome so the chat-turn timeline reads cleanly even when the
+            // provider stream short-circuits before any tool round runs.
+            if (correlationId) {
+              try {
+                recordEvent({
+                  type: 'chat.error',
+                  actorKind: 'system',
+                  severity: 'error',
+                  conversationId,
+                  correlationId,
+                  payload: {
+                    errorPreview: boundedJsonPreview(error),
+                    source: 'stream'
+                  }
+                })
+              } catch (e) {
+                console.error('[chat] chat.error event failed:', e)
+              }
+            }
+            reject(new Error(error))
           } catch (err) {
             // CC-3 — even the error path must settle the wrapper.
             reject(err instanceof Error ? err : new Error(String(err)))
@@ -1236,7 +1233,11 @@ export async function runChatRound(
       // provider) fires neither onDone nor onError. Surface it like a stream
       // error and settle the wrapper so the turn ends instead of hanging.
       const msg = err instanceof Error ? err.message : String(err)
-      trace('runChatRound.preStreamThrow', { conversationId, round, errorPreview: msg.slice(0, 200) })
+      trace('runChatRound.preStreamThrow', {
+        conversationId,
+        round,
+        errorPreview: msg.slice(0, 200)
+      })
       emitPhase(conversationId, 'error')
       emitChatEvent('chat:error', { conversationId, error: msg })
       reject(err instanceof Error ? err : new Error(msg))
@@ -1304,7 +1305,8 @@ async function resolveSingleToolCall(
       result: JSON.stringify({
         error: 'argument_parse_failed',
         tool: toolName,
-        message: 'The arguments for this tool call were not valid JSON. Re-issue the call with corrected arguments.',
+        message:
+          'The arguments for this tool call were not valid JSON. Re-issue the call with corrected arguments.',
         raw_arguments: (rawArgs || '').slice(0, 2000)
       })
     }
@@ -1314,9 +1316,9 @@ async function resolveSingleToolCall(
   // exhaustion. Pure detection in empty-params-guard.ts; see that module
   // for the full rationale.
   {
-    const schemaReq = (toolRegistry.getById(toolName)?.inputSchema as
-      | { required?: string[] }
-      | undefined)?.required
+    const schemaReq = (
+      toolRegistry.getById(toolName)?.inputSchema as { required?: string[] } | undefined
+    )?.required
     const detection = detectEmptyParams(toolName, rawArgs, schemaReq)
     if (detection.isEmpty) {
       trace('resolveToolCall.empty-params-detected', {
@@ -1473,9 +1475,10 @@ async function resolveSingleToolCall(
   // persisted "always allow" policy and always re-prompt the user.
   const isFallbackProvenance = tc.id.startsWith('fb_')
   const isFallbackMutating = isFallbackProvenance && isMutatingDescriptor(descriptor)
-  const callRisks = isDangerousShellBypass && descriptor
-    ? [...descriptor.risks, 'sandboxBypass' as const]
-    : descriptor?.risks
+  const callRisks =
+    isDangerousShellBypass && descriptor
+      ? [...descriptor.risks, 'sandboxBypass' as const]
+      : descriptor?.risks
   const approvalOutcome =
     needsApproval && descriptor
       ? await permissionsService.requestApprovalDetailed({
@@ -1488,7 +1491,7 @@ async function resolveSingleToolCall(
           args,
           conversationId,
           correlationId,
-          dangerous: (isDangerousShellBypass || isFallbackMutating) ? true : undefined
+          dangerous: isDangerousShellBypass || isFallbackMutating ? true : undefined
         })
       : { decision: 'allow' as const, source: 'none' }
   const approvalDecision = approvalOutcome.decision
@@ -1526,8 +1529,7 @@ async function resolveSingleToolCall(
       const mimeRaw = typeof args.mimeType === 'string' ? args.mimeType.trim() : ''
       const contentRaw = typeof args.content === 'string' ? args.content : ''
       if (!nameRaw || !mimeRaw || !contentRaw) {
-        result =
-          'Error: create_document requires non-empty `name`, `mimeType`, and `content`.'
+        result = 'Error: create_document requires non-empty `name`, `mimeType`, and `content`.'
         explicitStatus = 'error'
       } else {
         const sizeBytes = Buffer.byteLength(contentRaw, 'utf8')
@@ -1567,10 +1569,8 @@ async function resolveSingleToolCall(
       // tool-call id — chat-history can map it back to its parent
       // assistant turn. The renderer treats the anchor as the boundary
       // marker; UI cosmetic, no behavioural dependency on exact mapping.
-      const titleRaw =
-        typeof args.title === 'string' ? args.title.trim() : ''
-      const summaryRaw =
-        typeof args.summary === 'string' ? args.summary.trim() : ''
+      const titleRaw = typeof args.title === 'string' ? args.title.trim() : ''
+      const summaryRaw = typeof args.summary === 'string' ? args.summary.trim() : ''
       if (!titleRaw) {
         result = 'Error: mark_chapter requires a non-empty `title`.'
         explicitStatus = 'error'

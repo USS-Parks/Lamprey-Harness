@@ -317,6 +317,31 @@ deliberately-tiny `/outcome` budget (breach + honest report = PASS), and revoke/
 **Verify gate:** tsc node clean; orchestration-safety suite 18 passed / 0 failed.
 **Commit:** see git log (AO-11).
 
+### AO-12 — Phase wrap (v0.18.0)
+
+Phase complete: a light local orchestration layer — per-agent identity with deterministic tool
+grants, budgets enforced outside the model with receipts, fan-out/critic/advisor/outcome
+strategies, and an Agents inventory + kill surface — built ON the previously-undocumented
+A/B-series fork spine (now audited + documented), OFF by default. Era posture intact: nothing
+auto-fans a plain turn; the Unburdening deletions stay deleted; the whole layer is one toggle,
+default off — the second documented past-era extension after Loop. New `ARCHITECTURE/AGENTIC_ORCHESTRATION.md`
+(control plane, identity lifecycle, strategy contracts, gate points, non-goals, honest gaps).
+Version 0.18.0; README download links + "New in" + Quick start unaffected (orchestration adds
+no key requirement); CLAUDE.md Current State entry added, the "undocumented agentic-infra
+layer" caveat retired (now documented + governed), reference-only plan list extended.
+
+**Files changed:** `ARCHITECTURE/AGENTIC_ORCHESTRATION.md` (new), `package.json`,
+`package-lock.json`, `README.md`, `CLAUDE.md`, `DEVLOG.md`, plan checkboxes.
+**Verify gate (final):** lint OK; tsc node + web OK; full vitest **2456 passed / 130 skipped /
+0 failed** (+98 vs the v0.17.0 baseline, zero new skips); `npm run build` OK; `npm run
+verify:proof` green (both smokes PASS, 15 ABI-guarded native-DB suites RAN incl. the new
+identity DDL test).
+**Honest gaps:** owner-run `AO_SMOKE_PLAYBOOK.md` (keyed per-strategy live gate) + a GUI pass
+of the Agents pill; `/outcome`'s parsed budget is advisory (strategy-tool settings ceilings are
+the hard cap); explicit granted/refused events await full permission→grant chip wiring; the
+after-action Agents section was deferred as redundant with the Agents pill.
+**Commit:** see git log (AO-12).
+
 ## 2026-07-11 — Provider Expansion Phase (PX-0–PX-9)
 
 P-SPR at `PLANNING/LAMPREY_PROVIDER_EXPANSION_PLAN.md`, approved 2026-07-11 with all

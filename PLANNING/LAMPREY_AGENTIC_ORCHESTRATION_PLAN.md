@@ -264,7 +264,7 @@ spine, gated behind one master toggle that defaults off.
 - Verify: tsc ×2; full new-suite green; playbook complete.
 
 ### **AO-12 — Phase wrap**
-- [ ] `ARCHITECTURE/AGENTIC_ORCHESTRATION.md` (control plane, strategy contracts, identity
+- [x] `ARCHITECTURE/AGENTIC_ORCHESTRATION.md` (control plane, strategy contracts, identity
       lifecycle, the A/B-series provenance note); README "New in 0.18.0"; CLAUDE.md Current
       State + retire the "undocumented agentic-infra layer" caveat (now documented);
       `package.json` → 0.18.0; full gate (§0 item 6); DEVLOG phase entry. Push/artifacts

@@ -262,6 +262,12 @@ export type ProviderId =
   | 'anthropic'
   | 'xai'
   | 'mistral'
+  | 'moonshot'
+  | 'groq'
+  | 'together'
+  | 'fireworks'
+  | 'cerebras'
+  | 'huggingface'
 
 export interface ProviderInfo {
   id: ProviderId

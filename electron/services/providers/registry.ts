@@ -67,6 +67,12 @@ export type ProviderId =
   | 'anthropic'
   | 'xai'
   | 'mistral'
+  | 'moonshot'
+  | 'groq'
+  | 'together'
+  | 'fireworks'
+  | 'cerebras'
+  | 'huggingface'
 
 export interface ProviderDescriptor {
   id: ProviderId
@@ -158,6 +164,57 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     baseURL: 'https://api.mistral.ai/v1',
     keyEnv: 'mistral',
     docsUrl: 'https://console.mistral.ai/api-keys'
+  },
+  // Kimi rebrand (2026): the console moved to platform.kimi.ai but the API
+  // host stays api.moonshot.ai (api.kimi.com serves no /v1).
+  moonshot: {
+    id: 'moonshot',
+    label: 'Moonshot AI (Kimi)',
+    baseURL: 'https://api.moonshot.ai/v1',
+    keyEnv: 'moonshot',
+    docsUrl: 'https://platform.kimi.ai/console/api-keys',
+    keyHint: 'sk-...'
+  },
+  groq: {
+    id: 'groq',
+    label: 'Groq',
+    baseURL: 'https://api.groq.com/openai/v1',
+    keyEnv: 'groq',
+    docsUrl: 'https://console.groq.com/keys',
+    keyHint: 'gsk_...'
+  },
+  together: {
+    id: 'together',
+    label: 'Together AI',
+    baseURL: 'https://api.together.xyz/v1',
+    keyEnv: 'together',
+    docsUrl: 'https://api.together.ai/settings/api-keys'
+  },
+  fireworks: {
+    id: 'fireworks',
+    label: 'Fireworks AI',
+    baseURL: 'https://api.fireworks.ai/inference/v1',
+    keyEnv: 'fireworks',
+    docsUrl: 'https://app.fireworks.ai/settings/users/api-keys'
+  },
+  cerebras: {
+    id: 'cerebras',
+    label: 'Cerebras Inference',
+    baseURL: 'https://api.cerebras.ai/v1',
+    keyEnv: 'cerebras',
+    docsUrl: 'https://cloud.cerebras.ai',
+    keyHint: 'csk-...'
+  },
+  // Hugging Face Inference Providers router: model ids are hub ids, with an
+  // optional routing suffix (`:fastest` default policy, `:cheapest`, or a
+  // concrete `:provider`). The router's /v1/models is public.
+  huggingface: {
+    id: 'huggingface',
+    label: 'Hugging Face (Inference Providers)',
+    baseURL: 'https://router.huggingface.co/v1',
+    keyEnv: 'huggingface',
+    docsUrl: 'https://huggingface.co/settings/tokens',
+    keyHint: 'hf_...'
   }
 }
 
@@ -549,6 +606,287 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     supportsVision: false,
     tier: 'coder',
     description: 'Mistral coding model — rolling latest release.'
+  },
+
+  // ── Moonshot AI (Kimi) ── k2.6 pinned from platform docs; k2.5 and
+  // k2-thinking inferred from OpenRouter's live listing of the same models —
+  // confirm via Settings → Models → "Verify against providers" with a key.
+  {
+    id: 'kimi-k2.6',
+    name: 'Kimi K2.6',
+    provider: 'moonshot',
+    apiModelId: 'kimi-k2.6',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Moonshot flagship — open-weights Kimi K2.6, 256K context.'
+  },
+  {
+    id: 'kimi-k2.5',
+    name: 'Kimi K2.5',
+    provider: 'moonshot',
+    apiModelId: 'kimi-k2.5',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Kimi K2.5 — 256K context.'
+  },
+  {
+    id: 'kimi-k2-thinking',
+    name: 'Kimi K2 Thinking',
+    provider: 'moonshot',
+    apiModelId: 'kimi-k2-thinking',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: false,
+    isReasoner: true,
+    defaultMaxTokens: 16_384,
+    reasoningCapOnToolUse: true,
+    tier: 'reasoner',
+    description: 'Kimi thinking model — reasoning-guarded like the DeepSeek reasoners.'
+  },
+
+  // ── Groq ── production ids from console.groq.com/docs/models.
+  {
+    id: 'groq-llama-3.3-70b',
+    name: 'Llama 3.3 70B (Groq)',
+    provider: 'groq',
+    apiModelId: 'llama-3.3-70b-versatile',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'Llama 3.3 70B at Groq speed (~280 tok/s).'
+  },
+  {
+    id: 'groq-llama-3.1-8b',
+    name: 'Llama 3.1 8B (Groq)',
+    provider: 'groq',
+    apiModelId: 'llama-3.1-8b-instant',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'flash',
+    description: 'Fastest, cheapest Groq production model (~560 tok/s).'
+  },
+  {
+    id: 'groq-gpt-oss-120b',
+    name: 'GPT-OSS 120B (Groq)',
+    provider: 'groq',
+    apiModelId: 'openai/gpt-oss-120b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'OpenAI open-weights 120B served by Groq (~500 tok/s).'
+  },
+  {
+    id: 'groq-gpt-oss-20b',
+    name: 'GPT-OSS 20B (Groq)',
+    provider: 'groq',
+    apiModelId: 'openai/gpt-oss-20b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'OpenAI open-weights 20B served by Groq (~1000 tok/s).'
+  },
+
+  // ── Together AI ── ids from docs.together.ai serverless table; function
+  // calling confirmed there for all four.
+  {
+    id: 'together-llama-3.3-70b',
+    name: 'Llama 3.3 70B Turbo (Together)',
+    provider: 'together',
+    apiModelId: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'Llama 3.3 70B Instruct Turbo on Together serverless.'
+  },
+  {
+    id: 'together-deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro (Together)',
+    provider: 'together',
+    apiModelId: 'deepseek-ai/DeepSeek-V4-Pro',
+    contextWindow: 512_000,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'pro',
+    description: 'DeepSeek V4 Pro hosted by Together — an alternative to the first-party API.'
+  },
+  {
+    id: 'together-gpt-oss-120b',
+    name: 'GPT-OSS 120B (Together)',
+    provider: 'together',
+    apiModelId: 'openai/gpt-oss-120b',
+    contextWindow: 128_000,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'OpenAI open-weights 120B on Together serverless.'
+  },
+  {
+    id: 'together-kimi-k2.6',
+    name: 'Kimi K2.6 (Together)',
+    provider: 'together',
+    apiModelId: 'moonshotai/Kimi-K2.6',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'pro',
+    description: 'Kimi K2.6 hosted by Together.'
+  },
+
+  // ── Fireworks AI ── weakest-evidence slate (id unverified against a live
+  // key). Use Settings → Models → "Verify against providers", or the
+  // /v1/models import flow, before relying on it.
+  {
+    id: 'fireworks-gpt-oss-120b',
+    name: 'GPT-OSS 120B (Fireworks)',
+    provider: 'fireworks',
+    apiModelId: 'accounts/fireworks/models/gpt-oss-120b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description:
+      'OpenAI open-weights 120B on Fireworks serverless (id unverified — check /v1/models).'
+  },
+
+  // ── Cerebras Inference ── ids from inference-docs.cerebras.ai; context
+  // windows conservative where the docs omit them.
+  {
+    id: 'cerebras-gpt-oss-120b',
+    name: 'GPT-OSS 120B (Cerebras)',
+    provider: 'cerebras',
+    apiModelId: 'gpt-oss-120b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'OpenAI open-weights 120B at ~3000 tok/s (Cerebras production).'
+  },
+  {
+    id: 'cerebras-gemma-4-31b',
+    name: 'Gemma 4 31B (Cerebras)',
+    provider: 'cerebras',
+    apiModelId: 'gemma-4-31b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'Gemma 4 31B at ~1850 tok/s (Cerebras preview).'
+  },
+  {
+    id: 'cerebras-glm-4.7',
+    name: 'GLM 4.7 (Cerebras)',
+    provider: 'cerebras',
+    apiModelId: 'zai-glm-4.7',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'Z.ai GLM 4.7 355B at ~1000 tok/s (Cerebras preview).'
+  },
+
+  // ── Hugging Face router ── hub ids, all present on the router's public
+  // /v1/models. Default routing policy is :fastest; append :cheapest or a
+  // concrete :provider suffix via Custom Models for explicit routing.
+  {
+    id: 'hf-gpt-oss-120b',
+    name: 'GPT-OSS 120B (HF router)',
+    provider: 'huggingface',
+    apiModelId: 'openai/gpt-oss-120b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'OpenAI open-weights 120B via Hugging Face Inference Providers.'
+  },
+  {
+    id: 'hf-llama-3.3-70b',
+    name: 'Llama 3.3 70B (HF router)',
+    provider: 'huggingface',
+    apiModelId: 'meta-llama/Llama-3.3-70B-Instruct',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'Llama 3.3 70B Instruct via Hugging Face Inference Providers.'
+  },
+  {
+    id: 'hf-glm-5.2',
+    name: 'GLM 5.2 (HF router)',
+    provider: 'huggingface',
+    apiModelId: 'zai-org/GLM-5.2',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'open',
+    description: 'Zhipu GLM 5.2 via Hugging Face Inference Providers.'
+  },
+
+  // ── OpenRouter broadening ── frontier + open flagships through the one
+  // OpenRouter key; every id below was present on openrouter.ai/api/v1/models
+  // with tools support at catalog time.
+  {
+    id: 'or-claude-sonnet-5',
+    name: 'Claude Sonnet 5 (OpenRouter)',
+    provider: 'openrouter',
+    apiModelId: 'anthropic/claude-sonnet-5',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Claude Sonnet 5 billed through OpenRouter credits.'
+  },
+  {
+    id: 'or-gpt-5.6-terra',
+    name: 'GPT-5.6 Terra (OpenRouter)',
+    provider: 'openrouter',
+    apiModelId: 'openai/gpt-5.6-terra',
+    contextWindow: 1_050_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'GPT-5.6 Terra billed through OpenRouter credits.'
+  },
+  {
+    id: 'or-grok-4.5',
+    name: 'Grok 4.5 (OpenRouter)',
+    provider: 'openrouter',
+    apiModelId: 'x-ai/grok-4.5',
+    contextWindow: 500_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Grok 4.5 billed through OpenRouter credits.'
+  },
+  {
+    id: 'or-kimi-k2.5',
+    name: 'Kimi K2.5 (OpenRouter)',
+    provider: 'openrouter',
+    apiModelId: 'moonshotai/kimi-k2.5',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'open',
+    description: 'Kimi K2.5 billed through OpenRouter credits.'
+  },
+  {
+    id: 'or-llama-4-maverick',
+    name: 'Llama 4 Maverick (OpenRouter)',
+    provider: 'openrouter',
+    apiModelId: 'meta-llama/llama-4-maverick',
+    contextWindow: 1_048_576,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'open',
+    description: 'Meta Llama 4 Maverick — 1M context via OpenRouter.'
   }
 ]
 

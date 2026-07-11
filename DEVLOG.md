@@ -68,6 +68,27 @@ model references a real provider.
 (registry, supports-tools audit, parity, schema-normalizer, capability-tracker).
 **Commit:** see git log (PX-2).
 
+### PX-3 — Open-source host tier + OpenRouter broadening
+
+`ProviderId` 9 → 15 (both unions; parity test holds). Six providers: Moonshot
+(api.moonshot.ai survives the Kimi rebrand — console moved to platform.kimi.ai),
+Groq, Together, Fireworks, Cerebras, Hugging Face Inference Providers router
+(public /v1/models; hub ids with optional :policy/:provider suffix). Twenty new
+catalog models: Kimi K2.6/K2.5/K2-Thinking (the thinking model takes the full
+v0.15.5 reasoning guard — `isReasoner` + `defaultMaxTokens` + `reasoningCapOnToolUse`
+— and a new `reasoner` catalog slot), 4 Groq production ids, 4 Together serverless
+ids (fn-calling confirmed in their docs), 1 Fireworks id (honestly labeled
+unverified), 3 Cerebras ids, 3 HF-router hub ids (all live on the public router
+list), plus 5 OpenRouter broadening entries (`or-` prefixed to avoid colliding with
+first-party ids; all present with tools on the live OpenRouter list). The old
+"non-DeepSeek models have no defaultMaxTokens" invariant is now the guard-pairing
+invariant: `defaultMaxTokens` ⟺ `reasoningCapOnToolUse`, catalog-wide.
+
+**Files changed:** `electron/services/providers/registry.ts`, `src/lib/types.ts`,
+`electron/services/providers/registry.test.ts` (invariant rewrite).
+**Verify gate:** tsc node + web clean; provider suite 63 passed / 0 failed.
+**Commit:** see git log (PX-3).
+
 ## 2026-07-02 — Onboarding skill library at .claude/skills/ (no version change)
 
 A 16-skill knowledge library authored so junior/mid-level engineers and

@@ -136,7 +136,7 @@ OpenAI-compatible endpoints, without changing any default or touching the chat t
   green; Settings → API Keys shows 4 new cards with working docs links.
 
 ### **PX-3 — Open-source host tier: Groq, Together, Fireworks, Cerebras, Moonshot, Hugging Face**
-- [ ] Same mechanical shape as PX-2 for the 6 open-source-hosting providers (§2 decision menu
+- [x] Same mechanical shape as PX-2 for the 6 open-source-hosting providers (§2 decision menu
       may prune). Catalog gains each host's highest-value open-weight models per the PX-0
       matrix (Llama, Qwen, Kimi, DeepSeek, gpt-oss families — exact ids from the matrix, never
       from memory). Also broaden the existing **OpenRouter** catalog with 3–5 high-value

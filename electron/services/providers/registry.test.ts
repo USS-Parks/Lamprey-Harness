@@ -493,10 +493,22 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     expect(desc.apiModelId).toBe(expected)
   })
 
-  it('non-DeepSeek models have no defaultMaxTokens by default', () => {
-    const nonDs = MODEL_CATALOG.filter((m) => m.provider !== 'deepseek')
-    for (const m of nonDs) {
-      expect(m.defaultMaxTokens).toBeUndefined()
+  it('defaultMaxTokens appears only alongside the reasoning cap (guard pairing)', () => {
+    // The output-budget guard exists for reasoning models that can exhaust
+    // max_tokens on chain-of-thought (the v0.15.5 failure). Any model that
+    // sets one half of the guard without the other is a smell: either the
+    // budget is untethered or the cap has no budget to protect.
+    for (const m of MODEL_CATALOG) {
+      if (m.defaultMaxTokens !== undefined || m.reasoningCapOnToolUse) {
+        expect(
+          m.defaultMaxTokens,
+          `${m.id}: reasoning guard without defaultMaxTokens`
+        ).toBeDefined()
+        expect(
+          m.reasoningCapOnToolUse,
+          `${m.id}: defaultMaxTokens without reasoningCapOnToolUse`
+        ).toBe(true)
+      }
     }
   })
 

@@ -10,6 +10,8 @@ import type { FollowUpRecord } from './turn-control-store'
 import type { FollowUpStatus, TurnId, TurnInputItem } from './turn-control-types'
 import { TurnRuntime } from './turn-runtime'
 
+const normalizeNewlines = (source: string): string => source.replace(/\r\n?/g, '\n')
+
 function queuedRecord(
   id: string,
   position: number,
@@ -280,10 +282,11 @@ describe('dispatchNextQueuedFollowUp', () => {
 
 describe('queued follow-up production seam', () => {
   it('runs only through runHeadlessTurn and injects the structured message exactly once', () => {
-    const chat = readFileSync(join(process.cwd(), 'electron/ipc/chat.ts'), 'utf8')
-    const dispatcher = readFileSync(
-      join(process.cwd(), 'electron/services/queued-follow-up-dispatch.ts'),
-      'utf8'
+    const chat = normalizeNewlines(
+      readFileSync(join(process.cwd(), 'electron/ipc/chat.ts'), 'utf8')
+    )
+    const dispatcher = normalizeNewlines(
+      readFileSync(join(process.cwd(), 'electron/services/queued-follow-up-dispatch.ts'), 'utf8')
     )
 
     expect(chat).toContain('runTurn: (queued: QueuedFollowUpRunInput) =>\n      runHeadlessTurn({')

@@ -3,7 +3,8 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 const root = join(__dirname, '..', '..')
-const read = (path: string): string => readFileSync(join(root, path), 'utf8')
+const read = (path: string): string =>
+  readFileSync(join(root, path), 'utf8').replace(/\r\n?/g, '\n')
 
 describe('ST-7 interrupt and recovery wiring contract', () => {
   it('exposes strict interrupt IPC and keeps legacy cancel as one compatibility adapter', () => {

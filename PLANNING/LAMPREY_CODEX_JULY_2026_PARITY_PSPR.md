@@ -291,7 +291,7 @@ CDP observation service, and event/monitor automation triggers.
 ### M1 — Steering and Queue parity
 
 #### **ST-1 — Define canonical turn and follow-up contracts**
-- [ ] Add pure types and validators for `TurnId`, turn kind/status, ordered input items,
+- [x] Add pure types and validators for `TurnId`, turn kind/status, ordered input items,
       delivery mode, follow-up status, typed rejection reasons, expected-turn guard, and
       client-message deduplication. Keep API naming consistent across main/preload/renderer.
 - Files: new `electron/services/turn-control-types.ts`, validator/tests, renderer mirrors.

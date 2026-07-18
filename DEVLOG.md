@@ -1,3 +1,20 @@
+## Codex July 2026 Parity — Prompt ST-1 Define turn contracts — 2026-07-17
+
+**Files changed:** `electron/services/turn-control-types.ts`,
+`electron/services/turn-control-types.test.ts`, `src/lib/turn-control-types.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `electron/services/turn-control-types.test.ts` ✓ (33 tests, 0 skipped)
+
+**Notes:** Canonical contracts now cover stable branded IDs, ordered text/image/local-image
+items, strict Steer/Queue submissions, expected-turn guards, client-message dedupe keys,
+typed rejections, and terminal lifecycle classification. A source-lock parity case keeps
+the renderer literal vocabulary aligned without importing renderer code into Electron.
+
+**Commit:** see git log (ST-1).
+
 ## Codex July 2026 Parity — Prompt CJP-0 Pin the behavior baseline — 2026-07-17
 
 **Files changed:** `PLANNING/CJ26_BASELINE.md`,

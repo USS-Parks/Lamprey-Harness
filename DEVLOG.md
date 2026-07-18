@@ -1,3 +1,22 @@
+## Codex July 2026 Parity — Prompt CJP-0 Pin the behavior baseline — 2026-07-17
+
+**Files changed:** `PLANNING/CJ26_BASELINE.md`,
+`PLANNING/CJ26_SMOKE_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- docs-only source and citation audit ✓
+- 12 Codex conformance rows carry official or reproducible evidence ✓
+- 34 Lamprey file:line citations resolve in the pinned tree ✓
+- Prettier check for both new planning documents ✓
+- user-verification-needed: run CJ26-S01–S12 against the owner Codex Desktop
+  build and the ST-11 Lamprey candidate before claiming parity-complete
+
+**Notes:** The user's scope clarification makes all twenty §1 clauses the M1
+acceptance authority. Queue restart/reconnect remains unclaimed as observed Codex
+behavior, but is an explicit Lamprey requirement. No production code changed.
+
+**Commit:** see git log (CJP-0).
+
 ## 2026-07-11 — Agentic Orchestration Phase (AO-0–AO-12)
 
 P-SPR at `PLANNING/LAMPREY_AGENTIC_ORCHESTRATION_PLAN.md`, approved 2026-07-11 with all five

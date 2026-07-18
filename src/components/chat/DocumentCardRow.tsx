@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DocumentAttachment } from '@/lib/types'
 import { toast } from '@/stores/toast-store'
+import { ArtifactEditorDialog } from './ArtifactEditorDialog'
 
 interface DocumentCardRowProps {
   documents: DocumentAttachment[]
@@ -24,6 +25,7 @@ export function DocumentCardRow({ documents }: DocumentCardRowProps) {
 
 function DocumentCard({ doc }: { doc: DocumentAttachment }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,18 +46,28 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
 
   const artifactType = routeArtifactType(doc.mimeType, doc.name)
 
-  const openInArtifact = () => {
+  const latestContent = async (): Promise<string> => {
+    if (!doc.artifactId) return doc.content
+    const result = await window.api.artifact.read(doc.artifactId)
+    if (!result.success) {
+      toast.warning('Could not load the latest artifact revision; using the original document.')
+      return doc.content
+    }
+    return (result.data as { revision: { content: string } }).revision.content
+  }
+
+  const openInArtifact = async () => {
     if (!artifactType || !window.api?.artifact?.openInWindow) {
       toast.warning('Artifact panel can only render markdown / HTML / SVG documents.')
       return
     }
-    void window.api.artifact.openInWindow(artifactType, doc.content)
+    await window.api.artifact.openInWindow(artifactType, await latestContent())
     setMenuOpen(false)
   }
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(doc.content)
+      await navigator.clipboard.writeText(await latestContent())
       toast.success(`Copied ${doc.name}`)
     } catch {
       toast.error('Could not copy to clipboard')
@@ -63,9 +75,9 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
     setMenuOpen(false)
   }
 
-  const download = () => {
+  const download = async () => {
     try {
-      const blob = new Blob([doc.content], { type: doc.mimeType || 'text/plain' })
+      const blob = new Blob([await latestContent()], { type: doc.mimeType || 'text/plain' })
       const url = URL.createObjectURL(blob)
       const a = window.document.createElement('a')
       a.href = url
@@ -89,7 +101,8 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-[var(--text-primary)]">{doc.name}</div>
         <div className="truncate text-[12px] text-[var(--text-muted)]">
-          {kindLabel(doc.mimeType)} · {extensionLabel(doc.name, doc.mimeType)} · {formatSize(doc.sizeBytes)}
+          {kindLabel(doc.mimeType)} · {extensionLabel(doc.name, doc.mimeType)} ·{' '}
+          {formatSize(doc.sizeBytes)}
         </div>
       </div>
       <div ref={menuRef} className="relative">
@@ -100,7 +113,9 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
           aria-expanded={menuOpen}
         >
           Open in
-          <span aria-hidden className="text-[10px]">{menuOpen ? '▴' : '▾'}</span>
+          <span aria-hidden className="text-[10px]">
+            {menuOpen ? '▴' : '▾'}
+          </span>
         </button>
         {menuOpen && (
           <div
@@ -118,6 +133,22 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
           </div>
         )}
       </div>
+      {doc.artifactId && (
+        <button
+          type="button"
+          onClick={() => setEditorOpen(true)}
+          className="rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2.5 py-1 text-[12px] text-[var(--text-secondary)] hover:border-[var(--accent)]"
+        >
+          Edit
+        </button>
+      )}
+      {editorOpen && doc.artifactId && (
+        <ArtifactEditorDialog
+          artifactId={doc.artifactId}
+          title={doc.name}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -164,7 +195,13 @@ function DocumentGlyph({ mimeType }: { mimeType: string }) {
       style={{ borderColor: 'var(--border)', background: 'var(--bg-primary)' }}
       aria-hidden
     >
-      <svg width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        width="18"
+        height="20"
+        viewBox="0 0 18 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <path
           d="M2 1.5C2 0.671573 2.67157 0 3.5 0H11L17 6V18.5C17 19.3284 16.3284 20 15.5 20H3.5C2.67157 20 2 19.3284 2 18.5V1.5Z"
           fill={accent}

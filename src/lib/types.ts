@@ -88,6 +88,10 @@ export interface DocumentAttachment {
   sizeBytes: number
   /** Epoch ms when the model emitted the document. */
   createdAt: number
+  /** VA-4 durable identity for selection editing. Live pre-save cards may
+   * omit these until the assistant row is committed. */
+  artifactId?: string
+  revision?: number
 }
 
 export type VisualizationType = 'mermaid' | 'chart' | 'table' | 'svg' | 'html' | 'jsx' | 'react'
@@ -102,6 +106,23 @@ export interface VisualizationAttachment {
   status: 'loading' | 'error' | 'ready'
   error?: string
   createdAt: number
+}
+
+export interface ArtifactEditProposal {
+  id: string
+  artifactId: string
+  baseRevision: number
+  startOffset: number
+  endOffset: number
+  replacement: string
+  proposedContent: string
+  rationale: string | null
+  actorKind: 'user' | 'assistant' | 'system' | 'import'
+  actorId: string | null
+  status: 'pending' | 'accepted' | 'rejected' | 'conflict'
+  acceptedRevision: number | null
+  createdAt: number
+  updatedAt: number
 }
 
 export type ConversationKind = 'local' | 'cloud' | 'worktree'

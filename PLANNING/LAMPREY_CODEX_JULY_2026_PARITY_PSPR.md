@@ -517,7 +517,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **VA-4 — Add selection editing and inline annotations**
 
-- [ ] Let users select Markdown/code/artifact ranges, request revisions in chat, preview a
+- [x] Let users select Markdown/code/artifact ranges, request revisions in chat, preview a
       diff, and accept/reject without losing the prior revision. Persist annotations and
       actor provenance.
 - Verify: range/version-conflict/diff/accept/reject tests and GUI playbook.

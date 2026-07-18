@@ -6,7 +6,8 @@ const mocks = vi.hoisted(() => ({
   createArtifactAnnotation: vi.fn(),
   getArtifact: vi.fn(),
   getArtifactRevision: vi.fn(),
-  listArtifactAnnotations: vi.fn()
+  listArtifactAnnotations: vi.fn(),
+  createArtifactEditProposal: vi.fn()
 }))
 
 vi.mock('electron', () => ({
@@ -15,6 +16,9 @@ vi.mock('electron', () => ({
 }))
 vi.mock('@electron-toolkit/utils', () => ({ is: { dev: true } }))
 vi.mock('./artifact-store', () => mocks)
+vi.mock('./artifact-edit-store', () => ({
+  createArtifactEditProposal: mocks.createArtifactEditProposal
+}))
 
 import './artifact-tool-pack'
 import { toolRegistry } from './tool-registry'
@@ -22,6 +26,7 @@ import { validateToolArguments } from './tool-schema-validator'
 import { __resetPendingArtifactsForTests, drainPendingArtifacts } from './pending-turn-artifacts'
 
 const TOOL_NAMES = [
+  'artifact_propose_edit',
   'create_visualization',
   'update_visualization',
   'artifact_read',
@@ -51,10 +56,20 @@ beforeEach(() => {
     artifactId: 'artifact-1',
     revision: 1
   })
+  mocks.createArtifactEditProposal.mockReturnValue({
+    id: 'proposal-1',
+    artifactId: 'artifact-1',
+    baseRevision: 1,
+    startOffset: 0,
+    endOffset: 1,
+    replacement: 'B',
+    proposedContent: 'B leads to B',
+    status: 'pending'
+  })
 })
 
 describe('VA-2 artifact tool pack', () => {
-  it('registers five strict lazy tools with honest risk metadata', () => {
+  it('registers six strict lazy tools with honest risk metadata', () => {
     for (const name of TOOL_NAMES) {
       const descriptor = toolRegistry.getById(name)
       expect(descriptor, name).toBeDefined()
@@ -209,5 +224,30 @@ describe('VA-2 artifact tool pack', () => {
         actorId: 'model-1'
       })
     )
+  })
+
+  it('creates a non-destructive assistant edit proposal against an exact range', async () => {
+    const result = await toolRegistry.executeNative(
+      'artifact_propose_edit',
+      {
+        artifactId: 'artifact-1',
+        expectedRevision: 1,
+        startOffset: 0,
+        endOffset: 1,
+        replacement: 'B',
+        rationale: 'Clarify the first node'
+      },
+      { model: 'model-1', conversationId: 'conversation-1' }
+    )
+    expect(JSON.parse(String(result))).toMatchObject({ id: 'proposal-1', status: 'pending' })
+    expect(mocks.createArtifactEditProposal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artifactId: 'artifact-1',
+        baseRevision: 1,
+        actorKind: 'assistant',
+        actorId: 'model-1'
+      })
+    )
+    expect(mocks.appendArtifactRevision).not.toHaveBeenCalled()
   })
 })

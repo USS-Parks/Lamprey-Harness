@@ -3,6 +3,7 @@ import type { Database } from 'better-sqlite3'
 import { getDb } from './database'
 import {
   ARTIFACT_TYPES,
+  inferArtifactType,
   legacyArtifactId,
   sandboxPolicyForType,
   type ArtifactActorKind,
@@ -463,6 +464,56 @@ export function linkArtifactToMessage(
         SET source_message_id = ?
       WHERE artifact_id = ? AND source_message_id IS NULL`
   ).run(messageId, artifactId)
+}
+
+export function mirrorMessageDocumentArtifact(
+  input: {
+    conversationId: string
+    messageId: string
+    document: {
+      id: string
+      name: string
+      mimeType: string
+      content: string
+      sizeBytes: number
+      createdAt: number
+    }
+  },
+  database?: Database
+): ArtifactRecord {
+  const db = targetDb(database)
+  const sourceKey = `${input.messageId}:${input.document.id}`
+  const id = legacyArtifactId('document', sourceKey)
+  const existing = getArtifact(id, db)
+  if (existing) return existing
+  const artifactType = inferArtifactType(input.document.mimeType, input.document.name)
+  return createArtifact(
+    {
+      id,
+      conversationId: input.conversationId,
+      sourceMessageId: input.messageId,
+      sourceKind: 'document',
+      sourceKey,
+      artifactType,
+      title: input.document.name,
+      sandboxPolicy: sandboxPolicyForType(artifactType),
+      content: input.document.content,
+      actorKind: 'assistant',
+      exportFilename: input.document.name,
+      exportMimeType: input.document.mimeType,
+      exportMetadata: {
+        legacyDocumentId: input.document.id,
+        sizeBytes: input.document.sizeBytes
+      },
+      provenance: {
+        source: 'messages.documents',
+        legacyDocumentId: input.document.id
+      },
+      revisionMetadata: { importedFrom: 'messages.documents' },
+      createdAt: input.document.createdAt
+    },
+    db
+  )
 }
 
 export function mirrorLegacyResearchArtifact(

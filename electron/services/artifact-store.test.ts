@@ -11,6 +11,7 @@ import {
   listArtifactAnnotations,
   listArtifactRevisions,
   mirrorEphemeralArtifact,
+  mirrorMessageDocumentArtifact,
   mirrorLegacyResearchArtifact
 } from './artifact-store'
 
@@ -273,5 +274,47 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('VA-1 artifact native store', () => {
     expect(mirrorEphemeralArtifact('mermaid', 'graph TD; A-->B', db).id).toBe(preview.id)
     expect(findArtifactBySource('research', 'research-fusion-10.md', db)?.id).toBe(research.id)
     expect(db.prepare('SELECT COUNT(*) AS count FROM artifacts').get()).toEqual({ count: 2 })
+  })
+
+  it('gives new message documents the same deterministic editable artifact identity as backfill', () => {
+    const artifact = mirrorMessageDocumentArtifact(
+      {
+        conversationId: 'conversation-1',
+        messageId: 'message-1',
+        document: {
+          id: 'doc-1',
+          name: 'plan.md',
+          mimeType: 'text/markdown',
+          content: '# Plan',
+          sizeBytes: 6,
+          createdAt: 10
+        }
+      },
+      db
+    )
+    expect(artifact).toMatchObject({
+      sourceKind: 'document',
+      sourceKey: 'message-1:doc-1',
+      sourceMessageId: 'message-1',
+      artifactType: 'markdown',
+      currentRevision: 1
+    })
+    expect(
+      mirrorMessageDocumentArtifact(
+        {
+          conversationId: 'conversation-1',
+          messageId: 'message-1',
+          document: {
+            id: 'doc-1',
+            name: 'plan.md',
+            mimeType: 'text/markdown',
+            content: '# Plan',
+            sizeBytes: 6,
+            createdAt: 10
+          }
+        },
+        db
+      ).id
+    ).toBe(artifact.id)
   })
 })

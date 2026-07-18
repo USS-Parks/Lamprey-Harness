@@ -9196,3 +9196,40 @@ Every card keeps its text alternative visible and provides collapse, isolated-op
 actions. The production build and renderer smoke cover the dynamically split Mermaid bundle.
 
 **Commit:** see git log (VA-3).
+
+## Codex July 2026 Parity — Prompt VA-4 Selection editing and inline annotations — 2026-07-18
+
+**Files changed:** `electron/services/artifact-edit-schema.ts`,
+`electron/services/artifact-edit-store.ts`, `electron/services/db-migrations.ts`,
+`electron/services/artifact-store.ts`, `electron/services/conversation-store.ts`,
+`electron/services/artifact-tool-pack.ts`, `electron/services/chat-events.ts`,
+`electron/ipc/artifact.ts`, `electron/preload.ts`, `src/lib/types.ts`,
+`src/stores/chat-store.ts`, `src/hooks/useChat.ts`,
+`src/components/chat/ArtifactEditorDialog.tsx`,
+`src/components/chat/VisualizationCardRow.tsx`,
+`src/components/chat/DocumentCardRow.tsx`, focused tests,
+`PLANNING/CJ26_ARTIFACT_EDITING_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint ✓
+- native proposal/range/conflict/accept/reject/provenance, tool, migration, renderer-wiring,
+  and deterministic document-mirror cohort ✓ (7 files, 45 tests, 0 skipped under Electron)
+- production build ✓
+- renderer smoke ✓
+- packaged owner GUI playbook authored; execution remains `USER-VERIFICATION-NEEDED`
+
+**Notes:** Migration v26 adds persisted edit proposals bound to an exact immutable base
+revision and UTF-16 source range. Creating a proposal never changes the artifact. Accepting
+one appends a user-provenance revision and records the accepted revision; rejecting leaves the
+current revision untouched; accepting after another writer advances the artifact marks the
+proposal conflicted and fails closed. New and legacy message documents share deterministic
+artifact identities, and document open/copy/download actions resolve the latest accepted
+revision instead of stale message JSON. The shared editor supports exact selection, direct
+replacement preview, chat-requested `artifact_propose_edit`, accept/reject, and revision-bound
+annotations. The chat request explicitly forbids `artifact_update` so model-authored changes
+return as previews. The GUI playbook covers direct edit, model proposal, annotation, rejection,
+stale-conflict, keyboard dismissal, and evidence capture; no owner GUI result is claimed yet.
+
+**Commit:** see git log (VA-4).

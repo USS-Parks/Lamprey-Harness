@@ -3,7 +3,8 @@ import { getDb, withWriteRetry } from './database'
 import { touchProject } from './projects-store'
 import { clearConversationState } from './plan-goal-store'
 import { sanitizePseudoTags } from './sanitize-pseudo-tags'
-import { linkArtifactToMessage } from './artifact-store'
+import { getArtifact, linkArtifactToMessage, mirrorMessageDocumentArtifact } from './artifact-store'
+import { legacyArtifactId } from './artifact-schema'
 import type { StoredArtifactAttachment } from './pending-turn-artifacts'
 
 export interface ConversationRow {
@@ -106,6 +107,8 @@ export interface StoredDocument {
   content: string
   sizeBytes: number
   createdAt: number
+  artifactId?: string
+  revision?: number
 }
 
 export function createConversation(
@@ -754,8 +757,12 @@ export function saveMessage(msg: {
     msg.role === 'assistant' && sanitizedContent !== split.content ? split.content : null
   const toolCallsJson =
     msg.toolCalls && msg.toolCalls.length > 0 ? JSON.stringify(msg.toolCalls) : null
-  const documentsJson =
-    msg.documents && msg.documents.length > 0 ? JSON.stringify(msg.documents) : null
+  const documents = msg.documents?.map((document) => ({
+    ...document,
+    artifactId: document.artifactId ?? legacyArtifactId('document', `${msg.id}:${document.id}`),
+    revision: document.revision ?? 1
+  }))
+  const documentsJson = documents && documents.length > 0 ? JSON.stringify(documents) : null
   const artifactsJson =
     msg.artifacts && msg.artifacts.length > 0 ? JSON.stringify(msg.artifacts) : null
   // PS3 — wrap the message INSERT + touchConversation + FTS sync in
@@ -796,6 +803,13 @@ export function saveMessage(msg: {
         linkArtifactToMessage(artifact.artifactId, msg.conversationId, msg.id, db)
       }
     }
+    for (const document of documents ?? []) {
+      const artifact = mirrorMessageDocumentArtifact(
+        { conversationId: msg.conversationId, messageId: msg.id, document },
+        db
+      )
+      document.revision = artifact.currentRevision
+    }
     touchConversation(msg.conversationId)
     // E3: keep the cross-session FTS index in sync. User/assistant
     // bodies are the ones worth searching; system/tool messages are
@@ -819,7 +833,7 @@ export function saveMessage(msg: {
     toolCalls: msg.toolCalls,
     draft: msg.draft,
     reasoning: split.reasoning,
-    documents: msg.documents,
+    documents,
     artifacts: msg.artifacts,
     stage: msg.stage,
     proofStatus: msg.proofStatus
@@ -864,7 +878,18 @@ export function getMessages(conversationId: string) {
     if (row.documents) {
       try {
         const parsed = JSON.parse(row.documents)
-        if (Array.isArray(parsed)) documents = parsed as StoredDocument[]
+        if (Array.isArray(parsed)) {
+          documents = (parsed as StoredDocument[]).map((document) => {
+            const artifactId =
+              document.artifactId ?? legacyArtifactId('document', `${row.id}:${document.id}`)
+            const artifact = getArtifact(artifactId, db)
+            return {
+              ...document,
+              artifactId: artifact?.id ?? document.artifactId,
+              revision: artifact?.currentRevision ?? document.revision
+            }
+          })
+        }
       } catch {
         // Same corrupt-JSON policy as toolCalls — drop and continue.
       }

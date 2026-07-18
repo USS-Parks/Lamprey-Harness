@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type {
   AgentRunPhase,
+  ArtifactEditProposal,
   Conversation,
   DocumentAttachment,
   Message,
@@ -80,6 +81,7 @@ interface ChatState {
   /** Live visualization cards, keyed by tool call so loading is replaced by
    * ready/error without duplicating the deliverable. */
   streamingVisualizations: VisualizationAttachment[]
+  artifactEditProposals: ArtifactEditProposal[]
   streamStartedAt: number | null
   /** T4 — last streaming-vitals heartbeat (lastChunkAt, chunkCount, etc.).
    *  Null when no stream is active or the provider hasn't fired a heartbeat
@@ -124,6 +126,7 @@ interface ChatState {
   appendReasoningChunk: (content: string) => void
   appendStreamingDocument: (doc: DocumentAttachment) => void
   upsertStreamingVisualization: (visualization: VisualizationAttachment) => void
+  upsertArtifactEditProposal: (proposal: ArtifactEditProposal) => void
   finishStream: (message: Message) => void
   streamError: (error: string) => void
   continueStreamAfterRound: (message: Message) => void
@@ -268,6 +271,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   streamingReasoning: '',
   streamingDocuments: [],
   streamingVisualizations: [],
+  artifactEditProposals: [],
   streamStartedAt: null,
   streamingVitals: null,
   activeModel: 'deepseek-v4-pro',
@@ -303,6 +307,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingReasoning: '',
       streamingDocuments: [],
       streamingVisualizations: [],
+      artifactEditProposals: [],
       streamStartedAt: cachedTurnControl.activeTurn?.startedAt ?? null,
       streamingVitals: null
     })
@@ -541,6 +546,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           streamingReasoning: '',
           streamingDocuments: [],
           streamingVisualizations: [],
+          artifactEditProposals: [],
           streamingVitals: null,
           streamStartedAt: null,
           toolCalls: [],
@@ -618,6 +624,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingReasoning: wasActive ? '' : state.streamingReasoning,
       streamingDocuments: wasActive ? [] : state.streamingDocuments,
       streamingVisualizations: wasActive ? [] : state.streamingVisualizations,
+      artifactEditProposals: wasActive ? [] : state.artifactEditProposals,
       streamingVitals: wasActive ? null : state.streamingVitals,
       streamStartedAt: wasActive ? null : state.streamStartedAt,
       // Drop in-flight chat-side state for the deleted conversation so the
@@ -814,6 +821,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const next = [...state.streamingVisualizations]
       next[index] = visualization
       return { streamingVisualizations: next }
+    })
+  },
+
+  upsertArtifactEditProposal: (proposal: ArtifactEditProposal) => {
+    set((state) => {
+      const index = state.artifactEditProposals.findIndex((entry) => entry.id === proposal.id)
+      if (index === -1) return { artifactEditProposals: [...state.artifactEditProposals, proposal] }
+      const next = [...state.artifactEditProposals]
+      next[index] = proposal
+      return { artifactEditProposals: next }
     })
   },
 

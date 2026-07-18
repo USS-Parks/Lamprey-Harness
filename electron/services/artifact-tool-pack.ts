@@ -19,6 +19,7 @@ import {
 import { sandboxPolicyForType, type ArtifactType } from './artifact-schema'
 import { emitChatEvent } from './chat-events'
 import { upsertPendingArtifact, type StoredArtifactAttachment } from './pending-turn-artifacts'
+import { createArtifactEditProposal } from './artifact-edit-store'
 
 const VISUALIZATION_ENUM = [...VISUALIZATION_TYPES]
 
@@ -67,6 +68,55 @@ function readArtifactResult(artifactId: string, revisionNumber?: number): string
     annotations: listArtifactAnnotations(artifactId, revision.revision)
   })
 }
+
+toolRegistry.registerNative(
+  {
+    id: 'artifact_propose_edit',
+    name: 'artifact_propose_edit',
+    title: 'Propose artifact edit',
+    description:
+      'Propose a replacement for one exact artifact revision range. The user previews and accepts or rejects it; this tool does not change the current revision.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        artifactId: { type: 'string', description: 'Stable artifact id.' },
+        expectedRevision: { type: 'number', description: 'Exact base revision.' },
+        startOffset: { type: 'number', description: 'Inclusive UTF-16 start offset.' },
+        endOffset: { type: 'number', description: 'Exclusive UTF-16 end offset.' },
+        replacement: { type: 'string', description: 'Replacement source for the selected range.' },
+        rationale: { type: 'string', description: 'Short explanation shown in the diff preview.' }
+      },
+      required: ['artifactId', 'expectedRevision', 'startOffset', 'endOffset', 'replacement']
+    },
+    risks: ['write'],
+    requiresApproval: false,
+    enabled: true,
+    mutates: true,
+    lazy: true
+  },
+  async (args, ctx) => {
+    const proposal = createArtifactEditProposal({
+      artifactId: requiredString(args, 'artifactId'),
+      baseRevision: requiredInteger(args, 'expectedRevision'),
+      startOffset: requiredInteger(args, 'startOffset'),
+      endOffset: requiredInteger(args, 'endOffset'),
+      replacement: typeof args.replacement === 'string' ? args.replacement : '',
+      rationale: typeof args.rationale === 'string' ? args.rationale : null,
+      actorKind: 'assistant',
+      actorId: ctx.model ?? null
+    })
+    if (ctx.conversationId) {
+      emitChatEvent('chat:artifact-edit-proposed', {
+        conversationId: ctx.conversationId,
+        proposal
+      })
+    }
+    return JSON.stringify(proposal)
+  }
+)
 
 toolRegistry.registerNative(
   {

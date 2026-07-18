@@ -1,7 +1,12 @@
 import { useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { usePlanStore } from '@/stores/plan-store'
-import type { AgentRunPhase, PlanSnapshot, VisualizationAttachment } from '@/lib/types'
+import type {
+  AgentRunPhase,
+  ArtifactEditProposal,
+  PlanSnapshot,
+  VisualizationAttachment
+} from '@/lib/types'
 import type { TurnSettledEvent, TurnStartedEvent } from '@/lib/turn-control-types'
 
 export function useChat(): void {
@@ -181,6 +186,20 @@ export function useChat(): void {
         })
       : undefined
 
+    const onArtifactEditProposed = (
+      window.api.chat as {
+        onArtifactEditProposed?: (
+          cb: (e: { conversationId: string; proposal: ArtifactEditProposal }) => void
+        ) => () => void
+      }
+    ).onArtifactEditProposed
+    const artifactEditUnsub = onArtifactEditProposed
+      ? onArtifactEditProposed((e) => {
+          if (!matchesActive(e)) return
+          useChatStore.getState().upsertArtifactEditProposal(e.proposal)
+        })
+      : undefined
+
     const onPhase = (
       window.api.chat as {
         onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => unknown
@@ -260,6 +279,7 @@ export function useChat(): void {
       planUnsub?.()
       docUnsub?.()
       visualizationUnsub?.()
+      artifactEditUnsub?.()
       vitalsUnsub?.()
     }
   }, [])

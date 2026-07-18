@@ -1,11 +1,19 @@
 import { ipcMain } from 'electron'
 import * as artifactSandbox from '../services/artifact-sandbox'
 import {
+  createArtifactAnnotation,
   getArtifact,
   getArtifactRevision,
   listArtifactAnnotations,
   mirrorEphemeralArtifact
 } from '../services/artifact-store'
+import {
+  acceptArtifactEditProposal,
+  createArtifactEditProposal,
+  listArtifactEditProposals,
+  rejectArtifactEditProposal
+} from '../services/artifact-edit-store'
+import { validateAnnotationBody } from '../services/artifact-content-validator'
 
 export function registerArtifactHandlers(): void {
   ipcMain.handle('artifact:read', async (_event, artifactId: string, revision?: number) => {
@@ -28,13 +36,92 @@ export function registerArtifactHandlers(): void {
         data: {
           artifact,
           revision: artifactRevision,
-          annotations: listArtifactAnnotations(artifactId, artifactRevision.revision)
+          annotations: listArtifactAnnotations(artifactId, artifactRevision.revision),
+          proposals: listArtifactEditProposals(artifactId)
         }
       }
     } catch (err) {
       return { success: false, error: String(err) }
     }
   })
+
+  ipcMain.handle(
+    'artifact:proposeEdit',
+    async (
+      _event,
+      input: {
+        artifactId: string
+        baseRevision: number
+        startOffset: number
+        endOffset: number
+        replacement: string
+        rationale?: string
+      }
+    ) => {
+      try {
+        return {
+          success: true,
+          data: createArtifactEditProposal({
+            ...input,
+            actorKind: 'user',
+            actorId: 'local-user'
+          })
+        }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    }
+  )
+
+  ipcMain.handle('artifact:acceptEdit', async (_event, proposalId: string) => {
+    try {
+      return {
+        success: true,
+        data: acceptArtifactEditProposal(proposalId, {
+          actorKind: 'user',
+          actorId: 'local-user'
+        })
+      }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('artifact:rejectEdit', async (_event, proposalId: string) => {
+    try {
+      return { success: true, data: rejectArtifactEditProposal(proposalId) }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  })
+
+  ipcMain.handle(
+    'artifact:annotate',
+    async (
+      _event,
+      input: {
+        artifactId: string
+        revision: number
+        startOffset: number
+        endOffset: number
+        body: string
+      }
+    ) => {
+      try {
+        validateAnnotationBody(input.body)
+        return {
+          success: true,
+          data: createArtifactAnnotation({
+            ...input,
+            actorKind: 'user',
+            actorId: 'local-user'
+          })
+        }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    }
+  )
 
   ipcMain.handle('artifact:render', async (_event, type: string, content: string) => {
     try {

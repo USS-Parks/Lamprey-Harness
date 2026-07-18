@@ -228,6 +228,13 @@ const api = {
       ipcRenderer.on('chat:visualization-state', handler)
       return () => ipcRenderer.removeListener('chat:visualization-state', handler)
     },
+    onArtifactEditProposed: (
+      cb: (e: { conversationId: string; proposal: unknown }) => void
+    ): (() => void) => {
+      const handler = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:artifact-edit-proposed', handler)
+      return () => ipcRenderer.removeListener('chat:artifact-edit-proposed', handler)
+    },
     onAsyncEvent: (cb: (e: unknown) => void): (() => void) => {
       const handler = (_: unknown, e: unknown): void => cb(e)
       ipcRenderer.on('async-event:received', handler)
@@ -248,7 +255,8 @@ const api = {
         'chat:phase',
         'chat:streaming-vitals',
         'chat:document-created',
-        'chat:visualization-state'
+        'chat:visualization-state',
+        'chat:artifact-edit-proposed'
       ].forEach((ch) => ipcRenderer.removeAllListeners(ch))
     },
     // Per-conversation subscription that returns an unsubscribe function.
@@ -1126,6 +1134,23 @@ const api = {
   artifact: {
     read: (artifactId: string, revision?: number) =>
       ipcRenderer.invoke('artifact:read', artifactId, revision),
+    proposeEdit: (input: {
+      artifactId: string
+      baseRevision: number
+      startOffset: number
+      endOffset: number
+      replacement: string
+      rationale?: string
+    }) => ipcRenderer.invoke('artifact:proposeEdit', input),
+    acceptEdit: (proposalId: string) => ipcRenderer.invoke('artifact:acceptEdit', proposalId),
+    rejectEdit: (proposalId: string) => ipcRenderer.invoke('artifact:rejectEdit', proposalId),
+    annotate: (input: {
+      artifactId: string
+      revision: number
+      startOffset: number
+      endOffset: number
+      body: string
+    }) => ipcRenderer.invoke('artifact:annotate', input),
     render: (type: string, content: string) => ipcRenderer.invoke('artifact:render', type, content),
     hide: () => ipcRenderer.invoke('artifact:hide'),
     resize: (bounds: { x: number; y: number; width: number; height: number }) =>

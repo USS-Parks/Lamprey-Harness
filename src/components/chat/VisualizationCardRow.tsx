@@ -9,9 +9,10 @@ import {
   type ChartVisualization
 } from '@/lib/visualization-presentation'
 import { toast } from '@/stores/toast-store'
+import { ArtifactEditorDialog } from './ArtifactEditorDialog'
 
 interface ArtifactRevisionPayload {
-  artifact: { exportFilename?: string | null }
+  artifact: { exportFilename?: string | null; currentRevision: number }
   revision: { content: string; revision: number }
 }
 
@@ -34,6 +35,8 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
   const [expanded, setExpanded] = useState(true)
   const [payload, setPayload] = useState<ArtifactRevisionPayload | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -41,7 +44,7 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
     setLoadError(null)
     if (visualization.status !== 'ready' || !visualization.artifactId) return () => undefined
     void window.api.artifact
-      .read(visualization.artifactId, visualization.revision ?? undefined)
+      .read(visualization.artifactId)
       .then((result) => {
         if (cancelled) return
         if (!result.success) {
@@ -56,7 +59,7 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
     return () => {
       cancelled = true
     }
-  }, [visualization.artifactId, visualization.revision, visualization.status])
+  }, [refreshKey, visualization.artifactId, visualization.status])
 
   const content = payload?.revision.content
   const status = visualization.status === 'ready' && !content ? 'loading' : visualization.status
@@ -118,6 +121,14 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
         </button>
         <button
           type="button"
+          onClick={() => setEditorOpen(true)}
+          disabled={!visualization.artifactId || !content}
+          className="rounded px-2 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] disabled:opacity-40"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
           onClick={exportArtifact}
           disabled={!content}
           className="rounded px-2 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] disabled:opacity-40"
@@ -143,6 +154,14 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
             {visualization.fallbackText}
           </p>
         </div>
+      )}
+      {editorOpen && visualization.artifactId && (
+        <ArtifactEditorDialog
+          artifactId={visualization.artifactId}
+          title={visualization.title}
+          onClose={() => setEditorOpen(false)}
+          onRevisionAccepted={() => setRefreshKey((value) => value + 1)}
+        />
       )}
     </section>
   )

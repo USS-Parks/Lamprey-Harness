@@ -8,6 +8,7 @@ import { TURN_CONTROL_SCHEMA_SQL } from './turn-control-schema'
 import { FORK_TURN_SCHEMA_SQL } from './fork-turn-schema'
 import { TASK_LIFECYCLE_SCHEMA_SQL } from './task-lifecycle-schema'
 import { applyArtifactSchema } from './artifact-schema'
+import { ARTIFACT_EDIT_SCHEMA_SQL } from './artifact-edit-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -309,6 +310,13 @@ export const MIGRATIONS: Migration[] = [
       } catch (err: any) {
         if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
       }
+    }
+  },
+  {
+    version: 26,
+    description: 'Codex July parity VA-4 — immutable artifact edit proposals',
+    up(db) {
+      db.exec(ARTIFACT_EDIT_SCHEMA_SQL)
     }
   }
 ]

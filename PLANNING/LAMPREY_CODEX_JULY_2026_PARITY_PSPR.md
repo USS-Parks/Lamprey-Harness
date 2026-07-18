@@ -395,6 +395,22 @@ CDP observation service, and event/monitor automation triggers.
   message/turn-start; existing Steering/turn-settlement/ghost-reply suites;
   `verify:proof -- --no-tests`; tsc ×2.
 
+#### **ST-10B — Restore native DB skip-accounting truth**
+
+> **Gate-integrity addendum (2026-07-18):** ST-10A's final receipt proved that
+> `verify:proof` treated `require('better-sqlite3')` as a successful native load even when
+> constructing `new Database(':memory:')` failed with the active Node/Electron ABI mismatch.
+> The gate therefore contradicted Vitest's nine honest native-DB skips.
+
+- [x] Make the proof probe construct and close an in-memory database, matching the guarded
+      suites' real capability check; keep accounting informational and list the same bounded
+      cohort when construction fails.
+- [x] Add an end-to-end regression that compares accounting output with the direct
+      construction probe so lazy module loading cannot produce another false positive.
+- Files: `scripts/verify-proof.cjs`, skip-accounting tests, PSPR, DEVLOG.
+- Verify: accounting-only regression; direct probe/output agreement;
+  `verify:proof -- --no-tests`; tsc ×2.
+
 #### **ST-11 — Run the complete Steering conformance gate**
 - [ ] Complete automated contract coverage for all 20 §1 rows and run
       `CJ26_SMOKE_PLAYBOOK.md` against both current Codex and the built Lamprey app using the

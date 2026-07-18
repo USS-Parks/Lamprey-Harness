@@ -34,10 +34,17 @@ const listNativeSkipsOnly = process.argv.includes('--list-native-skips')
 // ---------------------------------------------------------------------------
 
 function nativeSqliteLoads() {
-  const probe = spawnSync(process.execPath, ['-e', "require('better-sqlite3')"], {
-    cwd: root,
-    encoding: 'utf8'
-  })
+  // Requiring the package only loads its JavaScript wrapper; the native
+  // binding is resolved lazily on first construction. Match the guarded test
+  // suites by opening and closing a real in-memory database.
+  const probe = spawnSync(
+    process.execPath,
+    [
+      '-e',
+      "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close()"
+    ],
+    { cwd: root, encoding: 'utf8' }
+  )
   return probe.status === 0
 }
 

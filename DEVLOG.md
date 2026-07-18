@@ -8732,3 +8732,34 @@ The nine skipped tests are the existing `better-sqlite3`-backed
 queue positions, recovery, and cascade behavior without that native-addon skip.
 
 **Commit:** see git log (ST-10A).
+
+## Codex July 2026 Parity - Prompt ST-10B Native DB skip-accounting truth - 2026-07-18
+
+**Files changed:** `scripts/verify-proof.cjs`,
+`electron/services/verify-proof-skip-accounting.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- accounting-only command correctly reports `better-sqlite3` unavailable and lists 16
+  ABI-guarded test files
+- focused proof-accounting plus turn-control DB cohort OK
+  (3 files: 2 passed, 1 skipped; 13 tests passed, 9 skipped)
+- direct in-memory construction and accounting output agree
+- lint OK
+- tsc node OK
+- tsc web OK
+- bundle smoke OK
+- renderer smoke OK
+- `verify:proof -- --no-tests` exits 0 and now reports the native skips truthfully
+
+**Notes:** The old SP-9 probe called only `require('better-sqlite3')`. The package resolves
+its native binding lazily, so that JavaScript-only import returned success even though
+`new Database(':memory:')` failed because the binding was compiled for
+`NODE_MODULE_VERSION 148` while the active Node requires 137. The proof gate therefore
+claimed all native suites ran while Vitest honestly skipped the nine
+`turn-control-store.test.ts` cases. The probe now constructs and closes the same in-memory
+database used by guarded suites. Its end-to-end regression independently runs that direct
+construction and requires the accounting output to agree, preventing a lazy-load false
+positive. Accounting remains informational; the passing no-addon `node:sqlite` integration
+cohort remains the current automated DB evidence for Steering.
+
+**Commit:** see git log (ST-10B).

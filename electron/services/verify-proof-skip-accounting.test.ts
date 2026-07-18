@@ -10,6 +10,14 @@ import { join } from 'node:path'
 const repoRoot = join(__dirname, '..', '..')
 
 describe('SP-9 verify:proof native-skip accounting (D7)', () => {
+  const directConstruction = spawnSync(
+    process.execPath,
+    [
+      '-e',
+      "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close()"
+    ],
+    { cwd: repoRoot, encoding: 'utf8', timeout: 60_000 }
+  )
   const run = spawnSync(
     process.execPath,
     [join(repoRoot, 'scripts', 'verify-proof.cjs'), '--list-native-skips'],
@@ -31,6 +39,16 @@ describe('SP-9 verify:proof native-skip accounting (D7)', () => {
     const match = output.match(/(\d+)\s+(?:ABI-guarded )?test file\(s\)/)
     expect(match).not.toBeNull()
     expect(Number(match![1])).toBeGreaterThan(0)
+  })
+
+  it('agrees with direct database construction rather than lazy package loading', () => {
+    if (directConstruction.status === 0) {
+      expect(output).toContain('native binding loads')
+      expect(output).not.toContain('does NOT load')
+    } else {
+      expect(output).toContain('native binding does NOT load')
+      expect(output).not.toContain('native binding loads under this Node')
+    }
   })
 
   it('when the binding does not load, the cohort is listed file-by-file', () => {

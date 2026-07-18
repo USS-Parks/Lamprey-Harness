@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', () => ({
   BrowserWindow: { getAllWindows: () => [] },
@@ -32,17 +32,19 @@ vi.mock('./conversation-store', () => ({
   ]
 }))
 
-import {
-  __forceAsyncEventMemoryFallback,
-  __resetAsyncEventBridge,
-  listPendingAsyncEvents
-} from './async-event-bridge'
-import { listActiveSessions, sendSessionMessage } from './cross-session-messaging'
+const { send } = vi.hoisted(() => ({
+  send: vi.fn(() => ({
+    id: 'follow-up-1',
+    targetConversationId: 'target',
+    mode: 'queue',
+    status: 'queued',
+    duplicate: false,
+    createdAt: 3
+  }))
+}))
+vi.mock('./task-delivery', () => ({ taskDelivery: { send } }))
 
-beforeEach(() => {
-  __resetAsyncEventBridge()
-  __forceAsyncEventMemoryFallback()
-})
+import { listActiveSessions, sendSessionMessage } from './cross-session-messaging'
 
 describe('G4 cross-session messaging', () => {
   it('lists active sessions from unarchived conversations', () => {
@@ -56,7 +58,7 @@ describe('G4 cross-session messaging', () => {
     ])
   })
 
-  it('enqueues incoming messages through the async-event bridge', () => {
+  it('preserves send_to_session through canonical next-turn Queue delivery', () => {
     const sent = sendSessionMessage({
       targetSessionId: 'target',
       fromSessionId: 'source',
@@ -65,9 +67,12 @@ describe('G4 cross-session messaging', () => {
 
     expect(sent.targetSessionId).toBe('target')
     expect(sent.fromSessionId).toBe('source')
-    const pending = listPendingAsyncEvents('target')
-    expect(pending).toHaveLength(1)
-    expect(pending[0].kind).toBe('sessions:incoming-message')
-    expect(pending[0].payload.body).toBe('The workflow finished.')
+    expect(send).toHaveBeenCalledWith({
+      targetConversationId: 'target',
+      body: 'The workflow finished.',
+      mode: 'queue',
+      sourceConversationId: 'source',
+      sourceTaskId: 'source'
+    })
   })
 })

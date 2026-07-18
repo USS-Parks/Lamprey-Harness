@@ -1,5 +1,5 @@
 import { getConversation, listConversations } from './conversation-store'
-import { enqueueAsyncEvent } from './async-event-bridge'
+import { taskDelivery } from './task-delivery'
 
 export interface ActiveSession {
   id: string
@@ -36,15 +36,12 @@ export function sendSessionMessage(input: {
   if (!input.targetSessionId) throw new Error('targetSessionId required')
   if (!getConversation(input.targetSessionId)) throw new Error('target session not found')
   if (!input.body || typeof input.body !== 'string') throw new Error('body required')
-  const row = enqueueAsyncEvent({
-    conversationId: input.targetSessionId,
-    kind: 'sessions:incoming-message',
-    payload: {
-      title: 'Incoming session message',
-      fromSessionId: input.fromSessionId ?? null,
-      targetSessionId: input.targetSessionId,
-      body: input.body
-    }
+  const row = taskDelivery.send({
+    targetConversationId: input.targetSessionId,
+    body: input.body,
+    mode: 'queue',
+    sourceConversationId: input.fromSessionId ?? null,
+    sourceTaskId: input.fromSessionId ?? null
   })
   return {
     id: row.id,

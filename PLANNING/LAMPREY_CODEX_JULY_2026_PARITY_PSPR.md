@@ -463,7 +463,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-3 — Add send, steer, queue, and interrupt task tools**
 
-- [ ] Replace duplicated delivery logic beneath `send_to_session` with a shared service and
+- [x] Replace duplicated delivery logic beneath `send_to_session` with a shared service and
       add `send_to_task` delivery modes plus `interrupt_task`. Steer routes through M1 and
       requires expected turn identity; Queue preserves next-turn semantics.
 - Verify: target/race/attribution/approval tests; `send_to_session` compatibility tests.

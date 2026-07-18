@@ -8907,3 +8907,24 @@ signals without polling SQLite or occupying the main process between events. The
 lazy-discoverable through the existing tool registry and retain its schema and audit path.
 
 **Commit:** see git log (TC-2).
+## Codex July 2026 Parity — Prompt TC-3 Task delivery controls — 2026-07-18
+
+**Files changed:** `electron/services/task-delivery.ts`,
+`electron/services/task-delivery.test.ts`, `electron/services/cross-session-messaging.ts`,
+`electron/services/cross-session-messaging.test.ts`,
+`electron/services/notifications-tool-pack.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused delivery, `send_to_session` compatibility, exact interruption, turn-control,
+  tool-registry, schema, and lazy-surface suites ✓ (67 tests, 0 skipped)
+
+**Notes:** One shared delivery service now backs both the compatibility
+`send_to_session` tool and the new `send_to_task`. Queue is the durable next-turn path;
+Steer requires the exact running turn and retains M1 race rejection, attribution,
+idempotency, approval, and audit behavior. Rejected Steering is never converted to Queue.
+`interrupt_task` is separately destructive and approval-gated, and delegates to the
+existing exact-turn interrupt action without terminal or process-kill authority.
+
+**Commit:** see git log (TC-3).

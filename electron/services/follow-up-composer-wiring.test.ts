@@ -23,12 +23,22 @@ describe('ST-9 follow-up composer UX wiring', () => {
     expect(input).toContain("if (e.key === 'Tab' && isStreaming)")
     expect(input).toContain('handleSubmit(alternateFollowUpBehavior)')
     expect(input).toMatch(/if \(e\.key === 'Enter' && !e\.shiftKey\)[\s\S]*?handleSubmit\(\)/)
-    expect(input).toContain('data-follow-up-action={followUpBehavior}')
     expect(input).toContain('aria-label="Stop current turn"')
-    expect(input).toContain('aria-label={`${followUpLabel} follow-up`}')
     expect(input).toContain('Your draft is still editable.')
     const canSend = input.slice(input.indexOf('const canSend ='), input.indexOf('const planMode ='))
     expect(canSend).not.toContain('!isStreaming')
+  })
+
+  it('uses the Codex running-composer pattern instead of a prominent Steer button', () => {
+    const input = read('src/components/chat/ChatInput.tsx')
+    const actions = input.slice(
+      input.indexOf('{isStreaming ? ('),
+      input.indexOf(') : memoryShortcut ? (')
+    )
+    expect(actions).toContain('className="flex h-9 w-9')
+    expect(actions).not.toContain('data-follow-up-action')
+    expect(actions).not.toContain('min-w-[72px]')
+    expect(actions).toContain('aria-label="Stop current turn"')
   })
 
   it('renders Queue and recoverable drafts above the composer with all management actions', () => {
@@ -45,6 +55,9 @@ describe('ST-9 follow-up composer UX wiring', () => {
     }
     expect(queue).toContain("['rejected', 'recovered']")
     expect(queue).toContain("'Recoverable follow-up draft'")
+    expect(queue).toContain('aria-label="Steering follow-up pending delivery"')
+    expect(queue).toContain("record.deliveryMode === 'steer' && record.status === 'accepted'")
+    expect(queue).toContain('Steer')
     expect(queue).toContain('role="status"')
     expect(view.indexOf('<FollowUpQueue />')).toBeLessThan(view.indexOf('<ChatInput'))
   })

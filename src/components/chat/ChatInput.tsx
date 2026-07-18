@@ -31,7 +31,6 @@ import autoReviewIcon from '@assets/Lamprey Auto-Review Icon.png'
 import fullAccessIcon from '@assets/Lamprey Full Access Icon.png'
 import micIcon from '@assets/Lamprey Microphone Icon.png'
 import sendIcon from '@assets/Lamprey Prompt Enter Icon.png'
-import stopIcon from '@assets/Lamprey Chat Pill Stop Icon Light View.png'
 import workLocationIcon from '@assets/Lamprey Work Location Icon.png'
 import folderIcon from '@assets/Lamprey Folder 1 Icon.png'
 import worktreeIcon from '@assets/Lamprey Worktree Icon.png'
@@ -1442,31 +1441,17 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           />
 
           {isStreaming ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                disabled={!canSend || followUpSubmitting}
-                title={`${followUpLabel} (Enter) · ${alternateFollowUpLabel} (Tab)`}
-                aria-label={`${followUpLabel} follow-up`}
-                data-follow-up-action={followUpBehavior}
-                className="flex h-[60px] min-w-[72px] items-center justify-center rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-white transition-all hover:scale-105 hover:opacity-90 disabled:opacity-40 disabled:hover:scale-100"
-              >
-                {followUpLabel}
-              </button>
+            <div className="flex shrink-0 items-center self-end">
               <button
                 type="button"
                 onClick={onCancel}
                 title={activeTurn ? `Stop turn ${activeTurn.turnId}` : 'Stop current turn'}
                 aria-label="Stop current turn"
-                className="group flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--error)]"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] transition-[background-color,color,transform] hover:scale-[1.03] hover:bg-[var(--error)] hover:text-white"
               >
-                <img
-                  src={stopIcon}
-                  alt=""
-                  aria-hidden
-                  className="icon-asset-crisp themed-variant-light h-[45px] w-[45px] object-contain"
-                />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
               </button>
             </div>
           ) : memoryShortcut ? (

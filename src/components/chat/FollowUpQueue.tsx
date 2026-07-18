@@ -11,6 +11,43 @@ function attachmentLabel(record: TurnFollowUpRecord): string | null {
   return `${attachments.length} image attachment${attachments.length === 1 ? '' : 's'}`
 }
 
+function PendingSteerCard({ record }: { record: TurnFollowUpRecord }) {
+  const attachment = attachmentLabel(record)
+  return (
+    <article
+      aria-label="Steering follow-up pending delivery"
+      data-follow-up-status={record.status}
+      className="flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
+      title="Steering accepted; waiting for the next safe model boundary"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="shrink-0 text-[var(--text-muted)]"
+        aria-hidden
+      >
+        <path d="M9 7H5v4M5 11c1.8-3.7 5.2-5.5 9.1-4.7 3.2.7 5.7 3.2 6.4 6.4" />
+      </svg>
+      <span className="min-w-0 flex-1 truncate">
+        {followUpText(record.input) || attachment || 'Attachment follow-up'}
+      </span>
+      {attachment && followUpText(record.input) && (
+        <span className="shrink-0 text-[11px] text-[var(--text-muted)]">· {attachment}</span>
+      )}
+      <span className="flex shrink-0 items-center gap-1 text-[12px] text-[var(--text-muted)]">
+        <span aria-hidden>↪</span>
+        Steer
+      </span>
+    </article>
+  )
+}
+
 function FollowUpCard({
   record,
   queuedIndex,
@@ -187,6 +224,11 @@ function FollowUpCard({
 
 export function FollowUpQueue() {
   const followUps = useChatStore((state) => state.followUps)
+  const pendingSteers = useMemo(
+    () =>
+      followUps.filter((record) => record.deliveryMode === 'steer' && record.status === 'accepted'),
+    [followUps]
+  )
   const queued = useMemo(
     () =>
       followUps
@@ -198,10 +240,13 @@ export function FollowUpQueue() {
     () => followUps.filter((record) => ['rejected', 'recovered'].includes(record.status)),
     [followUps]
   )
-  if (queued.length === 0 && drafts.length === 0) return null
+  if (pendingSteers.length === 0 && queued.length === 0 && drafts.length === 0) return null
 
   return (
     <section aria-label="Follow-up Queue" className="mb-2 space-y-2">
+      {pendingSteers.map((record) => (
+        <PendingSteerCard key={record.id} record={record} />
+      ))}
       {queued.map((record, index) => (
         <FollowUpCard
           key={record.id}

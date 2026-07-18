@@ -107,7 +107,7 @@ describe('spawnTask', () => {
     ])
   })
 
-  it('registers spawn_task as a mutating native tool', async () => {
+  it('registers spawn_task as a mutating native tool', { timeout: 30_000 }, async () => {
     await import('./spawn-task-tool-pack')
     const { toolRegistry } = await import('./tool-registry')
     const descriptor = toolRegistry.getById('spawn_task')

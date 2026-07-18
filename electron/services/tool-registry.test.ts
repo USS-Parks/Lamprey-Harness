@@ -25,7 +25,7 @@ vi.mock('@electron-toolkit/utils', () => ({ is: { dev: true } }))
 // registrations left in the file) must be present.
 
 describe('tool-registry module load', () => {
-  it('imports without TDZ errors and exposes the toolRegistry singleton', async () => {
+  it('imports without TDZ errors and exposes the toolRegistry singleton', { timeout: 30_000 }, async () => {
     const mod = await import('./tool-registry')
     expect(mod.toolRegistry).toBeDefined()
     expect(typeof mod.toolRegistry.registerNative).toBe('function')

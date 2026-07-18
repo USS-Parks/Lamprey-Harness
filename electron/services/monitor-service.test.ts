@@ -58,7 +58,7 @@ describe('F4 — background shell', () => {
     // Wait deterministically for the bg-exit event for this process so
     // the assertions don't depend on a fixed timeout.
     await new Promise<void>((resolveExit, rejectExit) => {
-      const timer = setTimeout(() => rejectExit(new Error('bg-exit timeout')), 5000)
+      const timer = setTimeout(() => rejectExit(new Error('bg-exit timeout')), 15_000)
       const onExit = (evt: any) => {
         if (evt?.processId === handle.id) {
           clearTimeout(timer)
@@ -197,4 +197,3 @@ describe('F4 — monitor service', () => {
     expect(listMonitors().map((m) => m.id)).toEqual([b.id])
   })
 })
-

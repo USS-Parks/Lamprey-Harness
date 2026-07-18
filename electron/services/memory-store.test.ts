@@ -355,8 +355,8 @@ describe('D2 — MEMORY.md always-loaded index + broken-link graph', () => {
   })
 
   // 210 file writes are load-sensitive under full-suite parallelism; the
-  // default 15s deadline flakes on a busy machine (passes in isolation).
-  it('truncates the injected block at 200 entries', { timeout: 60_000 }, () => {
+  // 120s was insufficient under full-suite Windows real-time scanning.
+  it('truncates the injected block at 200 entries', { timeout: 240_000 }, () => {
     memStore.initializeMemoryStore()
     for (let i = 0; i < 210; i++) {
       memStore.writeMemoryFile({

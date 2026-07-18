@@ -17,7 +17,7 @@ vi.mock('@electron-toolkit/utils', () => ({ is: { dev: true } }))
 // here mostly mechanical mocking).
 
 describe('mark_chapter tool descriptor', () => {
-  it('is registered with mutates: false', async () => {
+  it('is registered with mutates: false', { timeout: 30_000 }, async () => {
     const { toolRegistry } = await import('./tool-registry')
     const d = toolRegistry.getById('mark_chapter')
     expect(d).toBeDefined()

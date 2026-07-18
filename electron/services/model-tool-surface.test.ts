@@ -98,7 +98,7 @@ describe('isAlreadyAvailable', () => {
 })
 
 describe('toolRegistry lazy surface (integration)', () => {
-  it('getModelToolSurface returns core + tool_search, and every catalog tool is reachable via search', async () => {
+  it('getModelToolSurface returns core + tool_search, and every catalog tool is reachable via search', { timeout: 120_000 }, async () => {
     await import('./tool-packs') // register native catalog
     const { toolRegistry } = await import('./tool-registry')
 

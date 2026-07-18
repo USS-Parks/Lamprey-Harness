@@ -61,6 +61,10 @@ Symptom of a different cause: if the EPERM message references a path outside `no
 
 Three processes, one preload bridge:
 
+Task/thread work must extend `electron/services/task-graph.ts` and the canonical
+conversation, run, identity, and turn stores. Do not add a duplicate task transcript,
+dispatcher, or renderer-side IPC escape hatch.
+
 - `electron/main.ts` — entry. Wires IPC, sets up the artifact CSP, owns the BrowserWindow lifecycle.
 - `electron/ipc/` — per-domain IPC handler files (`chat.ts`, `conversation.ts`, `memory.ts`, etc.). Every handler returns `{ success: true, data: T }` or `{ success: false, error: string }`.
 - `electron/services/` — business logic (DeepSeek client, SQLite store, MCP manager, skill watcher, artifact sandbox, keychain, tray, updater).

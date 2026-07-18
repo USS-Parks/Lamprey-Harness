@@ -11,10 +11,11 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 ## Current roster
 
 `LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md` is the current canonical roster.
-Its Steering and Queue milestone shipped as v0.20.0. Later milestones remain
-unapproved and must not start from the v0.20.0 release instruction alone. The
-paired Codex/Lamprey Steering replay remains an open evidence gate; the release
-is implementation-complete, not parity-complete.
+Its Steering and Queue milestone shipped as v0.20.0, and its independently approved
+Task and Thread Control milestone shipped as v0.21.0. Later milestones remain unapproved
+and must not start from either release instruction alone. The paired Steering replay and
+packaged task-control GUI playbook remain open evidence gates; these releases are
+implementation-complete, not parity-complete.
 
 ---
 

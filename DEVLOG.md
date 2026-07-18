@@ -9009,3 +9009,40 @@ back to Queue. `PLANNING/CJ26_TASK_CONTROL_PLAYBOOK.md` defines the packaged own
 mechanical implementation gates pass, while the owner GUI run remains a TC-7 release check.
 
 **Commit:** see git log (TC-6).
+
+## Codex July 2026 Parity — Prompt TC-7 v0.21.0 release cut — 2026-07-18
+
+**Files changed:** `ARCHITECTURE/TASK_AND_THREAD_CONTROL.md`,
+`PLANNING/CJ26_TASK_CONTROL_AFTER.md`, `RELEASE_NOTES/v0.21.0.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `PLANNING/README.md`,
+`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `package.json`,
+`package-lock.json`, `electron/services/workflow-meta.ts`,
+`electron/services/chapters-mark-tool.test.ts`,
+`electron/services/tool-registry.test.ts`,
+`electron/services/model-tool-surface.test.ts`,
+`electron/services/memory-store.test.ts`, `electron/services/monitor-service.test.ts`,
+`electron/services/spawn-task.test.ts`, `DEVLOG.md`
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- default-concurrency full Vitest ✓ (210 files passed, 13 skipped;
+  2,652 tests passed, 143 skipped, 0 failed)
+- Electron ABI-148 native migration/schema suites RUN ✓ (19 tests, 0 skipped)
+- production build ✓
+- `verify:proof` exit 0 ✓ (full suite repeated; bundle + renderer smokes pass)
+
+**Notes:** v0.21.0 is the Task and Thread Control release. TC-1 through TC-6 remain
+separate gated commits; this wrap reconciles the architecture record, AFTER matrix,
+release notes, package/lock versions, README, both tracked agent-governance mirrors,
+contributor rules, planning index, canonical PSPR, and DEVLOG. The gate uncovered a real
+load-sensitive workflow defect: the pure-literal VM evaluator's 100ms bound could reject
+valid workflow metadata on a busy Windows host. Its execution guard remains bounded but is
+now one second. Proven Windows real-time-scanning deadlines in import/process/file-heavy
+tests were widened without changing assertions. The host Node still skips 16
+Electron-ABI native cohorts; M2's exact database claims were separately run through the
+Electron binary and passed 19/19. The packaged owner task-control GUI playbook remains
+`USER-VERIFICATION-NEEDED`, so the release is implementation-complete, not a blanket
+current-Codex parity claim. Existing untracked `.agents/` remains untouched and unstaged.
+
+**Commit:** see git log (TC-7 release cut).

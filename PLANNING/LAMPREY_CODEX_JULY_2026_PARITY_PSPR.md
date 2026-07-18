@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M2 STS IN PROGRESS; M1 RELEASED WITH PAIRED PARITY EVIDENCE OPEN**
+**Status:** **M2 IMPLEMENTATION COMPLETE — v0.21.0 RELEASE CANDIDATE; OWNER GUI EVIDENCE OPEN**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -88,7 +88,7 @@ waive these invariants:
 | --------- | ---------- | ----------------------------------------------------- | ----------------- | ------------------------------------- |
 | M0        | CJP-0      | Dated Codex/Lamprey baseline and conformance fixtures | none              | documentation only                    |
 | M1        | ST-1–ST-12 | Full Steering + Queue behavior                        | M0                | v0.20.0                               |
-| M2        | TC-1–TC-7  | Model- and user-facing task/thread control suite      | M1                | independent minor                     |
+| M2        | TC-1–TC-7  | Model- and user-facing task/thread control suite      | M1                | v0.21.0                               |
 | M3        | VA-1–VA-6  | Inline visualizations + direct artifact editing       | M1                | independent minor                     |
 | M4        | CM-1–CM-6  | Sandboxed Code Mode orchestration                     | M1, threat gate   | independent minor; OFF by default     |
 | M5        | PR-1–PR-6  | PR Chat and patch review workflow                     | M1                | independent minor                     |
@@ -489,7 +489,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-7 — Task-control milestone wrap**
 
-- [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
+- [x] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate and owner task-control smoke.
 
 ### M3 — Inline visualizations and direct artifact editing

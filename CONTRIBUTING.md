@@ -65,6 +65,10 @@ Task/thread work must extend `electron/services/task-graph.ts` and the canonical
 conversation, run, identity, and turn stores. Do not add a duplicate task transcript,
 dispatcher, or renderer-side IPC escape hatch.
 
+Artifact and visualization work must extend the canonical `artifacts`, immutable
+`artifact_revisions`, `artifact_annotations`, and `artifact_edit_proposals` ledgers. Never
+inject interactive artifact source into the chat DOM or bypass `electron/ipc/artifact.ts`.
+
 - `electron/main.ts` — entry. Wires IPC, sets up the artifact CSP, owns the BrowserWindow lifecycle.
 - `electron/ipc/` — per-domain IPC handler files (`chat.ts`, `conversation.ts`, `memory.ts`, etc.). Every handler returns `{ success: true, data: T }` or `{ success: false, error: string }`.
 - `electron/services/` — business logic (DeepSeek client, SQLite store, MCP manager, skill watcher, artifact sandbox, keychain, tray, updater).

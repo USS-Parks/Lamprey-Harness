@@ -9264,3 +9264,32 @@ after the sandbox window acknowledges creation. Conversation switches and deleti
 conversation-scoped direct activity buffer without changing durable artifact history.
 
 **Commit:** see git log (VA-5).
+
+## Codex July 2026 Parity — Prompt VA-6 Visualization/artifact milestone wrap — 2026-07-18
+
+**Files changed:** `ARCHITECTURE/ARTIFACTS_AND_VISUALIZATIONS.md`,
+`PLANNING/CJ26_ARTIFACTS_AFTER.md`, `RELEASE_NOTES/v0.22.0.md`, `README.md`,
+`PLANNING/README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `package.json`,
+`package-lock.json`, `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- `npm.cmd run verify:all` exit 0 ✓
+- production Electron/Vite build ✓
+- repository ESLint ✓
+- tsc node ✓
+- tsc web ✓
+- full host Vitest ✓ (218 files passed / 15 skipped; 2,688 tests passed / 159 skipped)
+- bundle smoke ✓ (`out\\main\\index.js` loaded in 577 ms)
+- renderer smoke ✓ (HTML, two referenced assets, and root mount verified)
+- Electron-native M3 database cohort ✓ (5 files, 38 tests, 0 skipped)
+- packaged owner GUI playbook remains `USER-VERIFICATION-NEEDED`
+
+**Notes:** v0.22.0 is a local implementation-complete cut for VA-1 through VA-6. The
+architecture record fixes the canonical ledger, invocation, sandbox, rendering, revision,
+activity, and verification boundaries. Current-state docs and release notes distinguish this
+local cut from the published v0.21.0 downloads. The host proof gate correctly disclosed 18
+native-DB files skipped under Node's incompatible `better-sqlite3` ABI; the exact M3 schema,
+artifact store, edit proposal, migration, and conversation-store suites were rerun under
+Electron 43 and all 38 tests executed. No push, tag, release, Bucket run, or M4 work was
+authorized or performed. The untracked `.agents/` directory remained untouched and unstaged.
+
+**Commit:** see git log (VA-6).

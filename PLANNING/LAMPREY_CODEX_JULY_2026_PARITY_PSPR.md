@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M2 RELEASED AS v0.21.0; OWNER GUI EVIDENCE OPEN**
+**Status:** **M3 LOCALLY COMPLETE AS v0.22.0; NOT PUBLISHED; OWNER GUI EVIDENCE OPEN**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -530,7 +530,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **VA-6 — Visualization/artifact milestone wrap**
 
-- [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
+- [x] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate and owner visualization/editing smoke.
 
 ### M4 — Sandboxed Code Mode

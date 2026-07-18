@@ -3,7 +3,10 @@ import {
   applyTurnSettledEvent,
   applyTurnStartedEvent,
   getConversationFollowUpState,
+  followUpText,
+  moveQueuedFollowUp,
   reconcileTurnControlSnapshot,
+  replaceFollowUpText,
   selectQueuedFollowUps,
   selectRecoverableDrafts,
   type ConversationFollowUpState,
@@ -135,5 +138,23 @@ describe('ST-8 per-conversation follow-up state', () => {
       revision: 1
     }
     expect(selectRecoverableDrafts(state).map((item) => item.id)).toEqual(['rejected', 'recovered'])
+  })
+
+  it('reorders Queue deterministically and leaves boundary moves stable', () => {
+    const queued = [followUp('q2', 'queued', 1), followUp('q1', 'queued', 0)]
+    expect(moveQueuedFollowUp(queued, 'q2', -1)).toEqual(['q2', 'q1'])
+    expect(moveQueuedFollowUp(queued, 'q1', -1)).toEqual(['q1', 'q2'])
+    expect(moveQueuedFollowUp(queued, 'missing', 1)).toEqual(['q1', 'q2'])
+  })
+
+  it('edits text without dropping or reordering attachment items', () => {
+    const input = [
+      { type: 'image' as const, imageUrl: 'data:image/png;base64,AA==' },
+      { type: 'text' as const, text: 'before' },
+      { type: 'localImage' as const, path: 'C:\\tmp\\after.png' }
+    ]
+    const edited = replaceFollowUpText(input, 'after')
+    expect(edited).toEqual([input[0], { type: 'text', text: 'after' }, input[2]])
+    expect(followUpText(edited)).toBe('after')
   })
 })

@@ -375,6 +375,8 @@ export interface AppSettings {
   minimizeToTray: boolean
   autoCheckUpdates: boolean
   aiGeneratedTitles: boolean
+  /** Default action for composer submissions while a turn is running. */
+  followUpBehavior: 'steer' | 'queue'
   modelConfig: Record<string, ModelConfig>
   customModels: ModelInfo[]
   windowBounds?: WindowBounds

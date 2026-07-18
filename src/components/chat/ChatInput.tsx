@@ -22,12 +22,7 @@ import {
   historyUp,
   type PromptHistoryState
 } from '@/lib/prompt-history'
-import {
-  currentSlot,
-  nextMode,
-  slotLabel,
-  type ModeSlot
-} from '@/lib/mode-cycle'
+import { currentSlot, nextMode, slotLabel, type ModeSlot } from '@/lib/mode-cycle'
 import { usePlanMode } from '@/hooks/usePlanMode'
 import type { ModelInfo, ProcessedFile } from '@/lib/types'
 
@@ -86,7 +81,17 @@ function blobToDataURL(blob: Blob): Promise<string> {
 
 function ChevronDown() {
   return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M6 9l6 6 6-6" />
     </svg>
   )
@@ -113,7 +118,11 @@ function DropdownButton({ open, onToggle, children, title }: DropdownButtonProps
   )
 }
 
-function useClickOutside(ref: React.RefObject<HTMLElement | null>, onOutside: () => void, active: boolean) {
+function useClickOutside(
+  ref: React.RefObject<HTMLElement | null>,
+  onOutside: () => void,
+  active: boolean
+) {
   useEffect(() => {
     if (!active) return
     const onMouseDown = (e: MouseEvent) => {
@@ -179,7 +188,12 @@ function PermissionsDropdown() {
   return (
     <div ref={wrapRef} className="relative">
       <DropdownButton open={open} onToggle={() => setOpen((v) => !v)} title="Permissions mode">
-        <img src={active.icon} alt="" aria-hidden className="icon-asset h-[25px] w-[25px] object-contain" />
+        <img
+          src={active.icon}
+          alt=""
+          aria-hidden
+          className="icon-asset h-[25px] w-[25px] object-contain"
+        />
         <span>{active.label}</span>
       </DropdownButton>
       {open && (
@@ -199,7 +213,12 @@ function PermissionsDropdown() {
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <img src={icon} alt="" aria-hidden className="icon-asset h-[25px] w-[25px] object-contain" />
+                <img
+                  src={icon}
+                  alt=""
+                  aria-hidden
+                  className="icon-asset h-[25px] w-[25px] object-contain"
+                />
                 <span>{opt.label}</span>
               </button>
             )
@@ -216,7 +235,17 @@ interface ModelDropdownProps {
 
 function LockIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <rect x="4" y="11" width="16" height="10" rx="2" />
       <path d="M8 11V7a4 4 0 1 1 8 0v4" />
     </svg>
@@ -239,20 +268,118 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   }, [refreshProviders])
 
   const fallback: ModelInfo[] = [
-    { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
-    { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', provider: 'deepseek', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
-    { id: 'qwen3-max', name: 'Qwen3 Max', provider: 'dashscope', contextWindow: 262144, supportsTools: true, supportsVision: false },
-    { id: 'qwen3-coder-plus', name: 'Qwen3 Coder Plus', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
-    { id: 'qwen3-coder-flash', name: 'Qwen3 Coder Flash', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: true, supportsVision: false },
-    { id: 'qwen3.5-plus', name: 'Qwen 3.5 Plus', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: false, supportsVision: true },
-    { id: 'qwen3.5-flash', name: 'Qwen 3.5 Flash', provider: 'dashscope', contextWindow: 1_000_000, supportsTools: false, supportsVision: true },
-    { id: 'qwen-long', name: 'Qwen Long', provider: 'dashscope', contextWindow: 10_000_000, supportsTools: false, supportsVision: false },
-    { id: 'gemma-4-31b-it-free', name: 'Gemma 4 31B (free, OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
-    { id: 'gemma-4-31b-it', name: 'Gemma 4 31B (OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
-    { id: 'gemma-4-26b-a4b-it-free', name: 'Gemma 4 26B A4B (free, OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
-    { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B A4B (OpenRouter)', provider: 'openrouter', contextWindow: 262144, supportsTools: true, supportsVision: true },
-    { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'google', contextWindow: 131072, supportsTools: true, supportsVision: true },
-    { id: 'gemma-3-12b-it', name: 'Gemma 3 12B', provider: 'google', contextWindow: 131072, supportsTools: true, supportsVision: true }
+    {
+      id: 'deepseek-v4-pro',
+      name: 'DeepSeek V4 Pro',
+      provider: 'deepseek',
+      contextWindow: 1_000_000,
+      supportsTools: true,
+      supportsVision: false
+    },
+    {
+      id: 'deepseek-v4-flash',
+      name: 'DeepSeek V4 Flash',
+      provider: 'deepseek',
+      contextWindow: 1_000_000,
+      supportsTools: true,
+      supportsVision: false
+    },
+    {
+      id: 'qwen3-max',
+      name: 'Qwen3 Max',
+      provider: 'dashscope',
+      contextWindow: 262144,
+      supportsTools: true,
+      supportsVision: false
+    },
+    {
+      id: 'qwen3-coder-plus',
+      name: 'Qwen3 Coder Plus',
+      provider: 'dashscope',
+      contextWindow: 1_000_000,
+      supportsTools: true,
+      supportsVision: false
+    },
+    {
+      id: 'qwen3-coder-flash',
+      name: 'Qwen3 Coder Flash',
+      provider: 'dashscope',
+      contextWindow: 1_000_000,
+      supportsTools: true,
+      supportsVision: false
+    },
+    {
+      id: 'qwen3.5-plus',
+      name: 'Qwen 3.5 Plus',
+      provider: 'dashscope',
+      contextWindow: 1_000_000,
+      supportsTools: false,
+      supportsVision: true
+    },
+    {
+      id: 'qwen3.5-flash',
+      name: 'Qwen 3.5 Flash',
+      provider: 'dashscope',
+      contextWindow: 1_000_000,
+      supportsTools: false,
+      supportsVision: true
+    },
+    {
+      id: 'qwen-long',
+      name: 'Qwen Long',
+      provider: 'dashscope',
+      contextWindow: 10_000_000,
+      supportsTools: false,
+      supportsVision: false
+    },
+    {
+      id: 'gemma-4-31b-it-free',
+      name: 'Gemma 4 31B (free, OpenRouter)',
+      provider: 'openrouter',
+      contextWindow: 262144,
+      supportsTools: true,
+      supportsVision: true
+    },
+    {
+      id: 'gemma-4-31b-it',
+      name: 'Gemma 4 31B (OpenRouter)',
+      provider: 'openrouter',
+      contextWindow: 262144,
+      supportsTools: true,
+      supportsVision: true
+    },
+    {
+      id: 'gemma-4-26b-a4b-it-free',
+      name: 'Gemma 4 26B A4B (free, OpenRouter)',
+      provider: 'openrouter',
+      contextWindow: 262144,
+      supportsTools: true,
+      supportsVision: true
+    },
+    {
+      id: 'gemma-4-26b-a4b-it',
+      name: 'Gemma 4 26B A4B (OpenRouter)',
+      provider: 'openrouter',
+      contextWindow: 262144,
+      supportsTools: true,
+      supportsVision: true
+    },
+    {
+      id: 'gemma-3-27b-it',
+      name: 'Gemma 3 27B',
+      provider: 'google',
+      contextWindow: 131072,
+      supportsTools: true,
+      supportsVision: true
+    },
+    {
+      id: 'gemma-3-12b-it',
+      name: 'Gemma 3 12B',
+      provider: 'google',
+      contextWindow: 131072,
+      supportsTools: true,
+      supportsVision: true
+    }
   ]
   const models = allModels.length > 0 ? allModels : fallback
   const active = models.find((m) => m.id === activeModel) ?? models[0]
@@ -262,7 +389,10 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
     <div ref={wrapRef} className="relative">
       <DropdownButton open={open} onToggle={() => setOpen((v) => !v)} title="Switch model">
         {activeLocked && (
-          <span className="text-[var(--warning)]" title={`${active.provider ?? 'provider'} key required`}>
+          <span
+            className="text-[var(--warning)]"
+            title={`${active.provider ?? 'provider'} key required`}
+          >
             <LockIcon />
           </span>
         )}
@@ -288,8 +418,8 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
                   m.id === activeModel
                     ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                     : locked
-                    ? 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+                      ? 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <span className="flex items-center gap-1.5 truncate">
@@ -305,7 +435,18 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
                     Add key
                   </span>
                 ) : m.id === activeModel ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]" aria-hidden>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-[var(--accent)]"
+                    aria-hidden
+                  >
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 ) : null}
@@ -496,9 +637,7 @@ function ContextChipRow({ onAddFile }: ContextChipRowProps) {
         // returns process.cwd() as the fallback.
         const api = window.api?.files
         if (!api) return
-        const clear = api.clearWorkdir
-          ? api.clearWorkdir()
-          : Promise.resolve({ success: true })
+        const clear = api.clearWorkdir ? api.clearWorkdir() : Promise.resolve({ success: true })
         Promise.resolve(clear)
           .then(() => api.getWorkdir())
           .then((res: { success: boolean; data?: { path: string; name: string } }) => {
@@ -531,12 +670,7 @@ function ContextChipRow({ onAddFile }: ContextChipRowProps) {
         title="Running locally on this machine"
         menu={locationMenu}
       />
-      <ContextChip
-        icon={folderIcon}
-        label={folderLabel}
-        title={folderTitle}
-        menu={folderMenu}
-      />
+      <ContextChip icon={folderIcon} label={folderLabel} title={folderTitle} menu={folderMenu} />
       <ContextChip
         icon={worktreeIcon}
         label="main · worktree"
@@ -579,7 +713,10 @@ function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
   const items: AddMenuItem[] = [
     { label: 'Add files or photos', shortcut: 'Ctrl+U', onSelect: onPickFile },
     { label: 'Add folder', onSelect: () => toast.info('Add folder — coming soon') },
-    { label: 'Import GitHub issue', onSelect: () => toast.info('Import GitHub issue — coming soon') },
+    {
+      label: 'Import GitHub issue',
+      onSelect: () => toast.info('Import GitHub issue — coming soon')
+    },
     { label: 'Slash commands', onSelect: onInsertSlash },
     { label: 'Connectors', onSelect: () => toast.info('Connectors — coming soon') },
     { label: 'Plugins', onSelect: onOpenSettings }
@@ -595,7 +732,17 @@ function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
         aria-label="Add"
         className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
@@ -614,7 +761,9 @@ function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
             >
               <span>{item.label}</span>
               {item.shortcut && (
-                <span className="font-mono text-[11px] text-[var(--text-muted)]">{item.shortcut}</span>
+                <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                  {item.shortcut}
+                </span>
               )}
             </button>
           ))}
@@ -626,9 +775,12 @@ function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
 
 export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInputProps) {
   const [content, setContent] = useState('')
+  const [followUpError, setFollowUpError] = useState<string | null>(null)
+  const [followUpSubmitting, setFollowUpSubmitting] = useState(false)
   const [pasteOffer, setPasteOffer] = useState<string | null>(null)
   const [keyPromptProvider, setKeyPromptProvider] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const followUpClientIdRef = useRef<string | null>(null)
   // Fluidity J1: ↑/↓ walks past user prompts. Index tracking lives in a ref
   // so re-renders triggered by setContent() don't reset our position.
   const historyRef = useRef<PromptHistoryState>(emptyHistoryState)
@@ -642,6 +794,11 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const hasKey = useProvidersStore((s) => s.hasKey)
   const providersLoaded = useProvidersStore((s) => s.loaded)
   const activeModel = useChatStore((s) => s.activeModel)
+  const activeTurn = useChatStore((s) => s.activeTurn)
+  const pendingAttachments = useChatStore((s) => s.pendingAttachments)
+  const submitFollowUp = useChatStore((s) => s.submitFollowUp)
+  const followUpBehavior = useSettingsStore((s) => s.settings.followUpBehavior)
+  const alternateFollowUpBehavior = followUpBehavior === 'steer' ? 'queue' : 'steer'
   const allModels = useModelStore((s) => s.models)
   const activeModelInfo = allModels.find((m) => m.id === activeModel)
   const activeProvider = activeModelInfo?.provider
@@ -747,7 +904,10 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           toast.error('Loops are off. Enable them in Settings → Loops.')
           return true
         }
-        const rest = raw.trim().slice(cmd?.length ?? 0).trim()
+        const rest = raw
+          .trim()
+          .slice(cmd?.length ?? 0)
+          .trim()
         const parsed = parseLoopCommand(rest)
         if (parsed.error) {
           toast.error(parsed.error)
@@ -774,7 +934,10 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
         // resolver. Anything that resolves to a prompt is dispatched as a
         // normal user turn. Unknown commands fall through to a toast so
         // the user sees the typo.
-        const rest = raw.trim().slice(cmd?.length ?? 0).trim()
+        const rest = raw
+          .trim()
+          .slice(cmd?.length ?? 0)
+          .trim()
         const slashResult = await useSlashCommandsStore
           .getState()
           .resolve(cmd?.slice(1) ?? '', rest)
@@ -806,10 +969,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   // the palette via `slashPaletteOpen=false` and re-open on the next '/'
   // typed at the start.
   const [slashPaletteOpen, setSlashPaletteOpen] = useState(true)
-  const isSlashInput =
-    content.startsWith('/') && !content.includes('\n')
-  const showSlashPalette =
-    isSlashInput && slashPaletteOpen && !isStreaming && !disabled
+  const isSlashInput = content.startsWith('/') && !content.includes('\n')
+  const showSlashPalette = isSlashInput && slashPaletteOpen && !isStreaming && !disabled
   // Strip the leading '/' and take everything up to the first whitespace.
   const slashQuery = isSlashInput ? content.slice(1).split(/\s/)[0] : ''
 
@@ -896,9 +1057,29 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   // Pure detector lives in @/lib/memory-shortcut; this is just the wiring.
   const memoryShortcut = detectMemoryShortcut(content)
 
-  const handleSubmit = () => {
+  const handleSubmit = (followUpMode = followUpBehavior) => {
     const trimmed = content.trim()
-    if (!trimmed || isStreaming || disabled) return
+    const hasSubmittableInput = trimmed.length > 0 || (isStreaming && pendingAttachments.length > 0)
+    if (!hasSubmittableInput || disabled) return
+    if (isStreaming) {
+      if (followUpSubmitting) return
+      setFollowUpError(null)
+      setFollowUpSubmitting(true)
+      followUpClientIdRef.current ??= crypto.randomUUID()
+      void submitFollowUp(trimmed, followUpMode, followUpClientIdRef.current)
+        .then((result) => {
+          if (!result.success) {
+            setFollowUpError(result.error)
+            toast.error(result.error)
+            return
+          }
+          followUpClientIdRef.current = null
+          setContent('')
+          historyRef.current = emptyHistoryState
+        })
+        .finally(() => setFollowUpSubmitting(false))
+      return
+    }
     if (activeProvider && !activeProviderHasKey) {
       setKeyPromptProvider(activeProvider)
       return
@@ -1037,6 +1218,12 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       cycleMode()
       return
     }
+    if (e.key === 'Tab' && isStreaming) {
+      if (!content.trim() && pendingAttachments.length === 0) return
+      e.preventDefault()
+      handleSubmit(alternateFollowUpBehavior)
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
@@ -1121,8 +1308,11 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     setPasteOffer(null)
   }
 
-  const canSend = content.trim().length > 0 && !disabled && !isStreaming
+  const canSend =
+    (content.trim().length > 0 || (isStreaming && pendingAttachments.length > 0)) && !disabled
   const planMode = useUiStore((s) => s.planMode)
+  const followUpLabel = followUpBehavior === 'steer' ? 'Steer' : 'Queue'
+  const alternateFollowUpLabel = alternateFollowUpBehavior === 'steer' ? 'Steer' : 'Queue'
 
   return (
     <div className="w-full">
@@ -1141,8 +1331,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       {pasteOffer && (
         <div className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-2 text-xs text-[var(--text-primary)]">
           <span className="flex-1">
-            That looks like code ({pasteOffer.length.toLocaleString()} chars). Attach it as a file or
-            paste inline?
+            That looks like code ({pasteOffer.length.toLocaleString()} chars). Attach it as a file
+            or paste inline?
           </span>
           <button
             onClick={handlePasteOfferAccept}
@@ -1162,9 +1352,33 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             title="Dismiss"
             aria-label="Dismiss"
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden
+            >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
+          </button>
+        </div>
+      )}
+      {followUpError && (
+        <div
+          role="alert"
+          className="mb-2 flex items-start justify-between gap-3 rounded-xl border border-[var(--error)] bg-[color-mix(in_srgb,var(--error)_8%,transparent)] px-3 py-2 text-[12px] text-[var(--error)]"
+        >
+          <span>{followUpError} Your draft is still editable.</span>
+          <button
+            type="button"
+            onClick={() => setFollowUpError(null)}
+            aria-label="Dismiss follow-up error"
+            className="rounded px-1 hover:bg-[var(--bg-tertiary)]"
+          >
+            ×
           </button>
         </div>
       )}
@@ -1201,6 +1415,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             value={content}
             onChange={(e) => {
               setContent(e.target.value)
+              if (followUpError) setFollowUpError(null)
               setCaretPos(e.target.selectionStart ?? e.target.value.length)
               // Any keystroke that mutates text is "I'm done browsing":
               // drop the history index so the next ↑ starts fresh.
@@ -1215,7 +1430,11 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             onSelect={(e) => setCaretPos(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder="Ask anything — ↑ for history"
+            placeholder={
+              isStreaming
+                ? `${followUpLabel} this turn — Enter ${followUpLabel} · Tab ${alternateFollowUpLabel}`
+                : 'Ask anything — ↑ for history'
+            }
             rows={1}
             disabled={disabled}
             style={{ paddingLeft: '20px', paddingTop: '8px' }}
@@ -1223,38 +1442,62 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           />
 
           {isStreaming ? (
-            <button
-              onClick={onCancel}
-              title="Stop streaming"
-              aria-label="Stop streaming"
-              className="group flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--error)]"
-            >
-              <img
-                src={stopIcon}
-                alt=""
-                aria-hidden
-                className="icon-asset-crisp themed-variant-light h-[45px] w-[45px] object-contain"
-              />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleSubmit()}
+                disabled={!canSend || followUpSubmitting}
+                title={`${followUpLabel} (Enter) · ${alternateFollowUpLabel} (Tab)`}
+                aria-label={`${followUpLabel} follow-up`}
+                data-follow-up-action={followUpBehavior}
+                className="flex h-[60px] min-w-[72px] items-center justify-center rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-white transition-all hover:scale-105 hover:opacity-90 disabled:opacity-40 disabled:hover:scale-100"
+              >
+                {followUpLabel}
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                title={activeTurn ? `Stop turn ${activeTurn.turnId}` : 'Stop current turn'}
+                aria-label="Stop current turn"
+                className="group flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--error)]"
+              >
+                <img
+                  src={stopIcon}
+                  alt=""
+                  aria-hidden
+                  className="icon-asset-crisp themed-variant-light h-[45px] w-[45px] object-contain"
+                />
+              </button>
+            </div>
           ) : memoryShortcut ? (
             // Fluidity J4 — in memory-write mode the Send pill becomes a
             // "Remember" pill that opens the editor instead of dispatching.
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={!canSend}
               title="Open memory editor (Enter)"
               aria-label="Remember"
               data-mode="memory"
               className="flex h-[60px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-[var(--bg-primary)] transition-all hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:hover:scale-100"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
               </svg>
               Remember
             </button>
           ) : (
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={!canSend}
               title="Send (Enter)"
               aria-label="Send"
@@ -1294,7 +1537,12 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             aria-label="Voice input"
             className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           >
-            <img src={micIcon} alt="" aria-hidden className="icon-asset h-[25px] w-[25px] object-contain" />
+            <img
+              src={micIcon}
+              alt=""
+              aria-hidden
+              className="icon-asset h-[25px] w-[25px] object-contain"
+            />
           </button>
         </div>
 

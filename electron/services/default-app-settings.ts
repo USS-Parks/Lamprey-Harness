@@ -39,6 +39,7 @@ export interface DefaultAppSettings {
   minimizeToTray: boolean
   autoCheckUpdates: boolean
   aiGeneratedTitles: boolean
+  followUpBehavior: 'steer' | 'queue'
   modelConfig: Record<string, unknown>
   customModels: unknown[]
   toolSurface: 'lazy' | 'full'
@@ -80,6 +81,7 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   minimizeToTray: false,
   autoCheckUpdates: true,
   aiGeneratedTitles: false,
+  followUpBehavior: 'steer',
   modelConfig: {},
   customModels: [],
   toolSurface: 'full',

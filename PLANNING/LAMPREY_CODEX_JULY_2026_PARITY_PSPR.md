@@ -359,10 +359,10 @@ CDP observation service, and event/monitor automation triggers.
   regression locks; tsc web.
 
 #### **ST-9 — Ship the Codex follow-up composer UX**
-- [ ] Keep the composer editable while a turn runs. Add Follow-up behavior setting
+- [x] Keep the composer editable while a turn runs. Add Follow-up behavior setting
       (Steer/Queue), exact alternate shortcut from CJP-0, clear action labeling, separate
       Stop, and input-type support.
-- [ ] Render queued items above the composer with edit, reorder, send-now, and delete;
+- [x] Render queued items above the composer with edit, reorder, send-now, and delete;
       rejected Steer remains an editable draft with the reason shown.
 - Files: `ChatInput.tsx`, queue components, settings store/defaults/UI, styles/assets/tests.
 - Verify: default-settings parity lock, pure queue reducer tests, accessibility/source-lock

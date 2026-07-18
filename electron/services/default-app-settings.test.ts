@@ -65,6 +65,8 @@ describe('SP-1 defaults parity — canonical vs renderer literal', () => {
     expectRendererDefault('minimizeToTray', String(DEFAULT_APP_SETTINGS.minimizeToTray))
     expectRendererDefault('autoCheckUpdates', String(DEFAULT_APP_SETTINGS.autoCheckUpdates))
     expectRendererDefault('aiGeneratedTitles', String(DEFAULT_APP_SETTINGS.aiGeneratedTitles))
+    expect(DEFAULT_APP_SETTINGS.followUpBehavior).toBe('steer')
+    expectRendererDefault('followUpBehavior', "'steer'")
     expectRendererDefault('agenticCodingMode', String(DEFAULT_APP_SETTINGS.agenticCodingMode))
     expectRendererDefault('snipEnabled', String(DEFAULT_APP_SETTINGS.snipEnabled))
     expectRendererDefault('snipVerbose', String(DEFAULT_APP_SETTINGS.snipVerbose))

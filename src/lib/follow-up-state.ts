@@ -5,6 +5,7 @@ import type {
   TurnSettledEvent,
   TurnStartedEvent
 } from './turn-control-types'
+import type { TurnInputItem } from './turn-control-types'
 
 export interface ConversationFollowUpState {
   activeTurn: ActiveTurnSnapshot | null
@@ -101,4 +102,37 @@ export function selectQueuedFollowUps(state: ConversationFollowUpState): TurnFol
 
 export function selectRecoverableDrafts(state: ConversationFollowUpState): TurnFollowUpRecord[] {
   return state.followUps.filter((followUp) => ['rejected', 'recovered'].includes(followUp.status))
+}
+
+export function replaceFollowUpText(
+  input: readonly TurnInputItem[],
+  text: string
+): TurnInputItem[] {
+  const next = input.map((item) => ({ ...item }))
+  const textIndex = next.findIndex((item) => item.type === 'text')
+  if (textIndex === -1) return [{ type: 'text', text }, ...next]
+  next[textIndex] = { type: 'text', text }
+  return next
+}
+
+export function moveQueuedFollowUp(
+  queued: readonly TurnFollowUpRecord[],
+  followUpId: string,
+  direction: -1 | 1
+): string[] {
+  const ordered = [...queued].sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
+  const index = ordered.findIndex((item) => item.id === followUpId)
+  const target = index + direction
+  if (index === -1 || target < 0 || target >= ordered.length) {
+    return ordered.map((item) => item.id)
+  }
+  ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
+  return ordered.map((item) => item.id)
+}
+
+export function followUpText(input: readonly TurnInputItem[]): string {
+  return (
+    input.find((item): item is Extract<TurnInputItem, { type: 'text' }> => item.type === 'text')
+      ?.text ?? ''
+  )
 }

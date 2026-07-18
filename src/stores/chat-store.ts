@@ -17,6 +17,7 @@ import { usePlanStore } from '@/stores/plan-store'
 import { toast } from '@/stores/toast-store'
 import { useNavHistoryStore } from '@/stores/nav-history-store'
 import { getRecentUserPromptsFrom } from '@/lib/recent-prompts'
+import { buildCanonicalFollowUpInput } from '@/lib/follow-up-composer'
 import {
   applyTurnSettledEvent,
   applyTurnStartedEvent,
@@ -26,8 +27,10 @@ import {
 } from '@/lib/follow-up-state'
 import type {
   ActiveTurnSnapshot,
+  FollowUpDeliveryMode,
   TurnControlSnapshot,
   TurnFollowUpRecord,
+  TurnInputItem,
   TurnSettledEvent,
   TurnStartedEvent
 } from '@/lib/turn-control-types'
@@ -98,6 +101,15 @@ interface ChatState {
   hydrateTurnControl: (conversationId: string) => Promise<void>
   applyTurnStarted: (event: TurnStartedEvent) => void
   applyTurnSettled: (event: TurnSettledEvent) => void
+  submitFollowUp: (
+    content: string,
+    mode: FollowUpDeliveryMode,
+    clientUserMessageId?: string
+  ) => Promise<FollowUpActionResult>
+  updateFollowUpDraft: (followUpId: string, input: TurnInputItem[]) => Promise<FollowUpActionResult>
+  reorderQueuedFollowUps: (orderedIds: string[]) => Promise<FollowUpActionResult>
+  sendFollowUpNow: (followUpId: string) => Promise<FollowUpActionResult>
+  deleteFollowUp: (followUpId: string) => Promise<FollowUpActionResult>
   createConversation: () => Promise<string>
   forkFromMessage: (messageId: string, opts?: Partial<ForkParams>) => Promise<string | null>
   deleteConversation: (id: string) => Promise<void>
@@ -142,6 +154,8 @@ interface ChatState {
 
 const turnHydrationGenerations = new Map<string, number>()
 
+export type FollowUpActionResult = { success: true } | { success: false; error: string }
+
 function extOf(name: string): string {
   const dot = name.lastIndexOf('.')
   return dot >= 0 ? name.slice(dot + 1).toLowerCase() : ''
@@ -177,6 +191,10 @@ function buildAttachmentBlock(file: ProcessedFile): string {
     return `\n\n[Indexing ${file.name} — chunks not yet available for this turn]`
   }
   return ''
+}
+
+function followUpFailure(error: unknown, fallback: string): FollowUpActionResult {
+  return { success: false, error: errorMessage(error, fallback) }
 }
 
 function errorMessage(err: unknown, fallback: string): string {
@@ -389,6 +407,112 @@ export const useChatStore = create<ChatState>((set, get) => ({
             })
       }
     })
+  },
+
+  submitFollowUp: async (content, mode, suppliedClientUserMessageId) => {
+    const state = get()
+    const conversationId = state.activeConversationId
+    if (!conversationId) return { success: false, error: 'No active conversation.' }
+    let input: TurnInputItem[]
+    try {
+      input = buildCanonicalFollowUpInput(content, state.pendingAttachments)
+    } catch (error) {
+      return followUpFailure(error, 'Could not prepare follow-up input.')
+    }
+    if (input.length === 0) return { success: false, error: 'Add text or an attachment.' }
+    if (mode === 'steer' && !state.activeTurn) {
+      return { success: false, error: 'Waiting for the active turn identity. Try again.' }
+    }
+    try {
+      const clientUserMessageId = suppliedClientUserMessageId ?? crypto.randomUUID()
+      const result =
+        mode === 'steer'
+          ? await window.api.turn.steer({
+              conversationId,
+              deliveryMode: 'steer',
+              expectedTurnId: state.activeTurn!.turnId,
+              clientUserMessageId,
+              actor: 'user',
+              sourceConversationId: conversationId,
+              input
+            })
+          : await window.api.turn.queue({
+              conversationId,
+              deliveryMode: 'queue',
+              clientUserMessageId,
+              actor: 'user',
+              sourceConversationId: conversationId,
+              input
+            })
+      await get().hydrateTurnControl(conversationId)
+      if (!result.success) return { success: false, error: result.error ?? `${mode} failed.` }
+      get().clearAttachments()
+      return { success: true }
+    } catch (error) {
+      return followUpFailure(error, `${mode} failed.`)
+    }
+  },
+
+  updateFollowUpDraft: async (followUpId, input) => {
+    const conversationId = get().activeConversationId
+    if (!conversationId) return { success: false, error: 'No active conversation.' }
+    try {
+      const result = await window.api.turn.updateFollowup({ conversationId, followUpId, input })
+      await get().hydrateTurnControl(conversationId)
+      return result.success
+        ? { success: true }
+        : { success: false, error: result.error ?? 'Could not update follow-up.' }
+    } catch (error) {
+      return followUpFailure(error, 'Could not update follow-up.')
+    }
+  },
+
+  reorderQueuedFollowUps: async (orderedIds) => {
+    const conversationId = get().activeConversationId
+    if (!conversationId) return { success: false, error: 'No active conversation.' }
+    try {
+      const result = await window.api.turn.reorderFollowups({ conversationId, orderedIds })
+      await get().hydrateTurnControl(conversationId)
+      return result.success
+        ? { success: true }
+        : { success: false, error: result.error ?? 'Could not reorder Queue.' }
+    } catch (error) {
+      return followUpFailure(error, 'Could not reorder Queue.')
+    }
+  },
+
+  sendFollowUpNow: async (followUpId) => {
+    const { activeConversationId: conversationId, activeTurn } = get()
+    if (!conversationId || !activeTurn) {
+      return { success: false, error: 'Send now requires a running turn.' }
+    }
+    try {
+      const result = await window.api.turn.sendFollowupNow({
+        conversationId,
+        followUpId,
+        expectedTurnId: activeTurn.turnId
+      })
+      await get().hydrateTurnControl(conversationId)
+      return result.success
+        ? { success: true }
+        : { success: false, error: result.error ?? 'Could not send follow-up now.' }
+    } catch (error) {
+      return followUpFailure(error, 'Could not send follow-up now.')
+    }
+  },
+
+  deleteFollowUp: async (followUpId) => {
+    const conversationId = get().activeConversationId
+    if (!conversationId) return { success: false, error: 'No active conversation.' }
+    try {
+      const result = await window.api.turn.deleteFollowup({ conversationId, followUpId })
+      await get().hydrateTurnControl(conversationId)
+      return result.success
+        ? { success: true }
+        : { success: false, error: result.error ?? 'Could not delete follow-up.' }
+    } catch (error) {
+      return followUpFailure(error, 'Could not delete follow-up.')
+    }
   },
 
   createConversation: async () => {

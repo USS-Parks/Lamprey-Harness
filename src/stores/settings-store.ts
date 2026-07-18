@@ -14,6 +14,7 @@ const defaultSettings: AppSettings = {
   minimizeToTray: false,
   autoCheckUpdates: true,
   aiGeneratedTitles: false,
+  followUpBehavior: 'steer',
   modelConfig: {},
   customModels: [],
   // NOTE: this literal is a copy of DEFAULT_APP_SETTINGS in

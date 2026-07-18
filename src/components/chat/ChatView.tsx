@@ -13,6 +13,7 @@ import { ChapterSidebar } from './ChapterSidebar'
 import { ChapterQuickJumper } from './ChapterQuickJumper'
 import { SpawnTaskTray } from './SpawnTaskTray'
 import { LineageChip } from './LineageChip'
+import { FollowUpQueue } from './FollowUpQueue'
 
 // Shared chat column: max-width cap + internal padding. Messages and the
 // input pill both use this so they sit in the same centered column no
@@ -100,6 +101,7 @@ export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
           <AgentRunBanner />
           <SpawnTaskTray />
           <TokenTicker />
+          <FollowUpQueue />
           <AttachmentPreview />
           <ChatInput
             onSend={handleSend}

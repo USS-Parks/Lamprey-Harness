@@ -8609,3 +8609,44 @@ The project system was already mature and fully wired (SQLite `projects` table, 
 ### Plan
 
 [PLANNING/LAMPREY_PROJECT_SECTION_PLAN.md](PLANNING/LAMPREY_PROJECT_SECTION_PLAN.md)
+## Codex July 2026 Parity - Prompt ST-9 Follow-up composer and Queue UX - 2026-07-18
+
+**Files changed:** `electron/services/default-app-settings.ts`,
+`electron/services/default-app-settings.test.ts`,
+`electron/services/follow-up-composer-wiring.test.ts`,
+`src/components/chat/ChatInput.tsx`, `src/components/chat/ChatView.tsx`,
+`src/components/chat/FollowUpQueue.tsx`,
+`src/components/settings/GeneralSettings.tsx`,
+`src/lib/follow-up-composer.ts`, `src/lib/follow-up-composer.test.ts`,
+`src/lib/follow-up-state.ts`, `src/lib/follow-up-state.test.ts`,
+`src/lib/types.ts`, `src/stores/chat-store.ts`,
+`src/stores/settings-store.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node OK
+- tsc web OK
+- focused composer/default/queue/turn-control/Steering regressions OK (56 tests, 0 skipped)
+- full ESLint and targeted Prettier OK
+- production build OK
+- bundle smoke OK
+- renderer smoke OK
+- `verify:proof -- --no-tests` OK
+- user-verification-needed: run CJ26-S01 through CJ26-S10 in the built desktop app;
+  ST-11 owns the complete owner-run Codex/Lamprey conformance record
+
+**Notes:** The composer remains editable while an ordinary turn runs and exposes a
+separate follow-up action beside Stop. General settings defaults fresh and existing
+settings without the new key to Steer. During a running turn, Enter uses the configured
+default and Tab uses the alternate action: with the default setting, Enter Steers and Tab
+Queues; with Queue selected, Enter Queues and Tab Steers. Shift+Enter remains newline and
+the existing empty-composer Shift+Tab mode cycle remains intact. Failed or rejected Steer
+submissions retain both the visible composer draft and their stable client message ID for
+an idempotent retry; the reason is shown without silently starting or queuing another
+turn. Canonical follow-up input preserves ordered text, image, and local-image items plus
+attachment name, MIME type, size, and local path metadata, and rejects unreadable input
+before IPC persistence. Queue and recoverable-draft cards render above the composer with
+accessible edit, deterministic move-up/down, send-now, delete, and draft-reuse controls.
+Every renderer action uses the typed turn-control IPC and rehydrates the durable ledger;
+there is no alternate provider or ordinary-send path.
+
+**Commit:** see git log (ST-9).

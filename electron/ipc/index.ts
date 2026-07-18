@@ -6,6 +6,7 @@
 import '../services/tool-packs'
 
 import { registerChatHandlers } from './chat'
+import { registerTurnControlHandlers } from './turn-control'
 import { registerConversationHandlers } from './conversation'
 import { registerContractHandlers } from './contracts'
 import { registerSettingsHandlers } from './settings'
@@ -53,6 +54,7 @@ import { registerHarnessRecsHandlers } from './harness-recs'
 
 export function registerAllIpcHandlers(): void {
   registerChatHandlers()
+  registerTurnControlHandlers()
   registerConversationHandlers()
   registerContractHandlers()
   registerSettingsHandlers()

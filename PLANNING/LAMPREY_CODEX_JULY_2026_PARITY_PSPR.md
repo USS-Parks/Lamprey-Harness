@@ -315,9 +315,9 @@ CDP observation service, and event/monitor automation triggers.
   `verify:proof -- --no-tests`; tsc ×2.
 
 #### **ST-4 — Add typed Steer, Queue, and queue-management IPC**
-- [ ] Add `turn:steer`, `turn:queue`, `turn:listFollowups`, `turn:updateFollowup`,
+- [x] Add `turn:steer`, `turn:queue`, `turn:listFollowups`, `turn:updateFollowup`,
       `turn:reorderFollowups`, `turn:sendFollowupNow`, and `turn:deleteFollowup` handlers.
-- [ ] Enforce `expectedTurnId`, steerable kind, idempotency, input validation, envelope
+- [x] Enforce `expectedTurnId`, steerable kind, idempotency, input validation, envelope
       shape, and no silent fallback. Queue handlers operate without an active runtime.
 - Files: new `electron/ipc/turn-control.ts`, handler registration, preload/types/tests.
 - Verify: IPC contract/negative tests; envelope source-lock; tsc ×2.

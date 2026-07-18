@@ -103,6 +103,44 @@ export interface FollowUpSubmission {
   targetAgentRunId?: string
 }
 
+export type SteerFollowUpSubmission = Omit<
+  FollowUpSubmission,
+  'deliveryMode' | 'expectedTurnId'
+> & {
+  deliveryMode: 'steer'
+  expectedTurnId: TurnId
+}
+
+export type QueueFollowUpSubmission = Omit<
+  FollowUpSubmission,
+  'deliveryMode' | 'expectedTurnId'
+> & {
+  deliveryMode: 'queue'
+  expectedTurnId?: never
+}
+
+export interface UpdateFollowUpRequest {
+  conversationId: string
+  followUpId: FollowUpId
+  input: TurnInputItem[]
+}
+
+export interface ReorderFollowUpsRequest {
+  conversationId: string
+  orderedIds: FollowUpId[]
+}
+
+export interface SendFollowUpNowRequest {
+  conversationId: string
+  followUpId: FollowUpId
+  expectedTurnId: TurnId
+}
+
+export interface DeleteFollowUpRequest {
+  conversationId: string
+  followUpId: FollowUpId
+}
+
 export interface FollowUpRejection {
   reason: FollowUpRejectionReason
   message: string

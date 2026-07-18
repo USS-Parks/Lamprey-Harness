@@ -1,5 +1,68 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
+type PreloadTurnInputItem =
+  | { type: 'text'; text: string }
+  | {
+      type: 'image'
+      imageUrl: string
+      mimeType?: string
+      name?: string
+      sizeBytes?: number
+      width?: number
+      height?: number
+    }
+  | {
+      type: 'localImage'
+      path: string
+      mimeType?: string
+      name?: string
+      sizeBytes?: number
+      width?: number
+      height?: number
+    }
+
+interface PreloadFollowUpBase {
+  conversationId: string
+  input: PreloadTurnInputItem[]
+  clientUserMessageId?: string
+  actor: 'user' | 'model' | 'system'
+  sourceConversationId?: string
+  sourceTaskId?: string
+  targetAgentRunId?: string
+}
+
+type SteerFollowUpSubmission = PreloadFollowUpBase & {
+  deliveryMode: 'steer'
+  expectedTurnId: string
+}
+
+type QueueFollowUpSubmission = PreloadFollowUpBase & {
+  deliveryMode: 'queue'
+  expectedTurnId?: never
+}
+
+interface UpdateFollowUpRequest {
+  conversationId: string
+  followUpId: string
+  input: PreloadTurnInputItem[]
+}
+
+interface ReorderFollowUpsRequest {
+  conversationId: string
+  orderedIds: string[]
+}
+
+interface SendFollowUpNowRequest {
+  conversationId: string
+  followUpId: string
+  expectedTurnId: string
+}
+
+interface DeleteFollowUpRequest {
+  conversationId: string
+  followUpId: string
+}
+
 const api = {
   chat: {
     send: (request: {
@@ -138,6 +201,21 @@ const api = {
 
   // E3 — cross-session search + archive surface. Separate namespace so
   // the legacy `conversation.*` calls stay untouched.
+  turn: {
+    steer: (request: SteerFollowUpSubmission) => ipcRenderer.invoke('turn:steer', request),
+    queue: (request: QueueFollowUpSubmission) => ipcRenderer.invoke('turn:queue', request),
+    listFollowups: (conversationId: string) =>
+      ipcRenderer.invoke('turn:listFollowups', conversationId),
+    updateFollowup: (request: UpdateFollowUpRequest) =>
+      ipcRenderer.invoke('turn:updateFollowup', request),
+    reorderFollowups: (request: ReorderFollowUpsRequest) =>
+      ipcRenderer.invoke('turn:reorderFollowups', request),
+    sendFollowupNow: (request: SendFollowUpNowRequest) =>
+      ipcRenderer.invoke('turn:sendFollowupNow', request),
+    deleteFollowup: (request: DeleteFollowUpRequest) =>
+      ipcRenderer.invoke('turn:deleteFollowup', request)
+  },
+
   sessions: {
     list: (opts?: {
       tab?: 'recent' | 'pinned' | 'archived'

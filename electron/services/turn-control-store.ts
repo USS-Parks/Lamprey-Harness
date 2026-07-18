@@ -108,6 +108,7 @@ export interface CreateFollowUpResult {
 
 export interface FollowUpTransitionDetails {
   turnId?: TurnId
+  expectedTurnId?: TurnId
   rejectionReason?: FollowUpRejectionReason
   rejectionMessage?: string
   recoveryReason?: string
@@ -449,6 +450,7 @@ export class TurnControlStore {
       .prepare(
         `UPDATE turn_followups
             SET status = ?, turn_id = COALESCE(?, turn_id),
+                expected_turn_id = COALESCE(?, expected_turn_id),
                 rejection_reason = ?, rejection_message = ?, recovery_reason = ?,
                 delivered_at = ?, finalized_at = ?, updated_at = ?
           WHERE id = ?`
@@ -456,6 +458,7 @@ export class TurnControlStore {
       .run(
         status,
         details.turnId ?? null,
+        details.expectedTurnId ?? null,
         details.rejectionReason ?? null,
         details.rejectionMessage ?? null,
         details.recoveryReason ?? null,

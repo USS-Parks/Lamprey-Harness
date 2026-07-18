@@ -1,3 +1,29 @@
+## Codex July 2026 Parity — Prompt ST-4 Typed follow-up IPC — 2026-07-17
+
+**Files changed:** `electron/ipc/turn-control.ts`,
+`electron/ipc/turn-control.test.ts`, `electron/ipc/turn-control-wiring.test.ts`,
+`electron/ipc/index.ts`, `electron/preload.ts`,
+`electron/services/turn-control-types.ts`, `src/lib/turn-control-types.ts`,
+`electron/services/turn-control-store.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused IPC/validator/runtime/wiring suites ✓ (57 tests, 0 skipped)
+- Electron ABI-148 durable store/integration suites ✓ (17 tests, 0 skipped)
+- `verify:proof -- --no-tests` ✓ (lint, tsc node/web, bundle and renderer smoke)
+
+**Notes:** Seven standard-envelope channels now expose typed Steer, durable Queue, list,
+edit, reorder, explicit send-now, and delete actions through preload. Steer validates the
+ordered input and settings boundary before persistence, requires the exact running regular
+turn, deduplicates exact client retries before active-turn lookup, and never falls back to
+Queue. Queue management is conversation-owned; send-now requires `expectedTurnId` and
+records both expected and actual target identity before placing the item in the runtime
+inbox. A post-persistence delivery race settles visibly as rejected rather than stranding an
+accepted row.
+
+**Commit:** see git log (ST-4).
+
 ## Codex July 2026 Parity — Prompt ST-3 TurnRuntime registry — 2026-07-17
 
 **Files changed:** `electron/services/turn-runtime.ts`,

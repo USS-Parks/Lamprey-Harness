@@ -119,6 +119,36 @@ const api = {
       ipcRenderer.on('chat:user-message', h)
       return () => ipcRenderer.removeListener('chat:user-message', h)
     },
+    onTurnStarted: (
+      cb: (e: {
+        conversationId: string
+        turnId: string
+        kind: 'regular' | 'review' | 'manualCompaction' | 'terminal'
+        status: 'running'
+        startedAt: number
+        occurredAt: number
+        revision: number
+      }) => void
+    ): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:turn-started', h)
+      return () => ipcRenderer.removeListener('chat:turn-started', h)
+    },
+    onTurnSettled: (
+      cb: (e: {
+        conversationId: string
+        turnId: string
+        status: 'completed' | 'interrupted' | 'cancelled' | 'failed' | 'recovered'
+        completedAt: number
+        occurredAt: number
+        persisted: boolean
+        revision: number
+      }) => void
+    ): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:turn-settled', h)
+      return () => ipcRenderer.removeListener('chat:turn-settled', h)
+    },
     /** Reasoning Audit Phase R4 — Planner row persisted during a
      *  multi-agent pipeline turn. Renderer treats it as audit-only:
      *  the row is appended to the conversation message list but R7's
@@ -190,6 +220,8 @@ const api = {
         'chat:done',
         'chat:round-complete',
         'chat:user-message',
+        'chat:turn-started',
+        'chat:turn-settled',
         'chat:error',
         'chat:tool-call',
         'chat:tool-call-result',
@@ -240,6 +272,7 @@ const api = {
     queue: (request: QueueFollowUpSubmission) => ipcRenderer.invoke('turn:queue', request),
     listFollowups: (conversationId: string) =>
       ipcRenderer.invoke('turn:listFollowups', conversationId),
+    getState: (conversationId: string) => ipcRenderer.invoke('turn:getState', conversationId),
     updateFollowup: (request: UpdateFollowUpRequest) =>
       ipcRenderer.invoke('turn:updateFollowup', request),
     reorderFollowups: (request: ReorderFollowUpsRequest) =>

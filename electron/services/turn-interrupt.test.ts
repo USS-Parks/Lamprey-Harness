@@ -18,6 +18,7 @@ function harness(options: { settlementThrows?: boolean } = {}) {
   const events: RecordEventInput[] = []
   const drained: Array<string | undefined> = []
   const errors: Array<{ message: string; error: unknown }> = []
+  const lifecycle: Array<{ turnId: string; status: string; persisted: boolean }> = []
   const recoverPendingSteers = vi.fn((runtime) => runtime.drainAllSteers().length)
   const action = createTurnInterruptAction({
     runtimes,
@@ -25,9 +26,11 @@ function harness(options: { settlementThrows?: boolean } = {}) {
     recoverPendingSteers,
     drainDocuments: (correlationId) => drained.push(correlationId),
     record: (event) => events.push(event),
-    reportError: (message, error) => errors.push({ message, error })
+    reportError: (message, error) => errors.push({ message, error }),
+    emitSettled: (runtime, status, _completedAt, persisted) =>
+      lifecycle.push({ turnId: runtime.turnId, status, persisted })
   })
-  return { action, drained, errors, events, recoverPendingSteers, runtimes, settled }
+  return { action, drained, errors, events, lifecycle, recoverPendingSteers, runtimes, settled }
 }
 
 describe('ST-7 turn-aware interrupt', () => {
@@ -65,6 +68,7 @@ describe('ST-7 turn-aware interrupt', () => {
     expect(h.drained).toEqual(['correlation-1'])
     expect(h.settled).toEqual([{ id: 'turn-1', status: 'interrupted', completedAt: 250 }])
     expect(h.events).toHaveLength(1)
+    expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'interrupted', persisted: true }])
     expect(h.events[0]).toMatchObject({
       type: 'chat.cancelled',
       entityKind: 'turn',
@@ -124,6 +128,7 @@ describe('ST-7 turn-aware interrupt', () => {
     })
     expect(h.settled).toHaveLength(1)
     expect(h.events).toHaveLength(1)
+    expect(h.lifecycle).toHaveLength(1)
   })
 
   it('reports an honest non-persisted success when durable settlement fails', () => {
@@ -143,5 +148,6 @@ describe('ST-7 turn-aware interrupt', () => {
     expect(h.errors).toHaveLength(1)
     expect(h.events).toHaveLength(1)
     expect(h.events[0].payload).toMatchObject({ persisted: false })
+    expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'interrupted', persisted: false }])
   })
 })

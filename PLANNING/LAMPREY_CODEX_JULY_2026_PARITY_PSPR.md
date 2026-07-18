@@ -350,7 +350,7 @@ CDP observation service, and event/monitor automation triggers.
   source lock, ghost-reply and turn-settlement suites; tsc ×2.
 
 #### **ST-8 — Add renderer state and reconnect reconciliation**
-- [ ] Replace the single global streaming lock with per-conversation active-turn state.
+- [x] Replace the single global streaming lock with per-conversation active-turn state.
       Hydrate/reconcile active turn and Queue state through preload without leaking a prior
       conversation's state during navigation or reload.
 - Files: `src/stores/chat-store.ts`, renderer types, preload event subscriptions, pure

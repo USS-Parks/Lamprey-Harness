@@ -27,6 +27,7 @@ import type {
 class FakeStore implements TurnControlStoreLike {
   records = new Map<string, FollowUpRecord>()
   createCalls = 0
+  activeTurn: ReturnType<TurnControlStoreLike['getActiveTurn']> = null
 
   createFollowUp(input: {
     id: FollowUpId
@@ -89,6 +90,10 @@ class FakeStore implements TurnControlStoreLike {
 
   listFollowUps(conversationId: string) {
     return [...this.records.values()].filter((row) => row.conversationId === conversationId)
+  }
+
+  getActiveTurn(conversationId: string) {
+    return this.activeTurn?.conversationId === conversationId ? this.activeTurn : null
   }
 
   updateFollowUpInput(id: string, input: TurnInputItem[], updatedAt: number) {
@@ -364,6 +369,60 @@ describe('ST-4 typed Steering and Queue actions', () => {
     ).toMatchObject({ success: true, data: { status: 'deleted' } })
   })
 
+  it('hydrates one conversation snapshot with active identity and ordered follow-ups', () => {
+    const { actions, runtimes, store } = makeHarness()
+    store.activeTurn = {
+      id: 'turn-1' as TurnId,
+      conversationId: 'conversation-1',
+      kind: 'regular',
+      status: 'running',
+      correlationId: 'correlation-1',
+      activeAgentRunId: null,
+      startedAt: 50,
+      completedAt: null,
+      recoveryReason: null,
+      createdAt: 50,
+      updatedAt: 50
+    }
+    runtimes.register({
+      conversationId: 'conversation-1',
+      correlationId: 'correlation-1',
+      turnId: 'turn-1' as TurnId,
+      startedAt: 50
+    })
+    actions.queue(submission('queue'))
+    expect(actions.getState('conversation-1')).toMatchObject({
+      success: true,
+      data: {
+        conversationId: 'conversation-1',
+        activeTurn: { turnId: 'turn-1', status: 'running', startedAt: 50 },
+        followUps: [{ id: 'follow-up-1', status: 'queued', position: 0 }],
+        observedAt: expect.any(Number)
+      }
+    })
+  })
+
+  it('does not resurrect a durable orphan without a matching live runtime', () => {
+    const { actions, store } = makeHarness()
+    store.activeTurn = {
+      id: 'orphan-turn' as TurnId,
+      conversationId: 'conversation-1',
+      kind: 'regular',
+      status: 'running',
+      correlationId: 'correlation-orphan',
+      activeAgentRunId: null,
+      startedAt: 10,
+      completedAt: null,
+      recoveryReason: null,
+      createdAt: 10,
+      updatedAt: 10
+    }
+    expect(actions.getState('conversation-1')).toMatchObject({
+      success: true,
+      data: { activeTurn: null }
+    })
+  })
+
   it('send-now requires the exact active turn and never silently consumes a queue item', () => {
     const { actions, runtimes, store } = makeHarness()
     actions.queue(submission('queue'))
@@ -395,7 +454,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
     expect(runtime.pendingSteers.map((item) => item.followUpId)).toEqual(['follow-up-1'])
   })
 
-  it('registers all eight IPC channels with standard envelope-returning handlers', async () => {
+  it('registers all nine IPC channels with standard envelope-returning handlers', async () => {
     const { deps } = makeHarness()
     registerTurnControlHandlers(deps)
     expect(electronMocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
@@ -403,6 +462,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
       'turn:steer',
       'turn:queue',
       'turn:listFollowups',
+      'turn:getState',
       'turn:updateFollowup',
       'turn:reorderFollowups',
       'turn:sendFollowupNow',

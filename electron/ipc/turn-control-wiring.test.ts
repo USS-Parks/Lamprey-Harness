@@ -10,6 +10,7 @@ const channels = [
   'turn:steer',
   'turn:queue',
   'turn:listFollowups',
+  'turn:getState',
   'turn:updateFollowup',
   'turn:reorderFollowups',
   'turn:sendFollowupNow',

@@ -17,6 +17,20 @@ import { usePlanStore } from '@/stores/plan-store'
 import { toast } from '@/stores/toast-store'
 import { useNavHistoryStore } from '@/stores/nav-history-store'
 import { getRecentUserPromptsFrom } from '@/lib/recent-prompts'
+import {
+  applyTurnSettledEvent,
+  applyTurnStartedEvent,
+  getConversationFollowUpState,
+  reconcileTurnControlSnapshot,
+  type FollowUpStateByConversation
+} from '@/lib/follow-up-state'
+import type {
+  ActiveTurnSnapshot,
+  TurnControlSnapshot,
+  TurnFollowUpRecord,
+  TurnSettledEvent,
+  TurnStartedEvent
+} from '@/lib/turn-control-types'
 
 export interface ToolCallState {
   callId: string
@@ -42,6 +56,11 @@ interface ChatState {
   conversations: Conversation[]
   activeConversationId: string | null
   messages: Message[]
+  /** Conversation-keyed source of truth. The legacy visible stream fields
+   * below are only the projection for activeConversationId. */
+  turnControlByConversation: FollowUpStateByConversation
+  activeTurn: ActiveTurnSnapshot | null
+  followUps: TurnFollowUpRecord[]
   isStreaming: boolean
   streamingContent: string
   /** Live chain-of-thought captured off the provider's reasoning channel
@@ -76,6 +95,9 @@ interface ChatState {
 
   loadConversations: () => Promise<void>
   selectConversation: (id: string) => Promise<void>
+  hydrateTurnControl: (conversationId: string) => Promise<void>
+  applyTurnStarted: (event: TurnStartedEvent) => void
+  applyTurnSettled: (event: TurnSettledEvent) => void
   createConversation: () => Promise<string>
   forkFromMessage: (messageId: string, opts?: Partial<ForkParams>) => Promise<string | null>
   deleteConversation: (id: string) => Promise<void>
@@ -89,9 +111,7 @@ interface ChatState {
   streamError: (error: string) => void
   continueStreamAfterRound: (message: Message) => void
   appendSteerUserMessage: (message: Message) => void
-  setStreamingVitals: (
-    v: ChatState['streamingVitals']
-  ) => void
+  setStreamingVitals: (v: ChatState['streamingVitals']) => void
   addToolCall: (event: ToolCallEvent) => void
   updateToolCall: (event: ToolCallResultEvent) => void
   clearToolCalls: () => void
@@ -119,6 +139,8 @@ interface ChatState {
     error?: string
   }) => void
 }
+
+const turnHydrationGenerations = new Map<string, number>()
 
 function extOf(name: string): string {
   const dot = name.lastIndexOf('.')
@@ -172,10 +194,7 @@ function errorMessage(err: unknown, fallback: string): string {
 // not persisted, so historical entries leave those undefined; the cards
 // gracefully fall back to toolName + args.
 function hydrateToolCallsFromHistory(messages: Message[]): ToolCallState[] {
-  const resultsByCallId = new Map<
-    string,
-    { result: string; timestamp: number }
-  >()
+  const resultsByCallId = new Map<string, { result: string; timestamp: number }>()
   for (const m of messages) {
     if (m.role === 'tool' && m.toolCallId) {
       resultsByCallId.set(m.toolCallId, {
@@ -218,6 +237,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   activeConversationId: null,
   messages: [],
+  turnControlByConversation: {},
+  activeTurn: null,
+  followUps: [],
   isStreaming: false,
   streamingContent: '',
   streamingReasoning: '',
@@ -245,17 +267,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // old conversation's partial text + isStreaming:true bleeding into the new
     // view — `canSend` then locked the input app-wide and Stop cancelled the
     // wrong conversation (useChat drops terminal events for the inactive one).
+    const cachedTurnControl = getConversationFollowUpState(get().turnControlByConversation, id)
     set({
       activeConversationId: id,
+      activeTurn: cachedTurnControl.activeTurn,
+      followUps: cachedTurnControl.followUps,
       toolCalls: [],
       runPhase: null,
-      isStreaming: false,
+      isStreaming: cachedTurnControl.activeTurn !== null,
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
-      streamStartedAt: null,
+      streamStartedAt: cachedTurnControl.activeTurn?.startedAt ?? null,
       streamingVitals: null
     })
+    const turnHydration = get().hydrateTurnControl(id)
     const result = await window.api.conversation.getMessages(id)
     // JM-21 (RD-3) — staleness guard. Rapid A→B switching can let A's slower
     // getMessages resolve last; without this bail, B would render A's messages.
@@ -277,6 +303,92 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Load the plan for the new active conversation. Fire-and-forget — the
     // plan checklist renders empty until the snapshot arrives, which is fine.
     void usePlanStore.getState().loadForConversation(id)
+    await turnHydration
+  },
+
+  hydrateTurnControl: async (conversationId: string) => {
+    const generation = (turnHydrationGenerations.get(conversationId) ?? 0) + 1
+    turnHydrationGenerations.set(conversationId, generation)
+    let result
+    try {
+      result = await window.api.turn.getState(conversationId)
+    } catch (error) {
+      console.warn('[chat-store] turn-control hydration failed:', error)
+      return
+    }
+    if (turnHydrationGenerations.get(conversationId) !== generation || !result.success) return
+    const snapshot = result.data as TurnControlSnapshot
+    set((state) => {
+      const current = state.turnControlByConversation[conversationId]
+      const reconciled = reconcileTurnControlSnapshot(current, snapshot)
+      const turnControlByConversation = {
+        ...state.turnControlByConversation,
+        [conversationId]: reconciled
+      }
+      if (state.activeConversationId !== conversationId) return { turnControlByConversation }
+      return {
+        turnControlByConversation,
+        activeTurn: reconciled.activeTurn,
+        followUps: reconciled.followUps,
+        isStreaming: reconciled.activeTurn !== null,
+        streamStartedAt: reconciled.activeTurn?.startedAt ?? null
+      }
+    })
+  },
+
+  applyTurnStarted: (event) => {
+    set((state) => {
+      const next = applyTurnStartedEvent(
+        state.turnControlByConversation[event.conversationId],
+        event
+      )
+      const turnControlByConversation = {
+        ...state.turnControlByConversation,
+        [event.conversationId]: next
+      }
+      if (state.activeConversationId !== event.conversationId) {
+        return { turnControlByConversation }
+      }
+      return {
+        turnControlByConversation,
+        activeTurn: next.activeTurn,
+        followUps: next.followUps,
+        isStreaming: true,
+        streamStartedAt: state.streamStartedAt ?? event.startedAt
+      }
+    })
+  },
+
+  applyTurnSettled: (event) => {
+    set((state) => {
+      const next = applyTurnSettledEvent(
+        state.turnControlByConversation[event.conversationId],
+        event
+      )
+      const turnControlByConversation = {
+        ...state.turnControlByConversation,
+        [event.conversationId]: next
+      }
+      if (state.activeConversationId !== event.conversationId) {
+        return { turnControlByConversation }
+      }
+      return {
+        turnControlByConversation,
+        activeTurn: next.activeTurn,
+        followUps: next.followUps,
+        isStreaming: next.activeTurn !== null,
+        ...(next.activeTurn
+          ? { streamStartedAt: next.activeTurn.startedAt }
+          : {
+              streamingContent: '',
+              streamingReasoning: '',
+              streamingDocuments: [],
+              streamingVitals: null,
+              streamStartedAt: null,
+              runPhase: null
+            })
+      }
+    })
   },
 
   createConversation: async () => {
@@ -290,6 +402,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
           conversations: [conv, ...state.conversations],
           activeConversationId: conv.id,
           messages: [],
+          activeTurn: null,
+          followUps: [],
+          isStreaming: false,
+          streamingContent: '',
+          streamingReasoning: '',
+          streamingDocuments: [],
+          streamingVitals: null,
+          streamStartedAt: null,
           toolCalls: [],
           runPhase: null
         }))
@@ -348,10 +468,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return
     }
     const wasActive = get().activeConversationId === id
+    turnHydrationGenerations.delete(id)
     set((state) => ({
+      turnControlByConversation: Object.fromEntries(
+        Object.entries(state.turnControlByConversation).filter(
+          ([conversationId]) => conversationId !== id
+        )
+      ),
       conversations: state.conversations.filter((c) => c.id !== id),
       activeConversationId: wasActive ? null : state.activeConversationId,
       messages: wasActive ? [] : state.messages,
+      activeTurn: wasActive ? null : state.activeTurn,
+      followUps: wasActive ? [] : state.followUps,
+      isStreaming: wasActive ? false : state.isStreaming,
+      streamingContent: wasActive ? '' : state.streamingContent,
+      streamingReasoning: wasActive ? '' : state.streamingReasoning,
+      streamingDocuments: wasActive ? [] : state.streamingDocuments,
+      streamingVitals: wasActive ? null : state.streamingVitals,
+      streamStartedAt: wasActive ? null : state.streamStartedAt,
       // Drop in-flight chat-side state for the deleted conversation so the
       // welcome screen (and any subsequent fresh conversation) starts clean
       // — without this the previous tool cards / run-phase pill / plan
@@ -476,10 +610,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   cancelStream: () => {
-    const id = get().activeConversationId
-    if (id) {
-      window.api.chat.cancel(id)
+    const { activeConversationId, activeTurn } = get()
+    if (!activeConversationId) return
+    if (activeTurn) {
+      void window.api.turn.interrupt({
+        conversationId: activeConversationId,
+        expectedTurnId: activeTurn.turnId
+      })
+      return
     }
+    // Compatibility for the short optimistic-send window before main emits
+    // chat:turn-started with the stable identity.
+    void window.api.chat.cancel(activeConversationId)
   },
 
   setModel: async (model: string) => {
@@ -530,13 +672,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ streamingVitals: v })
   },
 
-
   finishStream: (message: Message) => {
     set((state) => ({
       messages: state.messages.some((existing) => existing.id === message.id)
         ? state.messages
         : [...state.messages, message],
-      isStreaming: false,
+      // chat:done precedes chat:turn-settled. Keep the lock tied to the
+      // active identity until the exact terminal event arrives.
+      isStreaming: state.activeTurn !== null,
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
@@ -571,15 +714,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   streamError: (_error: string) => {
-    set({
-      isStreaming: false,
+    set((state) => ({
+      isStreaming: state.activeTurn !== null,
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
       streamingVitals: null,
       streamStartedAt: null,
       runPhase: null
-    })
+    }))
   },
 
   addToolCall: (event: ToolCallEvent) => {
@@ -705,11 +848,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // do NOT delete the ingested document — it stays in the auto-collection
     // (cheap to keep, expensive to redo); the user can re-add the file later
     // by drag-drop and the dedupe-by-hash path in ingest will reuse it.
-    if (
-      removed?.kind === 'rag-pending' &&
-      removed.collectionId &&
-      window.api?.rag?.attachments
-    ) {
+    if (removed?.kind === 'rag-pending' && removed.collectionId && window.api?.rag?.attachments) {
       const convId = get().activeConversationId
       if (convId) {
         void window.api.rag.attachments.remove({

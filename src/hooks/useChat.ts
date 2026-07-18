@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { usePlanStore } from '@/stores/plan-store'
 import type { AgentRunPhase, PlanSnapshot } from '@/lib/types'
+import type { TurnSettledEvent, TurnStartedEvent } from '@/lib/turn-control-types'
 
 export function useChat(): void {
   useEffect(() => {
@@ -113,6 +114,20 @@ export function useChat(): void {
       window.api.chat.onUserMessage((e) => {
         if (!matchesActive(e)) return
         useChatStore.getState().appendSteerUserMessage(e.message as any)
+        void useChatStore.getState().hydrateTurnControl(e.conversationId)
+      })
+    )
+
+    track(
+      window.api.chat.onTurnStarted((e) => {
+        useChatStore.getState().applyTurnStarted(e as TurnStartedEvent)
+      })
+    )
+
+    track(
+      window.api.chat.onTurnSettled((e) => {
+        useChatStore.getState().applyTurnSettled(e as TurnSettledEvent)
+        if (e.persisted) void useChatStore.getState().hydrateTurnControl(e.conversationId)
       })
     )
 
@@ -138,11 +153,13 @@ export function useChat(): void {
       })
     )
 
-    const onDocCreated = (window.api.chat as {
-      onDocumentCreated?: (
-        cb: (e: { conversationId: string; document: any }) => void
-      ) => () => void
-    }).onDocumentCreated
+    const onDocCreated = (
+      window.api.chat as {
+        onDocumentCreated?: (
+          cb: (e: { conversationId: string; document: any }) => void
+        ) => () => void
+      }
+    ).onDocumentCreated
     const docUnsub = onDocCreated
       ? onDocCreated((e) => {
           if (!matchesActive(e)) return
@@ -150,7 +167,11 @@ export function useChat(): void {
         })
       : undefined
 
-    const onPhase = (window.api.chat as { onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => unknown }).onPhase
+    const onPhase = (
+      window.api.chat as {
+        onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => unknown
+      }
+    ).onPhase
     if (onPhase) {
       track(
         onPhase((e) => {
@@ -169,18 +190,20 @@ export function useChat(): void {
     // T4 — streaming-vitals heartbeat. The provider fires ~every 2s while
     // a stream is active so the renderer can show "last chunk Ns ago / N
     // tokens" — lets the user distinguish a slow think from a dead socket.
-    const onVitals = (window.api.chat as {
-      onStreamingVitals?: (
-        cb: (e: {
-          conversationId: string
-          lastChunkAt: number
-          msSinceLastChunk: number
-          chunkCount: number
-          tokenEstimate: number
-          attemptElapsedMs: number
-        }) => void
-      ) => () => void
-    }).onStreamingVitals
+    const onVitals = (
+      window.api.chat as {
+        onStreamingVitals?: (
+          cb: (e: {
+            conversationId: string
+            lastChunkAt: number
+            msSinceLastChunk: number
+            chunkCount: number
+            tokenEstimate: number
+            attemptElapsedMs: number
+          }) => void
+        ) => () => void
+      }
+    ).onStreamingVitals
     const vitalsUnsub = onVitals
       ? onVitals((e) => {
           if (!matchesActive(e)) return
@@ -201,7 +224,13 @@ export function useChat(): void {
     // from chat.ts after every successful update_plan tool call; we drop
     // events for other conversations the same way matchesActive does for
     // chat events, then hand off to the plan store.
-    const planNs = (window.api as { plan?: { onUpdated?: (cb: (e: { conversationId: string; snapshot: unknown }) => void) => () => void } }).plan
+    const planNs = (
+      window.api as {
+        plan?: {
+          onUpdated?: (cb: (e: { conversationId: string; snapshot: unknown }) => void) => () => void
+        }
+      }
+    ).plan
     const planUnsub = planNs?.onUpdated
       ? planNs.onUpdated((e) => {
           if (!matchesActive(e)) return

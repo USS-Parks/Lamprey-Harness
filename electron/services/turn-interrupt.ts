@@ -1,6 +1,7 @@
 import { recordEvent, type RecordEventInput } from './event-log'
 import { drainPendingDocuments } from './pending-turn-documents'
 import { recoverPendingRuntimeSteers } from './steer-delivery'
+import { emitTurnSettled } from './turn-lifecycle-events'
 import { turnRuntimeRegistry, type TurnRuntime, type TurnRuntimeRegistry } from './turn-runtime'
 import type {
   FollowUpRejection,
@@ -24,6 +25,12 @@ export interface TurnInterruptDependencies {
   drainDocuments: (correlationId: string | undefined) => unknown
   record: (input: RecordEventInput) => unknown
   reportError: (message: string, error: unknown) => void
+  emitSettled: (
+    runtime: TurnRuntime,
+    status: 'interrupted',
+    completedAt: number,
+    persisted: boolean
+  ) => void
 }
 
 const MAX_ID_LENGTH = 256
@@ -134,6 +141,7 @@ export function createTurnInterruptAction(deps: TurnInterruptDependencies) {
       persisted = false
       deps.reportError('[turn-interrupt] settlement persistence failed', error)
     }
+    deps.emitSettled(runtime, 'interrupted', interruptedAt, persisted)
 
     try {
       deps.record({
@@ -176,5 +184,6 @@ export const interruptTurn = createTurnInterruptAction({
   recoverPendingSteers: recoverPendingRuntimeSteers,
   drainDocuments: drainPendingDocuments,
   record: recordEvent,
-  reportError: (message, error) => console.error(message, error)
+  reportError: (message, error) => console.error(message, error),
+  emitSettled: emitTurnSettled
 })

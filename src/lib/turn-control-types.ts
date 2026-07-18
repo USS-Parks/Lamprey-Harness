@@ -148,6 +148,58 @@ export interface InterruptTurnResult {
   persisted: boolean
 }
 
+export interface ActiveTurnSnapshot extends ActiveTurnIdentity {
+  status: 'running'
+  startedAt: number
+}
+
+export interface TurnFollowUpRecord {
+  id: FollowUpId
+  conversationId: string
+  turnId: TurnId | null
+  expectedTurnId: TurnId | null
+  clientUserMessageId: ClientUserMessageId | null
+  deliveryMode: FollowUpDeliveryMode
+  status: FollowUpStatus
+  inputVersion: 1
+  input: TurnInputItem[]
+  position: number | null
+  actor: FollowUpActor
+  sourceConversationId: string | null
+  sourceTaskId: string | null
+  targetAgentRunId: string | null
+  rejectionReason: FollowUpRejectionReason | null
+  rejectionMessage: string | null
+  recoveryReason: string | null
+  createdAt: number
+  updatedAt: number
+  deliveredAt: number | null
+  finalizedAt: number | null
+}
+
+export interface TurnControlSnapshot {
+  conversationId: string
+  activeTurn: ActiveTurnSnapshot | null
+  followUps: TurnFollowUpRecord[]
+  observedAt: number
+  revision: number
+}
+
+export interface TurnStartedEvent extends ActiveTurnSnapshot {
+  occurredAt: number
+  revision: number
+}
+
+export interface TurnSettledEvent {
+  conversationId: string
+  turnId: TurnId
+  status: Exclude<TurnStatus, 'running'>
+  completedAt: number
+  occurredAt: number
+  persisted: boolean
+  revision: number
+}
+
 export interface FollowUpRejection {
   reason: FollowUpRejectionReason
   message: string

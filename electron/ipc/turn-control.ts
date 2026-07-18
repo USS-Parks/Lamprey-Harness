@@ -3,10 +3,12 @@ import { ipcMain } from 'electron'
 import { recordEvent, type RecordEventInput } from '../services/event-log'
 import {
   TurnControlStore,
+  type ConversationTurnRecord,
   type CreateFollowUpResult,
   type FollowUpRecord
 } from '../services/turn-control-store'
 import { interruptTurn } from '../services/turn-interrupt'
+import { nextTurnControlRevision } from '../services/turn-lifecycle-events'
 import { turnRuntimeRegistry, type PendingSteer, type TurnRuntime } from '../services/turn-runtime'
 import {
   validateFollowUpSubmission,
@@ -36,6 +38,7 @@ export interface TurnControlStoreLike {
   findByClientMessageId(conversationId: string, clientUserMessageId: string): FollowUpRecord | null
   getFollowUp(id: string): FollowUpRecord | null
   listFollowUps(conversationId: string): FollowUpRecord[]
+  getActiveTurn(conversationId: string): ConversationTurnRecord | null
   updateFollowUpInput(
     id: string,
     input: FollowUpSubmission['input'],
@@ -310,6 +313,49 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       }
     },
 
+    getState(conversationId: unknown): TurnControlEnvelope<{
+      conversationId: string
+      activeTurn: {
+        conversationId: string
+        turnId: TurnId
+        kind: ConversationTurnRecord['kind']
+        status: 'running'
+        startedAt: number
+      } | null
+      followUps: FollowUpRecord[]
+      observedAt: number
+      revision: number
+    }> {
+      if (!isStrictId(conversationId)) {
+        return invalid('conversationId must be a non-empty bounded ID', 'conversationId')
+      }
+      try {
+        const active = deps.store.getActiveTurn(conversationId)
+        const runtime = deps.runtimes.lookupActive(conversationId)
+        return {
+          success: true,
+          data: {
+            conversationId,
+            activeTurn:
+              active?.status === 'running' && runtime?.turnId === active.id
+                ? {
+                    conversationId,
+                    turnId: runtime.turnId,
+                    kind: runtime.kind,
+                    status: 'running',
+                    startedAt: runtime.startedAt
+                  }
+                : null,
+            followUps: deps.store.listFollowUps(conversationId),
+            observedAt: deps.now(),
+            revision: nextTurnControlRevision()
+          }
+        }
+      } catch (err) {
+        return fromError(err, 'turn:getState failed')
+      }
+    },
+
     updateFollowUp(raw: unknown): TurnControlEnvelope<FollowUpRecord> {
       const request = validateManagementRequest(raw, ['conversationId', 'followUpId', 'input'])
       if (!request.success) return request
@@ -463,6 +509,9 @@ export function registerTurnControlHandlers(dependencies?: TurnControlDependenci
   ipcMain.handle('turn:queue', async (_event, raw: QueueFollowUpSubmission) => actions.queue(raw))
   ipcMain.handle('turn:listFollowups', async (_event, conversationId: unknown) =>
     actions.listFollowUps(conversationId)
+  )
+  ipcMain.handle('turn:getState', async (_event, conversationId: unknown) =>
+    actions.getState(conversationId)
   )
   ipcMain.handle('turn:updateFollowup', async (_event, raw: UpdateFollowUpRequest) =>
     actions.updateFollowUp(raw)

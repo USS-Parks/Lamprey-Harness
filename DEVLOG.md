@@ -1,3 +1,42 @@
+## Codex July 2026 Parity — Prompt ST-8 Renderer turn reconciliation — 2026-07-17
+
+**Files changed:** `src/lib/follow-up-state.ts`,
+`src/lib/follow-up-state.test.ts`, `src/lib/turn-control-types.ts`,
+`src/stores/chat-store.ts`, `src/hooks/useChat.ts`,
+`electron/services/turn-lifecycle-events.ts`,
+`electron/services/turn-lifecycle-events.test.ts`,
+`electron/services/renderer-turn-state-wiring.test.ts`,
+`electron/services/chat-events.ts`, `electron/services/turn-interrupt.ts`,
+`electron/services/turn-interrupt.test.ts`, `electron/ipc/chat.ts`,
+`electron/ipc/turn-control.ts`, `electron/ipc/turn-control.test.ts`,
+`electron/ipc/turn-control-wiring.test.ts`, `electron/preload.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused state/lifecycle/reconnect/JM-21/runtime regressions ✓ (80 tests, 0 skipped)
+- targeted ESLint and Prettier ✓
+- `verify:proof -- --no-tests` ✓ (lint, tsc node/web, bundle + renderer smokes,
+  native-binding accounting)
+
+**Notes:** The renderer now keeps active-turn identity and follow-up records in a
+conversation-keyed state map; `isStreaming` is only the visible conversation's projection,
+so switching away no longer loses the running identity or leaks its lock into another
+conversation. Main emits exactly one `chat:turn-started` event per newly registered runtime
+and one matching terminal event from the exact-once settlement winner, including honest
+durable-write status. Lifecycle events update every conversation, while content chunks
+remain view-local. `turn:getState` reconciles a missed event window after renderer reload or
+reconnect with the live runtime, durable active row, ordered Queue, and recoverable draft
+ledger. A durable orphan cannot be presented as active without the same live runtime ID.
+Snapshot and event updates carry a monotonic main-process revision, preventing timestamp
+ties or late terminal events from resurrecting/clearing the wrong turn. Generation guards
+drop superseded hydration replies; the existing JM-21 navigation buffer reset and stale
+message-response guard remain locked. Stop now uses strict `turn:interrupt` whenever the
+active identity is known, retaining the legacy adapter only for the brief optimistic-send
+window before the start event arrives.
+
+**Commit:** see git log (ST-8).
+
 ## Codex July 2026 Parity — Prompt ST-7 Interrupt and recovery semantics — 2026-07-17
 
 **Files changed:** `electron/services/turn-interrupt.ts`,

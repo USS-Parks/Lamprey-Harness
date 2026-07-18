@@ -21,6 +21,7 @@ import {
 } from '../services/conversation-store'
 import { drainPendingDocuments, pushPendingDocument } from '../services/pending-turn-documents'
 import { interruptTurn } from '../services/turn-interrupt'
+import { emitTurnSettled, emitTurnStarted } from '../services/turn-lifecycle-events'
 import * as memStore from '../services/memory-store'
 import { buildChaptersBlock, createChapter } from '../services/chapters-store'
 import { compressOldestMessages, getEffectiveMessages } from '../services/context-compressor'
@@ -186,11 +187,14 @@ function settleTurnRuntimeSafely(
   completedAt = Date.now()
 ): boolean {
   try {
-    return turnRuntimeRegistry.settle(runtime, status, completedAt)
+    const settled = turnRuntimeRegistry.settle(runtime, status, completedAt)
+    if (settled) emitTurnSettled(runtime, status, completedAt, true)
+    return settled
   } catch (err) {
     // The runtime is already terminal and removed. Startup recovery can
     // settle the durable orphan without keeping a stale in-memory turn.
     console.error('[chat] turn runtime settlement persistence failed:', err)
+    emitTurnSettled(runtime, status, completedAt, false)
     return false
   }
 }
@@ -271,6 +275,7 @@ export function registerChatHandlers(): void {
         correlationId,
         kind: 'regular'
       })
+      emitTurnStarted(turnRuntime)
 
       // If routing chose the research pipeline, hand off to runDeepResearch
       // and emit its outcome as the assistant message. Most errors fall
@@ -542,13 +547,14 @@ export async function runHeadlessTurn(input: {
   const correlationId = input.runtime?.correlationId ?? input.correlationId ?? randomUUID()
   const activeSkillIds = input.activeSkillIds ?? []
 
-  const runtime =
-    input.runtime ??
-    turnRuntimeRegistry.register({
-      conversationId,
-      correlationId,
-      kind: input.turnKind ?? 'regular'
-    })
+  const runtime = input.runtime
+    ? input.runtime
+    : turnRuntimeRegistry.register({
+        conversationId,
+        correlationId,
+        kind: input.turnKind ?? 'regular'
+      })
+  if (!input.runtime) emitTurnStarted(runtime)
   if (runtime.conversationId !== conversationId) {
     throw new Error('turn-runtime: runtime conversation does not match headless turn input')
   }

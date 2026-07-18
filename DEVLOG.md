@@ -9076,3 +9076,34 @@ with exactly the same mtime and proves all three caches switch to the second pro
 this correction. Resume Bucket only after committing and pushing the corrected release head.
 
 **Commit:** see git log (TC-7 pre-publication correction).
+
+## Codex July 2026 Parity — Prompt TC-7 v0.21.0 publication receipt — 2026-07-18
+
+**Release/tag:** `v0.21.0` at
+`d172586a1b76cab87bcdae51af3d790c6202f416`
+
+**Published surfaces:**
+- `origin/main` and `v0.21.0` resolve to the corrected release commit.
+- GitHub release published, non-draft, non-prerelease:
+  <https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.21.0>
+- GitHub final inventory: `Lamprey-x64.exe` (300,824,094 bytes),
+  `Lamprey-x64.exe.blockmap` (314,682 bytes), `Lamprey-x64.zip` (401,683,090
+  bytes), `latest.yml` (328 bytes), `Lamprey-arm64.dmg` (326,481,741 bytes),
+  and `Lamprey-x86_64.AppImage` (545,650,854 bytes).
+- R2 HEAD verified installer, ZIP, DMG, and AppImage at matching payload sizes.
+- CDN HEAD returned HTTP 200 with R2-matching content length and ETag for all four
+  published downloads after Cloudflare cache purge.
+
+**Recovery note:** Bucket completed R2 Windows upload, cross-platform mirroring, and cache
+purge but reported the known GitHub uploads-endpoint 404 for the installer/ZIP. Both were
+uploaded successfully one at a time. Because the tag workflow had already attached its
+own Windows updater metadata, the local blockmap and `latest.yml` generated with the
+recovered installer were then uploaded with `--clobber`; final inventory was re-read and
+matched the local pair.
+
+**Evidence:** the corrected pre-push and tag-push proof hooks each passed 210 files and
+2,653 tests, with 13 files/143 native-ABI skips reported honestly, zero failures, and both
+bundle smokes passing. The earlier Electron-native migration/schema receipt remains 19/19.
+The owner task-control GUI playbook remains `USER-VERIFICATION-NEEDED`; M3 is not started.
+
+**Commit:** see git log (v0.21.0 publication receipt).

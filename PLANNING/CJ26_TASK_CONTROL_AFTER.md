@@ -2,8 +2,8 @@
 
 **Prompts:** TC-1–TC-7  
 **Evidence date:** 2026-07-18  
-**Release:** v0.21.0 candidate  
-**Status:** complete mechanical release gate; publication pending  
+**Release:** v0.21.0
+**Status:** published; owner GUI evidence remains open
 **Parity claim:** withheld pending the packaged owner GUI playbook
 
 ## Milestone matrix
@@ -16,7 +16,7 @@
 | TC-4 | `fork_task` at a completed historical turn, v22 backlink | boundary/backlink/worktree tests plus native migrations | PASS |
 | TC-5 | recoverable metadata, v23 close state, confirmed permanent delete | lifecycle/preview/retention and native schema suites | PASS |
 | TC-6 | Activity task graph, unread, wait, Steering, interrupt, lifecycle UI | 32 focused tests, production build, renderer smoke | PASS |
-| TC-7 | architecture, governance, v0.21.0 cut, full gate, publication | full gate below; publication pending | PASS |
+| TC-7 | architecture, governance, v0.21.0 cut, full gate, publication | full gate and publication receipt below | PASS |
 
 ## Reuse outcome
 
@@ -34,7 +34,7 @@ metadata. The graph, waits, controls, and UI are projections/services over canon
 - `npm run lint`: PASS.
 - TypeScript node and web programs: PASS.
 - Default-concurrency full Vitest suite: 223 files total; 210 passed, 13 skipped;
-  2,795 tests total; 2,652 passed, 143 skipped, 0 failed.
+  2,796 tests total; 2,653 passed, 143 skipped, 0 failed.
 - Electron ABI-148 migration/schema run: 2 files, 19 tests, all RUN and PASS.
 - Production build: PASS (main, preload, renderer).
 - `npm run verify:proof`: exit 0; repeated lint/typecheck/full-suite totals above;
@@ -59,6 +59,25 @@ as part of the 41-test provider suite under coverage. A repeat full Windows cove
 showed both reported provider assertions fixed; its only failure was the already documented
 210-file memory-store stress test exceeding 240 seconds under Windows coverage and real-time
 scanning. The ordinary full suite and proof gate remain the release authority for that host.
+
+## Publication receipt
+
+- Corrected release/tag commit: `d172586a1b76cab87bcdae51af3d790c6202f416`.
+- `HEAD`, `origin/main`, and annotated tag `v0.21.0` resolve to that same commit.
+- GitHub release: <https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.21.0>;
+  published, non-draft, non-prerelease, with six uploaded assets.
+- GitHub Windows artifacts: installer 300,824,094 bytes; portable ZIP 401,683,090
+  bytes; locally paired blockmap 314,682 bytes; `latest.yml` 328 bytes.
+- GitHub cross-platform artifacts: Apple-silicon DMG 326,481,741 bytes; Linux x64
+  AppImage 545,650,854 bytes.
+- R2 HEAD verified the installer, ZIP, DMG, and AppImage at those same payload sizes.
+- CDN HEAD returned HTTP 200 and matching R2 content length/ETag for all four public
+  download URLs after the Cloudflare cache purge.
+
+Bucket's initial multi-file GitHub upload hit the documented uploads-endpoint 404 after
+R2 and cross-platform publication succeeded. Recovery uploaded the installer and ZIP one
+at a time, then clobbered the workflow-generated blockmap and `latest.yml` with the local
+pair generated alongside that installer. Final inventory and updater metadata are coherent.
 
 ## Owner GUI ledger
 

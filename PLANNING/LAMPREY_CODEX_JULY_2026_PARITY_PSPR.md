@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M2 IMPLEMENTATION COMPLETE — v0.21.0 RELEASE CANDIDATE; OWNER GUI EVIDENCE OPEN**
+**Status:** **M2 RELEASED AS v0.21.0; OWNER GUI EVIDENCE OPEN**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -837,6 +837,18 @@ The linked provider failures disappeared in the full Windows coverage reproducti
 only remaining failure was the separately documented Windows real-time-scanning timeout in
 the 210-file memory stress case. No v0.21.0 tag or public artifact existed before this
 correction; Bucket resumes only from the corrected commit.
+
+### M2 publication receipt — 2026-07-18
+
+`v0.21.0`, `origin/main`, and the release checkout all resolve to corrected commit
+`d172586a1b76cab87bcdae51af3d790c6202f416`. The public GitHub release is published with
+the Windows installer/ZIP/updater pair plus the macOS arm64 DMG and Linux x64 AppImage.
+R2 object HEAD and CDN HTTP HEAD independently verified all four public downloads at the
+published byte lengths after cache purge. Bucket's known multi-file GitHub 404 was
+recovered by uploading the installer and ZIP individually and then clobbering the updater
+blockmap/manifest with the matching local pair. M2 is released; M3 remains unauthorized,
+and the packaged owner GUI playbook remains `USER-VERIFICATION-NEEDED` rather than parity
+evidence.
 
 ```text
 APPROVED: 2026-07-18 (release override)

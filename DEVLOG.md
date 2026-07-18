@@ -9135,3 +9135,29 @@ skips native `better-sqlite3`; the focused cohort was therefore rerun through El
 all native tests executed.
 
 **Commit:** see git log (VA-1).
+
+## Codex July 2026 Parity — Prompt VA-2 Visualization and artifact tools — 2026-07-18
+
+**Files changed:** `electron/services/artifact-content-validator.ts`,
+`electron/services/artifact-content-validator.test.ts`,
+`electron/services/artifact-tool-pack.ts`, `electron/services/artifact-tool-pack.test.ts`,
+`electron/services/tool-packs.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint ✓
+- tool schemas, risk metadata, lazy discovery, size/sanitization, native-store revision
+  conflict, and handler cohort ✓ (5 files, 33 tests, 0 skipped under Electron's matching ABI)
+
+**Notes:** Five lazy native tools now use the canonical registry and VA-1 store:
+`create_visualization`, `update_visualization`, `artifact_read`, `artifact_update`, and
+`artifact_annotate`. Read is parallelizable and non-mutating; the four durable writes carry
+write risk, remain approval-free application-state edits, and are plan-mode gated through
+normal registry metadata. Every schema is strict. Type validation rejects Mermaid init/click
+directives and external URLs; bounds chart/table JSON shapes; rejects active SVG content;
+and blocks HTML/JSX external-network, navigation, worker, and host APIs. Creation requires an
+accessible fallback, revision writes require the caller's exact current revision, and tool
+provenance records model/call/correlation identity without bypassing normal audit dispatch.
+
+**Commit:** see git log (VA-2).

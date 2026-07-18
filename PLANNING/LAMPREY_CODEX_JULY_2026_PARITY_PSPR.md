@@ -503,7 +503,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **VA-2 — Add visualization and artifact tools**
 
-- [ ] Add `create_visualization`, `update_visualization`, `artifact_read`,
+- [x] Add `create_visualization`, `update_visualization`, `artifact_read`,
       `artifact_update`, and `artifact_annotate` with strict schemas and type-specific
       validation for Mermaid, charts, tables, and sandboxed interactive content.
 - Verify: tool schema/risk/size/sanitization/revision-conflict tests.

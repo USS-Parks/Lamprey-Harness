@@ -20,6 +20,7 @@ import {
   type StoredDocument
 } from '../services/conversation-store'
 import { drainPendingDocuments, pushPendingDocument } from '../services/pending-turn-documents'
+import { drainPendingArtifacts } from '../services/pending-turn-artifacts'
 import { interruptTurn } from '../services/turn-interrupt'
 import { emitTurnSettled, emitTurnStarted } from '../services/turn-lifecycle-events'
 import {
@@ -343,6 +344,7 @@ export function registerChatHandlers(): void {
           }
           const settled = settleTurnRuntimeSafely(turnRuntime, 'completed')
           drainPendingDocuments(correlationId)
+          drainPendingArtifacts(correlationId)
           if (settled) {
             dispatchQueuedFollowUpAfterCompletedTurn({
               conversationId,
@@ -408,6 +410,7 @@ export function registerChatHandlers(): void {
       })
 
       drainPendingDocuments(correlationId)
+      drainPendingArtifacts(correlationId)
       // JM-8 (CC-20) — same success payload shape as the research path.
       return {
         success: true,
@@ -434,6 +437,7 @@ export function registerChatHandlers(): void {
         )
       }
       drainPendingDocuments(correlationId)
+      drainPendingArtifacts(correlationId)
       emitPhase(conversationId, 'error')
       emitChatEvent('chat:error', { conversationId, error: errMsg })
       // Mirror into the event spine so the timeline reader sees the failure
@@ -778,6 +782,7 @@ export async function runHeadlessTurn(input: {
     }
     const settled = settleTurnRuntimeSafely(runtime, settlementStatus)
     drainPendingDocuments(correlationId)
+    drainPendingArtifacts(correlationId)
     if (settled && settlementStatus === 'completed') {
       dispatchQueuedFollowUpAfterCompletedTurn({ conversationId, model, activeSkillIds })
     }
@@ -1096,6 +1101,7 @@ export async function runChatRound(
               // UB-4 note still applies: no proof gate, no trust notice, no
               // proof_status write.
               const documents = drainPendingDocuments(correlationId)
+              const artifacts = drainPendingArtifacts(correlationId)
               // R6 (kept) — fold every round's chain-of-thought into the saved
               // row. Single-shot turns (no prior tool rounds) persist the raw
               // reasoning unchanged; multi-round turns get the numbered trail,
@@ -1111,7 +1117,8 @@ export async function runChatRound(
                 content: fullContent,
                 model,
                 reasoning: finalReasoning,
-                documents
+                documents,
+                artifacts
               })
               const hasRootSteer =
                 runtime?.pendingSteers.some((steer) => steer.targetAgentRunId === null) ?? false
@@ -1322,6 +1329,7 @@ export async function runChatRound(
             if (hasPartial) {
               try {
                 const documents = drainPendingDocuments(correlationId)
+                const artifacts = drainPendingArtifacts(correlationId)
                 const errorMarker = `\n\n_[stream interrupted: ${error}]_`
                 const assistantMsg = convStore.saveMessage({
                   id: randomUUID(),
@@ -1330,7 +1338,8 @@ export async function runChatRound(
                   content: (partial!.content || '') + errorMarker,
                   model,
                   reasoning: partial!.reasoning,
-                  documents
+                  documents,
+                  artifacts
                 })
                 if (!suppressDoneEvent) {
                   emitChatEvent('chat:done', {

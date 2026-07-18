@@ -1,4 +1,5 @@
-import { toolRegistry } from './tool-registry'
+import { randomUUID } from 'crypto'
+import { toolRegistry, type ToolExecutionContext } from './tool-registry'
 import {
   appendArtifactRevision,
   createArtifact,
@@ -16,6 +17,8 @@ import {
   type VisualizationType
 } from './artifact-content-validator'
 import { sandboxPolicyForType, type ArtifactType } from './artifact-schema'
+import { emitChatEvent } from './chat-events'
+import { upsertPendingArtifact, type StoredArtifactAttachment } from './pending-turn-artifacts'
 
 const VISUALIZATION_ENUM = [...VISUALIZATION_TYPES]
 
@@ -38,6 +41,19 @@ function extensionFor(type: VisualizationType): string {
   if (type === 'chart' || type === 'table') return 'json'
   if (type === 'react') return 'jsx'
   return type
+}
+
+function publishVisualizationState(
+  ctx: ToolExecutionContext,
+  visualization: StoredArtifactAttachment
+): void {
+  upsertPendingArtifact(ctx.correlationId, visualization)
+  if (ctx.conversationId) {
+    emitChatEvent('chat:visualization-state', {
+      conversationId: ctx.conversationId,
+      visualization
+    })
+  }
 }
 
 function readArtifactResult(artifactId: string, revisionNumber?: number): string {
@@ -91,39 +107,76 @@ toolRegistry.registerNative(
     const title = requiredString(args, 'title').slice(0, 200)
     const content = requiredString(args, 'content')
     const fallbackText = requiredString(args, 'fallbackText')
-    validateArtifactContent(type, content)
-    validateVisualizationFallback(fallbackText)
     if (!ctx.conversationId) throw new Error('create_visualization requires a conversation')
-    const artifact = createArtifact({
-      conversationId: ctx.conversationId,
-      sourceKind: 'native',
-      artifactType: type,
+    const callId = ctx.callId ?? randomUUID()
+    const createdAt = Date.now()
+    publishVisualizationState(ctx, {
+      artifactId: null,
+      callId,
+      type,
       title,
-      sandboxPolicy: sandboxPolicyForType(type),
-      content,
-      actorKind: 'assistant',
-      actorId: ctx.model ?? null,
-      exportFilename:
-        typeof args.exportFilename === 'string' && args.exportFilename.trim()
-          ? args.exportFilename.trim().slice(0, 240)
-          : `${title.replace(/[^a-z0-9._-]+/gi, '-').replace(/^-|-$/g, '') || 'visualization'}.${extensionFor(type)}`,
-      exportMimeType:
-        type === 'svg'
-          ? 'image/svg+xml'
-          : type === 'html'
-            ? 'text/html'
-            : type === 'chart' || type === 'table'
-              ? 'application/json'
-              : 'text/plain',
-      exportMetadata: { visualization: true, fallbackText },
-      provenance: {
-        source: 'create_visualization',
-        toolCallId: ctx.callId ?? null,
-        correlationId: ctx.correlationId ?? null
-      },
-      revisionMetadata: { fallbackText }
+      revision: null,
+      fallbackText,
+      status: 'loading',
+      createdAt
     })
-    return JSON.stringify({ artifactId: artifact.id, revision: artifact.currentRevision, type })
+    try {
+      validateArtifactContent(type, content)
+      validateVisualizationFallback(fallbackText)
+      const artifact = createArtifact({
+        conversationId: ctx.conversationId,
+        sourceKind: 'native',
+        artifactType: type,
+        title,
+        sandboxPolicy: sandboxPolicyForType(type),
+        content,
+        actorKind: 'assistant',
+        actorId: ctx.model ?? null,
+        exportFilename:
+          typeof args.exportFilename === 'string' && args.exportFilename.trim()
+            ? args.exportFilename.trim().slice(0, 240)
+            : `${title.replace(/[^a-z0-9._-]+/gi, '-').replace(/^-|-$/g, '') || 'visualization'}.${extensionFor(type)}`,
+        exportMimeType:
+          type === 'svg'
+            ? 'image/svg+xml'
+            : type === 'html'
+              ? 'text/html'
+              : type === 'chart' || type === 'table'
+                ? 'application/json'
+                : 'text/plain',
+        exportMetadata: { visualization: true, fallbackText },
+        provenance: {
+          source: 'create_visualization',
+          toolCallId: ctx.callId ?? null,
+          correlationId: ctx.correlationId ?? null
+        },
+        revisionMetadata: { fallbackText }
+      })
+      publishVisualizationState(ctx, {
+        artifactId: artifact.id,
+        callId,
+        type,
+        title,
+        revision: artifact.currentRevision,
+        fallbackText,
+        status: 'ready',
+        createdAt
+      })
+      return JSON.stringify({ artifactId: artifact.id, revision: artifact.currentRevision, type })
+    } catch (err) {
+      publishVisualizationState(ctx, {
+        artifactId: null,
+        callId,
+        type,
+        title,
+        revision: null,
+        fallbackText,
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+        createdAt
+      })
+      throw err
+    }
   }
 )
 
@@ -165,17 +218,54 @@ toolRegistry.registerNative(
     }
     const content = requiredString(args, 'content')
     const fallbackText = requiredString(args, 'fallbackText')
-    validateArtifactContent(artifact.artifactType, content)
-    validateVisualizationFallback(fallbackText)
-    const revision = appendArtifactRevision({
+    const callId = ctx.callId ?? randomUUID()
+    const createdAt = Date.now()
+    publishVisualizationState(ctx, {
       artifactId,
-      expectedRevision: requiredInteger(args, 'expectedRevision'),
-      content,
-      actorKind: 'assistant',
-      actorId: ctx.model ?? null,
-      metadata: { fallbackText, toolCallId: ctx.callId ?? null }
+      callId,
+      type: artifact.artifactType,
+      title: artifact.title,
+      revision: artifact.currentRevision,
+      fallbackText,
+      status: 'loading',
+      createdAt
     })
-    return JSON.stringify({ artifactId, revision: revision.revision })
+    try {
+      validateArtifactContent(artifact.artifactType, content)
+      validateVisualizationFallback(fallbackText)
+      const revision = appendArtifactRevision({
+        artifactId,
+        expectedRevision: requiredInteger(args, 'expectedRevision'),
+        content,
+        actorKind: 'assistant',
+        actorId: ctx.model ?? null,
+        metadata: { fallbackText, toolCallId: ctx.callId ?? null }
+      })
+      publishVisualizationState(ctx, {
+        artifactId,
+        callId,
+        type: artifact.artifactType,
+        title: artifact.title,
+        revision: revision.revision,
+        fallbackText,
+        status: 'ready',
+        createdAt
+      })
+      return JSON.stringify({ artifactId, revision: revision.revision })
+    } catch (err) {
+      publishVisualizationState(ctx, {
+        artifactId,
+        callId,
+        type: artifact.artifactType,
+        title: artifact.title,
+        revision: artifact.currentRevision,
+        fallbackText,
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+        createdAt
+      })
+      throw err
+    }
   }
 )
 

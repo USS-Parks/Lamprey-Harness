@@ -19,6 +19,7 @@ vi.mock('./artifact-store', () => mocks)
 import './artifact-tool-pack'
 import { toolRegistry } from './tool-registry'
 import { validateToolArguments } from './tool-schema-validator'
+import { __resetPendingArtifactsForTests, drainPendingArtifacts } from './pending-turn-artifacts'
 
 const TOOL_NAMES = [
   'create_visualization',
@@ -30,6 +31,7 @@ const TOOL_NAMES = [
 
 beforeEach(() => {
   vi.clearAllMocks()
+  __resetPendingArtifactsForTests()
   mocks.createArtifact.mockReturnValue({ id: 'artifact-1', currentRevision: 1 })
   mocks.getArtifact.mockReturnValue({
     id: 'artifact-1',
@@ -114,6 +116,15 @@ describe('VA-2 artifact tool pack', () => {
         })
       })
     )
+    expect(drainPendingArtifacts('correlation-1')).toEqual([
+      expect.objectContaining({
+        artifactId: 'artifact-1',
+        callId: 'call-1',
+        status: 'ready',
+        revision: 1,
+        fallbackText: 'A leads to B'
+      })
+    ])
   })
 
   it('rejects unsafe visualization content before persistence', async () => {

@@ -179,6 +179,21 @@ export interface DocumentCreatedPayload {
   }
 }
 
+export interface VisualizationStatePayload {
+  conversationId: string
+  visualization: {
+    artifactId: string | null
+    callId: string
+    type: string
+    title: string
+    revision: number | null
+    fallbackText: string
+    status: 'loading' | 'error' | 'ready'
+    error?: string
+    createdAt: number
+  }
+}
+
 // UB-7 (Unburdening Phase, 2026-06-10) — the Prompt-11 `agent:status`
 // pipeline channel (AgentPipelineRole / AgentStatusPayload) died with the
 // multi-agent pipeline. No producers, no listeners.
@@ -297,6 +312,7 @@ export interface ChatEventMap {
   'tasks:spawned': TaskSpawnedPayload
   'memory:added': MemoryAddedPayload
   'chat:document-created': DocumentCreatedPayload
+  'chat:visualization-state': VisualizationStatePayload
   'research:progress': ResearchProgressPayload
   'research:completed': ResearchCompletedPayload
   'research:failed': ResearchFailedPayload

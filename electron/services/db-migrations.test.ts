@@ -192,7 +192,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(24)
+    expect(result.endVersion).toBe(25)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
@@ -236,6 +236,12 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
       expect.arrayContaining(['artifacts', 'artifact_revisions', 'artifact_annotations'])
     )
     expect(runMigrations(db).applied).toEqual([])
+  })
+
+  it('VA-3 — migration v25 adds message visualization attachments', () => {
+    runMigrations(db)
+    const columns = db.prepare('PRAGMA table_info(messages)').all() as Array<{ name: string }>
+    expect(columns.map((column) => column.name)).toContain('artifacts')
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

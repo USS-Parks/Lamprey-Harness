@@ -208,6 +208,26 @@ const api = {
       ipcRenderer.on('chat:document-created', handler)
       return () => ipcRenderer.removeListener('chat:document-created', handler)
     },
+    onVisualizationState: (
+      cb: (e: {
+        conversationId: string
+        visualization: {
+          artifactId: string | null
+          callId: string
+          type: string
+          title: string
+          revision: number | null
+          fallbackText: string
+          status: 'loading' | 'error' | 'ready'
+          error?: string
+          createdAt: number
+        }
+      }) => void
+    ): (() => void) => {
+      const handler = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:visualization-state', handler)
+      return () => ipcRenderer.removeListener('chat:visualization-state', handler)
+    },
     onAsyncEvent: (cb: (e: unknown) => void): (() => void) => {
       const handler = (_: unknown, e: unknown): void => cb(e)
       ipcRenderer.on('async-event:received', handler)
@@ -227,7 +247,8 @@ const api = {
         'chat:tool-call-result',
         'chat:phase',
         'chat:streaming-vitals',
-        'chat:document-created'
+        'chat:document-created',
+        'chat:visualization-state'
       ].forEach((ch) => ipcRenderer.removeAllListeners(ch))
     },
     // Per-conversation subscription that returns an unsubscribe function.
@@ -1103,6 +1124,8 @@ const api = {
   },
 
   artifact: {
+    read: (artifactId: string, revision?: number) =>
+      ipcRenderer.invoke('artifact:read', artifactId, revision),
     render: (type: string, content: string) => ipcRenderer.invoke('artifact:render', type, content),
     hide: () => ipcRenderer.invoke('artifact:hide'),
     resize: (bounds: { x: number; y: number; width: number; height: number }) =>

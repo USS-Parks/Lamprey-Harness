@@ -299,6 +299,17 @@ export const MIGRATIONS: Migration[] = [
     up(db) {
       applyArtifactSchema(db)
     }
+  },
+  {
+    version: 25,
+    description: 'Codex July parity VA-3 — persist visualization attachment identities on messages',
+    up(db) {
+      try {
+        db.exec('ALTER TABLE messages ADD COLUMN artifacts TEXT;')
+      } catch (err: any) {
+        if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+      }
+    }
   }
 ]
 

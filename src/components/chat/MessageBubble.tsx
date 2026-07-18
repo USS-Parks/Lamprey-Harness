@@ -8,6 +8,7 @@ import { ReasoningBlock } from './ReasoningBlock'
 import { MessageActions } from './MessageActions'
 import { WakeupPill } from './WakeupPill'
 import { DocumentCardRow } from './DocumentCardRow'
+import { VisualizationCardRow } from './VisualizationCardRow'
 import { ForkDialog } from './ForkDialog'
 import { PinDialog } from './PinDialog'
 import { SeedContextChip, parseSeedContext } from './SeedContextChip'
@@ -47,7 +48,7 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
   // legacy rows / removed custom models. Raw id stays in the hover tooltip.
   const models = useModelStore((s) => s.models)
   const modelLabel = message.model
-    ? models.find((m) => m.id === message.model)?.name ?? formatModelIdFallback(message.model)
+    ? (models.find((m) => m.id === message.model)?.name ?? formatModelIdFallback(message.model))
     : null
   const [saving, setSaving] = useState(false)
   const [forkOpen, setForkOpen] = useState(false)
@@ -123,10 +124,14 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
         }
       >
         {wakeupParts && <WakeupPill reason={wakeupParts.reason} />}
-        {isUser ? seed ? (
-          <SeedContextChip seed={seed} />
-        ) : (
-          <div className="whitespace-pre-wrap break-words text-sm">{wakeupParts?.body ?? message.content}</div>
+        {isUser ? (
+          seed ? (
+            <SeedContextChip seed={seed} />
+          ) : (
+            <div className="whitespace-pre-wrap break-words text-sm">
+              {wakeupParts?.body ?? message.content}
+            </div>
+          )
         ) : (
           <>
             {reasoning && <ReasoningBlock content={reasoning} />}
@@ -168,6 +173,9 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
       </div>
       {!isUser && message.documents && message.documents.length > 0 && (
         <DocumentCardRow documents={message.documents} />
+      )}
+      {!isUser && message.artifacts && message.artifacts.length > 0 && (
+        <VisualizationCardRow visualizations={message.artifacts} />
       )}
       {!isUser && (
         <>
@@ -230,5 +238,6 @@ export const MessageBubble = memo(
     prev.message.id === next.message.id &&
     prev.message.content === next.message.content &&
     prev.message.reasoning === next.message.reasoning &&
-    prev.message.model === next.message.model
+    prev.message.model === next.message.model &&
+    prev.message.artifacts === next.message.artifacts
 )

@@ -9161,3 +9161,38 @@ accessible fallback, revision writes require the caller's exact current revision
 provenance records model/call/correlation identity without bypassing normal audit dispatch.
 
 **Commit:** see git log (VA-2).
+
+## Codex July 2026 Parity — Prompt VA-3 Inline visualization rendering — 2026-07-18
+
+**Files changed:** `electron/services/pending-turn-artifacts.ts`,
+`electron/services/chat-events.ts`, `electron/services/artifact-tool-pack.ts`,
+`electron/services/artifact-store.ts`, `electron/services/conversation-store.ts`,
+`electron/services/db-migrations.ts`, `electron/ipc/chat.ts`, `electron/ipc/artifact.ts`,
+`electron/preload.ts`, `src/lib/types.ts`, `src/lib/visualization-presentation.ts`,
+`src/stores/chat-store.ts`, `src/hooks/useChat.ts`,
+`src/components/chat/VisualizationCardRow.tsx`, `src/components/chat/MessageBubble.tsx`,
+`src/components/chat/MessageList.tsx`, focused tests,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- migration, native artifact link, tool lifecycle, renderer wiring, isolation, and
+  presentation cohort ✓ (7 files, 42 tests, 0 skipped under Electron's matching ABI)
+- production build ✓
+- renderer smoke ✓
+- `verify:proof --no-tests` exit 0 ✓ (bundle and renderer smokes included)
+
+**Notes:** Migration v25 adds a JSON artifact-identity column to assistant messages without
+duplicating revision content. Visualization tool calls publish loading/error/ready state by
+correlation and call identity; the final state is drained into the owning assistant row and
+the durable artifact/revision provenance is linked transactionally to that message. A typed
+read-only IPC retrieves the exact immutable revision for live and historical cards. Mermaid
+uses strict rendering and is shown only as image-context SVG data; validated raw SVG is also
+shown in image context; chart and table envelopes render as React elements. HTML, JSX, and
+React source is never injected into the chat DOM and opens only through the existing sandboxed
+WebContentsView/window with navigation, popups, Node integration, and network access denied.
+Every card keeps its text alternative visible and provides collapse, isolated-open, and export
+actions. The production build and renderer smoke cover the dynamically split Mermaid bundle.
+
+**Commit:** see git log (VA-3).

@@ -3,6 +3,8 @@ import { getDb, withWriteRetry } from './database'
 import { touchProject } from './projects-store'
 import { clearConversationState } from './plan-goal-store'
 import { sanitizePseudoTags } from './sanitize-pseudo-tags'
+import { linkArtifactToMessage } from './artifact-store'
+import type { StoredArtifactAttachment } from './pending-turn-artifacts'
 
 export interface ConversationRow {
   id: string
@@ -42,6 +44,8 @@ export interface MessageRow {
   /** JSON-encoded array of StoredDocument. NULL for turns with no
    *  create_document calls. */
   documents: string | null
+  /** JSON-encoded first-class visualization attachments. */
+  artifacts: string | null
   /** Reasoning Audit Phase R1 — multi-agent pipeline stage discriminator.
    *  NULL = legacy or single-agent. 'planner' | 'reviewer' | 'composer'
    *  set by the pipeline / composer save sites. Coder rows stay NULL
@@ -221,12 +225,11 @@ export function listConversationLineage(conversationId: string, limit = 10) {
 export function getConversation(id: string) {
   const db = getDb()
   const row = db.prepare('SELECT * FROM conversations WHERE id = ?').get(id) as
-    | ConversationRow
-    | undefined
+    ConversationRow | undefined
   if (!row) return null
-  const count = db.prepare(
-    'SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?'
-  ).get(id) as { cnt: number }
+  const count = db
+    .prepare('SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?')
+    .get(id) as { cnt: number }
   return rowToConversation(row, count.cnt)
 }
 
@@ -428,9 +431,9 @@ function ftsDeleteAllForConversation(id: string): void {
 function ftsDeleteMessagesForConversation(conversationId: string): void {
   const db = getDb()
   try {
-    db.prepare(
-      "DELETE FROM sessions_fts WHERE source = 'message' AND conversation_id = ?"
-    ).run(conversationId)
+    db.prepare("DELETE FROM sessions_fts WHERE source = 'message' AND conversation_id = ?").run(
+      conversationId
+    )
   } catch (err) {
     console.warn(
       '[conversation-store] FTS delete-messages-for-conv failed:',
@@ -457,9 +460,9 @@ export function clearConversationMessages(conversationId: string): void {
 function ftsDeleteMessage(messageId: string): void {
   const db = getDb()
   try {
-    db.prepare(
-      "DELETE FROM sessions_fts WHERE source = 'message' AND message_id = ?"
-    ).run(messageId)
+    db.prepare("DELETE FROM sessions_fts WHERE source = 'message' AND message_id = ?").run(
+      messageId
+    )
   } catch (err) {
     console.warn('[conversation-store] FTS delete-message failed:', (err as Error).message)
   }
@@ -521,7 +524,8 @@ export function backfillSessionsFts(force = false): { rebuilt: boolean; rows: nu
       )
       .all() as { id: string; conversation_id: string; content: string }[]
     for (const m of msgs) ftsInsertMessage(m.id, m.conversation_id, m.content)
-    const rows = (db.prepare('SELECT COUNT(*) AS cnt FROM sessions_fts').get() as { cnt: number }).cnt
+    const rows = (db.prepare('SELECT COUNT(*) AS cnt FROM sessions_fts').get() as { cnt: number })
+      .cnt
     return { rebuilt: true, rows }
   } catch (err) {
     console.error('[conversation-store] FTS backfill failed:', (err as Error).message)
@@ -614,18 +618,15 @@ export function setConversationProject(id: string, projectId: string | null) {
 // stale conversation ids in flight cannot trip the gate.
 export function isPlanModeActive(id: string): boolean {
   const db = getDb()
-  const row = db
-    .prepare('SELECT plan_mode_active FROM conversations WHERE id = ?')
-    .get(id) as { plan_mode_active?: number } | undefined
+  const row = db.prepare('SELECT plan_mode_active FROM conversations WHERE id = ?').get(id) as
+    { plan_mode_active?: number } | undefined
   return !!(row && row.plan_mode_active === 1)
 }
 
 export function setPlanModeActive(id: string, active: boolean): boolean {
   const db = getDb()
   const result = db
-    .prepare(
-      'UPDATE conversations SET plan_mode_active = ?, updated_at = ? WHERE id = ?'
-    )
+    .prepare('UPDATE conversations SET plan_mode_active = ?, updated_at = ? WHERE id = ?')
     .run(active ? 1 : 0, Date.now(), id)
   return result.changes > 0
 }
@@ -634,9 +635,8 @@ export function touchConversation(id: string) {
   const db = getDb()
   db.prepare('UPDATE conversations SET updated_at = ? WHERE id = ?').run(Date.now(), id)
   // Bubble activity up to the parent project so it sorts to the top.
-  const row = db
-    .prepare('SELECT project_id FROM conversations WHERE id = ?')
-    .get(id) as { project_id?: string | null } | undefined
+  const row = db.prepare('SELECT project_id FROM conversations WHERE id = ?').get(id) as
+    { project_id?: string | null } | undefined
   if (row?.project_id) touchProject(row.project_id)
 }
 
@@ -702,6 +702,7 @@ export function saveMessage(msg: {
   draft?: string
   reasoning?: string
   documents?: StoredDocument[]
+  artifacts?: StoredArtifactAttachment[]
   /** Reasoning Audit Phase R1 — multi-agent pipeline stage discriminator.
    *  Pass 'planner' / 'reviewer' / 'composer' from agent-pipeline.ts +
    *  chat.ts composer path. Omit (NULL) for single-agent + Coder rows. */
@@ -751,8 +752,12 @@ export function saveMessage(msg: {
       : split.content
   const contentRaw =
     msg.role === 'assistant' && sanitizedContent !== split.content ? split.content : null
-  const toolCallsJson = msg.toolCalls && msg.toolCalls.length > 0 ? JSON.stringify(msg.toolCalls) : null
-  const documentsJson = msg.documents && msg.documents.length > 0 ? JSON.stringify(msg.documents) : null
+  const toolCallsJson =
+    msg.toolCalls && msg.toolCalls.length > 0 ? JSON.stringify(msg.toolCalls) : null
+  const documentsJson =
+    msg.documents && msg.documents.length > 0 ? JSON.stringify(msg.documents) : null
+  const artifactsJson =
+    msg.artifacts && msg.artifacts.length > 0 ? JSON.stringify(msg.artifacts) : null
   // PS3 — wrap the message INSERT + touchConversation + FTS sync in
   // withWriteRetry so a transient SQLITE_BUSY (post-busy_timeout, rare
   // multi-process edge case) doesn't drop a chat message silently.
@@ -768,7 +773,7 @@ export function saveMessage(msg: {
   // message invisible to search forever.
   const writeGroup = db.transaction(() => {
     db.prepare(
-      'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, draft, reasoning, documents, stage, content_raw, proof_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO messages (id, conversation_id, role, content, model, tool_call_id, tool_calls, draft, reasoning, documents, artifacts, stage, content_raw, proof_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(
       msg.id,
       msg.conversationId,
@@ -780,11 +785,17 @@ export function saveMessage(msg: {
       msg.draft || null,
       split.reasoning || null,
       documentsJson,
+      artifactsJson,
       msg.stage || null,
       contentRaw,
       msg.proofStatus || null,
       now
     )
+    for (const artifact of msg.artifacts ?? []) {
+      if (artifact.status === 'ready' && artifact.artifactId) {
+        linkArtifactToMessage(artifact.artifactId, msg.conversationId, msg.id, db)
+      }
+    }
     touchConversation(msg.conversationId)
     // E3: keep the cross-session FTS index in sync. User/assistant
     // bodies are the ones worth searching; system/tool messages are
@@ -809,6 +820,7 @@ export function saveMessage(msg: {
     draft: msg.draft,
     reasoning: split.reasoning,
     documents: msg.documents,
+    artifacts: msg.artifacts,
     stage: msg.stage,
     proofStatus: msg.proofStatus
   }
@@ -834,9 +846,9 @@ export function setMessageProofStatus(
 
 export function getMessages(conversationId: string) {
   const db = getDb()
-  const rows = db.prepare(
-    'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
-  ).all(conversationId) as MessageRow[]
+  const rows = db
+    .prepare('SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC')
+    .all(conversationId) as MessageRow[]
   return rows.map((row) => {
     let toolCalls: StoredToolCall[] | undefined
     if (row.tool_calls) {
@@ -857,6 +869,15 @@ export function getMessages(conversationId: string) {
         // Same corrupt-JSON policy as toolCalls — drop and continue.
       }
     }
+    let artifacts: StoredArtifactAttachment[] | undefined
+    if (row.artifacts) {
+      try {
+        const parsed = JSON.parse(row.artifacts)
+        if (Array.isArray(parsed)) artifacts = parsed as StoredArtifactAttachment[]
+      } catch {
+        // Same corrupt-JSON policy as documents — keep the message readable.
+      }
+    }
     return {
       id: row.id,
       conversationId: row.conversation_id,
@@ -871,6 +892,7 @@ export function getMessages(conversationId: string) {
       toolCalls,
       reasoning: row.reasoning ?? undefined,
       documents,
+      artifacts,
       // Reasoning Audit Phase R1 — multi-agent pipeline stage discriminator.
       // NULL on legacy rows + Coder rows reaches the renderer as `undefined`,
       // which MessageBubble (R7) treats as "no chip, no toggle".

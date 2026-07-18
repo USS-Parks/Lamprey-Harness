@@ -5,6 +5,7 @@ import { MessageBubble } from './MessageBubble'
 import { StreamingText } from './StreamingText'
 import { StreamStatusLine } from './StreamStatusLine'
 import { DocumentCardRow } from './DocumentCardRow'
+import { VisualizationCardRow } from './VisualizationCardRow'
 import { InlineApprovalChip } from './InlineApprovalChip'
 import { useInlineApprovalsStore } from '@/stores/inline-approvals-store'
 import { TranscriptNotice } from './TranscriptNotice'
@@ -13,10 +14,7 @@ import { useChatStore } from '@/stores/chat-store'
 import { CHAT_COLUMN_CLASS } from './ChatView'
 import { ChapterDivider } from './ChapterDivider'
 import { useChaptersStore, type Chapter } from '@/stores/chapters-store'
-import {
-  CompressedRegionPill,
-  isCompressedSummaryMessage
-} from './CompressedRegionPill'
+import { CompressedRegionPill, isCompressedSummaryMessage } from './CompressedRegionPill'
 import { DeepResearchBanner } from './DeepResearchBanner'
 import thinkingIconUrl from '@assets/Lamprey Thinking Icon.png'
 
@@ -116,6 +114,7 @@ export function MessageList({
   // requires every assistant turn to lead with <think>…</think>.
   const streamingReasoning = useChatStore((s) => s.streamingReasoning)
   const streamingDocuments = useChatStore((s) => s.streamingDocuments)
+  const streamingVisualizations = useChatStore((s) => s.streamingVisualizations)
   const parsed = (() => {
     if (streamingReasoning) {
       return { reasoning: streamingReasoning, body: streamingContent, isThinking: true }
@@ -153,8 +152,11 @@ export function MessageList({
   const allNotices = useInlineNoticesStore((s) => s.byConv)
   const dismissNotice = useInlineNoticesStore((s) => s.dismiss)
   const { noticesByBefore, noticesAfterAll } = useMemo(() => {
-    const byBefore: Record<number, ReturnType<typeof useInlineNoticesStore.getState>['byConv'][string]> = {}
-    const afterAll: typeof byBefore[number] = []
+    const byBefore: Record<
+      number,
+      ReturnType<typeof useInlineNoticesStore.getState>['byConv'][string]
+    > = {}
+    const afterAll: (typeof byBefore)[number] = []
     if (!activeConvId) return { noticesByBefore: byBefore, noticesAfterAll: afterAll }
     const notices = allNotices[activeConvId] ?? []
     if (notices.length === 0) return { noticesByBefore: byBefore, noticesAfterAll: afterAll }
@@ -270,6 +272,9 @@ export function MessageList({
                 />
                 {streamingDocuments.length > 0 && (
                   <DocumentCardRow documents={streamingDocuments} />
+                )}
+                {streamingVisualizations.length > 0 && (
+                  <VisualizationCardRow visualizations={streamingVisualizations} />
                 )}
               </div>
             </div>

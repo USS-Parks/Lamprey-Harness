@@ -7,6 +7,7 @@ import {
   createArtifactAnnotation,
   findArtifactBySource,
   getArtifact,
+  linkArtifactToMessage,
   listArtifactAnnotations,
   listArtifactRevisions,
   mirrorEphemeralArtifact,
@@ -96,6 +97,30 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('VA-1 artifact native store', () => {
         db
       )
     ).toThrow(/does not belong/)
+  })
+
+  it('links a turn-created artifact to the owning assistant message', () => {
+    createArtifact(
+      {
+        id: 'artifact-1',
+        conversationId: 'conversation-1',
+        artifactType: 'mermaid',
+        title: 'Flow',
+        sandboxPolicy: 'strict-static',
+        content: 'graph TD; A-->B',
+        actorKind: 'assistant'
+      },
+      db
+    )
+    linkArtifactToMessage('artifact-1', 'conversation-1', 'message-1', db)
+    expect(getArtifact('artifact-1', db)).toMatchObject({
+      conversationId: 'conversation-1',
+      sourceMessageId: 'message-1'
+    })
+    expect(listArtifactRevisions('artifact-1', db)[0].sourceMessageId).toBe('message-1')
+    expect(() => linkArtifactToMessage('artifact-1', 'conversation-2', 'message-2', db)).toThrow(
+      /cannot be linked/
+    )
   })
 
   it('appends revisions atomically, retains history, and rejects stale writers', () => {

@@ -54,6 +54,7 @@ describe('ST-8 renderer reconciliation wiring', () => {
       "streamingContent: ''",
       "streamingReasoning: ''",
       'streamingDocuments: []',
+      'streamingVisualizations: []',
       'streamingVitals: null'
     ]) {
       expect(select).toContain(reset)

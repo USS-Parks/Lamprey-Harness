@@ -1,8 +1,41 @@
 import { ipcMain } from 'electron'
 import * as artifactSandbox from '../services/artifact-sandbox'
-import { mirrorEphemeralArtifact } from '../services/artifact-store'
+import {
+  getArtifact,
+  getArtifactRevision,
+  listArtifactAnnotations,
+  mirrorEphemeralArtifact
+} from '../services/artifact-store'
 
 export function registerArtifactHandlers(): void {
+  ipcMain.handle('artifact:read', async (_event, artifactId: string, revision?: number) => {
+    try {
+      if (typeof artifactId !== 'string' || !artifactId.trim()) {
+        throw new Error('artifactId is required')
+      }
+      if (revision !== undefined && (!Number.isInteger(revision) || revision < 1)) {
+        throw new Error('revision must be a positive integer')
+      }
+      const artifact = getArtifact(artifactId)
+      if (!artifact) throw new Error(`unknown artifact: ${artifactId}`)
+      const resolvedRevision = revision ?? artifact.currentRevision
+      const artifactRevision = getArtifactRevision(artifactId, resolvedRevision)
+      if (!artifactRevision) {
+        throw new Error(`unknown artifact revision: ${artifactId}@${resolvedRevision}`)
+      }
+      return {
+        success: true,
+        data: {
+          artifact,
+          revision: artifactRevision,
+          annotations: listArtifactAnnotations(artifactId, artifactRevision.revision)
+        }
+      }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  })
+
   ipcMain.handle('artifact:render', async (_event, type: string, content: string) => {
     try {
       // VA-1 — preserve the old two-argument preview surface while migrating

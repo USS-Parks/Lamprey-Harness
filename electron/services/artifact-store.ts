@@ -442,6 +442,29 @@ export function listArtifactAnnotations(
   return rows.map(rowToAnnotation)
 }
 
+export function linkArtifactToMessage(
+  artifactId: string,
+  conversationId: string,
+  messageId: string,
+  database?: Database
+): void {
+  const db = targetDb(database)
+  assertProvenance(db, conversationId, messageId)
+  const result = db
+    .prepare(
+      `UPDATE artifacts
+          SET conversation_id = ?, source_message_id = ?, updated_at = MAX(updated_at, ?)
+        WHERE id = ? AND (conversation_id IS NULL OR conversation_id = ?)`
+    )
+    .run(conversationId, messageId, Date.now(), artifactId, conversationId)
+  if (result.changes !== 1) throw new Error(`artifact cannot be linked to message: ${artifactId}`)
+  db.prepare(
+    `UPDATE artifact_revisions
+        SET source_message_id = ?
+      WHERE artifact_id = ? AND source_message_id IS NULL`
+  ).run(messageId, artifactId)
+}
+
 export function mirrorLegacyResearchArtifact(
   input: {
     filename: string

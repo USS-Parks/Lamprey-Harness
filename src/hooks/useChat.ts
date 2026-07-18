@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { usePlanStore } from '@/stores/plan-store'
-import type { AgentRunPhase, PlanSnapshot } from '@/lib/types'
+import type { AgentRunPhase, PlanSnapshot, VisualizationAttachment } from '@/lib/types'
 import type { TurnSettledEvent, TurnStartedEvent } from '@/lib/turn-control-types'
 
 export function useChat(): void {
@@ -167,6 +167,20 @@ export function useChat(): void {
         })
       : undefined
 
+    const onVisualizationState = (
+      window.api.chat as {
+        onVisualizationState?: (
+          cb: (e: { conversationId: string; visualization: VisualizationAttachment }) => void
+        ) => () => void
+      }
+    ).onVisualizationState
+    const visualizationUnsub = onVisualizationState
+      ? onVisualizationState((e) => {
+          if (!matchesActive(e)) return
+          useChatStore.getState().upsertStreamingVisualization(e.visualization)
+        })
+      : undefined
+
     const onPhase = (
       window.api.chat as {
         onPhase?: (cb: (e: { conversationId: string; phase: string }) => void) => unknown
@@ -245,6 +259,7 @@ export function useChat(): void {
       for (const d of disposers) d()
       planUnsub?.()
       docUnsub?.()
+      visualizationUnsub?.()
       vitalsUnsub?.()
     }
   }, [])

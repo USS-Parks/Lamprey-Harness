@@ -30,7 +30,8 @@ vi.mock('./database', () => ({
   getDb: () => {
     if (!db) throw new Error('test db not initialised')
     return db
-  }
+  },
+  withWriteRetry: <T>(operation: () => T): T => operation()
 }))
 
 // projects-store + plan-goal-store reach back through getDb too; the calls
@@ -66,9 +67,11 @@ const SCHEMA = `
     draft TEXT,
     reasoning TEXT,
     documents TEXT,
+    artifacts TEXT,
     compressed_into TEXT,
     stage TEXT,
     content_raw TEXT,
+    proof_status TEXT,
     created_at INTEGER NOT NULL
   );
 
@@ -101,8 +104,7 @@ describe('saveMessage — HX4 pseudo-XML sanitisation round-trip', () => {
     'assistant row with <bash> pseudo-tags: content is fenced clean, content_raw retains the verbatim original',
     async () => {
       const { saveMessage, getMessages } = await importStore()
-      const raw =
-        'Let me locate the file. <bash>find . -name "x.md"</bash> after.'
+      const raw = 'Let me locate the file. <bash>find . -name "x.md"</bash> after.'
       saveMessage({
         id: 'msg-1',
         conversationId: 'conv-1',

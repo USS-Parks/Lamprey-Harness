@@ -5,6 +5,7 @@ import type {
   DocumentAttachment,
   Message,
   ProcessedFile,
+  VisualizationAttachment,
   ToolCallEvent,
   ToolCallResultEvent,
   ToolProviderKind,
@@ -76,6 +77,9 @@ interface ChatState {
    *  already carries the same attachments, so the live buffer is only for
    *  rendering during the streaming bubble. */
   streamingDocuments: DocumentAttachment[]
+  /** Live visualization cards, keyed by tool call so loading is replaced by
+   * ready/error without duplicating the deliverable. */
+  streamingVisualizations: VisualizationAttachment[]
   streamStartedAt: number | null
   /** T4 — last streaming-vitals heartbeat (lastChunkAt, chunkCount, etc.).
    *  Null when no stream is active or the provider hasn't fired a heartbeat
@@ -119,6 +123,7 @@ interface ChatState {
   appendStreamChunk: (content: string) => void
   appendReasoningChunk: (content: string) => void
   appendStreamingDocument: (doc: DocumentAttachment) => void
+  upsertStreamingVisualization: (visualization: VisualizationAttachment) => void
   finishStream: (message: Message) => void
   streamError: (error: string) => void
   continueStreamAfterRound: (message: Message) => void
@@ -262,6 +267,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   streamingContent: '',
   streamingReasoning: '',
   streamingDocuments: [],
+  streamingVisualizations: [],
   streamStartedAt: null,
   streamingVitals: null,
   activeModel: 'deepseek-v4-pro',
@@ -296,6 +302,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
+      streamingVisualizations: [],
       streamStartedAt: cachedTurnControl.activeTurn?.startedAt ?? null,
       streamingVitals: null
     })
@@ -401,6 +408,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               streamingContent: '',
               streamingReasoning: '',
               streamingDocuments: [],
+              streamingVisualizations: [],
               streamingVitals: null,
               streamStartedAt: null,
               runPhase: null
@@ -532,6 +540,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           streamingContent: '',
           streamingReasoning: '',
           streamingDocuments: [],
+          streamingVisualizations: [],
           streamingVitals: null,
           streamStartedAt: null,
           toolCalls: [],
@@ -608,6 +617,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingContent: wasActive ? '' : state.streamingContent,
       streamingReasoning: wasActive ? '' : state.streamingReasoning,
       streamingDocuments: wasActive ? [] : state.streamingDocuments,
+      streamingVisualizations: wasActive ? [] : state.streamingVisualizations,
       streamingVitals: wasActive ? null : state.streamingVitals,
       streamStartedAt: wasActive ? null : state.streamStartedAt,
       // Drop in-flight chat-side state for the deleted conversation so the
@@ -666,6 +676,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
+      streamingVisualizations: [],
       streamingVitals: null,
       streamStartedAt: Date.now(),
       toolCalls: [],
@@ -792,6 +803,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
+  upsertStreamingVisualization: (visualization: VisualizationAttachment) => {
+    set((state) => {
+      const index = state.streamingVisualizations.findIndex(
+        (entry) => entry.callId === visualization.callId
+      )
+      if (index === -1) {
+        return { streamingVisualizations: [...state.streamingVisualizations, visualization] }
+      }
+      const next = [...state.streamingVisualizations]
+      next[index] = visualization
+      return { streamingVisualizations: next }
+    })
+  },
+
   setStreamingVitals: (v) => {
     set({ streamingVitals: v })
   },
@@ -807,6 +832,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
+      streamingVisualizations: [],
       streamingVitals: null,
       streamStartedAt: null,
       runPhase: null
@@ -823,6 +849,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
+      streamingVisualizations: [],
       streamingVitals: null,
       streamStartedAt: Date.now(),
       runPhase: 'understanding'
@@ -843,6 +870,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingContent: '',
       streamingReasoning: '',
       streamingDocuments: [],
+      streamingVisualizations: [],
       streamingVitals: null,
       streamStartedAt: null,
       runPhase: null

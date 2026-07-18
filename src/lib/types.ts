@@ -41,6 +41,10 @@ export interface Message {
    *  body — separate from tool-call cards because these are deliverables,
    *  not transient transcript noise. */
   documents?: DocumentAttachment[]
+  /** First-class visual deliverables emitted by create/update_visualization.
+   * The row stores identity and fallback text only; source content is loaded
+   * from the immutable artifact revision through typed IPC. */
+  artifacts?: VisualizationAttachment[]
   /** Per-assistant-row tool calls as stored in the messages.tool_calls
    *  column (JSON-encoded server-side, parsed by getMessages). Mirrors
    *  the OpenAI chat-completion tool_calls shape. Used to rehydrate the
@@ -83,6 +87,20 @@ export interface DocumentAttachment {
   /** Byte length of `content` at create time. */
   sizeBytes: number
   /** Epoch ms when the model emitted the document. */
+  createdAt: number
+}
+
+export type VisualizationType = 'mermaid' | 'chart' | 'table' | 'svg' | 'html' | 'jsx' | 'react'
+
+export interface VisualizationAttachment {
+  artifactId: string | null
+  callId: string
+  type: VisualizationType
+  title: string
+  revision: number | null
+  fallbackText: string
+  status: 'loading' | 'error' | 'ready'
+  error?: string
   createdAt: number
 }
 
@@ -761,7 +779,8 @@ export interface ArtifactBounds {
   height: number
 }
 
-export type ArtifactType = 'html' | 'svg' | 'mermaid' | 'jsx' | 'react' | 'markdown'
+export type ArtifactType =
+  'html' | 'svg' | 'mermaid' | 'jsx' | 'react' | 'markdown' | 'chart' | 'table'
 
 export type AttachmentKind = 'text' | 'image' | 'pdf' | 'binary' | 'rag-pending'
 

@@ -510,7 +510,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **VA-3 — Render visualizations inline**
 
-- [ ] Introduce first-class visualization message items with loading/error/ready states,
+- [x] Introduce first-class visualization message items with loading/error/ready states,
       accessible fallback data, expand/open/export actions, and sandbox isolation. Do not
       encode an interactive visualization as untrusted raw chat HTML.
 - Verify: renderer wiring tests, CSP/sandbox regression tests, build/renderer smoke.

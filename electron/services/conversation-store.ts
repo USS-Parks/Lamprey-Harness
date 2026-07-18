@@ -15,6 +15,7 @@ export interface ConversationRow {
   project_id?: string | null
   archived?: number
   pinned_at?: number | null
+  closed_at?: number | null
   forked_from_id?: string | null
   forked_from_message_id?: string | null
   forked_from_turn_id?: string | null
@@ -189,6 +190,7 @@ function rowToConversation(row: ConversationRow, count: number) {
     projectId: row.project_id ?? null,
     archived: row.archived === 1,
     pinnedAt: row.pinned_at ?? null,
+    closedAt: row.closed_at ?? null,
     forkedFromId: row.forked_from_id ?? null,
     forkedFromMessageId: row.forked_from_message_id ?? null,
     forkedFromTurnId: row.forked_from_turn_id ?? null,
@@ -341,6 +343,14 @@ export function setConversationPinned(id: string, pinned: boolean): void {
     Date.now(),
     id
   )
+}
+
+export function setConversationClosed(id: string, closed: boolean): void {
+  const db = getDb()
+  const now = Date.now()
+  db.prepare(
+    'UPDATE conversations SET closed_at = ?, archived = ?, updated_at = ? WHERE id = ?'
+  ).run(closed ? now : null, closed ? 1 : 0, now, id)
 }
 
 // Cross-session FTS — returns a flat list of hits keyed by source so

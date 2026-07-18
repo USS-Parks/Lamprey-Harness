@@ -5,6 +5,7 @@ import { listTaskSnapshots, readTaskSnapshot, waitForTasks } from './task-query'
 import { forkTaskAtTurn } from './fork-task'
 import { createAgentWorktreeManager } from './worktree-runner'
 import { recordEvent } from './event-log'
+import { taskLifecycle } from './task-lifecycle'
 
 toolRegistry.registerNative(
   {
@@ -42,6 +43,91 @@ toolRegistry.registerNative(
           typeof args.rootConversationId === 'string' ? args.rootConversationId : null
       })
     )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'update_task_metadata',
+    name: 'update_task_metadata',
+    title: 'Update task metadata',
+    description:
+      'Rename, pin, unpin, archive, close, or restore a task. Close/archive are recoverable.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        taskId: { type: 'string' },
+        action: { type: 'string', enum: ['rename', 'pin', 'unpin', 'archive', 'restore', 'close'] },
+        value: { type: 'string', description: 'New title for rename.' }
+      },
+      required: ['taskId', 'action']
+    },
+    risks: ['write'],
+    requiresApproval: false,
+    enabled: true,
+    mutates: true
+  },
+  async (args) =>
+    JSON.stringify(
+      taskLifecycle.update(
+        String(args.taskId ?? ''),
+        String(args.action ?? '') as never,
+        typeof args.value === 'string' ? args.value : null
+      )
+    )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'preview_delete_task',
+    name: 'preview_delete_task',
+    title: 'Preview task deletion',
+    description:
+      'Preview the exact conversation, run, identity, and turn descendants affected by permanent task deletion. Returns a short-lived token required by delete_task.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: { taskId: { type: 'string' } },
+      required: ['taskId']
+    },
+    risks: ['read'],
+    requiresApproval: false,
+    enabled: true,
+    parallelizable: true,
+    mutates: false
+  },
+  async (args) => JSON.stringify(taskLifecycle.previewDelete(String(args.taskId ?? '')))
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'delete_task',
+    name: 'delete_task',
+    title: 'Permanently delete task',
+    description:
+      'Permanently delete a task tree after preview_delete_task. Active descendants block deletion; the short-lived preview token must still match.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        taskId: { type: 'string' },
+        previewToken: { type: 'string' }
+      },
+      required: ['taskId', 'previewToken']
+    },
+    risks: ['write', 'destructive'],
+    requiresApproval: true,
+    enabled: true,
+    mutates: true
+  },
+  async (args) =>
+    JSON.stringify(taskLifecycle.delete(String(args.taskId ?? ''), String(args.previewToken ?? '')))
 )
 
 toolRegistry.registerNative(

@@ -192,7 +192,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(22)
+    expect(result.endVersion).toBe(23)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
@@ -213,6 +213,18 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
       .get()
     expect(index).toBeDefined()
     expect(runMigrations(db).applied).toEqual([])
+  })
+
+  it('TC-5 — migration v23 adds recoverable task close metadata', () => {
+    runMigrations(db)
+    const columns = db.prepare('PRAGMA table_info(conversations)').all() as Array<{ name: string }>
+    expect(columns.map((column) => column.name)).toContain('closed_at')
+    const index = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_conversations_closed'"
+      )
+      .get()
+    expect(index).toBeDefined()
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

@@ -54,6 +54,10 @@ export const EVENT_TYPES = [
   'turn.interrupted',
   'turn.recovered',
 
+  // Codex July parity TC-5: recoverable metadata and confirmed deletion.
+  'task.metadata.updated',
+  'task.deleted',
+
   // Track 2 / E1 — session chapter marker. Emitted by the chapters store
   // every time a row is inserted via the `mark_chapter` tool or the
   // `session:markChapter` IPC. Plan §2 invariant 10.

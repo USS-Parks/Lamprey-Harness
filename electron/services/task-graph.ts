@@ -11,6 +11,7 @@ export type TaskNodeStatus =
   | 'error'
   | 'aborted'
   | 'archived'
+  | 'closed'
   | 'pending'
   | 'active'
   | 'revoked'
@@ -114,6 +115,7 @@ function conversationStatus(
   active: Set<string>
 ): TaskNodeStatus {
   if (active.has(row.id)) return 'running'
+  if (row.closedAt != null) return 'closed'
   if (row.archived) return 'archived'
   return 'idle'
 }
@@ -150,7 +152,8 @@ export function buildTaskGraph(
         forkedFromMessageId: row.forkedFromMessageId ?? null,
         forkedFromTurnId: row.forkedFromTurnId ?? null,
         pinned: row.pinnedAt != null,
-        archived: row.archived === true
+        archived: row.archived === true,
+        closed: row.closedAt != null
       }
     })
     if (parentId) edges.push({ from: parentId, to: id, relation: 'fork' })

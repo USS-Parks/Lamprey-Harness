@@ -6,6 +6,7 @@ import { LOOP_SCHEMA_SQL } from './loop-schema'
 import { AGENT_IDENTITY_SCHEMA_SQL } from './agent-identity-schema'
 import { TURN_CONTROL_SCHEMA_SQL } from './turn-control-schema'
 import { FORK_TURN_SCHEMA_SQL } from './fork-turn-schema'
+import { TASK_LIFECYCLE_SCHEMA_SQL } from './task-lifecycle-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -270,6 +271,21 @@ export const MIGRATIONS: Migration[] = [
         db.exec(`
           CREATE INDEX IF NOT EXISTS idx_conversations_forked_from_turn
             ON conversations(forked_from_turn_id, created_at DESC);
+        `)
+      }
+    }
+  },
+  {
+    version: 23,
+    description: 'Codex July parity TC-5 — recoverable task close metadata',
+    up(db) {
+      try {
+        db.exec(TASK_LIFECYCLE_SCHEMA_SQL)
+      } catch (err: any) {
+        if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+        db.exec(`
+          CREATE INDEX IF NOT EXISTS idx_conversations_closed
+            ON conversations(closed_at);
         `)
       }
     }

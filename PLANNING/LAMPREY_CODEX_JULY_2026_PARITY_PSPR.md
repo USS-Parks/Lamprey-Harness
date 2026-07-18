@@ -476,7 +476,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-5 — Add lifecycle metadata tools**
 
-- [ ] Add title, pin, archive, close, and optional permanent-delete operations using distinct
+- [x] Add title, pin, archive, close, and optional permanent-delete operations using distinct
       risk levels. Delete requires explicit destructive approval and descendant impact
       preview; close/archive remain recoverable.
 - Verify: risk metadata, descendant cleanup/retention, archive recovery, approval tests.

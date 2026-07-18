@@ -8952,3 +8952,30 @@ the source worktree is never silently shared, and partial child/worktree resourc
 cleaned up when transcript copying fails.
 
 **Commit:** see git log (TC-4).
+
+## Codex July 2026 Parity — Prompt TC-5 Task lifecycle metadata — 2026-07-18
+
+**Files changed:** `electron/services/task-lifecycle.ts`,
+`electron/services/task-lifecycle.test.ts`, `electron/services/task-lifecycle-schema.ts`,
+`electron/services/task-lifecycle-db-integration.test.ts`,
+`electron/services/conversation-store.ts`, `electron/services/db-migrations.ts`,
+`electron/services/db-migrations.test.ts`, `electron/services/schema-init.test.ts`,
+`electron/services/task-control-tool-pack.ts`, `electron/services/task-graph.ts`,
+`electron/services/event-log.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused lifecycle, exact-DDL, graph, and tool-schema suites ✓ (15 tests, 0 skipped)
+- Electron ABI-148 native migration/schema suites RUN ✓ (19 tests, 0 skipped)
+
+**Notes:** `update_task_metadata` provides distinct rename, pin/unpin,
+archive/restore, and close/restore actions; archive and close are recoverable. Migration
+v23 persists indexed close state without conflating it with ordinary archive state.
+Permanent deletion is a separate approval-gated tool: a bounded graph preview returns a
+short-lived confirmation token and the exact conversation, run, identity, and turn impact;
+active descendants, stale tokens, graph truncation, or changed descendants fail closed.
+Deletion revalidates the preview immediately before removing descendants and records only
+bounded identifiers/counts on the event spine.
+
+**Commit:** see git log (TC-5).

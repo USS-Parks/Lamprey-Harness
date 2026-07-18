@@ -1,5 +1,10 @@
+import { app } from 'electron'
+import { join } from 'path'
 import { toolRegistry } from './tool-registry'
 import { listTaskSnapshots, readTaskSnapshot, waitForTasks } from './task-query'
+import { forkTaskAtTurn } from './fork-task'
+import { createAgentWorktreeManager } from './worktree-runner'
+import { recordEvent } from './event-log'
 
 toolRegistry.registerNative(
   {
@@ -37,6 +42,55 @@ toolRegistry.registerNative(
           typeof args.rootConversationId === 'string' ? args.rootConversationId : null
       })
     )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'fork_task',
+    name: 'fork_task',
+    title: 'Fork task at turn',
+    description:
+      'Create a linked task whose transcript ends at one completed source turn. The new task stores source task/turn backlinks and uses an isolated worktree when requested.',
+    providerKind: 'native',
+    providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        sourceTaskId: { type: 'string' },
+        turnId: { type: 'string' },
+        title: { type: 'string' },
+        includeRagAttachments: { type: 'boolean' },
+        isolateWorktree: { type: 'boolean' }
+      },
+      required: ['sourceTaskId', 'turnId']
+    },
+    risks: ['write'],
+    requiresApproval: false,
+    enabled: true,
+    mutates: true
+  },
+  async (args, ctx) => {
+    const manager =
+      args.isolateWorktree === true && ctx.workspacePath
+        ? createAgentWorktreeManager({
+            baseCwd: ctx.workspacePath,
+            workspacesRoot: join(app.getPath('userData'), 'fork-worktrees')
+          })
+        : null
+    return JSON.stringify(
+      await forkTaskAtTurn(
+        {
+          sourceConversationId: String(args.sourceTaskId ?? ''),
+          turnId: String(args.turnId ?? ''),
+          title: typeof args.title === 'string' ? args.title : null,
+          includeRagAttachments: args.includeRagAttachments !== false,
+          isolateWorktree: args.isolateWorktree === true
+        },
+        { worktreeManager: manager, record: recordEvent }
+      )
+    )
+  }
 )
 
 toolRegistry.registerNative(

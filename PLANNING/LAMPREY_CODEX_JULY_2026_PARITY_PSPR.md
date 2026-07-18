@@ -470,7 +470,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-4 — Add historical fork-at-turn**
 
-- [ ] Extend conversation fork/worktree metadata so `fork_task` can branch history through a
+- [x] Extend conversation fork/worktree metadata so `fork_task` can branch history through a
       specified completed turn and retain a backlink to the source task/turn.
 - Verify: history-boundary, invalid-turn, worktree-isolation, and backlink tests.
 

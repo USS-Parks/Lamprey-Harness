@@ -8928,3 +8928,27 @@ idempotency, approval, and audit behavior. Rejected Steering is never converted 
 existing exact-turn interrupt action without terminal or process-kill authority.
 
 **Commit:** see git log (TC-3).
+## Codex July 2026 Parity — Prompt TC-4 Historical fork-at-turn — 2026-07-18
+
+**Files changed:** `electron/services/fork-task.ts`,
+`electron/services/fork-task.test.ts`, `electron/services/fork-turn-schema.ts`,
+`electron/services/fork-turn-db-integration.test.ts`,
+`electron/services/conversation-store.ts`, `electron/services/db-migrations.ts`,
+`electron/services/db-migrations.test.ts`, `electron/services/schema-init.test.ts`,
+`electron/services/task-control-tool-pack.ts`, `electron/services/task-graph.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- no-addon historical fork, exact DDL, graph, and tool-schema suites ✓
+  (16 tests, 0 skipped)
+- Electron ABI-148 native migration/schema suites RUN ✓ (18 tests, 0 skipped)
+
+**Notes:** `fork_task` requires a terminal turn owned by the source task, copies only
+messages at or before that turn's completion boundary, preserves canonical RAG attachments,
+and stores both source conversation and source turn backlinks. Migration v22 adds the
+indexed `conversations.forked_from_turn_id` column. A requested worktree is newly isolated;
+the source worktree is never silently shared, and partial child/worktree resources are
+cleaned up when transcript copying fails.
+
+**Commit:** see git log (TC-4).

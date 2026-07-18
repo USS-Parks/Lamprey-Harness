@@ -192,13 +192,26 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(21)
+    expect(result.endVersion).toBe(22)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
     expect(tables.map((row) => row.name)).toEqual(
       expect.arrayContaining(['conversation_turns', 'turn_followups'])
     )
+    expect(runMigrations(db).applied).toEqual([])
+  })
+
+  it('TC-4 — migration v22 adds the historical fork turn backlink', () => {
+    runMigrations(db)
+    const columns = db.prepare('PRAGMA table_info(conversations)').all() as Array<{ name: string }>
+    expect(columns.map((column) => column.name)).toContain('forked_from_turn_id')
+    const index = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_conversations_forked_from_turn'"
+      )
+      .get()
+    expect(index).toBeDefined()
     expect(runMigrations(db).applied).toEqual([])
   })
 

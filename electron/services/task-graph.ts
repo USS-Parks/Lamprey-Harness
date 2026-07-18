@@ -148,6 +148,7 @@ export function buildTaskGraph(
         messageCount: row.messageCount,
         worktreePath: row.worktreePath ?? null,
         forkedFromMessageId: row.forkedFromMessageId ?? null,
+        forkedFromTurnId: row.forkedFromTurnId ?? null,
         pinned: row.pinnedAt != null,
         archived: row.archived === true
       }

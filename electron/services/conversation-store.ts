@@ -17,6 +17,7 @@ export interface ConversationRow {
   pinned_at?: number | null
   forked_from_id?: string | null
   forked_from_message_id?: string | null
+  forked_from_turn_id?: string | null
   seed_blob?: string | null
   seed_source_kind?: SeedSourceKind | null
 }
@@ -110,6 +111,7 @@ export function createConversation(
     projectId?: string | null
     forkedFromId?: string | null
     forkedFromMessageId?: string | null
+    forkedFromTurnId?: string | null
     seedBlob?: ConversationSeedBlob | string | null
     seedSourceKind?: SeedSourceKind
   }
@@ -130,8 +132,8 @@ export function createConversation(
   db.prepare(
     `INSERT INTO conversations
        (id, title, model, created_at, updated_at, kind, worktree_path, project_id,
-        forked_from_id, forked_from_message_id, seed_blob, seed_source_kind)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        forked_from_id, forked_from_message_id, forked_from_turn_id, seed_blob, seed_source_kind)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     null,
@@ -143,6 +145,7 @@ export function createConversation(
     projectId,
     opts?.forkedFromId ?? null,
     opts?.forkedFromMessageId ?? null,
+    opts?.forkedFromTurnId ?? null,
     seedBlob,
     seedSourceKind
   )
@@ -159,6 +162,7 @@ export function createConversation(
     projectId,
     forkedFromId: opts?.forkedFromId ?? null,
     forkedFromMessageId: opts?.forkedFromMessageId ?? null,
+    forkedFromTurnId: opts?.forkedFromTurnId ?? null,
     seedBlob: seedBlob ?? undefined,
     seedSourceKind
   }
@@ -187,6 +191,7 @@ function rowToConversation(row: ConversationRow, count: number) {
     pinnedAt: row.pinned_at ?? null,
     forkedFromId: row.forked_from_id ?? null,
     forkedFromMessageId: row.forked_from_message_id ?? null,
+    forkedFromTurnId: row.forked_from_turn_id ?? null,
     seedBlob,
     seedSourceKind: row.seed_source_kind ?? 'none'
   }

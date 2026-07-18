@@ -190,7 +190,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('initLegacySchema (PS6)', () => {
     initLegacySchema(db)
     const result = runMigrations(db)
     expect(result.endVersion).toBe(LATEST_VERSION)
-    expect(result.applied).toContain(21)
+    expect(result.applied).toEqual(expect.arrayContaining([21, 22]))
     const tables = getTableNames(db, 'table')
     expect(tables).toContain('conversation_turns')
     expect(tables).toContain('turn_followups')

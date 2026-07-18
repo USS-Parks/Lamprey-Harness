@@ -5,6 +5,7 @@ import { applyFailureLedgerSchema } from './failure-ledger-schema'
 import { LOOP_SCHEMA_SQL } from './loop-schema'
 import { AGENT_IDENTITY_SCHEMA_SQL } from './agent-identity-schema'
 import { TURN_CONTROL_SCHEMA_SQL } from './turn-control-schema'
+import { FORK_TURN_SCHEMA_SQL } from './fork-turn-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -256,6 +257,21 @@ export const MIGRATIONS: Migration[] = [
     description: 'Codex July parity ST-2 — durable conversation_turns and turn_followups ledgers',
     up(db) {
       db.exec(TURN_CONTROL_SCHEMA_SQL)
+    }
+  },
+  {
+    version: 22,
+    description: 'Codex July parity TC-4 — historical fork turn backlink',
+    up(db) {
+      try {
+        db.exec(FORK_TURN_SCHEMA_SQL)
+      } catch (err: any) {
+        if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+        db.exec(`
+          CREATE INDEX IF NOT EXISTS idx_conversations_forked_from_turn
+            ON conversations(forked_from_turn_id, created_at DESC);
+        `)
+      }
     }
   }
 ]

@@ -9233,3 +9233,34 @@ return as previews. The GUI playbook covers direct edit, model proposal, annotat
 stale-conflict, keyboard dismissal, and evidence capture; no owner GUI result is claimed yet.
 
 **Commit:** see git log (VA-4).
+
+## Codex July 2026 Parity — Prompt VA-5 Artifact activity and open feedback — 2026-07-18
+
+**Files changed:** `src/lib/artifact-activity.ts`, `src/lib/artifact-activity.test.ts`,
+`src/lib/types.ts`, `src/stores/chat-store.ts`,
+`src/components/artifacts/ActivityFeed.tsx`,
+`src/components/chat/ArtifactEditorDialog.tsx`,
+`src/components/chat/VisualizationCardRow.tsx`,
+`src/components/chat/DocumentCardRow.tsx`,
+`electron/services/artifact-activity-wiring.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint ✓
+- event-to-UI status mapping, open-result, no-false-success, edit tracking, and artifact
+  regression cohort ✓ (5 files, 20 tests, 0 skipped)
+- production build ✓
+- renderer smoke ✓
+
+**Notes:** The existing Activity feed now has an Artifact activity section that derives model
+visualization/edit operations from canonical tool-call identity and status, then merges direct
+user operations from the chat store. Both paths use the same queued/running/complete/error
+vocabulary. Direct edit preview, annotation, accept, reject, document open, and visualization
+open are tracked through one helper. Complete is recorded only after the IPC envelope succeeds;
+false envelopes and thrown calls record error and never emit complete. File-open failures now
+remain visible in activity and surface an error toast, while successful opens are confirmed only
+after the sandbox window acknowledges creation. Conversation switches and deletion clear the
+conversation-scoped direct activity buffer without changing durable artifact history.
+
+**Commit:** see git log (VA-5).

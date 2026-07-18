@@ -10,6 +10,8 @@ import {
 } from '@/lib/visualization-presentation'
 import { toast } from '@/stores/toast-store'
 import { ArtifactEditorDialog } from './ArtifactEditorDialog'
+import { assertIpcSuccess, runTrackedArtifactActivity } from '@/lib/artifact-activity'
+import { useChatStore } from '@/stores/chat-store'
 
 interface ArtifactRevisionPayload {
   artifact: { exportFilename?: string | null; currentRevision: number }
@@ -37,6 +39,7 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
   const [loadError, setLoadError] = useState<string | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const recordActivity = useChatStore((state) => state.upsertArtifactActivity)
 
   useEffect(() => {
     let cancelled = false
@@ -65,9 +68,22 @@ function VisualizationCard({ visualization }: { visualization: VisualizationAtta
   const status = visualization.status === 'ready' && !content ? 'loading' : visualization.status
   const error = visualization.error ?? loadError
 
-  const openSandbox = () => {
+  const openSandbox = async () => {
     if (!content) return
-    void window.api.artifact.openInWindow(visualization.type, content)
+    try {
+      await runTrackedArtifactActivity({
+        kind: 'file-open',
+        label: `Open ${visualization.title}`,
+        record: recordActivity,
+        operation: async () => {
+          const result = await window.api.artifact.openInWindow(visualization.type, content)
+          assertIpcSuccess(result, `Could not open ${visualization.title}`)
+        }
+      })
+      toast.success(`Opened ${visualization.title}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Could not open ${visualization.title}`)
+    }
   }
 
   const exportArtifact = () => {

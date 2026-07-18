@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useChatStore, type ToolCallState } from '@/stores/chat-store'
 import { parseReasoning } from '@/lib/reasoning'
+import { activityFromArtifactTool } from '@/lib/artifact-activity'
+import type { ArtifactActivity } from '@/lib/types'
 
 function formatElapsed(ms: number): string {
   const s = Math.floor(ms / 1000)
@@ -13,9 +15,13 @@ function formatElapsed(ms: number): string {
 function StatusDot({ status }: { status: ToolCallState['status'] }) {
   switch (status) {
     case 'pending':
-      return <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-[var(--text-muted)] border-t-[var(--accent)]" />
+      return (
+        <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-[var(--text-muted)] border-t-[var(--accent)]" />
+      )
     case 'running':
-      return <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--accent)]" />
+      return (
+        <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--accent)]" />
+      )
     case 'success':
       return <span className="text-[var(--success)] leading-none">✓</span>
     case 'error':
@@ -23,6 +29,17 @@ function StatusDot({ status }: { status: ToolCallState['status'] }) {
     default:
       return <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--text-muted)]" />
   }
+}
+
+function ArtifactStatus({ status }: { status: ArtifactActivity['status'] }) {
+  if (status === 'queued') return <span className="text-[var(--text-muted)]">○</span>
+  if (status === 'running') {
+    return (
+      <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--accent)]" />
+    )
+  }
+  if (status === 'complete') return <span className="text-[var(--success)]">✓</span>
+  return <span className="text-[var(--error)]">✕</span>
 }
 
 function summarizeArgs(args: Record<string, unknown>): string {
@@ -41,6 +58,14 @@ export function ActivityFeed() {
   const streamingReasoning = useChatStore((s) => s.streamingReasoning)
   const streamStartedAt = useChatStore((s) => s.streamStartedAt)
   const toolCalls = useChatStore((s) => s.toolCalls)
+  const directArtifactActivities = useChatStore((s) => s.artifactActivities)
+  const artifactActivities = [
+    ...directArtifactActivities,
+    ...toolCalls.flatMap((tool) => {
+      const activity = activityFromArtifactTool(tool)
+      return activity ? [activity] : []
+    })
+  ].sort((a, b) => b.startedAt - a.startedAt)
 
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -79,6 +104,48 @@ export function ActivityFeed() {
             {reasoningChars === 0 && bodyChars === 0 && <span>awaiting first token…</span>}
           </div>
         </div>
+      )}
+
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+        Artifact activity
+      </div>
+
+      {artifactActivities.length === 0 ? (
+        <p className="rounded border border-dashed border-[var(--panel-border)] px-3 py-3 text-center text-[12px] text-[var(--text-muted)]">
+          No visualization, edit, or file-open activity yet.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {artifactActivities.map((activity) => (
+            <li
+              key={activity.id}
+              className="rounded-md border border-[var(--panel-border)] bg-[var(--bg-primary)] px-3 py-2"
+            >
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5">
+                  <ArtifactStatus status={activity.status} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-[12px] text-[var(--text-primary)]">
+                      {activity.label}
+                    </span>
+                    <span className="text-[10px] uppercase text-[var(--text-muted)]">
+                      {activity.status}
+                    </span>
+                  </div>
+                  {(activity.error || activity.detail) && (
+                    <div
+                      className={`mt-0.5 truncate text-[11px] ${activity.error ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}
+                    >
+                      {activity.error ?? activity.detail}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">

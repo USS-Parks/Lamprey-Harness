@@ -125,6 +125,17 @@ export interface ArtifactEditProposal {
   updatedAt: number
 }
 
+export interface ArtifactActivity {
+  id: string
+  kind: 'visualization' | 'artifact-edit' | 'file-open'
+  label: string
+  status: 'queued' | 'running' | 'complete' | 'error'
+  detail?: string
+  error?: string
+  startedAt: number
+  finishedAt?: number
+}
+
 export type ConversationKind = 'local' | 'cloud' | 'worktree'
 export type SeedSourceKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
 export type ForkWorkspaceMode = 'inherit' | 'current' | 'none'

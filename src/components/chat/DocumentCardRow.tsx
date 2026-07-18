@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { DocumentAttachment } from '@/lib/types'
 import { toast } from '@/stores/toast-store'
 import { ArtifactEditorDialog } from './ArtifactEditorDialog'
+import { assertIpcSuccess, runTrackedArtifactActivity } from '@/lib/artifact-activity'
+import { useChatStore } from '@/stores/chat-store'
 
 interface DocumentCardRowProps {
   documents: DocumentAttachment[]
@@ -27,6 +29,7 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const recordActivity = useChatStore((state) => state.upsertArtifactActivity)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -61,8 +64,21 @@ function DocumentCard({ doc }: { doc: DocumentAttachment }) {
       toast.warning('Artifact panel can only render markdown / HTML / SVG documents.')
       return
     }
-    await window.api.artifact.openInWindow(artifactType, await latestContent())
-    setMenuOpen(false)
+    try {
+      await runTrackedArtifactActivity({
+        kind: 'file-open',
+        label: `Open ${doc.name}`,
+        record: recordActivity,
+        operation: async () => {
+          const result = await window.api.artifact.openInWindow(artifactType, await latestContent())
+          assertIpcSuccess(result, `Could not open ${doc.name}`)
+        }
+      })
+      toast.success(`Opened ${doc.name}`)
+      setMenuOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Could not open ${doc.name}`)
+    }
   }
 
   const copy = async () => {

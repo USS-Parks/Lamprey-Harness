@@ -524,7 +524,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **VA-5 — Align tool activity and file-opening feedback**
 
-- [ ] Apply the July task-activity pattern to visualization generation, artifact edits, and
+- [x] Apply the July task-activity pattern to visualization generation, artifact edits, and
       file open outcomes with honest queued/running/complete/error states.
 - Verify: event-to-UI state tests, no-false-success negative cases, renderer smoke.
 

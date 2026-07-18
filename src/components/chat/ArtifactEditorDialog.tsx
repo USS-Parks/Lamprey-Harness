@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ArtifactEditProposal } from '@/lib/types'
 import { useChatStore } from '@/stores/chat-store'
 import { toast } from '@/stores/toast-store'
+import { assertIpcSuccess, runTrackedArtifactActivity } from '@/lib/artifact-activity'
 
 interface ArtifactReadPayload {
   artifact: { id: string; currentRevision: number; artifactType: string }
@@ -74,16 +75,23 @@ export function ArtifactEditorDialog({
     setBusy(true)
     setError(null)
     try {
-      const result = await window.api.artifact.proposeEdit({
-        artifactId,
-        baseRevision: payload.revision.revision,
-        startOffset: range.start,
-        endOffset: range.end,
-        replacement,
-        rationale: instruction || undefined
+      const proposal = await runTrackedArtifactActivity({
+        kind: 'artifact-edit',
+        label: `Preview edit to ${title}`,
+        record: useChatStore.getState().upsertArtifactActivity,
+        operation: async () => {
+          const result = await window.api.artifact.proposeEdit({
+            artifactId,
+            baseRevision: payload.revision.revision,
+            startOffset: range.start,
+            endOffset: range.end,
+            replacement,
+            rationale: instruction || undefined
+          })
+          return assertIpcSuccess<ArtifactEditProposal>(result, 'Could not create edit preview')
+        }
       })
-      if (!result.success) throw new Error(result.error ?? 'Could not create edit preview')
-      useChatStore.getState().upsertArtifactEditProposal(result.data as ArtifactEditProposal)
+      useChatStore.getState().upsertArtifactEditProposal(proposal)
       toast.success('Edit preview created')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason))
@@ -112,14 +120,21 @@ export function ArtifactEditorDialog({
     if (!payload || !annotation.trim()) return
     setBusy(true)
     try {
-      const result = await window.api.artifact.annotate({
-        artifactId,
-        revision: payload.revision.revision,
-        startOffset: range.start,
-        endOffset: range.end,
-        body: annotation.trim()
+      await runTrackedArtifactActivity({
+        kind: 'artifact-edit',
+        label: `Annotate ${title}`,
+        record: useChatStore.getState().upsertArtifactActivity,
+        operation: async () => {
+          const result = await window.api.artifact.annotate({
+            artifactId,
+            revision: payload.revision.revision,
+            startOffset: range.start,
+            endOffset: range.end,
+            body: annotation.trim()
+          })
+          assertIpcSuccess(result, 'Could not add annotation')
+        }
       })
-      if (!result.success) throw new Error(result.error ?? 'Could not add annotation')
       setAnnotation('')
       toast.success('Annotation saved with user provenance')
       await load()
@@ -134,18 +149,23 @@ export function ArtifactEditorDialog({
     setBusy(true)
     setError(null)
     try {
-      const result = accept
-        ? await window.api.artifact.acceptEdit(proposal.id)
-        : await window.api.artifact.rejectEdit(proposal.id)
-      if (!result.success)
-        throw new Error(result.error ?? `Could not ${accept ? 'accept' : 'reject'} edit`)
+      const result = await runTrackedArtifactActivity({
+        kind: 'artifact-edit',
+        label: `${accept ? 'Accept' : 'Reject'} edit to ${title}`,
+        record: useChatStore.getState().upsertArtifactActivity,
+        operation: async () => {
+          const response = accept
+            ? await window.api.artifact.acceptEdit(proposal.id)
+            : await window.api.artifact.rejectEdit(proposal.id)
+          return assertIpcSuccess(response, `Could not ${accept ? 'accept' : 'reject'} edit`)
+        }
+      })
       const updated = accept
-        ? (result.data as { proposal: ArtifactEditProposal; revision: { revision: number } })
-            .proposal
-        : (result.data as ArtifactEditProposal)
+        ? (result as { proposal: ArtifactEditProposal; revision: { revision: number } }).proposal
+        : (result as ArtifactEditProposal)
       useChatStore.getState().upsertArtifactEditProposal(updated)
       if (accept) {
-        const revision = (result.data as { revision: { revision: number } }).revision.revision
+        const revision = (result as { revision: { revision: number } }).revision.revision
         onRevisionAccepted?.(revision)
         toast.success(`Accepted as revision ${revision}`)
       } else {

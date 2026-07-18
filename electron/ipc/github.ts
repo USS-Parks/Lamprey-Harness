@@ -12,10 +12,7 @@ import type {
 // JM-13 (DB-2) — mode persistence routes through the shared atomic
 // settings-helper (this module used to keep its own bare read/write pair,
 // one of the four independent non-atomic settings.json writers).
-import {
-  readSettings as readSettingsFile,
-  writeSettingsFile
-} from '../services/settings-helper'
+import { readSettings as readSettingsFile, writeSettingsFile } from '../services/settings-helper'
 
 function readMode(): GitHubAuthMode {
   const settings = readSettingsFile()
@@ -88,18 +85,21 @@ export function registerGitHubHandlers(): void {
   // OAuth client + mode management (renderer never sees the secret).
   // -------------------------------------------------------------------------
 
-  ipcMain.handle('github:saveOAuthClient', async (_e, args: { clientId: string; clientSecret: string }) => {
-    try {
-      if (!args || typeof args.clientId !== 'string' || typeof args.clientSecret !== 'string') {
-        return failure('clientId and clientSecret are required')
+  ipcMain.handle(
+    'github:saveOAuthClient',
+    async (_e, args: { clientId: string; clientSecret: string }) => {
+      try {
+        if (!args || typeof args.clientId !== 'string' || typeof args.clientSecret !== 'string') {
+          return failure('clientId and clientSecret are required')
+        }
+        keychain.setKey(github.KEYCHAIN.oauthClientId, args.clientId.trim())
+        keychain.setKey(github.KEYCHAIN.oauthClientSecret, args.clientSecret.trim())
+        return envelope(null)
+      } catch (err: any) {
+        return failure(err?.message ?? 'Failed to save OAuth client')
       }
-      keychain.setKey(github.KEYCHAIN.oauthClientId, args.clientId.trim())
-      keychain.setKey(github.KEYCHAIN.oauthClientSecret, args.clientSecret.trim())
-      return envelope(null)
-    } catch (err: any) {
-      return failure(err?.message ?? 'Failed to save OAuth client')
     }
-  })
+  )
 
   ipcMain.handle('github:hasOAuthClient', async () => {
     try {
@@ -224,18 +224,21 @@ export function registerGitHubHandlers(): void {
     }
   })
 
-  ipcMain.handle('github:clone', async (_e, args: { owner: string; repo: string; targetDir: string }) => {
-    try {
-      const result = await github.cloneRepository({
-        owner: args.owner,
-        repo: args.repo,
-        targetDir: args.targetDir
-      })
-      return envelope(result)
-    } catch (err: any) {
-      return failure(err?.message ?? 'Clone failed')
+  ipcMain.handle(
+    'github:clone',
+    async (_e, args: { owner: string; repo: string; targetDir: string }) => {
+      try {
+        const result = await github.cloneRepository({
+          owner: args.owner,
+          repo: args.repo,
+          targetDir: args.targetDir
+        })
+        return envelope(result)
+      } catch (err: any) {
+        return failure(err?.message ?? 'Clone failed')
+      }
     }
-  })
+  )
 
   // Phase 3d: resolve <baseDir>/<repo-name> using Node's path module so
   // the renderer doesn't have to platform-sniff the path separator.
@@ -278,7 +281,10 @@ export function registerGitHubHandlers(): void {
 
   ipcMain.handle(
     'github:assignRepoToProject',
-    async (_e, args: { projectId: string; owner: string; repo: string; localPath?: string | null }) => {
+    async (
+      _e,
+      args: { projectId: string; owner: string; repo: string; localPath?: string | null }
+    ) => {
       try {
         if (!args?.projectId) return failure('projectId required')
         const project = getProject(args.projectId)
@@ -314,7 +320,12 @@ export function registerGitHubHandlers(): void {
     'github:compare',
     async (_e, args: { owner: string; repo: string; base: string; head: string }) => {
       try {
-        const summary = await github.compareBranchToBase(args.owner, args.repo, args.base, args.head)
+        const summary = await github.compareBranchToBase(
+          args.owner,
+          args.repo,
+          args.base,
+          args.head
+        )
         return envelope(summary)
       } catch (err: any) {
         return failure(err?.message ?? 'Compare failed')
@@ -349,7 +360,10 @@ export function registerGitHubHandlers(): void {
               fullName: `${args.owner}/${args.repo}`,
               htmlUrl: pr.htmlUrl,
               title: pr.title,
-              createdAt: Date.now()
+              createdAt: Date.now(),
+              baseSha: pr.base.sha,
+              headSha: pr.head.sha,
+              updatedAt: Date.now()
             })
           } catch (linkErr: any) {
             // Persistence failure must not block the PR creation result.
@@ -457,34 +471,34 @@ export function registerGitHubHandlers(): void {
     }
   )
 
-  ipcMain.handle(
-    'github:resolveReviewThread',
-    async (_e, args: { threadId: string }) => {
-      try {
-        return envelope(await github.resolveReviewThread(args.threadId))
-      } catch (err: any) {
-        return failure(err?.message ?? 'Resolve review thread failed')
-      }
+  ipcMain.handle('github:resolveReviewThread', async (_e, args: { threadId: string }) => {
+    try {
+      return envelope(await github.resolveReviewThread(args.threadId))
+    } catch (err: any) {
+      return failure(err?.message ?? 'Resolve review thread failed')
     }
-  )
+  })
 
-  ipcMain.handle(
-    'github:unresolveReviewThread',
-    async (_e, args: { threadId: string }) => {
-      try {
-        return envelope(await github.unresolveReviewThread(args.threadId))
-      } catch (err: any) {
-        return failure(err?.message ?? 'Unresolve review thread failed')
-      }
+  ipcMain.handle('github:unresolveReviewThread', async (_e, args: { threadId: string }) => {
+    try {
+      return envelope(await github.unresolveReviewThread(args.threadId))
+    } catch (err: any) {
+      return failure(err?.message ?? 'Unresolve review thread failed')
     }
-  )
+  })
 
   // F3 — issues + status checks.
   ipcMain.handle(
     'github:listIssues',
     async (
       _e,
-      args: { owner: string; repo: string; state?: 'open' | 'closed' | 'all'; per_page?: number; labels?: string }
+      args: {
+        owner: string
+        repo: string
+        state?: 'open' | 'closed' | 'all'
+        per_page?: number
+        labels?: string
+      }
     ) => {
       try {
         return envelope(await github.listIssues(args.owner, args.repo, args))

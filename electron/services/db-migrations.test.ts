@@ -192,7 +192,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(26)
+    expect(result.endVersion).toBe(27)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
@@ -252,6 +252,25 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
       )
       .get()
     expect(table).toBeDefined()
+  })
+
+  it('PR-1 - migration v27 adds immutable PR binding metadata', () => {
+    db.exec(`CREATE TABLE conversation_pull_requests (
+      conversation_id TEXT NOT NULL,
+      pr_number INTEGER NOT NULL,
+      full_name TEXT NOT NULL,
+      html_url TEXT NOT NULL,
+      title TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (conversation_id, full_name, pr_number)
+    )`)
+    runMigrations(db)
+    const columns = db.prepare('PRAGMA table_info(conversation_pull_requests)').all() as Array<{
+      name: string
+    }>
+    expect(columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining(['repo_id', 'base_sha', 'head_sha', 'updated_at'])
+    )
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

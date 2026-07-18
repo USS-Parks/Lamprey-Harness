@@ -460,6 +460,10 @@ function initGithubRagSessionsSnip(db: Database.Database): void {
       html_url TEXT NOT NULL,
       title TEXT NOT NULL,
       created_at INTEGER NOT NULL,
+      repo_id INTEGER,
+      base_sha TEXT,
+      head_sha TEXT,
+      updated_at INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (conversation_id, full_name, pr_number)
     );
 

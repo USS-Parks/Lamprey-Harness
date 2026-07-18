@@ -66,6 +66,17 @@ export interface GitHubCompareSummary {
   files: Array<{ filename: string; additions: number; deletions: number; status: string }>
 }
 
+export interface GitHubPullRequestFile {
+  sha: string
+  filename: string
+  previousFilename: string | null
+  status: string
+  additions: number
+  deletions: number
+  changes: number
+  patch: string | null
+}
+
 export interface GitHubProjectRepoLink {
   projectId: string
   repoId: number
@@ -139,6 +150,10 @@ export interface ConversationPullRequestLink {
   htmlUrl: string
   title: string
   createdAt: number
+  repoId: number | null
+  baseSha: string | null
+  headSha: string | null
+  updatedAt: number
 }
 
 export interface PushBranchResult {

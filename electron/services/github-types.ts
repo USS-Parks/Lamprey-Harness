@@ -75,6 +75,17 @@ export interface GitHubCompareSummary {
   files: Array<{ filename: string; additions: number; deletions: number; status: string }>
 }
 
+export interface GitHubPullRequestFile {
+  sha: string
+  filename: string
+  previousFilename: string | null
+  status: string
+  additions: number
+  deletions: number
+  changes: number
+  patch: string | null
+}
+
 export interface CreatePullRequestInput {
   owner: string
   repo: string

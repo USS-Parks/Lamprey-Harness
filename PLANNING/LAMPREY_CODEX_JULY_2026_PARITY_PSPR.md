@@ -582,7 +582,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **PR-1 — Bind PR context to a conversation**
 
-- [ ] Extend the current conversation↔PR association so chat receives bounded PR metadata,
+- [x] Extend the current conversation↔PR association so chat receives bounded PR metadata,
       base/head SHAs, file list, checks, review threads, and selected diff context on demand.
 - Verify: stale-SHA, pagination, context-budget, and repository-identity tests.
 
@@ -812,6 +812,15 @@ Decisions: 1 = one enhancement at a time, interpreted conservatively as CJP-0 on
   2-8 = unresolved and not consumed by CJP-0; untracked AGENTS.md and .agents/ remain
   untouched; push is not authorized.
 STS instruction: "C:\Users\17076\Documents\Claude\Lamprey Harness\PLANNING\LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md" Approved to run STS. Only ONE enhancement at a time.
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+```text
+APPROVED: 2026-07-18 (M5 PR Chat tranche)
+Milestones: M5 / PR-1 through PR-6; execute sequentially with one focused commit per prompt.
+Publication: not authorized by this instruction; stop after the local M5 wrap unless separately
+  directed to push, release, or run Bucket. M4 remains unapproved and is not a dependency of M5.
+STS instruction: "Continue to STS M5 PR-1–PR-6 now"
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
 

@@ -9293,3 +9293,28 @@ Electron 43 and all 38 tests executed. No push, tag, release, Bucket run, or M4 
 authorized or performed. The untracked `.agents/` directory remained untouched and unstaged.
 
 **Commit:** see git log (VA-6).
+## Codex July 2026 Parity — Prompt PR-1 Bound PR conversation context — 2026-07-18
+
+**Files changed:** `electron/services/pr-chat-context.ts`,
+`electron/services/pr-chat-context.test.ts`, `electron/services/github-types.ts`,
+`src/lib/github-types.ts`, `electron/services/github-service.ts`,
+`electron/services/github-repo-store.ts`, `electron/services/github-repo-store.test.ts`,
+`electron/services/schema-init.ts`, `electron/services/db-migrations.ts`,
+`electron/services/db-migrations.test.ts`, `electron/ipc/github.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- repository identity, stale SHA, bounded pagination/context, service, store, and exact
+  migration cohort ✓ (4 files, 85 tests, 0 skipped under Electron's matching ABI)
+
+**Notes:** Migration v27 extends the existing conversation↔PR association with immutable
+repository identity and bound base/head SHA snapshots. Context loading refuses missing
+bindings, repository-id drift, and changed PR heads before returning data. File pages,
+checks, threads, per-thread comments, and selected patch bytes are independently bounded
+and report pagination/truncation. The native gate first exposed that v27 assumed the legacy
+bootstrap table existed; v27 now creates the canonical table when absent and idempotently
+extends older tables. No GitHub write surface was added in PR-1.
+
+**Commit:** see git log (PR-1).

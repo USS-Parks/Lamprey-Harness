@@ -24,10 +24,7 @@ import { join } from 'path'
 // COALESCE behaves) are covered by `npm run smoke:bundle` at boot in
 // CI — the first `getDb()` call evaluates these statements for real.
 
-const DB_SOURCE = readFileSync(
-  join(__dirname, 'schema-init.ts'),
-  'utf-8'
-)
+const DB_SOURCE = readFileSync(join(__dirname, 'schema-init.ts'), 'utf-8')
 
 describe('schema-init.ts migration — project_github_repos', () => {
   it('keeps the CREATE TABLE statement', () => {
@@ -48,7 +45,10 @@ describe('schema-init.ts migration — project_github_repos', () => {
   ])('declares the %s column', (col) => {
     // Match the column name as a whole word in the migration block so a
     // mention elsewhere in database.ts doesn't accidentally satisfy this.
-    const re = new RegExp(`CREATE TABLE IF NOT EXISTS project_github_repos[\\s\\S]*?\\b${col}\\b[\\s\\S]*?\\);`, 'm')
+    const re = new RegExp(
+      `CREATE TABLE IF NOT EXISTS project_github_repos[\\s\\S]*?\\b${col}\\b[\\s\\S]*?\\);`,
+      'm'
+    )
     expect(DB_SOURCE).toMatch(re)
   })
 
@@ -59,9 +59,7 @@ describe('schema-init.ts migration — project_github_repos', () => {
   })
 
   it('keeps the helper index idx_project_github_repos_full_name', () => {
-    expect(DB_SOURCE).toMatch(
-      /CREATE INDEX IF NOT EXISTS idx_project_github_repos_full_name/
-    )
+    expect(DB_SOURCE).toMatch(/CREATE INDEX IF NOT EXISTS idx_project_github_repos_full_name/)
   })
 })
 
@@ -76,9 +74,16 @@ describe('schema-init.ts migration — conversation_pull_requests', () => {
     'full_name',
     'html_url',
     'title',
-    'created_at'
+    'created_at',
+    'repo_id',
+    'base_sha',
+    'head_sha',
+    'updated_at'
   ])('declares the %s column', (col) => {
-    const re = new RegExp(`CREATE TABLE IF NOT EXISTS conversation_pull_requests[\\s\\S]*?\\b${col}\\b[\\s\\S]*?\\);`, 'm')
+    const re = new RegExp(
+      `CREATE TABLE IF NOT EXISTS conversation_pull_requests[\\s\\S]*?\\b${col}\\b[\\s\\S]*?\\);`,
+      'm'
+    )
     expect(DB_SOURCE).toMatch(re)
   })
 
@@ -89,8 +94,6 @@ describe('schema-init.ts migration — conversation_pull_requests', () => {
   })
 
   it('uses a composite primary key so re-link is idempotent', () => {
-    expect(DB_SOURCE).toMatch(
-      /PRIMARY KEY \(conversation_id, full_name, pr_number\)/
-    )
+    expect(DB_SOURCE).toMatch(/PRIMARY KEY \(conversation_id, full_name, pr_number\)/)
   })
 })

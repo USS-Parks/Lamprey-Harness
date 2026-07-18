@@ -106,21 +106,37 @@ export interface ConversationPullRequestLink {
   htmlUrl: string
   title: string
   createdAt: number
+  repoId?: number | null
+  baseSha?: string | null
+  headSha?: string | null
+  updatedAt?: number
 }
 
 export function linkPullRequestToConversation(input: ConversationPullRequestLink): void {
   const db = getDb()
   db.prepare(
-    `INSERT OR IGNORE INTO conversation_pull_requests (
-       conversation_id, pr_number, full_name, html_url, title, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO conversation_pull_requests (
+       conversation_id, pr_number, full_name, html_url, title, created_at,
+       repo_id, base_sha, head_sha, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(conversation_id, full_name, pr_number) DO UPDATE SET
+       html_url = excluded.html_url,
+       title = excluded.title,
+       repo_id = COALESCE(excluded.repo_id, conversation_pull_requests.repo_id),
+       base_sha = COALESCE(excluded.base_sha, conversation_pull_requests.base_sha),
+       head_sha = COALESCE(excluded.head_sha, conversation_pull_requests.head_sha),
+       updated_at = excluded.updated_at`
   ).run(
     input.conversationId,
     input.prNumber,
     input.fullName,
     input.htmlUrl,
     input.title,
-    input.createdAt
+    input.createdAt,
+    input.repoId ?? null,
+    input.baseSha ?? null,
+    input.headSha ?? null,
+    input.updatedAt ?? input.createdAt
   )
 }
 
@@ -133,19 +149,27 @@ export function listPullRequestsForConversation(
       'SELECT * FROM conversation_pull_requests WHERE conversation_id = ? ORDER BY created_at DESC'
     )
     .all(conversationId) as Array<{
-      conversation_id: string
-      pr_number: number
-      full_name: string
-      html_url: string
-      title: string
-      created_at: number
-    }>
+    conversation_id: string
+    pr_number: number
+    full_name: string
+    html_url: string
+    title: string
+    created_at: number
+    repo_id: number | null
+    base_sha: string | null
+    head_sha: string | null
+    updated_at: number
+  }>
   return rows.map((r) => ({
     conversationId: r.conversation_id,
     prNumber: r.pr_number,
     fullName: r.full_name,
     htmlUrl: r.html_url,
     title: r.title,
-    createdAt: r.created_at
+    createdAt: r.created_at,
+    repoId: r.repo_id,
+    baseSha: r.base_sha,
+    headSha: r.head_sha,
+    updatedAt: r.updated_at
   }))
 }

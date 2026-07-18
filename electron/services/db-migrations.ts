@@ -318,6 +318,38 @@ export const MIGRATIONS: Migration[] = [
     up(db) {
       db.exec(ARTIFACT_EDIT_SCHEMA_SQL)
     }
+  },
+  {
+    version: 27,
+    description: 'Codex July parity PR-1 - bind immutable PR repository and SHA context',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS conversation_pull_requests (
+          conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          pr_number INTEGER NOT NULL,
+          full_name TEXT NOT NULL,
+          html_url TEXT NOT NULL,
+          title TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          repo_id INTEGER,
+          base_sha TEXT,
+          head_sha TEXT,
+          updated_at INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (conversation_id, full_name, pr_number)
+        );
+      `)
+      const safeAdd = (ddl: string): void => {
+        try {
+          db.exec(`ALTER TABLE conversation_pull_requests ADD COLUMN ${ddl};`)
+        } catch (err: any) {
+          if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err
+        }
+      }
+      safeAdd('repo_id INTEGER')
+      safeAdd('base_sha TEXT')
+      safeAdd('head_sha TEXT')
+      safeAdd('updated_at INTEGER NOT NULL DEFAULT 0')
+    }
   }
 ]
 

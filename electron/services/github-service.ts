@@ -12,6 +12,7 @@ import type {
   GitHubCompareSummary,
   GitHubConnectionStatus,
   GitHubPullRequest,
+  GitHubPullRequestFile,
   GitHubRepository,
   GitHubTokenProvider,
   GitHubViewer,
@@ -110,7 +111,12 @@ class OAuthTokenProvider implements GitHubTokenProvider {
   }
   async getScopes(): Promise<string[]> {
     const raw = keychain.getKey(KEYCHAIN.tokenScopes) ?? ''
-    return raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : []
+    return raw
+      ? raw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : []
   }
 }
 
@@ -129,7 +135,10 @@ class GhCliTokenProvider implements GitHubTokenProvider {
     const text = `${out.stdout}\n${out.stderr}`
     const m = text.match(/Token scopes:\s*([^\n]+)/i)
     if (!m) return []
-    return m[1].split(',').map((s) => s.replace(/['"\s]/g, '')).filter(Boolean)
+    return m[1]
+      .split(',')
+      .map((s) => s.replace(/['"\s]/g, ''))
+      .filter(Boolean)
   }
 }
 
@@ -183,7 +192,10 @@ export interface GitHubRequestInit {
 }
 
 /** Pure: assemble headers for a GitHub REST request. Exported for tests. */
-export function buildRequestHeaders(token: string, accept = 'application/vnd.github+json'): Record<string, string> {
+export function buildRequestHeaders(
+  token: string,
+  accept = 'application/vnd.github+json'
+): Record<string, string> {
   return {
     Accept: accept,
     Authorization: `Bearer ${token}`,
@@ -226,13 +238,18 @@ async function githubRequest<T>(
     const text = await res.text().catch(() => '')
     // Map a 401 with auth-flavoured body to a friendlier message; we never
     // include the token or the Authorization header in the surfaced text.
-    const safeMsg = res.status === 401
-      ? 'GitHub rejected the token (401). It may have been revoked or expired — reconnect from Settings.'
-      : `GitHub API ${res.status}: ${text.slice(0, 400)}`
+    const safeMsg =
+      res.status === 401
+        ? 'GitHub rejected the token (401). It may have been revoked or expired — reconnect from Settings.'
+        : `GitHub API ${res.status}: ${text.slice(0, 400)}`
     // Phase 3b: notify the IPC layer so the renderer can show an
     // actionable reconnect prompt. Best-effort; never throws.
     if (res.status === 401) {
-      try { deps.onTokenRejected?.() } catch { /* noop */ }
+      try {
+        deps.onTokenRejected?.()
+      } catch {
+        /* noop */
+      }
     }
     throw new GitHubApiError(res.status, safeMsg, text)
   }
@@ -326,7 +343,10 @@ export async function getConnectionStatus(): Promise<GitHubConnectionStatus> {
     }
     const body = (await res.json()) as { login: string; avatar_url: string | null }
     const scopes = headerScopes
-      ? headerScopes.split(',').map((s) => s.trim()).filter(Boolean)
+      ? headerScopes
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : await p.getScopes()
     return {
       connected: true,
@@ -393,7 +413,7 @@ export function getCallbackPortCandidates(): readonly number[] {
 export function isBundledClientAvailable(): boolean {
   return Boolean(
     (process.env.LAMPREY_GITHUB_CLIENT_ID || '').length > 0 &&
-      (process.env.LAMPREY_GITHUB_CLIENT_SECRET || '').length > 0
+    (process.env.LAMPREY_GITHUB_CLIENT_SECRET || '').length > 0
   )
 }
 
@@ -509,7 +529,11 @@ export async function startOAuthLogin(input: StartOAuthLoginInput = {}): Promise
 
   const code = await new Promise<string>((resolveCode, rejectCode) => {
     const timeout = setTimeout(() => {
-      try { server.close() } catch { /* noop */ }
+      try {
+        server.close()
+      } catch {
+        /* noop */
+      }
       rejectCode(new Error('GitHub OAuth timeout — no callback received within 2 minutes'))
     }, 120_000)
 
@@ -526,17 +550,29 @@ export async function startOAuthLogin(input: StartOAuthLoginInput = {}): Promise
 
       if (outcome.kind === 'denied') {
         res.writeHead(outcome.httpStatus, { 'Content-Type': 'text/html' })
-        res.end('<html><body><h2>Authorization denied.</h2><p>You can close this tab.</p></body></html>')
+        res.end(
+          '<html><body><h2>Authorization denied.</h2><p>You can close this tab.</p></body></html>'
+        )
         clearTimeout(timeout)
-        try { server.close() } catch { /* noop */ }
+        try {
+          server.close()
+        } catch {
+          /* noop */
+        }
         rejectCode(new Error(`OAuth denied: ${outcome.reason}`))
         return
       }
       if (outcome.kind === 'state-mismatch') {
         res.writeHead(outcome.httpStatus, { 'Content-Type': 'text/html' })
-        res.end('<html><body><h2>OAuth state mismatch.</h2><p>Close this tab and start the flow again from Lamprey.</p></body></html>')
+        res.end(
+          '<html><body><h2>OAuth state mismatch.</h2><p>Close this tab and start the flow again from Lamprey.</p></body></html>'
+        )
         clearTimeout(timeout)
-        try { server.close() } catch { /* noop */ }
+        try {
+          server.close()
+        } catch {
+          /* noop */
+        }
         rejectCode(new Error(outcome.reason))
         return
       }
@@ -546,16 +582,26 @@ export async function startOAuthLogin(input: StartOAuthLoginInput = {}): Promise
         return
       }
       res.writeHead(200, { 'Content-Type': 'text/html' })
-      res.end('<html><body><h2>Lamprey connected to GitHub.</h2><p>You can close this tab.</p></body></html>')
+      res.end(
+        '<html><body><h2>Lamprey connected to GitHub.</h2><p>You can close this tab.</p></body></html>'
+      )
       clearTimeout(timeout)
-      try { server.close() } catch { /* noop */ }
+      try {
+        server.close()
+      } catch {
+        /* noop */
+      }
       resolveCode(outcome.code)
     })
 
     // Open the browser AFTER attaching the request handler.
     Promise.resolve(open(authUrl.toString())).catch((err) => {
       clearTimeout(timeout)
-      try { server.close() } catch { /* noop */ }
+      try {
+        server.close()
+      } catch {
+        /* noop */
+      }
       rejectCode(new Error(`Failed to open browser for GitHub OAuth: ${(err as Error).message}`))
     })
   })
@@ -603,7 +649,10 @@ export async function startOAuthLogin(input: StartOAuthLoginInput = {}): Promise
   return {
     login: viewer.login,
     scopes: tokenJson.scope
-      ? tokenJson.scope.split(',').map((s) => s.trim()).filter(Boolean)
+      ? tokenJson.scope
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : []
   }
 }
@@ -655,7 +704,9 @@ export function parseRepoList(raw: unknown): GitHubRepository[] {
   return out
 }
 
-export async function listAccessibleRepositories(opts: { page?: number; perPage?: number } = {}): Promise<GitHubRepository[]> {
+export async function listAccessibleRepositories(
+  opts: { page?: number; perPage?: number } = {}
+): Promise<GitHubRepository[]> {
   const per = Math.min(100, Math.max(1, opts.perPage ?? 100))
   const page = Math.max(1, opts.page ?? 1)
   const raw = await githubRequest<unknown>(
@@ -718,16 +769,18 @@ export async function compareBranchToBase(
 ): Promise<GitHubCompareSummary> {
   if (!isValidSlug(owner) || !isValidSlug(repo)) throw new Error('Invalid repo')
   // `head` may carry an owner: prefix when comparing across a fork.
-  const headLabel = head.includes(':')
-    ? head
-    : (isValidBranchName(head) ? head : null)
+  const headLabel = head.includes(':') ? head : isValidBranchName(head) ? head : null
   if (!headLabel) throw new Error('Invalid head ref')
   if (!isValidBranchName(base)) throw new Error('Invalid base ref')
   const raw = await githubRequest<{
     status: GitHubCompareSummary['status']
     ahead_by: number
     behind_by: number
-    commits: Array<{ sha: string; commit: { message: string; author: { name?: string } | null }; author: { login?: string } | null }>
+    commits: Array<{
+      sha: string
+      commit: { message: string; author: { name?: string } | null }
+      author: { login?: string } | null
+    }>
     files?: Array<{ filename: string; additions: number; deletions: number; status: string }>
   }>(
     `/repos/${owner}/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(headLabel)}`,
@@ -840,7 +893,11 @@ export async function listPullRequests(
   return raw.map(parsePullRequest)
 }
 
-export async function getPullRequest(owner: string, repo: string, number: number): Promise<GitHubPullRequest> {
+export async function getPullRequest(
+  owner: string,
+  repo: string,
+  number: number
+): Promise<GitHubPullRequest> {
   if (!isValidSlug(owner) || !isValidSlug(repo)) throw new Error('Invalid repo')
   if (!Number.isInteger(number) || number <= 0) throw new Error('Invalid PR number')
   const raw = await githubRequest<RawPullRequest>(
@@ -849,6 +906,44 @@ export async function getPullRequest(owner: string, repo: string, number: number
     provider()
   )
   return parsePullRequest(raw)
+}
+
+export async function listPullRequestFiles(
+  owner: string,
+  repo: string,
+  number: number,
+  opts: { page?: number; perPage?: number } = {}
+): Promise<GitHubPullRequestFile[]> {
+  if (!isValidSlug(owner) || !isValidSlug(repo)) throw new Error('Invalid repo')
+  if (!Number.isInteger(number) || number <= 0) throw new Error('Invalid PR number')
+  const page = Math.max(1, Math.floor(opts.page ?? 1))
+  const perPage = Math.min(100, Math.max(1, Math.floor(opts.perPage ?? 50)))
+  const raw = await githubRequest<
+    Array<{
+      sha: string
+      filename: string
+      previous_filename?: string
+      status: string
+      additions: number
+      deletions: number
+      changes: number
+      patch?: string
+    }>
+  >(
+    `/repos/${owner}/${repo}/pulls/${number}/files?page=${page}&per_page=${perPage}`,
+    {},
+    provider()
+  )
+  return raw.map((file) => ({
+    sha: file.sha,
+    filename: file.filename,
+    previousFilename: file.previous_filename ?? null,
+    status: file.status,
+    additions: file.additions,
+    deletions: file.deletions,
+    changes: file.changes,
+    patch: file.patch ?? null
+  }))
 }
 
 // ---------------------------------------------------------------------------
@@ -1051,11 +1146,22 @@ async function graphqlRequest<T>(query: string, variables: Record<string, unknow
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     if (res.status === 401) {
-      try { deps.onTokenRejected?.() } catch { /* noop */ }
+      try {
+        deps.onTokenRejected?.()
+      } catch {
+        /* noop */
+      }
     }
-    throw new GitHubApiError(res.status, `GitHub GraphQL ${res.status}: ${text.slice(0, 400)}`, text)
+    throw new GitHubApiError(
+      res.status,
+      `GitHub GraphQL ${res.status}: ${text.slice(0, 400)}`,
+      text
+    )
   }
-  const body = (await res.json()) as { data?: T; errors?: Array<{ message: string; type?: string }> }
+  const body = (await res.json()) as {
+    data?: T
+    errors?: Array<{ message: string; type?: string }>
+  }
   if (body.errors && body.errors.length > 0) {
     const first = body.errors[0]
     // Surface scope-missing errors verbatim so the model + UI can prompt
@@ -1233,7 +1339,16 @@ export async function listIssues(
 
 export interface PullRequestStatusCheck {
   context: string
-  state: 'pending' | 'success' | 'failure' | 'error' | 'neutral' | 'skipped' | 'cancelled' | 'timed_out' | 'action_required'
+  state:
+    | 'pending'
+    | 'success'
+    | 'failure'
+    | 'error'
+    | 'neutral'
+    | 'skipped'
+    | 'cancelled'
+    | 'timed_out'
+    | 'action_required'
   description: string | null
   targetUrl: string | null
   source: 'commit-status' | 'check-run'
@@ -1320,7 +1435,12 @@ export async function getPullRequestStatus(
   let sawSuccess = false
   for (const c of checks) {
     if (c.state === 'skipped' || c.state === 'neutral' || c.state === 'cancelled') continue
-    if (c.state === 'failure' || c.state === 'error' || c.state === 'timed_out' || c.state === 'action_required') {
+    if (
+      c.state === 'failure' ||
+      c.state === 'error' ||
+      c.state === 'timed_out' ||
+      c.state === 'action_required'
+    ) {
       sawFailure = true
     } else if (c.state === 'pending') {
       sawPending = true
@@ -1419,9 +1539,11 @@ export async function pushBranch(input: PushBranchInput): Promise<PushBranchResu
     // If the failure looks like a missing-remote case (e.g. fresh local
     // repo with no `origin`), retry with an explicit URL that points at
     // the GitHub repo. Token still rides via askpass env.
-    if (/origin.*does not appear to be a git repository/i.test(tokenRes.stderr) ||
-        /no configured push destination/i.test(tokenRes.stderr) ||
-        /No such remote/i.test(tokenRes.stderr)) {
+    if (
+      /origin.*does not appear to be a git repository/i.test(tokenRes.stderr) ||
+      /no configured push destination/i.test(tokenRes.stderr) ||
+      /No such remote/i.test(tokenRes.stderr)
+    ) {
       const url = `https://github.com/${input.owner}/${input.repo}.git`
       const argsWithUrl = ['push']
       if (setUpstream) argsWithUrl.push('--set-upstream')
@@ -1462,7 +1584,11 @@ export async function pushBranch(input: PushBranchInput): Promise<PushBranchResu
 /** Pure: map a git-push stderr blob into a user-readable hint. Exported for tests. */
 export function friendlyAuthHint(stderr: string, mode: GitHubAuthMode): string | undefined {
   const txt = stderr.toLowerCase()
-  if (txt.includes('authentication failed') || txt.includes('could not read username') || txt.includes('403')) {
+  if (
+    txt.includes('authentication failed') ||
+    txt.includes('could not read username') ||
+    txt.includes('403')
+  ) {
     if (mode === 'none') {
       return 'Push failed: no GitHub credentials. Connect GitHub in Settings, or configure local Git credentials.'
     }
@@ -1547,8 +1673,12 @@ function runGitWithEnv(args: string[], cwd: string, env: NodeJS.ProcessEnv): Pro
     const proc = spawn('git', args, { cwd, env, windowsHide: true })
     let stdout = ''
     let stderr = ''
-    proc.stdout.on('data', (b: Buffer) => { stdout += b.toString('utf8') })
-    proc.stderr.on('data', (b: Buffer) => { stderr += b.toString('utf8') })
+    proc.stdout.on('data', (b: Buffer) => {
+      stdout += b.toString('utf8')
+    })
+    proc.stderr.on('data', (b: Buffer) => {
+      stderr += b.toString('utf8')
+    })
     proc.on('error', (err) => resolve({ stdout, stderr: stderr + String(err), code: -1 }))
     proc.on('close', (code) => resolve({ stdout, stderr, code: code ?? -1 }))
   })
@@ -1559,8 +1689,12 @@ function spawnCapture(cmd: string, args: string[]): Promise<RunResult> {
     const proc = spawn(cmd, args, { windowsHide: true })
     let stdout = ''
     let stderr = ''
-    proc.stdout.on('data', (b: Buffer) => { stdout += b.toString('utf8') })
-    proc.stderr.on('data', (b: Buffer) => { stderr += b.toString('utf8') })
+    proc.stdout.on('data', (b: Buffer) => {
+      stdout += b.toString('utf8')
+    })
+    proc.stderr.on('data', (b: Buffer) => {
+      stderr += b.toString('utf8')
+    })
     proc.on('error', (err) => resolve({ stdout, stderr: stderr + String(err), code: -1 }))
     proc.on('close', (code) => resolve({ stdout, stderr, code: code ?? -1 }))
   })

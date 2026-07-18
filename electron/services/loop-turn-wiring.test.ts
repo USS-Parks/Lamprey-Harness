@@ -71,6 +71,10 @@ describe('JM-4 watchdog signal + abort + headless ghost guard', () => {
     expect(runner).toMatch(/signal\?: AbortSignal/)
     const chat = read('electron/ipc/chat.ts')
     expect(chat).toMatch(/signal: runnerInput\.signal/)
+    expect(chat).toMatch(/turnRuntimeRegistry\.register\(\{/)
+    expect(chat).toMatch(/runtime\.linkAbortSignal\(input\.signal\)/)
+    expect(chat).toMatch(/runtime\.signal/)
+    expect(chat).not.toMatch(/activeAbortControllers/)
   })
 
   it('the watchdog races a rejection so an ignoring runner cannot wedge the iteration', () => {

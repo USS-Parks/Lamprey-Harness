@@ -39,14 +39,19 @@ describe('JM-8 every runChatRound failure path settles the turn', () => {
   })
 
   it('both chat:send success paths return the same payload shape (CC-20)', () => {
-    const matches = src.match(/success: true, data: \{ conversationId, correlationId \}/g) ?? []
+    const matches =
+      src.match(
+        /success: true,\s*\n\s*data: \{ conversationId, correlationId, turnId: turnRuntime\.turnId \}/g
+      ) ?? []
     expect(matches.length).toBeGreaterThanOrEqual(2)
   })
 })
 
 describe('JM-10 fallback tool contract is live', () => {
   it('non-native/downgraded rounds inject the fallback instruction + tool list (CC-4)', () => {
-    expect(src).toMatch(/if \(!actuallySupportsTools && tools && tools\.length > 0\) \{\s*\n\s*ensureFallbackContract\(messages, tools\)/)
+    expect(src).toMatch(
+      /if \(!actuallySupportsTools && tools && tools\.length > 0\) \{\s*\n\s*ensureFallbackContract\(messages, tools\)/
+    )
     expect(src).toMatch(/FALLBACK_TOOL_INSTRUCTION/)
     expect(src).toMatch(/renderFallbackToolBlock/)
   })

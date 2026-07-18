@@ -81,6 +81,12 @@ import {
 import { concatReasoningTrail } from '../services/reasoning-trail'
 import { loadAgenticCodingConfig } from '../services/agentic-coding-config'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
+import {
+  turnRuntimeRegistry,
+  type SettledTurnStatus,
+  type TurnRuntime
+} from '../services/turn-runtime'
+import type { TurnKind } from '../services/turn-control-types'
 // LP-1 (Loop Phase) — wire the headless turn runner into the loop runner.
 import { setLoopTurnRunner } from '../services/loop-runner'
 import type {
@@ -146,17 +152,6 @@ export function mergeAgenticSkillIds(base: string[], extra: string[]): string[] 
   return out
 }
 
-// A chat turn's runtime context. `chat:send` opens the entry, `chat:cancel`
-// reads it to find the correlationId for the chat.cancelled event, and the
-// catch in chat:send tears it down. The correlationId is generated here and
-// threaded through every downstream producer.
-interface ActiveRun {
-  controller: AbortController
-  correlationId: string
-  startedAt: number
-}
-const activeAbortControllers = new Map<string, ActiveRun>()
-
 // Documents the model emits via `create_document` during a single chat:send
 // turn. Keyed by correlationId so the buffer is stable across the recursive
 // runChatRound calls and isolated between concurrent turns (parallel agent
@@ -207,6 +202,21 @@ function emitPhase(conversationId: string, phase: AgentRunPhase): void {
   emitChatEvent('chat:phase', { conversationId, phase })
 }
 
+function settleTurnRuntimeSafely(
+  runtime: TurnRuntime,
+  status: SettledTurnStatus,
+  completedAt = Date.now()
+): boolean {
+  try {
+    return turnRuntimeRegistry.settle(runtime, status, completedAt)
+  } catch (err) {
+    // The runtime is already terminal and removed. Startup recovery can
+    // settle the durable orphan without keeping a stale in-memory turn.
+    console.error('[chat] turn runtime settlement persistence failed:', err)
+    return false
+  }
+}
+
 export function registerChatHandlers(): void {
   ipcMain.handle('chat:send', async (_event, request) => {
     // Defensive: the renderer is trusted but a malformed payload (hot
@@ -224,11 +234,12 @@ export function registerChatHandlers(): void {
     let conversationId = validation.value.conversationId
 
     // Hoisted so the catch block can reference it when an exception fires
-    // before the regular `activeAbortControllers.set` runs. Generated here
-    // (rather than after that .set) so the chat.error event always carries a
+    // before the TurnRuntime registration runs. Generated here so the
+    // chat.error event always carries a
     // correlationId, even when the user typed into a conversation that
     // failed to materialise.
     const correlationId = randomUUID()
+    let turnRuntime: TurnRuntime | null = null
 
     try {
       if (conversationId === 'new' || !conversationId) {
@@ -266,6 +277,15 @@ export function registerChatHandlers(): void {
         model
       })
 
+      // ST-3: one stable identity spans research, research fallback, and
+      // ordinary dispatch. Loops and wake-ups register through the same
+      // registry inside runHeadlessTurn.
+      turnRuntime = turnRuntimeRegistry.register({
+        conversationId,
+        correlationId,
+        kind: 'regular'
+      })
+
       // If routing chose the research pipeline, hand off to runDeepResearch
       // and emit its outcome as the assistant message. Most errors fall
       // through to the outer catch which emits a chat:error event so the
@@ -274,23 +294,15 @@ export function registerChatHandlers(): void {
       // fall through to a normal chat turn so the model can answer from
       // training knowledge instead of ghosting the conversation.
       if (researchRoute && researchRoute.kind === 'research') {
-        // Set up an abort controller early so chat:cancel can interrupt
-        // the in-flight research run. The normal-dispatch path below
-        // creates its own a few lines later; only one of the two ever
-        // runs per turn.
-        const researchAbort = new AbortController()
-        activeAbortControllers.set(conversationId, {
-          controller: researchAbort,
-          correlationId,
-          startedAt: Date.now()
-        })
+        // The shared runtime lets chat:cancel interrupt research and remains
+        // active if NoSourcesError falls through to ordinary dispatch.
         try {
           const outcome = await runDeepResearch({
             question: researchRoute.body,
             depth: researchRoute.depth,
             conversationId,
             correlationId,
-            abortSignal: researchAbort.signal
+            abortSignal: turnRuntime.signal
           })
           // D11 will register the artifact with the renderer; D10's job
           // is to drop the assistant message containing the executive
@@ -302,10 +314,13 @@ export function registerChatHandlers(): void {
             content: `${outcome.summary}\n\n**Sources:** ${outcome.sourceCount} (${outcome.acceptedCount} accepted, ${outcome.singleSourceCount} single-source, ${outcome.disputedCount} disputed) · Providers: ${outcome.providersUsed.join(', ') || 'none'}\n\n[Open full report](artifact://research/${outcome.filename})`,
             model
           })
-          activeAbortControllers.delete(conversationId)
-          return { success: true, data: { conversationId, correlationId } }
+          settleTurnRuntimeSafely(turnRuntime, 'completed')
+          drainPendingDocuments(correlationId)
+          return {
+            success: true,
+            data: { conversationId, correlationId, turnId: turnRuntime.turnId }
+          }
         } catch (researchErr: unknown) {
-          activeAbortControllers.delete(conversationId)
           if (researchErr instanceof NoSourcesError) {
             // R1+R2 — recoverable. Persist a SYSTEM-role message that
             // tells the model (and the user, in the transcript) that the
@@ -354,18 +369,26 @@ export function registerChatHandlers(): void {
         model,
         activeSkillIds,
         correlationId,
-        promptBody: content
+        promptBody: content,
+        runtime: turnRuntime
       })
 
-      activeAbortControllers.delete(conversationId)
       drainPendingDocuments(correlationId)
       // JM-8 (CC-20) — same success payload shape as the research path.
-      return { success: true, data: { conversationId, correlationId } }
+      return {
+        success: true,
+        data: { conversationId, correlationId, turnId: turnRuntime.turnId }
+      }
     } catch (err: any) {
       // JM-8 (CC-20) — a thrown string/undefined used to produce
       // { success:false, error: undefined }, violating the IPC contract.
       const errMsg = err instanceof Error ? err.message : String(err ?? 'unknown error')
-      activeAbortControllers.delete(conversationId)
+      if (turnRuntime) {
+        settleTurnRuntimeSafely(
+          turnRuntime,
+          turnRuntime.signal.aborted || isUserAbortError(err) ? 'cancelled' : 'failed'
+        )
+      }
       drainPendingDocuments(correlationId)
       emitPhase(conversationId, 'error')
       emitChatEvent('chat:error', { conversationId, error: errMsg })
@@ -392,7 +415,7 @@ export function registerChatHandlers(): void {
       // `role:'system'` notice so the transcript never ends on an unanswered
       // user message. User-initiated cancels are not ghosts — skip those.
       try {
-        if (!isUserAbortError(err)) {
+        if (!turnRuntime?.signal.aborted && !isUserAbortError(err)) {
           const rows = convStore.getMessages(conversationId)
           if (turnEndedGhosted(rows)) {
             const notice = convStore.saveMessage({
@@ -414,10 +437,9 @@ export function registerChatHandlers(): void {
   })
 
   ipcMain.handle('chat:cancel', async (_event, conversationId) => {
-    const run = activeAbortControllers.get(conversationId)
+    const run = turnRuntimeRegistry.lookupActive(conversationId)
     if (run) {
-      run.controller.abort()
-      activeAbortControllers.delete(conversationId)
+      run.abort()
       drainPendingDocuments(run.correlationId)
       try {
         recordEvent({
@@ -513,9 +535,9 @@ export type HeadlessTurnResult = { message: unknown; tokensEstimate: number } | 
  * focused. The CALLER persists the triggering user message first (chat:send
  * does; fireDueWakeups does; the loop controller's runTurn seam does for
  * iteration prompts — JM-2). This function assembles the prompt + tools,
- * registers an abort controller (so chat:cancel AND a loop's cancel both
+ * registers a TurnRuntime (so chat:cancel AND a loop's cancel both
  * interrupt it), runs runChatRound, and owns its own cleanup in a `finally` —
- * a throwing turn never leaks the activeAbortControllers entry.
+ * a throwing turn never leaks the registry entry.
  */
 export async function runHeadlessTurn(input: {
   conversationId: string
@@ -527,142 +549,146 @@ export async function runHeadlessTurn(input: {
   /** External cancel signal (e.g. a loop's controller) — aborts the turn. */
   signal?: AbortSignal
   suppressDoneEvent?: boolean
+  /** Existing runtime used by interactive research fallback. */
+  runtime?: TurnRuntime
+  /** Loops and wake-ups default to regular; reserved kinds reject Steering. */
+  turnKind?: TurnKind
 }): Promise<HeadlessTurnResult> {
   const { conversationId, model } = input
-  const correlationId = input.correlationId ?? randomUUID()
+  const correlationId = input.runtime?.correlationId ?? input.correlationId ?? randomUUID()
   const activeSkillIds = input.activeSkillIds ?? []
 
-  emitPhase(conversationId, 'understanding')
-
-  void fireHooks('promptSubmit', { conversationId, promptBody: input.promptBody ?? '' })
-
-  // Track 2 / E5 — auto context compression. Run BEFORE pulling
-  // history so the next turn's prompt sees the compressed view.
-  try {
-    const modelInfo = resolveModel(model)
-    const ctxWindow = modelInfo.contextWindow ?? 128_000
-    const r = compressOldestMessages(conversationId, ctxWindow)
-    if (r) {
-      emitChatEvent('chat:compressed', {
-        conversationId,
-        summaryMessageId: r.summaryMessageId,
-        compressedCount: r.compressedCount,
-        reductionPct: r.reductionPct
-      })
-    }
-  } catch (err) {
-    console.error('[chat] context compression failed:', err)
+  const runtime =
+    input.runtime ??
+    turnRuntimeRegistry.register({
+      conversationId,
+      correlationId,
+      kind: input.turnKind ?? 'regular'
+    })
+  if (runtime.conversationId !== conversationId) {
+    throw new Error('turn-runtime: runtime conversation does not match headless turn input')
   }
+  const unlinkExternalSignal = input.signal ? runtime.linkAbortSignal(input.signal) : (): void => {}
+  let settlementStatus: SettledTurnStatus = 'completed'
 
-  // The dispatcher uses the effective view (compressed messages hidden,
-  // summary inserted in their place) for the OpenAI API.
-  const promptHistory = getEffectiveMessages(conversationId)
-  const memoryBlock = memStore.buildMemoryBlock()
-  const memoryIndexBlock = memStore.buildMemoryIndexBlock()
-  const taskNotificationsBlock = buildTaskNotificationsBlock(
-    drainAsyncEventsForPrompt(conversationId)
-  )
+  try {
+    emitPhase(conversationId, 'understanding')
 
-  const settingsRaw = readSettingsJson()
-  const agentic = loadAgenticCodingConfig(settingsRaw)
+    void fireHooks('promptSubmit', { conversationId, promptBody: input.promptBody ?? '' })
 
-  const effectiveSkillIds = agentic.mode
-    ? mergeAgenticSkillIds(activeSkillIds, agentic.skills)
-    : activeSkillIds
+    // Track 2 / E5 — auto context compression. Run BEFORE pulling
+    // history so the next turn's prompt sees the compressed view.
+    try {
+      const modelInfo = resolveModel(model)
+      const ctxWindow = modelInfo.contextWindow ?? 128_000
+      const r = compressOldestMessages(conversationId, ctxWindow)
+      if (r) {
+        emitChatEvent('chat:compressed', {
+          conversationId,
+          summaryMessageId: r.summaryMessageId,
+          compressedCount: r.compressedCount,
+          reductionPct: r.reductionPct
+        })
+      }
+    } catch (err) {
+      console.error('[chat] context compression failed:', err)
+    }
 
-  let skillContents: {
-    name: string
-    content: string
-    allowedTools?: string[]
-    description?: string
-  }[] = []
-  if (effectiveSkillIds.length > 0) {
-    const skills = listSkills()
-    skillContents = effectiveSkillIds
-      .map((id: string) => {
-        const skill = skills.find((s) => s.id === id)
-        if (!skill) return null
-        const skillBody = getSkillContent(id)
-        if (!skillBody) return null
-        return {
-          name: skill.name,
-          content: skillBody,
-          ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {}),
-          ...(skill.description ? { description: skill.description } : {})
-        }
-      })
-      .filter(Boolean) as {
+    // The dispatcher uses the effective view (compressed messages hidden,
+    // summary inserted in their place) for the OpenAI API.
+    const promptHistory = getEffectiveMessages(conversationId)
+    const memoryBlock = memStore.buildMemoryBlock()
+    const memoryIndexBlock = memStore.buildMemoryIndexBlock()
+    const taskNotificationsBlock = buildTaskNotificationsBlock(
+      drainAsyncEventsForPrompt(conversationId)
+    )
+
+    const settingsRaw = readSettingsJson()
+    const agentic = loadAgenticCodingConfig(settingsRaw)
+
+    const effectiveSkillIds = agentic.mode
+      ? mergeAgenticSkillIds(activeSkillIds, agentic.skills)
+      : activeSkillIds
+
+    let skillContents: {
       name: string
       content: string
       allowedTools?: string[]
       description?: string
-    }[]
-  }
+    }[] = []
+    if (effectiveSkillIds.length > 0) {
+      const skills = listSkills()
+      skillContents = effectiveSkillIds
+        .map((id: string) => {
+          const skill = skills.find((s) => s.id === id)
+          if (!skill) return null
+          const skillBody = getSkillContent(id)
+          if (!skillBody) return null
+          return {
+            name: skill.name,
+            content: skillBody,
+            ...(skill.allowedTools ? { allowedTools: skill.allowedTools } : {}),
+            ...(skill.description ? { description: skill.description } : {})
+          }
+        })
+        .filter(Boolean) as {
+        name: string
+        content: string
+        allowedTools?: string[]
+        description?: string
+      }[]
+    }
 
-  // HY4 — lazy skill bodies follow the tool-surface mode. JM-12 (CC-17):
-  // same normalization as buildDispatchTools — exactly 'lazy' activates.
-  // The old `!== 'full'` gate meant a typo'd value produced the full tool
-  // catalog WITH stubbed skill bodies, a state no phase intended.
-  const lazySkillBodies =
-    ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'full') === 'lazy'
+    // HY4 — lazy skill bodies follow the tool-surface mode. JM-12 (CC-17):
+    // same normalization as buildDispatchTools — exactly 'lazy' activates.
+    // The old `!== 'full'` gate meant a typo'd value produced the full tool
+    // catalog WITH stubbed skill bodies, a state no phase intended.
+    const lazySkillBodies =
+      ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'full') === 'lazy'
 
-  const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
-  const activeWorkspace = getActiveWorkspace()
-  const agentsMd = readAgentsMd(activeWorkspace)
-  const chaptersBlock = buildChaptersBlock(conversationId)
-  const supportsTools = resolveModel(model).supportsTools
-  const systemPrompt = buildSystemPrompt(
-    skillContents,
-    memoryBlock,
-    systemPromptOverride,
-    agentsMd,
-    model,
-    agentic.mode ? 'coding' : undefined,
-    memoryIndexBlock,
-    taskNotificationsBlock,
-    chaptersBlock,
-    supportsTools,
-    lazySkillBodies
-  )
+    const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
+    const activeWorkspace = getActiveWorkspace()
+    const agentsMd = readAgentsMd(activeWorkspace)
+    const chaptersBlock = buildChaptersBlock(conversationId)
+    const supportsTools = resolveModel(model).supportsTools
+    const systemPrompt = buildSystemPrompt(
+      skillContents,
+      memoryBlock,
+      systemPromptOverride,
+      agentsMd,
+      model,
+      agentic.mode ? 'coding' : undefined,
+      memoryIndexBlock,
+      taskNotificationsBlock,
+      chaptersBlock,
+      supportsTools,
+      lazySkillBodies
+    )
 
-  const activeProvider = getProviderForModel(model)
-  const tools: ChatCompletionTool[] = buildDispatchTools(
-    conversationId,
-    activeProvider,
-    settingsRaw
-  )
+    const activeProvider = getProviderForModel(model)
+    const tools: ChatCompletionTool[] = buildDispatchTools(
+      conversationId,
+      activeProvider,
+      settingsRaw
+    )
 
-  const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory, model)
+    const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory, model)
 
-  // JM-12 (CC-11) — per-round token accounting. The old estimate counted the
-  // initial message stack ONCE, but every tool round re-sends the whole
-  // growing stack; a 10-round turn's real input was ~10× the estimate, making
-  // loop token ceilings decorative. runChatRound now accumulates the chars
-  // actually sent each round plus the chars received back.
-  const charCounter = { sent: 0, received: 0 }
+    // JM-12 (CC-11) — per-round token accounting. The old estimate counted the
+    // initial message stack ONCE, but every tool round re-sends the whole
+    // growing stack; a 10-round turn's real input was ~10× the estimate, making
+    // loop token ceilings decorative. runChatRound now accumulates the chars
+    // actually sent each round plus the chars received back.
+    const charCounter = { sent: 0, received: 0 }
 
-  const abortController = new AbortController()
-  // Bridge an external cancel signal (a loop's controller) into the turn's
-  // own controller so chat:cancel + loop-cancel both interrupt this run.
-  if (input.signal) {
-    if (input.signal.aborted) abortController.abort()
-    else input.signal.addEventListener('abort', () => abortController.abort(), { once: true })
-  }
-  activeAbortControllers.set(conversationId, {
-    controller: abortController,
-    correlationId,
-    startedAt: Date.now()
-  })
-
-  const workspacePath = activeWorkspace
-  try {
+    const workspacePath = activeWorkspace
     const result = await runChatRound(
       conversationId,
       model,
       apiMessages,
       tools.length > 0 ? tools : undefined,
       workspacePath,
-      abortController.signal,
+      runtime.signal,
       0,
       modelParams,
       input.suppressDoneEvent ?? false,
@@ -677,14 +703,15 @@ export async function runHeadlessTurn(input: {
       tokensEstimate: Math.ceil((charCounter.sent + charCounter.received) / 4)
     }
   } catch (err) {
+    const errObj = err instanceof Error ? err : { message: String(err) }
+    settlementStatus = runtime.signal.aborted || isUserAbortError(errObj) ? 'cancelled' : 'failed'
     // JM-4 (CC-9) — ghost-reply guard for headless callers. The SP-4 guard
     // lived only in chat:send's catch, so a failed loop iteration or wake-up
     // turn left the injected user message permanently unanswered (the exact
     // G1/D5 ghost class). Persist the notice here so every caller gets it;
     // chat:send's own guard then sees the system row and stands down.
     try {
-      const errObj = err instanceof Error ? err : { message: String(err) }
-      if (!isUserAbortError(errObj)) {
+      if (!runtime.signal.aborted && !isUserAbortError(errObj)) {
         const rows = convStore.getMessages(conversationId)
         if (turnEndedGhosted(rows)) {
           const notice = convStore.saveMessage({
@@ -703,7 +730,8 @@ export async function runHeadlessTurn(input: {
     }
     throw err
   } finally {
-    activeAbortControllers.delete(conversationId)
+    unlinkExternalSignal()
+    settleTurnRuntimeSafely(runtime, settlementStatus)
     drainPendingDocuments(correlationId)
   }
 }

@@ -1,3 +1,25 @@
+## Codex July 2026 Parity — Prompt ST-3 TurnRuntime registry — 2026-07-17
+
+**Files changed:** `electron/services/turn-runtime.ts`,
+`electron/services/turn-runtime.test.ts`, `electron/ipc/chat.ts`,
+`electron/ipc/chat-turn-settlement.test.ts`,
+`electron/services/loop-turn-wiring.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused runtime/settlement/loop/ghost suites ✓ (43 tests, 0 skipped)
+- `verify:proof -- --no-tests` ✓ (lint, tsc node/web, bundle and renderer smoke)
+
+**Notes:** The conversation-scoped abort map is replaced by a persisted TurnRuntime
+registry with stable turn/correlation identity, steer inbox, targeted wake signal,
+active-agent attribution, linked cancellation, and exact-once settlement. Interactive
+research and its no-sources fallback retain one runtime; normal chat, loops, and wake-ups
+all register through `runHeadlessTurn`. Cancellation still drains pending documents and
+records its bounded event, while aborted turns cannot synthesize ghost replies.
+
+**Commit:** see git log (ST-3).
+
 ## Codex July 2026 Parity — Prompt ST-2 Persist turns and follow-ups — 2026-07-17
 
 **Files changed:** `electron/services/turn-control-schema.ts`,

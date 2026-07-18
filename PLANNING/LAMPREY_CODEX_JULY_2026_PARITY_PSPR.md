@@ -306,10 +306,10 @@ CDP observation service, and event/monitor automation triggers.
   restart/dedup/reorder/state-machine tests; tsc node.
 
 #### **ST-3 — Replace the abort map with a TurnRuntime registry**
-- [ ] Extract `ActiveRun` into a service owning `turnId`, correlation ID, controller,
+- [x] Extract `ActiveRun` into a service owning `turnId`, correlation ID, controller,
       kind/status, steer inbox, wake signal, active agent target, and settlement. Provide
       one registration/lookup/settle API for normal chat, research, loops, and wake-ups.
-- [ ] Preserve current cancellation, ghost-reply, pending-document, and cleanup semantics.
+- [x] Preserve current cancellation, ghost-reply, pending-document, and cleanup semantics.
 - Files: new `turn-runtime.ts`; focused changes in `electron/ipc/chat.ts` and loop seams.
 - Verify: runtime race/cleanup tests; existing turn-settlement and loop-wiring suites;
   `verify:proof -- --no-tests`; tsc ×2.

@@ -22,6 +22,12 @@ import {
 import { drainPendingDocuments, pushPendingDocument } from '../services/pending-turn-documents'
 import { interruptTurn } from '../services/turn-interrupt'
 import { emitTurnSettled, emitTurnStarted } from '../services/turn-lifecycle-events'
+import {
+  createQueuedFollowUpDispatchDependencies,
+  dispatchNextQueuedFollowUp,
+  type InjectedUserMessage,
+  type QueuedFollowUpRunInput
+} from '../services/queued-follow-up-dispatch'
 import * as memStore from '../services/memory-store'
 import { buildChaptersBlock, createChapter } from '../services/chapters-store'
 import { compressOldestMessages, getEffectiveMessages } from '../services/context-compressor'
@@ -199,6 +205,30 @@ function settleTurnRuntimeSafely(
   }
 }
 
+function dispatchQueuedFollowUpAfterCompletedTurn(input: {
+  conversationId: string
+  model: string
+  activeSkillIds?: string[]
+}): void {
+  const dependencies = createQueuedFollowUpDispatchDependencies({
+    settleTurn: (runtime, status) => {
+      settleTurnRuntimeSafely(runtime, status)
+    },
+    runTurn: (queued: QueuedFollowUpRunInput) =>
+      runHeadlessTurn({
+        conversationId: queued.conversationId,
+        model: queued.model,
+        activeSkillIds: queued.activeSkillIds,
+        promptBody: queued.promptBody,
+        runtime: queued.runtime,
+        injectedUserMessage: queued.injectedUserMessage
+      })
+  })
+  void dispatchNextQueuedFollowUp(input, dependencies).catch((error) => {
+    console.error('[chat] queued follow-up scheduling failed:', error)
+  })
+}
+
 async function consumeRootSteersAtBoundary(
   runtime: TurnRuntime,
   messages: ChatCompletionMessageParam[],
@@ -311,8 +341,15 @@ export function registerChatHandlers(): void {
               'research completed before pending Steering reached an ordinary model boundary'
             )
           }
-          settleTurnRuntimeSafely(turnRuntime, 'completed')
+          const settled = settleTurnRuntimeSafely(turnRuntime, 'completed')
           drainPendingDocuments(correlationId)
+          if (settled) {
+            dispatchQueuedFollowUpAfterCompletedTurn({
+              conversationId,
+              model,
+              activeSkillIds
+            })
+          }
           return {
             success: true,
             data: { conversationId, correlationId, turnId: turnRuntime.turnId }
@@ -542,6 +579,8 @@ export async function runHeadlessTurn(input: {
   runtime?: TurnRuntime
   /** Loops and wake-ups default to regular; reserved kinds reject Steering. */
   turnKind?: TurnKind
+  /** Structured queued input whose display row was already persisted. */
+  injectedUserMessage?: InjectedUserMessage
 }): Promise<HeadlessTurnResult> {
   const { conversationId, model } = input
   const correlationId = input.runtime?.correlationId ?? input.correlationId ?? randomUUID()
@@ -586,7 +625,9 @@ export async function runHeadlessTurn(input: {
 
     // The dispatcher uses the effective view (compressed messages hidden,
     // summary inserted in their place) for the OpenAI API.
-    const promptHistory = getEffectiveMessages(conversationId)
+    const promptHistory = getEffectiveMessages(conversationId).filter(
+      (message) => message.id !== input.injectedUserMessage?.messageId
+    )
     const memoryBlock = memStore.buildMemoryBlock()
     const memoryIndexBlock = memStore.buildMemoryIndexBlock()
     const taskNotificationsBlock = buildTaskNotificationsBlock(
@@ -663,6 +704,7 @@ export async function runHeadlessTurn(input: {
     )
 
     const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory, model)
+    if (input.injectedUserMessage) apiMessages.push(input.injectedUserMessage.apiMessage)
 
     // JM-12 (CC-11) — per-round token accounting. The old estimate counted the
     // initial message stack ONCE, but every tool round re-sends the whole
@@ -734,8 +776,11 @@ export async function runHeadlessTurn(input: {
         console.error('[chat] pending Steer recovery failed:', err)
       }
     }
-    settleTurnRuntimeSafely(runtime, settlementStatus)
+    const settled = settleTurnRuntimeSafely(runtime, settlementStatus)
     drainPendingDocuments(correlationId)
+    if (settled && settlementStatus === 'completed') {
+      dispatchQueuedFollowUpAfterCompletedTurn({ conversationId, model, activeSkillIds })
+    }
   }
 }
 

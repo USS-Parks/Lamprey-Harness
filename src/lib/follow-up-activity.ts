@@ -9,7 +9,7 @@ export interface FollowUpActivityItem {
   detail: string
 }
 
-const STATUS_LABELS: Record<TurnFollowUpRecord['status'], string> = {
+const STEER_STATUS_LABELS: Record<TurnFollowUpRecord['status'], string> = {
   accepted: 'Steering accepted',
   queued: 'Follow-up queued',
   delivered: 'Steering delivered',
@@ -17,6 +17,14 @@ const STATUS_LABELS: Record<TurnFollowUpRecord['status'], string> = {
   cancelled: 'Follow-up cancelled',
   recovered: 'Follow-up recovered',
   deleted: 'Follow-up deleted'
+}
+
+function statusLabel(record: TurnFollowUpRecord): string {
+  if (record.deliveryMode !== 'queue') return STEER_STATUS_LABELS[record.status]
+  if (record.status === 'accepted') return 'Queued follow-up accepted'
+  if (record.status === 'delivered') return 'Queued follow-up delivered'
+  if (record.status === 'rejected') return 'Queued follow-up rejected'
+  return STEER_STATUS_LABELS[record.status]
 }
 
 export function presentFollowUpActivity(
@@ -29,7 +37,7 @@ export function presentFollowUpActivity(
     .map((record) => ({
       id: record.id,
       status: record.status,
-      label: STATUS_LABELS[record.status],
+      label: statusLabel(record),
       detail: [
         `#${record.id.slice(0, 8)}`,
         `${record.input.length} input item${record.input.length === 1 ? '' : 's'}`,

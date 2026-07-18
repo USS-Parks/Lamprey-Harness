@@ -375,6 +375,26 @@ CDP observation service, and event/monitor automation triggers.
 - Files: event log/types, ActivityFeed/tool activity components, tests.
 - Verify: event order/payload/redaction tests; UI wiring source-lock; tsc ×2.
 
+#### **ST-10A — Deliver queued follow-ups through the real next-turn seam**
+
+> **Conformance addendum (2026-07-18):** ST-11 inventory found that Queue persistence,
+> CRUD, and UI were wired, but `TurnControlStore.listQueuedFollowUps()` had no production
+> caller. Queued input therefore never became the next turn. This is a real mismatch with
+> §1 rows 2, 14, 19, and 20; the original matrix remains unchanged.
+
+- [x] Claim the first queued item in deterministic position order when an ordinary turn
+      completes, transition it through accepted/delivered exactly once, persist one user
+      message, and execute it through `runHeadlessTurn`. Chain remaining items one turn at
+      a time; never call a provider directly or synthesize an alternate execution seam.
+- [x] Preserve structured text/image/local-image order in the queued model input while the
+      persisted/renderer message remains metadata-safe. An input that becomes unreadable
+      before dispatch rejects visibly; later Queue items remain queued.
+- Files: queue dispatcher service/tests, `turn-control-store.ts` as needed, focused
+  `chat.ts` seam wiring, conformance/source locks.
+- Verify: queue claim/order/dedup/failure tests; one-seam source lock; no duplicate user
+  message/turn-start; existing Steering/turn-settlement/ghost-reply suites;
+  `verify:proof -- --no-tests`; tsc ×2.
+
 #### **ST-11 — Run the complete Steering conformance gate**
 - [ ] Complete automated contract coverage for all 20 §1 rows and run
       `CJ26_SMOKE_PLAYBOOK.md` against both current Codex and the built Lamprey app using the

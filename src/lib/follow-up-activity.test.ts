@@ -55,4 +55,15 @@ describe('ST-10 follow-up activity presentation', () => {
     expect(items).toHaveLength(FOLLOW_UP_ACTIVITY_CAP)
     expect(items[0].id).toBe(`follow-up-${FOLLOW_UP_ACTIVITY_CAP + 4}`)
   })
+
+  it('labels automatically dispatched queue records as queued follow-ups', () => {
+    const queued = {
+      ...record('queued-follow-up', 10),
+      deliveryMode: 'queue' as const,
+      status: 'delivered' as const,
+      expectedTurnId: null,
+      position: 0
+    }
+    expect(presentFollowUpActivity([queued])[0].label).toBe('Queued follow-up delivered')
+  })
 })

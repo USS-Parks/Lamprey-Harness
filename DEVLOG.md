@@ -8690,3 +8690,45 @@ The read-only Activity Timeline presents the new durable event types and their b
 subtitles.
 
 **Commit:** see git log (ST-10).
+
+## Codex July 2026 Parity - Prompt ST-10A Queued follow-up delivery - 2026-07-18
+
+**Files changed:** `electron/ipc/chat.ts`,
+`electron/services/queued-follow-up-dispatch.ts`,
+`electron/services/queued-follow-up-dispatch.test.ts`,
+`src/lib/follow-up-activity.ts`, `src/lib/follow-up-activity.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- complete automated Steering/Queue/turn-settlement/child-agent/renderer-state cohort OK
+  (23 files: 22 passed, 1 skipped; 218 tests passed, 9 skipped)
+- no-native-addon `node:sqlite` turn-control integration OK (8 tests)
+- production build OK
+- bundle smoke OK
+- renderer smoke OK
+- `verify:proof -- --no-tests` OK
+- user-verification-needed: replay Queue chaining, mixed queued input, and unavailable
+  queued local-image behavior in the ST-11 built-app conformance run
+
+**Notes:** ST-11 inventory found that durable Queue CRUD had no production consumer, so
+the plan gained this focused conformance addendum instead of weakening the 20-row matrix.
+On completion, the first positional Queue item now synchronously reserves the next regular
+`TurnRuntime` before attachment preparation can yield, transitions queued -> accepted,
+persists exactly one metadata-safe user row with accepted -> delivered in the same database
+transaction, and calls only `runHeadlessTurn`. That runner filters the display row from
+stored history and injects the exact structured text/image/local-image message once, so
+attachment order and bytes reach the model without duplicating the user bubble or exposing
+raw local paths to the renderer. Each completed queued turn schedules the next item through
+the same seam. Preparation failure records a generic visible rejection, settles the claimed
+turn, and leaves later items queued. A provider failure after durable delivery propagates as
+a turn failure and does not falsely relabel the follow-up as rejected. The activity chip now
+labels Queue delivery as a queued follow-up rather than Steering.
+
+The nine skipped tests are the existing `better-sqlite3`-backed
+`turn-control-store.test.ts` cohort under Vitest's native-module runtime. The separate
+`node:sqlite` integration suite exercised the production DDL, insert shapes, uniqueness,
+queue positions, recovery, and cascade behavior without that native-addon skip.
+
+**Commit:** see git log (ST-10A).

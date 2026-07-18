@@ -7,6 +7,9 @@ import { runFanout, type CandidateResult } from './strategy-fanout'
 import { runCritic, type CriticVerdict } from './strategy-critic'
 import { runAdvisor } from './strategy-advisor'
 import { approximateTokenCount } from './multi-agent-run-tool'
+import { waitForAgentWork } from './agent-wait'
+import { turnRuntimeRegistry } from './turn-runtime'
+import { enqueueAsyncEvent } from './async-event-bridge'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 
 // Agentic Orchestration Phase AO-6 — the agent_fanout model tool. Registered
@@ -19,6 +22,59 @@ function budgetForRun(): ReturnType<typeof createBudget> {
   return createBudget(
     resolveBudgetCeilings({ tokens: cfg.maxTokensPerRun, wallMs: cfg.maxWallclockMs })
   )
+}
+
+type StrategyWaitResult<T> = { disposition: 'completed'; value: T } | { disposition: 'steered' }
+
+function boundedStrategyResult(value: unknown): string {
+  const text = JSON.stringify(value)
+  return text.length <= 16_384 ? text : `${text.slice(0, 16_383)}…`
+}
+
+async function waitForStrategyWork<T>(input: {
+  strategy: string
+  conversationId?: string
+  signal?: AbortSignal
+  work: Promise<T>
+  onSettled: (value: T) => void
+  eventValue: (value: T) => unknown
+}): Promise<StrategyWaitResult<T>> {
+  const runtime = input.conversationId
+    ? turnRuntimeRegistry.lookupActive(input.conversationId)
+    : null
+  const waited = await waitForAgentWork(input.work, runtime, input.signal)
+  if (waited.disposition === 'completed') {
+    input.onSettled(waited.value)
+    return waited
+  }
+
+  void waited.completion
+    .then((value) => {
+      input.onSettled(value)
+      if (input.conversationId) {
+        enqueueAsyncEvent({
+          conversationId: input.conversationId,
+          kind: 'agent:strategy-completed',
+          payload: {
+            strategy: input.strategy,
+            message: `${input.strategy} finished after root Steering released the wait.`,
+            resultText: boundedStrategyResult(input.eventValue(value))
+          }
+        })
+      }
+    })
+    .catch((err) => {
+      if (!input.conversationId) return
+      enqueueAsyncEvent({
+        conversationId: input.conversationId,
+        kind: 'agent:strategy-completed',
+        payload: {
+          strategy: input.strategy,
+          error: err instanceof Error ? err.message : String(err)
+        }
+      })
+    })
+  return { disposition: 'steered' }
 }
 
 async function runCandidate(
@@ -159,7 +215,7 @@ toolRegistry.registerNative(
       label: `agent_fanout (${candidateModels.length} candidates)`
     })
 
-    const result = await runFanout(
+    const work = runFanout(
       { task, candidateModels, rubric, maxCandidates: cfg.maxCandidates },
       {
         budget: budgetForRun(),
@@ -167,8 +223,31 @@ toolRegistry.registerNative(
         runJudge: (t, c, rb) => runJudge(t, c, rb, ctx.model!, signal)
       }
     )
-
-    settleRunSpend(identityId, result.budget.tokensSpent, result.budget.wallMsSpent)
+    const waited = await waitForStrategyWork({
+      strategy: 'agent_fanout',
+      conversationId: ctx.conversationId,
+      signal: ctx.signal,
+      work,
+      onSettled: (value) =>
+        settleRunSpend(identityId, value.budget.tokensSpent, value.budget.wallMsSpent),
+      eventValue: (value) => ({
+        strategy: 'fanout',
+        winner: value.winner,
+        breached: value.breached,
+        breachNote: value.breachNote
+      })
+    })
+    if (waited.disposition === 'steered') {
+      return {
+        result: JSON.stringify({
+          strategy: 'fanout',
+          waitDisposition: 'steered',
+          workContinues: true
+        }),
+        status: 'done'
+      }
+    }
+    const result = waited.value
 
     const summary = {
       strategy: 'fanout',
@@ -274,7 +353,7 @@ toolRegistry.registerNative(
       label: 'agent_critique'
     })
 
-    const result = await runCritic(
+    const work = runCritic(
       { task, maxIterations },
       {
         budget: budgetForRun(),
@@ -297,8 +376,33 @@ toolRegistry.registerNative(
           )
       }
     )
-
-    settleRunSpend(identityId, result.budget.tokensSpent, result.budget.wallMsSpent)
+    const waited = await waitForStrategyWork({
+      strategy: 'agent_critique',
+      conversationId: ctx.conversationId,
+      signal: ctx.signal,
+      work,
+      onSettled: (value) =>
+        settleRunSpend(identityId, value.budget.tokensSpent, value.budget.wallMsSpent),
+      eventValue: (value) => ({
+        strategy: 'critic',
+        iterations: value.iterations,
+        finalVerdict: value.finalVerdict,
+        finalOutput: value.finalOutput,
+        breached: value.breached,
+        breachNote: value.breachNote
+      })
+    })
+    if (waited.disposition === 'steered') {
+      return {
+        result: JSON.stringify({
+          strategy: 'critic',
+          waitDisposition: 'steered',
+          workContinues: true
+        }),
+        status: 'done'
+      }
+    }
+    const result = waited.value
 
     const summary = {
       strategy: 'critic',
@@ -365,10 +469,37 @@ toolRegistry.registerNative(
       label: `agent_advisor → ${cfg.advisorModel || '(unset)'}`
     })
 
-    const result = await runAdvisor(
+    const work = runAdvisor(
       { question, context, advisorModel: cfg.advisorModel },
       { budget: budgetForRun(), ask: (model, prompt) => oneShot(prompt, model, signal) }
     )
+    const waited = await waitForStrategyWork({
+      strategy: 'agent_advisor',
+      conversationId: ctx.conversationId,
+      signal: ctx.signal,
+      work,
+      onSettled: (value) =>
+        settleRunSpend(identityId, value.budget.tokensSpent, value.budget.wallMsSpent),
+      eventValue: (value) => ({
+        strategy: 'advisor',
+        advisorModel: cfg.advisorModel,
+        configured: value.configured,
+        answer: value.answer,
+        breached: value.breached,
+        breachNote: value.breachNote
+      })
+    })
+    if (waited.disposition === 'steered') {
+      return {
+        result: JSON.stringify({
+          strategy: 'advisor',
+          waitDisposition: 'steered',
+          workContinues: true
+        }),
+        status: 'done'
+      }
+    }
+    const result = waited.value
 
     if (!result.configured) {
       return {
@@ -378,8 +509,6 @@ toolRegistry.registerNative(
         status: 'done'
       }
     }
-
-    settleRunSpend(identityId, result.budget.tokensSpent, result.budget.wallMsSpent)
 
     const summary = {
       strategy: 'advisor',

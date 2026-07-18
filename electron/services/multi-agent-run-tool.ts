@@ -1,16 +1,18 @@
 import { randomUUID } from 'crypto'
-import {
-  AGENT_ROLE_PROMPTS,
-  buildAgentSystemPrompt
-} from './system-prompt-builder'
+import { AGENT_ROLE_PROMPTS, buildAgentSystemPrompt } from './system-prompt-builder'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import type { AuditStatus } from './tool-result-status'
 import {
   forkAgent,
   SubagentAbortError,
+  type AgentRunNotifyEvent,
+  type AgentRunStoreLike,
   type ForkAgentRunner,
+  type ForkAgentDeps,
   type SubagentTypeResolver
 } from './subagent-runner'
+import type { TurnRuntime } from './turn-runtime'
+import { waitForAgentWork } from './agent-wait'
 
 // Single-model multi-agent sub-task primitive. The main assistant fans the
 // active model into role-prompted sub-agents (planner / reader / verifier /
@@ -63,6 +65,8 @@ export interface MultiAgentRunResult {
   results: SubAgentResult[]
   totalElapsedMs: number
   synthesisNotes: string
+  waitDisposition?: 'steered'
+  pendingAgentRunIds?: string[]
 }
 
 export function classifyMultiAgentRunResult(result: MultiAgentRunResult): AuditStatus {
@@ -127,9 +131,7 @@ export function validateMultiAgentArgs(args: unknown): MultiAgentRunArgs {
       )
     }
     const outputFormat =
-      typeof tr.outputFormat === 'string' && tr.outputFormat.trim()
-        ? tr.outputFormat
-        : undefined
+      typeof tr.outputFormat === 'string' && tr.outputFormat.trim() ? tr.outputFormat : undefined
     validated.push({ role: role as SubAgentRole, prompt, context, outputFormat })
   }
 
@@ -201,6 +203,14 @@ export interface ExecuteMultiAgentRunOptions {
   parentCallId?: string
   runner: SubAgentRunner
   clock?: MonotonicClock
+  turnRuntime?: TurnRuntime
+  parentConvId?: string | null
+  identityId?: string | null
+  agentRunStore?: AgentRunStoreLike
+  notify?: (event: AgentRunNotifyEvent) => void
+  consumeSteers?: ForkAgentDeps['consumeSteers']
+  recoverSteers?: ForkAgentDeps['recoverSteers']
+  onSettled?: (result: MultiAgentRunResult) => void
   /**
    * Recursion guard. If a sub-agent attempts to call `multi_agent_run`
    * itself, validation rejects it. This option exists so the executor can be
@@ -259,7 +269,7 @@ export async function executeMultiAgentRun(
     return opts.runner(input.messages, input.modelId, input.signal)
   }
 
-  const promises = args.tasks.map(async (task, idx): Promise<SubAgentResult> => {
+  const runs = args.tasks.map((task, idx) => {
     const callId = `${opts.parentCallId ?? 'multi'}:${idx}:${randomUUID().slice(0, 8)}`
     const taskStart = clock()
 
@@ -272,74 +282,110 @@ export async function executeMultiAgentRun(
         timeoutMs,
         signal: opts.parentSignal,
         label: task.role,
-        modelId: targetModel
+        modelId: targetModel,
+        parentConvId: opts.parentConvId ?? null,
+        identityId: opts.identityId ?? null,
+        turnRuntime: opts.turnRuntime
       },
       {
         runner: forkRunner,
         defaultModel: targetModel,
         loadType: multiAgentTypeLoader,
-        clock
+        clock,
+        agentRunStore: opts.agentRunStore,
+        notify: opts.notify,
+        consumeSteers: opts.consumeSteers,
+        recoverSteers: opts.recoverSteers
       }
     )
 
-    try {
-      const result = await handle.promise
-      const elapsedMs = Math.max(0, clock() - taskStart)
-      const raw = result.rawOutput
-      // R3: reasoning is preserved on ForkAgentResult.rawReasoning when
-      // the runner returned the object form; pass it through so
-      // agent-pipeline can persist it on the Planner / Reviewer row.
-      const reasoning = result.rawReasoning
-      if (detectSubAgentToolUseAttempt(raw)) {
+    const promise = (async (): Promise<SubAgentResult> => {
+      try {
+        const result = await handle.promise
+        const elapsedMs = Math.max(0, clock() - taskStart)
+        const raw = result.rawOutput
+        // R3: reasoning is preserved on ForkAgentResult.rawReasoning when
+        // the runner returned the object form; pass it through so
+        // agent-pipeline can persist it on the Planner / Reviewer row.
+        const reasoning = result.rawReasoning
+        if (detectSubAgentToolUseAttempt(raw)) {
+          return {
+            role: task.role,
+            output: null,
+            error:
+              'sub-agent attempted a tool call; tool use is not permitted inside multi_agent_run',
+            elapsedMs,
+            callId
+          }
+        }
+        return {
+          role: task.role,
+          output: raw,
+          reasoning,
+          elapsedMs,
+          tokensUsedEstimate: approximateTokenCount(raw),
+          callId
+        }
+      } catch (err: unknown) {
+        const elapsedMs = Math.max(0, clock() - taskStart)
+        let friendly: string
+        if (err instanceof SubagentAbortError) {
+          friendly = err.message.includes('timed out') ? err.message : 'cancelled'
+        } else {
+          const errorMessage =
+            err instanceof Error
+              ? err.message || err.name
+              : typeof err === 'string'
+                ? err
+                : String(err)
+          friendly = errorMessage || 'unknown error'
+        }
         return {
           role: task.role,
           output: null,
-          error:
-            'sub-agent attempted a tool call; tool use is not permitted inside multi_agent_run',
+          error: friendly,
           elapsedMs,
           callId
         }
       }
-      return {
-        role: task.role,
-        output: raw,
-        reasoning,
-        elapsedMs,
-        tokensUsedEstimate: approximateTokenCount(raw),
-        callId
-      }
-    } catch (err: unknown) {
-      const elapsedMs = Math.max(0, clock() - taskStart)
-      let friendly: string
-      if (err instanceof SubagentAbortError) {
-        friendly = err.message.includes('timed out') ? err.message : 'cancelled'
-      } else {
-        const errorMessage =
-          err instanceof Error
-            ? err.message || err.name
-            : typeof err === 'string'
-            ? err
-            : String(err)
-        friendly = errorMessage || 'unknown error'
-      }
-      return {
-        role: task.role,
-        output: null,
-        error: friendly,
-        elapsedMs,
-        callId
-      }
-    }
+    })()
+    return { runId: handle.runId, promise }
   })
 
-  const results = await Promise.all(promises)
-  const totalElapsedMs = Math.max(0, clock() - overallStart)
-  const okCount = results.filter((r) => r.error === undefined).length
-  const failed = results.length - okCount
-  const synthesisNotes =
-    failed === 0
-      ? `All ${results.length} sub-agent(s) returned. Synthesise their outputs into a single response.`
-      : `${okCount} of ${results.length} sub-agent(s) returned. The rest errored or timed out; weigh them accordingly.`
+  const completion = Promise.all(runs.map((run) => run.promise)).then((results) => {
+    const totalElapsedMs = Math.max(0, clock() - overallStart)
+    const okCount = results.filter((result) => result.error === undefined).length
+    const failed = results.length - okCount
+    const synthesisNotes =
+      failed === 0
+        ? `All ${results.length} sub-agent(s) returned. Synthesise their outputs into a single response.`
+        : `${okCount} of ${results.length} sub-agent(s) returned. The rest errored or timed out; weigh them accordingly.`
+    return { results, totalElapsedMs, synthesisNotes }
+  })
+  const waited = await waitForAgentWork(completion, opts.turnRuntime, opts.parentSignal)
+  const notifySettled = (result: MultiAgentRunResult): void => {
+    try {
+      opts.onSettled?.(result)
+    } catch (err) {
+      console.error('[multi-agent-run] settlement callback failed:', err)
+    }
+  }
+  if (waited.disposition === 'completed') {
+    notifySettled(waited.value)
+    return waited.value
+  }
 
-  return { results, totalElapsedMs, synthesisNotes }
+  void waited.completion.then(notifySettled).catch((err) => {
+    console.error('[multi-agent-run] background completion failed:', err)
+  })
+  return {
+    results: [],
+    totalElapsedMs: Math.max(0, clock() - overallStart),
+    synthesisNotes:
+      'Root Steering arrived while sub-agents were running. Their existing runs continue in the background; do not start sibling replacements.',
+    waitDisposition: 'steered',
+    pendingAgentRunIds: runs
+      .map((run) => run.runId)
+      .filter((runId) => opts.turnRuntime?.classifyAgentTarget(runId) === 'steerable')
+  }
 }

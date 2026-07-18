@@ -24,6 +24,8 @@ import {
   type SubAgentRunner,
   type SubAgentTask
 } from './multi-agent-run-tool'
+import { TurnRuntimeRegistry } from './turn-runtime'
+import type { FollowUpId } from './turn-control-types'
 
 function makeClockSequence(values: number[]): MonotonicClock {
   let i = 0
@@ -343,6 +345,96 @@ describe('executeMultiAgentRun', () => {
     })
     expect(out.results[0].output).toBe('plain body')
     expect(out.results[0].reasoning).toBeUndefined()
+  })
+
+  it('root Steering releases the wait while the same child runs finish in background', async () => {
+    const registry = new TurnRuntimeRegistry({ createTurn: () => null, settleTurn: () => true })
+    const runtime = registry.register({ conversationId: 'conv-1', correlationId: 'turn-1' })
+    let release!: () => void
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const onSettled = vi.fn()
+    const running = executeMultiAgentRun({
+      args: {
+        tasks: [
+          { role: 'reader', prompt: 'one', context: '' },
+          { role: 'verifier', prompt: 'two', context: '' }
+        ]
+      },
+      defaultModel: 'm',
+      turnRuntime: runtime,
+      consumeSteers: async () => ({ delivered: 0, rejected: 0 }),
+      runner: async () => {
+        await blocked
+        return 'done'
+      },
+      onSettled
+    })
+    await vi.waitFor(() => expect(runtime.listSteerableAgentRunIds()).toHaveLength(2))
+    runtime.enqueueSteer({
+      followUpId: 'root-steer' as FollowUpId,
+      input: [{ type: 'text', text: 'wake root' }],
+      clientUserMessageId: null,
+      targetAgentRunId: null,
+      receivedAt: 1
+    })
+
+    await expect(running).resolves.toMatchObject({
+      results: [],
+      waitDisposition: 'steered',
+      pendingAgentRunIds: expect.arrayContaining(runtime.listSteerableAgentRunIds())
+    })
+    expect(onSettled).not.toHaveBeenCalled()
+    release()
+    await vi.waitFor(() => expect(onSettled).toHaveBeenCalledOnce())
+    expect(onSettled.mock.calls[0][0].results).toHaveLength(2)
+    expect(runtime.listSteerableAgentRunIds()).toEqual([])
+  })
+
+  it('targeted Steering reruns the selected child without starting a sibling', async () => {
+    const registry = new TurnRuntimeRegistry({ createTurn: () => null, settleTurn: () => true })
+    const runtime = registry.register({ conversationId: 'conv-1', correlationId: 'turn-1' })
+    let release!: () => void
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const runner = vi.fn<SubAgentRunner>(async () => {
+      if (runner.mock.calls.length === 1) {
+        await blocked
+        return 'first answer'
+      }
+      return 'steered answer'
+    })
+    const running = executeMultiAgentRun({
+      args: { tasks: [{ role: 'reader', prompt: 'one', context: '' }] },
+      defaultModel: 'm',
+      turnRuntime: runtime,
+      consumeSteers: async (turn, target, messages) => {
+        const accepted = turn.drainSteers(target)
+        for (const item of accepted) {
+          messages.push({ role: 'user', content: String(item.input[0]) })
+        }
+        return { delivered: accepted.length, rejected: 0 }
+      },
+      runner
+    })
+    await vi.waitFor(() => expect(runtime.listSteerableAgentRunIds()).toHaveLength(1))
+    const childId = runtime.listSteerableAgentRunIds()[0]
+    runtime.enqueueSteer({
+      followUpId: 'child-steer' as FollowUpId,
+      input: [{ type: 'text', text: 'change child' }],
+      clientUserMessageId: null,
+      targetAgentRunId: childId,
+      receivedAt: 1
+    })
+    release()
+
+    await expect(running).resolves.toMatchObject({
+      results: [{ output: 'steered answer' }]
+    })
+    expect(runner).toHaveBeenCalledTimes(2)
+    expect(runtime.classifyAgentTarget(childId)).toBe('completed')
   })
 })
 

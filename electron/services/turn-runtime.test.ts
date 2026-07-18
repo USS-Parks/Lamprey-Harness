@@ -109,6 +109,7 @@ describe('TurnRuntimeRegistry', () => {
   it('retains steer order, clones inputs, and drains only the requested target', () => {
     const { registry } = harness()
     const runtime = registry.register({ conversationId: 'c1', correlationId: 'r1' })
+    runtime.registerSteerableAgent('child-1')
     const first = steer('one')
     runtime.enqueueSteer(first)
     first.input[0].text = 'mutated-after-enqueue'
@@ -129,6 +130,8 @@ describe('TurnRuntimeRegistry', () => {
   it('wakes root and target waiters without synthesizing another runtime', async () => {
     const { registry } = harness()
     const runtime = registry.register({ conversationId: 'c1', correlationId: 'r1' })
+    runtime.registerSteerableAgent('child-1')
+    runtime.registerSteerableAgent('child-2')
     const anyWake = runtime.waitForWake()
     const childWake = runtime.waitForWake({ targetAgentRunId: 'child-1' })
     const otherChildWake = runtime.waitForWake({ targetAgentRunId: 'child-2' })
@@ -146,6 +149,20 @@ describe('TurnRuntimeRegistry', () => {
       targetAgentRunId: 'child-2'
     })
     expect(registry.lookupActive('c1')).toBe(runtime)
+  })
+
+  it('classifies active, completed, and unknown child targets without creating siblings', () => {
+    const { registry } = harness()
+    const runtime = registry.register({ conversationId: 'c1', correlationId: 'r1' })
+    runtime.registerSteerableAgent('child-1')
+    expect(runtime.classifyAgentTarget('child-1')).toBe('steerable')
+    expect(runtime.listSteerableAgentRunIds()).toEqual(['child-1'])
+
+    runtime.unregisterSteerableAgent('child-1')
+    expect(runtime.classifyAgentTarget('child-1')).toBe('completed')
+    expect(runtime.classifyAgentTarget('never-spawned')).toBe('unknown')
+    expect(runtime.listSteerableAgentRunIds()).toEqual([])
+    expect(() => runtime.enqueueSteer(steer('late', 'child-1'))).toThrow(/not steerable/)
   })
 
   it('bridges cancellation while keeping the runtime registered until settlement', async () => {

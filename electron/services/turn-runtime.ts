@@ -13,6 +13,9 @@ import {
 
 export type SettledTurnStatus = Exclude<TurnStatus, 'running'>
 export type TurnWakeReason = 'steer' | 'external' | 'aborted' | 'settled'
+export type AgentSteerTargetDisposition = 'steerable' | 'completed' | 'unknown'
+
+const SETTLED_AGENT_TARGET_CAP = 64
 
 export interface PendingSteer {
   followUpId: FollowUpId
@@ -69,6 +72,8 @@ export class TurnRuntime {
 
   #status: TurnStatus = 'running'
   #activeAgentRunId: string | null
+  #steerableAgentRunIds = new Set<string>()
+  #settledAgentRunIds = new Set<string>()
   #steerInbox: PendingSteer[] = []
   #waiters = new Set<WakeWaiter>()
 
@@ -124,9 +129,47 @@ export class TurnRuntime {
     this.#activeAgentRunId = agentRunId
   }
 
+  registerSteerableAgent(agentRunId: string): void {
+    if (this.#status !== 'running') {
+      throw new Error(`turn-runtime: cannot register an agent on a ${this.#status} turn`)
+    }
+    this.#settledAgentRunIds.delete(agentRunId)
+    this.#steerableAgentRunIds.add(agentRunId)
+    this.#activeAgentRunId = agentRunId
+  }
+
+  unregisterSteerableAgent(agentRunId: string): void {
+    if (!this.#steerableAgentRunIds.delete(agentRunId)) return
+    this.#settledAgentRunIds.add(agentRunId)
+    while (this.#settledAgentRunIds.size > SETTLED_AGENT_TARGET_CAP) {
+      const oldest = this.#settledAgentRunIds.values().next().value
+      if (oldest === undefined) break
+      this.#settledAgentRunIds.delete(oldest)
+    }
+    if (this.#activeAgentRunId === agentRunId) {
+      this.#activeAgentRunId = [...this.#steerableAgentRunIds].at(-1) ?? null
+    }
+  }
+
+  classifyAgentTarget(agentRunId: string): AgentSteerTargetDisposition {
+    if (this.#steerableAgentRunIds.has(agentRunId)) return 'steerable'
+    if (this.#settledAgentRunIds.has(agentRunId)) return 'completed'
+    return 'unknown'
+  }
+
+  listSteerableAgentRunIds(): string[] {
+    return [...this.#steerableAgentRunIds]
+  }
+
   enqueueSteer(steer: PendingSteer): void {
     if (this.#status !== 'running') {
       throw new Error(`turn-runtime: cannot steer a ${this.#status} turn`)
+    }
+    if (
+      steer.targetAgentRunId !== null &&
+      this.classifyAgentTarget(steer.targetAgentRunId) !== 'steerable'
+    ) {
+      throw new Error(`turn-runtime: agent target ${steer.targetAgentRunId} is not steerable`)
     }
     const retained: PendingSteer = {
       ...steer,

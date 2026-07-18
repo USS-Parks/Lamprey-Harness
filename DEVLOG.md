@@ -1,3 +1,36 @@
+## Codex July 2026 Parity — Prompt ST-6 Agent-wait Steering — 2026-07-17
+
+**Files changed:** `electron/services/agent-wait.ts`,
+`electron/services/agent-wait.test.ts`,
+`electron/services/agent-steering-wiring.test.ts`,
+`electron/services/agent-run-notify.ts`,
+`electron/services/steer-delivery.ts`, `electron/services/steer-transcript.ts`,
+`electron/services/turn-runtime.ts`, `electron/ipc/turn-control.ts`,
+`electron/services/subagent-runner.ts`, `electron/services/multi-agent-run-tool.ts`,
+`electron/services/multi-agent-run-tool-pack.ts`,
+`electron/services/orchestration-tool-pack.ts`, `electron/ipc/tasks.ts`,
+supporting tests/preload/event wiring,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused wait/target/subagent/orchestration/Steering regressions ✓ (207 tests, 0 skipped)
+- Electron ABI-148 agent-run/turn-ledger persistence suites ✓ (38 tests, 0 skipped)
+- `verify:proof -- --no-tests` ✓ (lint, tsc node/web, bundle and renderer smoke)
+
+**Notes:** Root-directed Steering now releases only the parent wait while the already-created
+subagent or orchestration strategy continues; it does not abort the work. Child-directed
+Steering is validated against the active turn's bounded steerable-run set, appended at the
+selected child's next provider boundary, and re-dispatched through that same `forkAgent`
+handle and run ID. A completed child becomes non-steerable atomically; completed and unknown
+targets reject visibly before persistence and never synthesize a sibling. Multi-agent runs
+retain their agent-run rows, running/done notifications, identity link, spend receipt, parent
+abort, live-handle stop, and synthetic audit rows even when root Steering releases the wait.
+Fanout, critique, and advisor work likewise continues under its existing budget, settles its
+receipt, and emits a bounded async completion event after a root wake.
+
+**Commit:** see git log (ST-6).
+
 ## Codex July 2026 Parity — Prompt ST-5 Same-turn Steering delivery — 2026-07-17
 
 **Files changed:** `electron/services/steer-transcript.ts`,

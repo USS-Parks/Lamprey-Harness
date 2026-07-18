@@ -229,6 +229,7 @@ describe('ST-5 Steering transcript input', () => {
 
   it('recovers every pending target on provider failure and re-retains on persistence failure', () => {
     const { runtime } = runtimeHarness()
+    runtime.registerSteerableAgent('child-1')
     runtime.enqueueSteer(steer('root'))
     runtime.enqueueSteer(steer('child', undefined, 'child-1'))
     const recovered: string[] = []

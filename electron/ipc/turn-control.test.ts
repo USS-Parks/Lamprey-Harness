@@ -239,6 +239,33 @@ describe('ST-4 typed Steering and Queue actions', () => {
     expect(store.createCalls).toBe(0)
   })
 
+  it('accepts only the selected live child and rejects completed or unknown targets', () => {
+    const { actions, runtimes, store } = makeHarness()
+    const runtime = runtimes.register({
+      conversationId: 'conversation-1',
+      correlationId: 'correlation-1',
+      turnId: 'turn-1' as TurnId
+    })
+    runtime.registerSteerableAgent('child-live')
+
+    expect(actions.steer(submission('steer', { targetAgentRunId: 'child-live' }))).toMatchObject({
+      success: true,
+      data: { followUp: { targetAgentRunId: 'child-live' } }
+    })
+    expect(runtime.pendingSteers).toHaveLength(1)
+    expect(runtime.listSteerableAgentRunIds()).toEqual(['child-live'])
+
+    runtime.unregisterSteerableAgent('child-live')
+    expect(actions.steer(submission('steer', { targetAgentRunId: 'child-live' }))).toMatchObject({
+      success: false,
+      rejection: { reason: 'targetNotSteerable' }
+    })
+    expect(actions.steer(submission('steer', { targetAgentRunId: 'never-spawned' }))).toMatchObject(
+      { success: false, rejection: { reason: 'targetNotFound' } }
+    )
+    expect(store.createCalls).toBe(1)
+  })
+
   it('deduplicates an exact client retry even after the target turn settles', () => {
     const { actions, runtimes, store } = makeHarness()
     const runtime = runtimes.register({

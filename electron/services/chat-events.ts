@@ -50,6 +50,7 @@ export interface ChatUserMessagePayload {
   turnId: string
   followUpId: string
   clientUserMessageId: string | null
+  targetAgentRunId: string | null
   message: unknown
   inputMetadata: SafeTurnInputMetadata[]
 }
@@ -285,9 +286,6 @@ function getMainWindow(): BrowserWindow | null {
   return windows[0] ?? null
 }
 
-export function emitChatEvent<K extends ChatEventName>(
-  channel: K,
-  payload: ChatEventMap[K]
-): void {
+export function emitChatEvent<K extends ChatEventName>(channel: K, payload: ChatEventMap[K]): void {
   getMainWindow()?.webContents.send(channel, payload)
 }

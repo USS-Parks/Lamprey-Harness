@@ -333,10 +333,10 @@ CDP observation service, and event/monitor automation triggers.
   ghost-reply suites; prompt-byte guard; `verify:proof -- --no-tests`; tsc ×2.
 
 #### **ST-6 — Wake and target waiting subagents**
-- [ ] Thread the turn wake signal through current agent-run, strategy, and multi-agent wait
+- [x] Thread the turn wake signal through current agent-run, strategy, and multi-agent wait
       points so root Steering interrupts a wait and child Steering targets the selected
       steerable run. Preserve identity, grants, budget, kill, and receipt enforcement.
-- [ ] A child that has already completed rejects; no sibling task is synthesized.
+- [x] A child that has already completed rejects; no sibling task is synthesized.
 - Files: turn runtime, `subagent-runner.ts`, agent strategy/wait services, tests.
 - Verify: wait-interruption, target-attribution, completed-child rejection, budget/kill
   regression tests; tsc ×2.

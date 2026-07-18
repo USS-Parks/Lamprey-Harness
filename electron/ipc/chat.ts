@@ -14,7 +14,6 @@ import {
 import { boundedJsonPreview, recordEvent } from '../services/event-log'
 import { validateChatSendRequest } from './chat-validation'
 import * as convStore from '../services/conversation-store'
-import { getDb } from '../services/database'
 import {
   isPlanModeActive,
   setPlanModeActive,
@@ -88,12 +87,11 @@ import {
   type TurnRuntime
 } from '../services/turn-runtime'
 import type { TurnKind } from '../services/turn-control-types'
-import { TurnControlStore } from '../services/turn-control-store'
 import {
-  deliverRootSteersAtBoundary,
-  recoverUndeliveredSteers,
+  consumeSteersAtBoundary,
+  recoverPendingRuntimeSteers,
   type SteerBoundaryResult
-} from '../services/steer-transcript'
+} from '../services/steer-delivery'
 // LP-1 (Loop Phase) — wire the headless turn runner into the loop runner.
 import { setLoopTurnRunner } from '../services/loop-runner'
 import type {
@@ -224,69 +222,12 @@ function settleTurnRuntimeSafely(
   }
 }
 
-let steerDeliveryStore: TurnControlStore | null = null
-
-function getSteerDeliveryStore(): TurnControlStore {
-  steerDeliveryStore ??= new TurnControlStore()
-  return steerDeliveryStore
-}
-
 async function consumeRootSteersAtBoundary(
   runtime: TurnRuntime,
   messages: ChatCompletionMessageParam[],
   model: string
 ): Promise<SteerBoundaryResult> {
-  const store = getSteerDeliveryStore()
-  return deliverRootSteersAtBoundary(runtime, messages, {
-    commit: (input) => {
-      const deliveredAt = Date.now()
-      let message!: ReturnType<typeof convStore.saveMessage>
-      let followUp!: ReturnType<TurnControlStore['transitionFollowUp']>
-      const commit = getDb().transaction(() => {
-        message = convStore.saveMessage({
-          id: randomUUID(),
-          conversationId: runtime.conversationId,
-          role: 'user',
-          content: input.displayContent,
-          model
-        })
-        followUp = store.transitionFollowUp(input.steer.followUpId, 'delivered', deliveredAt, {
-          turnId: runtime.turnId
-        })
-      })
-      commit()
-      return { message, followUp }
-    },
-    reject: (steer, reason) => {
-      store.transitionFollowUp(steer.followUpId, 'rejected', Date.now(), {
-        rejectionReason: 'invalidInput',
-        rejectionMessage: reason
-      })
-    },
-    emit: (input) => {
-      emitChatEvent('chat:user-message', {
-        conversationId: runtime.conversationId,
-        turnId: runtime.turnId,
-        followUpId: input.steer.followUpId,
-        clientUserMessageId: input.steer.clientUserMessageId,
-        message: input.message,
-        inputMetadata: input.inputMetadata
-      })
-    }
-  })
-}
-
-function recoverPendingRuntimeSteers(runtime: TurnRuntime, reason: string): number {
-  const store = getSteerDeliveryStore()
-  return recoverUndeliveredSteers(
-    runtime,
-    (steer, recoveryReason) => {
-      store.transitionFollowUp(steer.followUpId, 'recovered', Date.now(), {
-        recoveryReason
-      })
-    },
-    reason
-  )
+  return consumeSteersAtBoundary(runtime, messages, model, null)
 }
 
 export function registerChatHandlers(): void {

@@ -61,10 +61,10 @@ describe('ST-5 same-turn Steering boundary wiring', () => {
   })
 
   it('emits a bounded user-message event with metadata but no URL, bytes, or path', () => {
-    const chat = read('electron/ipc/chat.ts')
-    const emit = chat.slice(
-      chat.indexOf("emitChatEvent('chat:user-message'"),
-      chat.indexOf("emitChatEvent('chat:user-message'") + 700
+    const delivery = read('electron/services/steer-delivery.ts')
+    const emit = delivery.slice(
+      delivery.indexOf("emitChatEvent('chat:user-message'"),
+      delivery.indexOf("emitChatEvent('chat:user-message'") + 700
     )
     expect(emit).toContain('clientUserMessageId: input.steer.clientUserMessageId')
     expect(emit).toContain('inputMetadata: input.inputMetadata')

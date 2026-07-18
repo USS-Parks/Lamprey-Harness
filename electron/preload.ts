@@ -105,6 +105,7 @@ const api = {
         turnId: string
         followUpId: string
         clientUserMessageId: string | null
+        targetAgentRunId: string | null
         message: unknown
         inputMetadata: unknown[]
       }) => void

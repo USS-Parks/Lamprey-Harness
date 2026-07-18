@@ -184,6 +184,21 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
           expectedTurnId: submission.expectedTurnId
         })
       }
+      if (submission.targetAgentRunId) {
+        const disposition = runtime.classifyAgentTarget(submission.targetAgentRunId)
+        if (disposition === 'unknown') {
+          return failed({
+            reason: 'targetNotFound',
+            message: `Agent target ${submission.targetAgentRunId} is not part of the active turn.`
+          })
+        }
+        if (disposition !== 'steerable') {
+          return failed({
+            reason: 'targetNotSteerable',
+            message: `Agent target ${submission.targetAgentRunId} has already completed.`
+          })
+        }
+      }
     }
 
     try {
@@ -205,14 +220,28 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
         try {
           runtime.enqueueSteer(toPendingSteer(created.record, deps.now()))
         } catch (err) {
+          const targetDisposition = submission.targetAgentRunId
+            ? runtime.classifyAgentTarget(submission.targetAgentRunId)
+            : null
+          const rejectionReason =
+            targetDisposition === 'unknown'
+              ? 'targetNotFound'
+              : targetDisposition === 'completed'
+                ? 'targetNotSteerable'
+                : 'turnNotRunning'
           deps.store.transitionFollowUp(created.record.id, 'rejected', deps.now(), {
-            rejectionReason: 'turnNotRunning',
+            rejectionReason,
             rejectionMessage:
               err instanceof Error ? err.message : 'The active turn settled before delivery.'
           })
           return failed({
-            reason: 'turnNotRunning',
-            message: 'The active turn settled before Steering could be retained.',
+            reason: rejectionReason,
+            message:
+              rejectionReason === 'targetNotSteerable'
+                ? 'The selected agent completed before Steering could be retained.'
+                : rejectionReason === 'targetNotFound'
+                  ? 'The selected agent is not part of the active turn.'
+                  : 'The active turn settled before Steering could be retained.',
             expectedTurnId: submission.expectedTurnId
           })
         }

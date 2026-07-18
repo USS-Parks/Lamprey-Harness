@@ -1,6 +1,10 @@
 import { chatOnce } from './providers/registry'
 import { toolRegistry } from './tool-registry'
 import { governFork, settleRunSpend } from './orchestration-governance'
+import { realAgentRunStore } from './agent-run-store'
+import { broadcastAgentRunEvent } from './agent-run-notify'
+import { turnRuntimeRegistry } from './turn-runtime'
+import { consumeSteersAtBoundary, recoverTargetSteers } from './steer-delivery'
 import {
   classifyMultiAgentRunResult,
   executeMultiAgentRun,
@@ -90,11 +94,76 @@ toolRegistry.registerNative(
       )
     }
     const parentCallId = ctx.callId
+    const runtime = ctx.conversationId ? turnRuntimeRegistry.lookupActive(ctx.conversationId) : null
+    let identityId: string | null = null
+    try {
+      identityId = governFork({
+        conversationId: ctx.conversationId ?? null,
+        scopeKind: 'conversation',
+        agentType: MULTI_AGENT_TOOL_ID,
+        requestedTools: [],
+        floor: new Set<string>(),
+        label: `multi_agent_run (${args.tasks.length} sub-agents)`
+      }).identityId
+    } catch (err) {
+      console.error('[multi-agent-run] orchestration governance failed (continuing):', err)
+    }
+
+    const recordSettlement = (settled: MultiAgentRunResult): void => {
+      // Persist a synthetic audit row per sub-agent, linked back to the
+      // multi_agent_run call that spawned it. This also runs when root
+      // Steering releases the parent wait and the children finish later.
+      if (parentCallId) {
+        for (let i = 0; i < settled.results.length; i++) {
+          const child = settled.results[i]
+          const startedAt = Date.now() - child.elapsedMs
+          toolRegistry.recordCallStart(
+            {
+              id: child.callId,
+              toolId: `${MULTI_AGENT_TOOL_ID}:${child.role}`,
+              name: `${MULTI_AGENT_TOOL_ID}:${child.role}`,
+              conversationId: ctx.conversationId,
+              args: { role: child.role, taskIndex: i },
+              startedAt,
+              status: 'running',
+              parentCallId
+            },
+            ctx.correlationId
+          )
+          const auditStatus = child.error ? 'error' : 'done'
+          toolRegistry.recordCallEnd(child.callId, {
+            status: auditStatus,
+            result: auditStatus === 'error' ? undefined : (child.output ?? undefined),
+            error: child.error,
+            finishedAt: startedAt + child.elapsedMs,
+            parentCallId,
+            correlationId: ctx.correlationId
+          })
+        }
+      }
+      const tokens = settled.results.reduce((total, child) => {
+        return total + (child.tokensUsedEstimate ?? 0)
+      }, 0)
+      const wallMs = settled.results.reduce((total, child) => total + child.elapsedMs, 0)
+      if (identityId) {
+        settleRunSpend(identityId, tokens, wallMs)
+      }
+    }
+
     const result: MultiAgentRunResult = await executeMultiAgentRun({
       args,
       defaultModel: ctx.model,
       parentSignal: ctx.signal,
       parentCallId,
+      parentConvId: ctx.conversationId ?? null,
+      turnRuntime: runtime ?? undefined,
+      identityId,
+      agentRunStore: realAgentRunStore,
+      notify: broadcastAgentRunEvent,
+      consumeSteers: (turn, targetAgentRunId, messages, modelId) =>
+        consumeSteersAtBoundary(turn, messages, modelId, targetAgentRunId),
+      recoverSteers: recoverTargetSteers,
+      onSettled: recordSettlement,
       // R2: chatOnce returns {content, reasoning?}. R3 will widen the
       // SubAgentRunner contract to propagate reasoning through this seam
       // into agent-pipeline. For now this in-context multi_agent_run path
@@ -103,64 +172,6 @@ toolRegistry.registerNative(
       runner: (messages, modelId, signal) =>
         chatOnce(messages, modelId, signal).then((r) => r.content)
     })
-
-    // Persist a synthetic audit row per sub-agent, linked back to the
-    // multi_agent_run call that spawned it. Sub-agents are not OpenAI
-    // tool_calls, so the normal chat loop never sees them — these rows are
-    // the only way they reach the audit log.
-    if (parentCallId) {
-      for (let i = 0; i < result.results.length; i++) {
-        const r = result.results[i]
-        const startedAt = Date.now() - r.elapsedMs
-        toolRegistry.recordCallStart(
-          {
-            id: r.callId,
-            toolId: `${MULTI_AGENT_TOOL_ID}:${r.role}`,
-            name: `${MULTI_AGENT_TOOL_ID}:${r.role}`,
-            conversationId: ctx.conversationId,
-            args: { role: r.role, taskIndex: i },
-            startedAt,
-            status: 'running',
-            parentCallId
-          },
-          ctx.correlationId
-        )
-        const auditStatus = r.error ? 'error' : 'done'
-        toolRegistry.recordCallEnd(r.callId, {
-          status: auditStatus,
-          result: auditStatus === 'error' ? undefined : (r.output ?? undefined),
-          error: r.error,
-          finishedAt: startedAt + r.elapsedMs,
-          parentCallId,
-          correlationId: ctx.correlationId
-        })
-      }
-    }
-
-    // AO-5 — orchestration governance side-channel. When the master toggle is
-    // OFF, governFork returns { identityId: null } and writes NOTHING, so the
-    // envelope + everything above is byte-identical to the pre-AO-5 path. When
-    // ON, the tool-less fan-out gets an auto-granted (read-only floor, zero
-    // pending) identity and its total estimated spend is receipted onto it.
-    // The returned envelope is UNCHANGED either way — the card reads its receipt
-    // line from the per-sub-agent fields already present in `result`.
-    try {
-      const { identityId } = governFork({
-        conversationId: ctx.conversationId ?? null,
-        scopeKind: 'conversation',
-        agentType: MULTI_AGENT_TOOL_ID,
-        requestedTools: [], // sub-agents are tool-less by contract
-        floor: new Set<string>(),
-        label: `multi_agent_run (${result.results.length} sub-agents)`
-      })
-      if (identityId) {
-        const tokens = result.results.reduce((n, r) => n + (r.tokensUsedEstimate ?? 0), 0)
-        const wallMs = result.results.reduce((n, r) => n + r.elapsedMs, 0)
-        settleRunSpend(identityId, tokens, wallMs)
-      }
-    } catch (err) {
-      console.error('[multi-agent-run] orchestration governance failed (continuing):', err)
-    }
 
     return {
       result: JSON.stringify(result, null, 2),

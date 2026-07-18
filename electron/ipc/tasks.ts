@@ -1,7 +1,7 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain } from 'electron'
 import * as store from '../services/agent-run-store'
-import { getLiveHandle, type AgentRunNotifyEvent } from '../services/subagent-runner'
-import { enqueueAgentRunNotification } from '../services/async-event-bridge'
+import { getLiveHandle } from '../services/subagent-runner'
+import { broadcastAgentRunEvent } from '../services/agent-run-notify'
 import { spawnTask } from '../services/spawn-task'
 import { getActiveWorkspace } from '../services/workspace-state'
 
@@ -17,16 +17,7 @@ import { getActiveWorkspace } from '../services/workspace-state'
 // DB and surface in the UI. The chat dispatcher (Track 2 wires this) is the
 // canonical caller.
 
-export function broadcastAgentRunEvent(event: AgentRunNotifyEvent): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('agent:run:notify', event)
-  }
-  try {
-    enqueueAgentRunNotification(event)
-  } catch (err) {
-    console.error('[tasks] async agent notification enqueue failed:', err)
-  }
-}
+export { broadcastAgentRunEvent } from '../services/agent-run-notify'
 
 export function registerTasksHandlers(): void {
   ipcMain.handle('tasks:spawn', async (_e, payload) => {

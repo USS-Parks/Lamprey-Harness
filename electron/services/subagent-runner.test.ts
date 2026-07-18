@@ -34,6 +34,8 @@ import { beforeEach } from 'vitest'
 beforeEach(() => __resetLiveHandlesForTests())
 import { BUILT_IN_SUBAGENT_TYPES, type SubagentTypeDef } from './subagent-types'
 import type { WorktreeManager, FinalizeResult, WorktreeContext } from './worktree-runner'
+import { TurnRuntimeRegistry } from './turn-runtime'
+import type { FollowUpId } from './turn-control-types'
 
 // -- Helpers --------------------------------------------------------------
 
@@ -190,7 +192,7 @@ describe('forkAgent — happy paths', () => {
     expect(seenInput!.modelId).toBe('test-model')
     // Explore's allowedTools sorted alphabetically.
     expect(seenInput!.allowedTools).toEqual(
-      [...BUILT_IN_SUBAGENT_TYPES.Explore.allowedTools as string[]].sort()
+      [...(BUILT_IN_SUBAGENT_TYPES.Explore.allowedTools as string[])].sort()
     )
   })
 
@@ -358,6 +360,104 @@ describe('forkAgent — error paths', () => {
   })
 })
 
+describe('forkAgent — ST-6 targeted Steering', () => {
+  it('continues the same child run after targeted input reaches its safe model boundary', async () => {
+    const registry = new TurnRuntimeRegistry({ createTurn: () => null, settleTurn: () => true })
+    const runtime = registry.register({ conversationId: 'conv-1', correlationId: 'turn-1' })
+    let releaseFirst!: () => void
+    const firstBlocked = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const runner = vi.fn<ForkAgentRunner>(async (input) => {
+      if (runner.mock.calls.length === 1) {
+        await firstBlocked
+        return 'first answer'
+      }
+      expect(input.runId).toBe('child-1')
+      expect(input.messages.map((message) => message.role)).toEqual([
+        'system',
+        'user',
+        'assistant',
+        'user'
+      ])
+      return 'revised for Steering'
+    })
+    const handle = forkAgent(
+      { prompt: 'initial task', agentType: 'Explore', turnRuntime: runtime },
+      makeDeps({
+        runner,
+        loadType: builtinResolver(),
+        genId: () => 'child-1',
+        consumeSteers: async (turn, target, messages) => {
+          const accepted = turn.drainSteers(target)
+          for (const item of accepted) {
+            const first = item.input[0]
+            messages.push({
+              role: 'user',
+              content: first.type === 'text' ? first.text : `[${first.type}]`
+            })
+          }
+          return { delivered: accepted.length, rejected: 0 }
+        }
+      })
+    )
+    expect(runtime.classifyAgentTarget(handle.runId)).toBe('steerable')
+    runtime.enqueueSteer({
+      followUpId: 'follow-up-1' as FollowUpId,
+      input: [{ type: 'text', text: 'change direction' }],
+      clientUserMessageId: null,
+      targetAgentRunId: handle.runId,
+      receivedAt: 1
+    })
+    releaseFirst()
+
+    await expect(handle.promise).resolves.toMatchObject({
+      runId: 'child-1',
+      rawOutput: 'revised for Steering'
+    })
+    expect(runner).toHaveBeenCalledTimes(2)
+    expect(runtime.classifyAgentTarget('child-1')).toBe('completed')
+    expect(runtime.listSteerableAgentRunIds()).toEqual([])
+  })
+
+  it('recovers accepted target input when the selected child fails', async () => {
+    const registry = new TurnRuntimeRegistry({ createTurn: () => null, settleTurn: () => true })
+    const runtime = registry.register({ conversationId: 'conv-1', correlationId: 'turn-1' })
+    let fail!: () => void
+    const blocked = new Promise<void>((_resolve, reject) => {
+      fail = () => reject(new Error('provider failed'))
+    })
+    const recovered: string[] = []
+    const handle = forkAgent(
+      { prompt: 'initial task', agentType: 'Explore', turnRuntime: runtime },
+      makeDeps({
+        runner: async () => {
+          await blocked
+          return 'unreachable'
+        },
+        loadType: builtinResolver(),
+        genId: () => 'child-1',
+        consumeSteers: async () => ({ delivered: 0, rejected: 0 }),
+        recoverSteers: (turn, target) => {
+          recovered.push(...turn.drainSteers(target).map((item) => item.followUpId))
+        }
+      })
+    )
+    runtime.enqueueSteer({
+      followUpId: 'follow-up-1' as FollowUpId,
+      input: [{ type: 'text', text: 'new direction' }],
+      clientUserMessageId: null,
+      targetAgentRunId: handle.runId,
+      receivedAt: 1
+    })
+    fail()
+
+    await expect(handle.promise).rejects.toThrow('provider failed')
+    expect(recovered).toEqual(['follow-up-1'])
+    expect(runtime.classifyAgentTarget('child-1')).toBe('completed')
+  })
+})
+
 // -- forkAgent — A2: background lifecycle + store + notify ---------------
 
 function makeMemStore(): { store: AgentRunStoreLike; inserts: unknown[]; finishes: unknown[] } {
@@ -519,7 +619,12 @@ describe('forkAgent — A2 background lifecycle (store + notify + live-handle)',
     try {
       const handle = forkAgent(
         { prompt: 'x', agentType: 'Explore' },
-        makeDeps({ runner, loadType: builtinResolver(), agentRunStore: throwingStore, notify: throwingNotify })
+        makeDeps({
+          runner,
+          loadType: builtinResolver(),
+          agentRunStore: throwingStore,
+          notify: throwingNotify
+        })
       )
       const result = await handle.promise
       expect(result.output).toBe('ok')
@@ -644,9 +749,18 @@ describe('forkAgent — A3 worktree isolation', () => {
     const runner: ForkAgentRunner = async () => 'ok'
     const { manager, createCalls } = makeStubWorktreeManager()
     const handles = [
-      forkAgent({ prompt: '1', agentType: 'Explore', isolation: 'worktree' }, makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })),
-      forkAgent({ prompt: '2', agentType: 'Explore', isolation: 'worktree' }, makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })),
-      forkAgent({ prompt: '3', agentType: 'Explore', isolation: 'worktree' }, makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager }))
+      forkAgent(
+        { prompt: '1', agentType: 'Explore', isolation: 'worktree' },
+        makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })
+      ),
+      forkAgent(
+        { prompt: '2', agentType: 'Explore', isolation: 'worktree' },
+        makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })
+      ),
+      forkAgent(
+        { prompt: '3', agentType: 'Explore', isolation: 'worktree' },
+        makeDeps({ runner, loadType: builtinResolver(), worktreeManager: manager })
+      )
     ]
     await Promise.all(handles.map((h) => h.promise))
     expect(new Set(createCalls).size).toBe(3)

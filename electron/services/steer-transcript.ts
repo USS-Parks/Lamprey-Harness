@@ -148,14 +148,15 @@ export async function prepareSteerInput(
  * Steer accepted during that load must join this same boundary rather than
  * missing the next dispatch.
  */
-export async function deliverRootSteersAtBoundary(
+export async function deliverSteersAtBoundary(
   runtime: TurnRuntime,
   messages: ChatCompletionMessageParam[],
-  deps: SteerDeliveryDependencies
+  deps: SteerDeliveryDependencies,
+  targetAgentRunId: string | null
 ): Promise<SteerBoundaryResult> {
   const result: SteerBoundaryResult = { delivered: 0, rejected: 0 }
   while (runtime.status === 'running') {
-    const batch = runtime.drainSteers(null)
+    const batch = runtime.drainSteers(targetAgentRunId)
     if (batch.length === 0) break
     for (let index = 0; index < batch.length; index += 1) {
       const steer = batch[index]
@@ -198,6 +199,14 @@ export async function deliverRootSteersAtBoundary(
     }
   }
   return result
+}
+
+export function deliverRootSteersAtBoundary(
+  runtime: TurnRuntime,
+  messages: ChatCompletionMessageParam[],
+  deps: SteerDeliveryDependencies
+): Promise<SteerBoundaryResult> {
+  return deliverSteersAtBoundary(runtime, messages, deps, null)
 }
 
 export function recoverUndeliveredSteers(

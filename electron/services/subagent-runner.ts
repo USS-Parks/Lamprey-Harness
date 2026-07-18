@@ -7,6 +7,7 @@ import {
   type SubagentTypeDef
 } from './subagent-types'
 import type { WorktreeManager, WorktreeContext } from './worktree-runner'
+import type { TurnRuntime } from './turn-runtime'
 
 // Subagent fork primitive. The dispatch loop and workflow runner both call
 // forkAgent to spawn a single subagent with a curated tool subset, an optional
@@ -139,6 +140,15 @@ export interface ForkAgentDeps {
   notify?: (event: AgentRunNotifyEvent) => void
   /** A3: provider for isolated worktrees per run when opts.isolation === 'worktree'. */
   worktreeManager?: WorktreeManager
+  /** ST-6: append target-directed Steering at a child model boundary. */
+  consumeSteers?: (
+    runtime: TurnRuntime,
+    targetAgentRunId: string,
+    messages: ChatCompletionMessageParam[],
+    modelId: string
+  ) => Promise<{ delivered: number; rejected: number }>
+  /** ST-6: settle accepted target input if the child fails before delivery. */
+  recoverSteers?: (runtime: TurnRuntime, targetAgentRunId: string, reason: string) => void
 }
 
 export interface ForkAgentOptions {
@@ -171,6 +181,8 @@ export interface ForkAgentOptions {
   /** AO-5 — orchestration identity this fork runs under. Threaded to the
    *  agent_runs row so revoke/kill can find it. NULL when orchestration is off. */
   identityId?: string | null
+  /** ST-6: owning ordinary turn. Present only for in-turn steerable children. */
+  turnRuntime?: TurnRuntime
 }
 
 export interface ForkAgentResult<T = string | Record<string, unknown>> {
@@ -540,8 +552,30 @@ export function forkAgent<T = string | Record<string, unknown>>(
     }, timeoutMs)
 
     let worktreeCtx: WorktreeContext | undefined
+    const steeringRuntime = opts.turnRuntime && deps.consumeSteers ? opts.turnRuntime : null
+    let steeringTargetRegistered = false
+
+    const closeSteeringTarget = (recoveryReason?: string): void => {
+      if (!steeringRuntime || !steeringTargetRegistered) return
+      if (
+        recoveryReason &&
+        steeringRuntime.pendingSteers.some((steer) => steer.targetAgentRunId === runId)
+      ) {
+        try {
+          deps.recoverSteers?.(steeringRuntime, runId, recoveryReason)
+        } catch (err) {
+          console.error('[subagent-runner] target Steer recovery failed:', err)
+        }
+      }
+      steeringRuntime.unregisterSteerableAgent(runId)
+      steeringTargetRegistered = false
+    }
 
     try {
+      if (steeringRuntime) {
+        steeringRuntime.registerSteerableAgent(runId)
+        steeringTargetRegistered = true
+      }
       // A3: create the isolated worktree before the runner is called so the
       // runner's tools can scope to it. Creation lives INSIDE the main try
       // so failure routes through the standard finishRun(error)/notify(error)
@@ -565,6 +599,39 @@ export function forkAgent<T = string | Record<string, unknown>>(
         runId,
         worktreePath: worktreeCtx?.path
       }
+      const runProviderPass = async (
+        initialMessages: ChatCompletionMessageParam[]
+      ): Promise<{
+        raw: string
+        rawReasoning?: string
+        messages: ChatCompletionMessageParam[]
+      }> => {
+        let currentMessages = initialMessages
+        while (true) {
+          const normalised = normalizeForkRunnerOutput(
+            await deps.runner({ ...runnerInput, messages: currentMessages })
+          )
+          if (
+            !steeringRuntime ||
+            !steeringRuntime.pendingSteers.some((steer) => steer.targetAgentRunId === runId)
+          ) {
+            return { ...normalised, messages: currentMessages }
+          }
+          currentMessages = [
+            ...currentMessages,
+            { role: 'assistant' as const, content: normalised.raw }
+          ]
+          const delivered = await deps.consumeSteers!(
+            steeringRuntime,
+            runId,
+            currentMessages,
+            runnerInput.modelId
+          )
+          if (delivered.delivered === 0) {
+            return { ...normalised, messages: currentMessages }
+          }
+        }
+      }
       // B5: schema-mode retry loop. When the model returns malformed JSON or
       // a schema-non-conforming object, we re-prompt up to SUBAGENT_SCHEMA_RETRY_MAX
       // times with the validation error appended; on exhaustion we surface
@@ -581,10 +648,10 @@ export function forkAgent<T = string | Record<string, unknown>>(
         let currentMessages: ChatCompletionMessageParam[] = runnerInput.messages
         while (true) {
           attempt++
-          const runResult = await deps.runner({ ...runnerInput, messages: currentMessages })
-          const normalised = normalizeForkRunnerOutput(runResult)
+          const normalised = await runProviderPass(currentMessages)
           raw = normalised.raw
           rawReasoning = normalised.rawReasoning
+          currentMessages = normalised.messages
           const payload = extractJsonPayload(raw)
           try {
             const parsed = JSON.parse(payload) as unknown
@@ -618,12 +685,14 @@ export function forkAgent<T = string | Record<string, unknown>>(
           }
         }
       } else {
-        const runResult = await deps.runner(runnerInput)
-        const normalised = normalizeForkRunnerOutput(runResult)
+        const normalised = await runProviderPass(runnerInput.messages)
         raw = normalised.raw
         rawReasoning = normalised.rawReasoning
         output = raw
       }
+      // No await is permitted between the final inbox check above and this
+      // unregister. A completed child becomes non-steerable atomically.
+      closeSteeringTarget()
       const elapsedMs = Math.max(0, clock() - startedAt)
       const finishedAt = clock()
 
@@ -684,6 +753,7 @@ export function forkAgent<T = string | Record<string, unknown>>(
         tokensUsedEstimate: approxTokens(raw)
       }
     } catch (err) {
+      closeSteeringTarget('child failed before accepted Steering could be delivered')
       let finalErr: Error
       if (controller.signal.aborted && !(err instanceof SubagentSchemaError)) {
         finalErr = new SubagentAbortError(timedOut ? `timed out after ${timeoutMs} ms` : undefined)
@@ -745,6 +815,7 @@ export function forkAgent<T = string | Record<string, unknown>>(
       }
       throw finalErr
     } finally {
+      closeSteeringTarget('child settled before accepted Steering could be delivered')
       clearTimeout(timer)
       if (opts.signal) opts.signal.removeEventListener('abort', onParentAbort)
     }

@@ -63,6 +63,11 @@ interface DeleteFollowUpRequest {
   followUpId: string
 }
 
+interface InterruptTurnRequest {
+  conversationId: string
+  expectedTurnId: string
+}
+
 const api = {
   chat: {
     send: (request: {
@@ -230,6 +235,7 @@ const api = {
   // E3 — cross-session search + archive surface. Separate namespace so
   // the legacy `conversation.*` calls stay untouched.
   turn: {
+    interrupt: (request: InterruptTurnRequest) => ipcRenderer.invoke('turn:interrupt', request),
     steer: (request: SteerFollowUpSubmission) => ipcRenderer.invoke('turn:steer', request),
     queue: (request: QueueFollowUpSubmission) => ipcRenderer.invoke('turn:queue', request),
     listFollowups: (conversationId: string) =>

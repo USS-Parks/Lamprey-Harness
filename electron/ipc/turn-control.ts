@@ -1,10 +1,12 @@
 import { randomUUID } from 'crypto'
 import { ipcMain } from 'electron'
+import { recordEvent, type RecordEventInput } from '../services/event-log'
 import {
   TurnControlStore,
   type CreateFollowUpResult,
   type FollowUpRecord
 } from '../services/turn-control-store'
+import { interruptTurn } from '../services/turn-interrupt'
 import { turnRuntimeRegistry, type PendingSteer, type TurnRuntime } from '../services/turn-runtime'
 import {
   validateFollowUpSubmission,
@@ -13,6 +15,7 @@ import {
   type FollowUpId,
   type FollowUpRejection,
   type FollowUpSubmission,
+  type InterruptTurnRequest,
   type QueueFollowUpSubmission,
   type ReorderFollowUpsRequest,
   type SendFollowUpNowRequest,
@@ -44,6 +47,34 @@ export interface TurnControlStoreLike {
     updatedAt: number
   ): FollowUpRecord[]
   transitionFollowUp: TurnControlStore['transitionFollowUp']
+}
+
+export interface TurnControlRecoveryStore {
+  recoverOrphans(recoveredAt: number, reason: string): { turns: number; followUps: number }
+}
+
+export function recoverTurnControlOnStartup(
+  store: TurnControlRecoveryStore,
+  recoveredAt: number,
+  record: (input: RecordEventInput) => unknown = recordEvent
+): { turns: number; followUps: number } {
+  const reason = 'application restart: in-flight delivery was not confirmed'
+  const recovered = store.recoverOrphans(recoveredAt, reason)
+  if (recovered.turns > 0 || recovered.followUps > 0) {
+    record({
+      type: 'persistence.recovery',
+      actorKind: 'system',
+      severity: 'warning',
+      entityKind: 'turn-control',
+      payload: {
+        disposition: 'recovered',
+        reason,
+        recoveredTurns: recovered.turns,
+        recoveredFollowUps: recovered.followUps
+      }
+    })
+  }
+  return recovered
 }
 
 export interface TurnRuntimeRegistryLike {
@@ -416,15 +447,18 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
   }
 }
 
-export function registerTurnControlHandlers(
-  dependencies: TurnControlDependencies = {
-    store: new TurnControlStore(),
+export function registerTurnControlHandlers(dependencies?: TurnControlDependencies): void {
+  const productionStore = dependencies ? null : new TurnControlStore()
+  const activeStore = dependencies?.store ?? productionStore!
+  const activeDependencies: TurnControlDependencies = dependencies ?? {
+    store: activeStore,
     runtimes: turnRuntimeRegistry,
     now: Date.now,
     newId: () => randomUUID() as FollowUpId
   }
-): void {
-  const actions = createTurnControlActions(dependencies)
+  if (productionStore) recoverTurnControlOnStartup(productionStore, Date.now())
+  const actions = createTurnControlActions(activeDependencies)
+  ipcMain.handle('turn:interrupt', async (_event, raw: InterruptTurnRequest) => interruptTurn(raw))
   ipcMain.handle('turn:steer', async (_event, raw: SteerFollowUpSubmission) => actions.steer(raw))
   ipcMain.handle('turn:queue', async (_event, raw: QueueFollowUpSubmission) => actions.queue(raw))
   ipcMain.handle('turn:listFollowups', async (_event, conversationId: unknown) =>

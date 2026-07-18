@@ -136,6 +136,18 @@ export interface DeleteFollowUpRequest {
   followUpId: FollowUpId
 }
 
+export interface InterruptTurnRequest {
+  conversationId: string
+  expectedTurnId: TurnId
+}
+
+export interface InterruptTurnResult {
+  turnId: TurnId
+  status: 'interrupted'
+  recoveredFollowUps: number
+  persisted: boolean
+}
+
 export interface FollowUpRejection {
   reason: FollowUpRejectionReason
   message: string

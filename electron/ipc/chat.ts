@@ -19,6 +19,8 @@ import {
   setPlanModeActive,
   type StoredDocument
 } from '../services/conversation-store'
+import { drainPendingDocuments, pushPendingDocument } from '../services/pending-turn-documents'
+import { interruptTurn } from '../services/turn-interrupt'
 import * as memStore from '../services/memory-store'
 import { buildChaptersBlock, createChapter } from '../services/chapters-store'
 import { compressOldestMessages, getEffectiveMessages } from '../services/context-compressor'
@@ -157,36 +159,7 @@ export function mergeAgenticSkillIds(base: string[], extra: string[]): string[] 
   return out
 }
 
-// Documents the model emits via `create_document` during a single chat:send
-// turn. Keyed by correlationId so the buffer is stable across the recursive
-// runChatRound calls and isolated between concurrent turns (parallel agent
-// pipeline). The final-message branch in runChatRound drains the buffer when
-// it persists the assistant row; the catch block in chat:send clears it on
-// failure so a partial run does not leak into the next turn.
-const pendingDocuments = new Map<string, StoredDocument[]>()
-
 const CREATE_DOCUMENT_MAX_BYTES = 256 * 1024
-
-function pushPendingDocument(correlationId: string | undefined, doc: StoredDocument): void {
-  if (!correlationId) return
-  const list = pendingDocuments.get(correlationId)
-  if (list) {
-    list.push(doc)
-  } else {
-    pendingDocuments.set(correlationId, [doc])
-  }
-}
-
-function drainPendingDocuments(correlationId: string | undefined): StoredDocument[] | undefined {
-  if (!correlationId) return undefined
-  const list = pendingDocuments.get(correlationId)
-  if (!list || list.length === 0) {
-    pendingDocuments.delete(correlationId)
-    return undefined
-  }
-  pendingDocuments.delete(correlationId)
-  return list
-}
 
 // Tool definitions (memory_add + MCP tools) come from toolRegistry.
 // Approval gating is owned by permissionsService — both live in services/.
@@ -467,25 +440,7 @@ export function registerChatHandlers(): void {
 
   ipcMain.handle('chat:cancel', async (_event, conversationId) => {
     const run = turnRuntimeRegistry.lookupActive(conversationId)
-    if (run) {
-      run.abort()
-      drainPendingDocuments(run.correlationId)
-      try {
-        recordEvent({
-          type: 'chat.cancelled',
-          actorKind: 'user',
-          severity: 'warning',
-          conversationId,
-          correlationId: run.correlationId,
-          payload: {
-            cancelledAt: Date.now(),
-            elapsedMs: Date.now() - run.startedAt
-          }
-        })
-      } catch (err) {
-        console.error('[chat] chat.cancelled event failed:', err)
-      }
-    }
+    if (run) interruptTurn({ conversationId, expectedTurnId: run.turnId })
     return { success: true, data: null }
   })
 

@@ -342,7 +342,7 @@ CDP observation service, and event/monitor automation triggers.
   regression tests; tsc ×2.
 
 #### **ST-7 — Separate interrupt and recovery semantics**
-- [ ] Give interrupt a turn-aware expected-ID contract, settle status/events exactly once,
+- [x] Give interrupt a turn-aware expected-ID contract, settle status/events exactly once,
       and preserve background terminals. On startup, settle orphan running turns and expose
       undelivered steer items as recoverable drafts; keep Queue items ordered.
 - Files: turn runtime/store, `chat:cancel` compatibility adapter, startup recovery/tests.

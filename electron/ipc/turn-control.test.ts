@@ -5,6 +5,7 @@ vi.mock('electron', () => ({ ipcMain: { handle: electronMocks.handle } }))
 
 import {
   createTurnControlActions,
+  recoverTurnControlOnStartup,
   registerTurnControlHandlers,
   type TurnControlDependencies,
   type TurnControlStoreLike
@@ -394,10 +395,11 @@ describe('ST-4 typed Steering and Queue actions', () => {
     expect(runtime.pendingSteers.map((item) => item.followUpId)).toEqual(['follow-up-1'])
   })
 
-  it('registers all seven IPC channels with standard envelope-returning handlers', async () => {
+  it('registers all eight IPC channels with standard envelope-returning handlers', async () => {
     const { deps } = makeHarness()
     registerTurnControlHandlers(deps)
     expect(electronMocks.handle.mock.calls.map(([channel]) => channel)).toEqual([
+      'turn:interrupt',
       'turn:steer',
       'turn:queue',
       'turn:listFollowups',
@@ -406,11 +408,34 @@ describe('ST-4 typed Steering and Queue actions', () => {
       'turn:sendFollowupNow',
       'turn:deleteFollowup'
     ])
-    const listHandler = electronMocks.handle.mock.calls[2]?.[1]
+    const listHandler = electronMocks.handle.mock.calls[3]?.[1]
     await expect(listHandler({}, '')).resolves.toMatchObject({
       success: false,
       error: expect.any(String),
       rejection: { reason: 'invalidInput' }
     })
+  })
+
+  it('recovers startup orphans once and emits only bounded recovery counts', () => {
+    const recoverOrphans = vi.fn(() => ({ turns: 2, followUps: 3 }))
+    const record = vi.fn()
+    expect(recoverTurnControlOnStartup({ recoverOrphans }, 500, record)).toEqual({
+      turns: 2,
+      followUps: 3
+    })
+    expect(recoverOrphans).toHaveBeenCalledWith(
+      500,
+      'application restart: in-flight delivery was not confirmed'
+    )
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'persistence.recovery',
+        payload: expect.objectContaining({ recoveredTurns: 2, recoveredFollowUps: 3 })
+      })
+    )
+
+    record.mockClear()
+    recoverTurnControlOnStartup({ recoverOrphans: () => ({ turns: 0, followUps: 0 }) }, 501, record)
+    expect(record).not.toHaveBeenCalled()
   })
 })

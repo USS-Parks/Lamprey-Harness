@@ -1,3 +1,39 @@
+## Codex July 2026 Parity — Prompt ST-7 Interrupt and recovery semantics — 2026-07-17
+
+**Files changed:** `electron/services/turn-interrupt.ts`,
+`electron/services/turn-interrupt.test.ts`,
+`electron/services/pending-turn-documents.ts`,
+`electron/ipc/turn-interrupt-wiring.test.ts`,
+`electron/ipc/turn-control.ts`, `electron/ipc/turn-control.test.ts`,
+`electron/ipc/turn-control-wiring.test.ts`, `electron/ipc/chat.ts`,
+`electron/preload.ts`, `electron/services/turn-control-types.ts`,
+`src/lib/turn-control-types.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused interrupt/race/recovery/settlement/ghost/source-lock suites ✓ (70 tests, 0 skipped)
+- Electron ABI-148 durable restart-recovery suite ✓ (9 tests, 0 skipped)
+- targeted ESLint and Prettier ✓
+- `verify:proof -- --no-tests` ✓ (lint, tsc node/web, bundle and renderer smoke)
+
+**Notes:** `turn:interrupt` now requires the exact active `turnId`, rejects invalid,
+missing, stale, and already-settled identities through the typed visible envelope, recovers
+retained Steering before abort, drains only the interrupted turn's document buffer, and
+settles the runtime as `interrupted` exactly once. The conversation-only `chat:cancel`
+surface remains as a compatibility adapter to that single action rather than owning a
+second cancellation path. Interruption records one bounded `chat.cancelled` event with
+identity, timing, recovery count, and persistence disposition; a failed durable settlement
+is reported as `persisted: false` and left for startup repair instead of being misreported.
+Startup now atomically settles orphan running turns and accepted Steering as recovered,
+emits bounded recovery counts, and leaves Queue ordering untouched. Recovered Steering is
+already editable through the existing follow-up state machine. A source lock proves that
+interrupt contains no PTY, process-tree, live-handle, or `terminal:kill` authority; only the
+separate terminal IPC owns background-terminal termination. Steering itself remains
+non-preemptive and has no abort path.
+
+**Commit:** see git log (ST-7).
+
 ## Codex July 2026 Parity — Prompt ST-6 Agent-wait Steering — 2026-07-17
 
 **Files changed:** `electron/services/agent-wait.ts`,

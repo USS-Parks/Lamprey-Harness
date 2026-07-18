@@ -6,6 +6,7 @@ const root = join(__dirname, '..', '..')
 const read = (path: string): string => readFileSync(join(root, path), 'utf8')
 
 const channels = [
+  'turn:interrupt',
   'turn:steer',
   'turn:queue',
   'turn:listFollowups',
@@ -56,6 +57,8 @@ describe('ST-4 turn-control wiring contract', () => {
     const rendererTypes = read('src/lib/turn-control-types.ts')
     for (const name of [
       'SteerFollowUpSubmission',
+      'InterruptTurnRequest',
+      'InterruptTurnResult',
       'QueueFollowUpSubmission',
       'UpdateFollowUpRequest',
       'ReorderFollowUpsRequest',

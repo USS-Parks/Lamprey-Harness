@@ -483,7 +483,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-6 — Surface task graph and activity controls**
 
-- [ ] Make parent/child links, live status, unread state, waits, Steering, interrupt, and
+- [x] Make parent/child links, live status, unread state, waits, Steering, interrupt, and
       lifecycle actions discoverable in existing sessions/agents/activity UI.
 - Verify: UI wiring tests, build/renderer smoke, task-control GUI playbook.
 

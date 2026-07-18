@@ -8979,3 +8979,33 @@ Deletion revalidates the preview immediately before removing descendants and rec
 bounded identifiers/counts on the event spine.
 
 **Commit:** see git log (TC-5).
+
+## Codex July 2026 Parity — Prompt TC-6 Task graph and activity controls — 2026-07-18
+
+**Files changed:** `electron/ipc/tasks.ts`, `electron/preload.ts`,
+`electron/services/task-graph.ts`, `electron/services/task-lifecycle.ts`,
+`electron/services/task-control-ui-wiring.test.ts`,
+`src/components/activity/TaskControlPanel.tsx`,
+`src/components/activity/TaskControlPanel.test.ts`,
+`src/components/activity/ActivityDashboard.tsx`,
+`src/lib/task-control-presentation.ts`, `PLANNING/CJ26_TASK_CONTROL_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused task-control UI, graph, wait, lifecycle, and Steering regressions ✓
+  (32 tests, 0 skipped)
+- production build ✓
+- post-build renderer smoke ✓
+
+**Notes:** The existing Activity surface now contains an event-refreshed task graph rather
+than a second transcript or dispatch system. Conversation forks render with parent/child
+depth, live turn state, and durable unread-event counts. Selecting a task exposes Open,
+bounded Wait, exact-turn Steering, exact-turn Interrupt, rename, pin/unpin,
+archive/restore, close/restore, and a two-step permanent-delete preview. The renderer uses
+the TC-1 graph, TC-2 wait signal, M1 turn authority, and TC-5 lifecycle service through
+paired IPC/preload channels. Steering still fails closed on stale identity and never falls
+back to Queue. `PLANNING/CJ26_TASK_CONTROL_PLAYBOOK.md` defines the packaged owner smoke;
+mechanical implementation gates pass, while the owner GUI run remains a TC-7 release check.
+
+**Commit:** see git log (TC-6).

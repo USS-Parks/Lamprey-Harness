@@ -4,6 +4,9 @@ import { getLiveHandle } from '../services/subagent-runner'
 import { broadcastAgentRunEvent } from '../services/agent-run-notify'
 import { spawnTask } from '../services/spawn-task'
 import { getActiveWorkspace } from '../services/workspace-state'
+import { loadTaskGraph, type TaskGraphQuery } from '../services/task-graph'
+import { readTaskSnapshot, waitForTasks, type WaitTaskTarget } from '../services/task-query'
+import { taskLifecycle, type RecoverableTaskAction } from '../services/task-lifecycle'
 
 // Track 1 / A2: tasks:* IPC + agent:run:notify broadcast wiring.
 //
@@ -20,6 +23,66 @@ import { getActiveWorkspace } from '../services/workspace-state'
 export { broadcastAgentRunEvent } from '../services/agent-run-notify'
 
 export function registerTasksHandlers(): void {
+  ipcMain.handle('tasks:graph', async (_e, query?: TaskGraphQuery) => {
+    try {
+      return { success: true, data: loadTaskGraph(query ?? {}) }
+    } catch (err: unknown) {
+      return { success: false, error: messageFor(err, 'task graph failed') }
+    }
+  })
+
+  ipcMain.handle('tasks:readGraphTask', async (_e, taskId: string) => {
+    try {
+      return { success: true, data: readTaskSnapshot(taskId) }
+    } catch (err: unknown) {
+      return { success: false, error: messageFor(err, 'task read failed') }
+    }
+  })
+
+  ipcMain.handle('tasks:waitGraph', async (_e, targets: WaitTaskTarget[], timeoutMs?: number) => {
+    try {
+      return { success: true, data: await waitForTasks(targets, { timeoutMs }) }
+    } catch (err: unknown) {
+      return { success: false, error: messageFor(err, 'task wait failed') }
+    }
+  })
+
+  ipcMain.handle(
+    'tasks:updateMetadata',
+    async (_e, taskId: string, action: RecoverableTaskAction, value?: string | null) => {
+      try {
+        const allowed: RecoverableTaskAction[] = [
+          'rename',
+          'pin',
+          'unpin',
+          'archive',
+          'restore',
+          'close'
+        ]
+        if (!allowed.includes(action)) return { success: false, error: 'invalid lifecycle action' }
+        return { success: true, data: taskLifecycle.update(taskId, action, value, 'user') }
+      } catch (err: unknown) {
+        return { success: false, error: messageFor(err, 'task update failed') }
+      }
+    }
+  )
+
+  ipcMain.handle('tasks:previewDelete', async (_e, taskId: string) => {
+    try {
+      return { success: true, data: taskLifecycle.previewDelete(taskId) }
+    } catch (err: unknown) {
+      return { success: false, error: messageFor(err, 'task delete preview failed') }
+    }
+  })
+
+  ipcMain.handle('tasks:deleteGraphTask', async (_e, taskId: string, previewToken: string) => {
+    try {
+      return { success: true, data: taskLifecycle.delete(taskId, previewToken, 'user') }
+    } catch (err: unknown) {
+      return { success: false, error: messageFor(err, 'task delete failed') }
+    }
+  })
+
   ipcMain.handle('tasks:spawn', async (_e, payload) => {
     try {
       if (!payload || typeof payload !== 'object') {

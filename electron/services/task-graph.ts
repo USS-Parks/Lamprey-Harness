@@ -2,6 +2,7 @@ import * as conversationStore from './conversation-store'
 import * as agentRunStore from './agent-run-store'
 import { listIdentitiesByScope, type AgentIdentityRow } from './agent-identity-store'
 import { TurnControlStore, type ConversationTurnRecord } from './turn-control-store'
+import { listPendingAsyncEvents } from './async-event-bridge'
 
 export type TaskNodeKind = 'conversation' | 'agent-run' | 'identity' | 'turn'
 export type TaskNodeStatus =
@@ -52,6 +53,7 @@ export interface TaskGraphInput {
   runs: agentRunStore.AgentRunRow[]
   identities: AgentIdentityRow[]
   turns: ConversationTurnRecord[]
+  unreadCounts?: Record<string, number>
 }
 
 export interface TaskGraphQuery {
@@ -153,7 +155,8 @@ export function buildTaskGraph(
         forkedFromTurnId: row.forkedFromTurnId ?? null,
         pinned: row.pinnedAt != null,
         archived: row.archived === true,
-        closed: row.closedAt != null
+        closed: row.closedAt != null,
+        unreadCount: input.unreadCounts?.[row.id] ?? 0
       }
     })
     if (parentId) edges.push({ from: parentId, to: id, relation: 'fork' })
@@ -315,5 +318,11 @@ export function loadTaskGraph(query: TaskGraphQuery = {}): TaskGraphSnapshot {
   )
   const turnStore = new TurnControlStore()
   const turns = conversations.flatMap((conversation) => turnStore.listTurns(conversation.id))
-  return buildTaskGraph({ conversations, runs, identities, turns }, query)
+  const unreadCounts = Object.fromEntries(
+    conversations.map((conversation) => [
+      conversation.id,
+      listPendingAsyncEvents(conversation.id, 100).length
+    ])
+  )
+  return buildTaskGraph({ conversations, runs, identities, turns, unreadCounts }, query)
 }

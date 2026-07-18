@@ -686,6 +686,25 @@ const api = {
     revoke: (id: string) => ipcRenderer.invoke('agents:revoke', id)
   },
   tasks: {
+    graph: (query?: {
+      cursor?: string | null
+      limit?: number
+      rootConversationId?: string | null
+      includeKinds?: Array<'conversation' | 'agent-run' | 'identity' | 'turn'>
+    }) => ipcRenderer.invoke('tasks:graph', query),
+    readGraphTask: (taskId: string) => ipcRenderer.invoke('tasks:readGraphTask', taskId),
+    waitGraph: (
+      targets: Array<{ taskId: string; afterCursor?: string | null }>,
+      timeoutMs?: number
+    ) => ipcRenderer.invoke('tasks:waitGraph', targets, timeoutMs),
+    updateMetadata: (
+      taskId: string,
+      action: 'rename' | 'pin' | 'unpin' | 'archive' | 'restore' | 'close',
+      value?: string | null
+    ) => ipcRenderer.invoke('tasks:updateMetadata', taskId, action, value),
+    previewDelete: (taskId: string) => ipcRenderer.invoke('tasks:previewDelete', taskId),
+    deleteGraphTask: (taskId: string, previewToken: string) =>
+      ipcRenderer.invoke('tasks:deleteGraphTask', taskId, previewToken),
     spawn: (payload: {
       sourceConversationId: string
       title: string

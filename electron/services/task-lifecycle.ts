@@ -5,7 +5,7 @@ import { buildTaskGraph, collectTaskDescendants, type TaskGraphSnapshot } from '
 import { TurnControlStore } from './turn-control-store'
 import * as agentRunStore from './agent-run-store'
 import { listIdentitiesByScope } from './agent-identity-store'
-import { recordEvent } from './event-log'
+import { recordEvent, type EventActorKind } from './event-log'
 import { notifyTaskChange } from './task-wait-signal'
 
 export type RecoverableTaskAction = 'rename' | 'pin' | 'unpin' | 'archive' | 'restore' | 'close'
@@ -102,7 +102,12 @@ export function createTaskLifecycleService(deps: TaskLifecycleDependencies) {
   }
 
   return {
-    update(taskId: string, action: RecoverableTaskAction, value?: string | null) {
+    update(
+      taskId: string,
+      action: RecoverableTaskAction,
+      value?: string | null,
+      actorKind: EventActorKind = 'model'
+    ) {
       const id = conversationNodeId(taskId).slice('conversation:'.length)
       if (!deps.getConversation(id)) throw new Error('task not found')
       if (action === 'rename') {
@@ -122,7 +127,7 @@ export function createTaskLifecycleService(deps: TaskLifecycleDependencies) {
       }
       deps.record({
         type: 'task.metadata.updated',
-        actorKind: 'model',
+        actorKind,
         conversationId: id,
         entityKind: 'conversation',
         entityId: id,
@@ -137,7 +142,7 @@ export function createTaskLifecycleService(deps: TaskLifecycleDependencies) {
 
     previewDelete,
 
-    delete(taskId: string, previewToken: string) {
+    delete(taskId: string, previewToken: string, actorKind: EventActorKind = 'model') {
       const id = conversationNodeId(taskId)
       const preview = previews.get(previewToken)
       previews.delete(previewToken)
@@ -163,7 +168,7 @@ export function createTaskLifecycleService(deps: TaskLifecycleDependencies) {
       }
       deps.record({
         type: 'task.deleted',
-        actorKind: 'model',
+        actorKind,
         severity: 'warning',
         entityKind: 'conversation',
         entityId: id.slice('conversation:'.length),

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { ActivityNode } from './ActivityNode'
 import { ActivityTray } from './ActivityTray'
+import { TaskControlPanel } from './TaskControlPanel'
 import {
   useActivityStore,
   type ActivityNodeModel,
@@ -11,7 +12,11 @@ import {
 import { useAutomationsStore, type Automation } from '@/stores/automations-store'
 import { useChatStore } from '@/stores/chat-store'
 import { useHooksStore, type Hook } from '@/stores/hooks-store'
-import { useWorkflowsStore, type AgentChipStatus, type WorkflowRunState } from '@/stores/workflows-store'
+import {
+  useWorkflowsStore,
+  type AgentChipStatus,
+  type WorkflowRunState
+} from '@/stores/workflows-store'
 
 function tokenEstimate(text: string): number {
   return text ? Math.max(1, Math.round(text.length / 4)) : 0
@@ -98,8 +103,15 @@ function wakeupNode(wakeup: LoopWakeupSnapshot): ActivityNodeModel {
     id: `loop:${wakeup.id}`,
     kind: 'loop',
     title: wakeup.reason || 'Scheduled wake-up',
-    subtitle: pending ? `due ${new Date(wakeup.fireAt).toLocaleTimeString()}` : wakeup.prompt.slice(0, 48),
-    status: wakeup.status === 'fired' ? 'done' : wakeup.status === 'cancelled' ? 'aborted' : wakeup.status,
+    subtitle: pending
+      ? `due ${new Date(wakeup.fireAt).toLocaleTimeString()}`
+      : wakeup.prompt.slice(0, 48),
+    status:
+      wakeup.status === 'fired'
+        ? 'done'
+        : wakeup.status === 'cancelled'
+          ? 'aborted'
+          : wakeup.status,
     startedAt: wakeup.createdAt,
     finishedAt: wakeup.firedAt,
     canAbort: pending
@@ -241,11 +253,16 @@ export function ActivityDashboard(): ReactElement {
 
   const flatNodes = useMemo(() => flatten(nodes), [nodes])
   const pinnedNodes = useMemo(
-    () => pinnedIds.map((id) => flatNodes.find((node) => node.id === id)).filter((node): node is ActivityNodeModel => Boolean(node)),
+    () =>
+      pinnedIds
+        .map((id) => flatNodes.find((node) => node.id === id))
+        .filter((node): node is ActivityNodeModel => Boolean(node)),
     [flatNodes, pinnedIds]
   )
   const visibleNodes = nodes.filter((node) => !pinnedIds.includes(node.id))
-  const runningCount = flatNodes.filter((node) => node.status === 'running' || node.status === 'pending').length
+  const runningCount = flatNodes.filter(
+    (node) => node.status === 'running' || node.status === 'pending'
+  ).length
 
   const abortNode = (node: ActivityNodeModel) => {
     if (node.kind === 'conversation') cancelStream()
@@ -287,7 +304,7 @@ export function ActivityDashboard(): ReactElement {
       <ActivityTray nodes={pinnedNodes} onUnpin={togglePinned} />
 
       {!collapsed && (
-        <div className="mx-3 mt-2 max-h-80 overflow-y-auto pr-1 scrollbar-visible">
+        <div className="mx-3 mt-2 max-h-[34rem] overflow-y-auto pr-1 scrollbar-visible">
           {visibleNodes.length === 0 ? (
             <p className="px-2 py-3 text-[12px] italic text-[var(--text-muted)]">
               No live activity yet.
@@ -303,6 +320,7 @@ export function ActivityDashboard(): ReactElement {
               />
             ))
           )}
+          <TaskControlPanel />
         </div>
       )}
     </div>

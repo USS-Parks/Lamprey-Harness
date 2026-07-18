@@ -14,6 +14,7 @@ import {
 import { boundedJsonPreview, recordEvent } from '../services/event-log'
 import { validateChatSendRequest } from './chat-validation'
 import * as convStore from '../services/conversation-store'
+import { getDb } from '../services/database'
 import {
   isPlanModeActive,
   setPlanModeActive,
@@ -87,6 +88,12 @@ import {
   type TurnRuntime
 } from '../services/turn-runtime'
 import type { TurnKind } from '../services/turn-control-types'
+import { TurnControlStore } from '../services/turn-control-store'
+import {
+  deliverRootSteersAtBoundary,
+  recoverUndeliveredSteers,
+  type SteerBoundaryResult
+} from '../services/steer-transcript'
 // LP-1 (Loop Phase) — wire the headless turn runner into the loop runner.
 import { setLoopTurnRunner } from '../services/loop-runner'
 import type {
@@ -217,6 +224,71 @@ function settleTurnRuntimeSafely(
   }
 }
 
+let steerDeliveryStore: TurnControlStore | null = null
+
+function getSteerDeliveryStore(): TurnControlStore {
+  steerDeliveryStore ??= new TurnControlStore()
+  return steerDeliveryStore
+}
+
+async function consumeRootSteersAtBoundary(
+  runtime: TurnRuntime,
+  messages: ChatCompletionMessageParam[],
+  model: string
+): Promise<SteerBoundaryResult> {
+  const store = getSteerDeliveryStore()
+  return deliverRootSteersAtBoundary(runtime, messages, {
+    commit: (input) => {
+      const deliveredAt = Date.now()
+      let message!: ReturnType<typeof convStore.saveMessage>
+      let followUp!: ReturnType<TurnControlStore['transitionFollowUp']>
+      const commit = getDb().transaction(() => {
+        message = convStore.saveMessage({
+          id: randomUUID(),
+          conversationId: runtime.conversationId,
+          role: 'user',
+          content: input.displayContent,
+          model
+        })
+        followUp = store.transitionFollowUp(input.steer.followUpId, 'delivered', deliveredAt, {
+          turnId: runtime.turnId
+        })
+      })
+      commit()
+      return { message, followUp }
+    },
+    reject: (steer, reason) => {
+      store.transitionFollowUp(steer.followUpId, 'rejected', Date.now(), {
+        rejectionReason: 'invalidInput',
+        rejectionMessage: reason
+      })
+    },
+    emit: (input) => {
+      emitChatEvent('chat:user-message', {
+        conversationId: runtime.conversationId,
+        turnId: runtime.turnId,
+        followUpId: input.steer.followUpId,
+        clientUserMessageId: input.steer.clientUserMessageId,
+        message: input.message,
+        inputMetadata: input.inputMetadata
+      })
+    }
+  })
+}
+
+function recoverPendingRuntimeSteers(runtime: TurnRuntime, reason: string): number {
+  const store = getSteerDeliveryStore()
+  return recoverUndeliveredSteers(
+    runtime,
+    (steer, recoveryReason) => {
+      store.transitionFollowUp(steer.followUpId, 'recovered', Date.now(), {
+        recoveryReason
+      })
+    },
+    reason
+  )
+}
+
 export function registerChatHandlers(): void {
   ipcMain.handle('chat:send', async (_event, request) => {
     // Defensive: the renderer is trusted but a malformed payload (hot
@@ -314,6 +386,12 @@ export function registerChatHandlers(): void {
             content: `${outcome.summary}\n\n**Sources:** ${outcome.sourceCount} (${outcome.acceptedCount} accepted, ${outcome.singleSourceCount} single-source, ${outcome.disputedCount} disputed) · Providers: ${outcome.providersUsed.join(', ') || 'none'}\n\n[Open full report](artifact://research/${outcome.filename})`,
             model
           })
+          if (turnRuntime.pendingSteers.length > 0) {
+            recoverPendingRuntimeSteers(
+              turnRuntime,
+              'research completed before pending Steering reached an ordinary model boundary'
+            )
+          }
           settleTurnRuntimeSafely(turnRuntime, 'completed')
           drainPendingDocuments(correlationId)
           return {
@@ -384,6 +462,16 @@ export function registerChatHandlers(): void {
       // { success:false, error: undefined }, violating the IPC contract.
       const errMsg = err instanceof Error ? err.message : String(err ?? 'unknown error')
       if (turnRuntime) {
+        if (turnRuntime.pendingSteers.length > 0) {
+          try {
+            recoverPendingRuntimeSteers(
+              turnRuntime,
+              `turn failed before Steering delivery: ${errMsg}`
+            )
+          } catch (recoveryErr) {
+            console.error('[chat] pending Steer recovery failed:', recoveryErr)
+          }
+        }
         settleTurnRuntimeSafely(
           turnRuntime,
           turnRuntime.signal.aborted || isUserAbortError(err) ? 'cancelled' : 'failed'
@@ -695,7 +783,8 @@ export async function runHeadlessTurn(input: {
       correlationId,
       [],
       Date.now(),
-      charCounter
+      charCounter,
+      runtime
     )
     if (!result) return null
     return {
@@ -731,6 +820,18 @@ export async function runHeadlessTurn(input: {
     throw err
   } finally {
     unlinkExternalSignal()
+    if (runtime.pendingSteers.length > 0) {
+      try {
+        recoverPendingRuntimeSteers(
+          runtime,
+          settlementStatus === 'completed'
+            ? 'turn completed before pending Steering was delivered'
+            : `turn settled as ${settlementStatus} before pending Steering was delivered`
+        )
+      } catch (err) {
+        console.error('[chat] pending Steer recovery failed:', err)
+      }
+    }
     settleTurnRuntimeSafely(runtime, settlementStatus)
     drainPendingDocuments(correlationId)
   }
@@ -815,7 +916,8 @@ export async function runChatRound(
   // JM-12 (CC-11) — accumulates the chars actually sent (the full stack, per
   // round, since every round re-sends it) and received. Shared by reference
   // through the recursion; runHeadlessTurn owns it and derives tokensEstimate.
-  charCounter?: { sent: number; received: number }
+  charCounter?: { sent: number; received: number },
+  runtime?: TurnRuntime
 ): Promise<RunChatRoundResult> {
   trace('runChatRound.enter', {
     conversationId,
@@ -1012,6 +1114,9 @@ export async function runChatRound(
                 })
                 messages.push({ role: 'assistant', content: fullContent } as any)
                 messages.push({ role: 'user', content: feedback } as any)
+                if (runtime) {
+                  await consumeRootSteersAtBoundary(runtime, messages, model)
+                }
                 const correctiveReasonings =
                   fullReasoning && fullReasoning.length > 0
                     ? [...roundReasonings, fullReasoning]
@@ -1029,7 +1134,8 @@ export async function runChatRound(
                   correlationId,
                   correctiveReasonings,
                   turnStartedAt,
-                  charCounter
+                  charCounter,
+                  runtime
                 )
                 resolve(next)
                 return
@@ -1060,6 +1166,50 @@ export async function runChatRound(
                 reasoning: finalReasoning,
                 documents
               })
+              const hasRootSteer =
+                runtime?.pendingSteers.some((steer) => steer.targetAgentRunId === null) ?? false
+              if (runtime && hasRootSteer) {
+                messages.push({
+                  role: 'assistant',
+                  content: fullContent || '',
+                  ...(fullReasoning &&
+                    modelEchoesReasoningContent(model) && {
+                      reasoning_content: fullReasoning
+                    })
+                } as ChatCompletionMessageParam)
+                if (!suppressDoneEvent) {
+                  emitChatEvent('chat:round-complete', {
+                    conversationId,
+                    turnId: runtime.turnId,
+                    message: assistantMsg
+                  })
+                }
+                const delivered = await consumeRootSteersAtBoundary(runtime, messages, model)
+                if (delivered.delivered > 0) {
+                  const continuationReasonings =
+                    fullReasoning && fullReasoning.length > 0
+                      ? [...roundReasonings, fullReasoning]
+                      : roundReasonings
+                  const next = await runChatRound(
+                    conversationId,
+                    model,
+                    messages,
+                    rebuildToolsForNextRound(conversationId, model, tools),
+                    workspacePath,
+                    signal,
+                    round + 1,
+                    params,
+                    suppressDoneEvent,
+                    correlationId,
+                    continuationReasonings,
+                    turnStartedAt,
+                    charCounter,
+                    runtime
+                  )
+                  resolve(next)
+                  return
+                }
+              }
               if (!suppressDoneEvent) {
                 emitPhase(conversationId, 'done')
                 emitChatEvent('chat:done', { conversationId, message: assistantMsg })
@@ -1166,6 +1316,13 @@ export async function runChatRound(
             // before recursing. The final round (no tool calls + composer
             // ran) reads the trail off the `roundReasonings` parameter
             // and folds it into the saved composer-row's reasoning column.
+            // ST-5 safe boundary: every tool window and result append above
+            // completes before Steering can enter the transcript. A mutating
+            // tool is never preempted midway through its side effect.
+            if (runtime) {
+              await consumeRootSteersAtBoundary(runtime, messages, model)
+            }
+
             const nextRoundReasonings =
               fullReasoning && fullReasoning.length > 0
                 ? [...roundReasonings, fullReasoning]
@@ -1184,7 +1341,8 @@ export async function runChatRound(
               correlationId,
               nextRoundReasonings,
               turnStartedAt,
-              charCounter
+              charCounter,
+              runtime
             )
             resolve(next)
           } catch (err) {

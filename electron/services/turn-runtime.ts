@@ -147,6 +147,20 @@ export class TurnRuntime {
     return delivered
   }
 
+  drainAllSteers(): PendingSteer[] {
+    const drained = this.#steerInbox
+    this.#steerInbox = []
+    return drained
+  }
+
+  restoreSteers(steers: PendingSteer[]): void {
+    if (steers.length === 0) return
+    if (this.status !== 'running') {
+      throw new Error(`cannot restore Steering to a ${this.status} turn`)
+    }
+    this.#steerInbox = [...steers, ...this.#steerInbox]
+  }
+
   waitForWake(
     options: {
       signal?: AbortSignal

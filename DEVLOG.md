@@ -1,3 +1,33 @@
+## Codex July 2026 Parity — Prompt ST-5 Same-turn Steering delivery — 2026-07-17
+
+**Files changed:** `electron/services/steer-transcript.ts`,
+`electron/services/steer-transcript.test.ts`,
+`electron/services/steering-round-harness.test.ts`,
+`electron/services/steering-boundary-wiring.test.ts`,
+`electron/services/turn-runtime.ts`, `electron/ipc/chat.ts`,
+`electron/services/chat-events.ts`, `electron/preload.ts`,
+`src/hooks/useChat.ts`, `src/stores/chat-store.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused Steering/IPC/runtime/timing/FC/ghost/prompt-byte suites ✓ (195 tests, 0 skipped)
+- Electron ABI-148 durable store/integration suites ✓ (17 tests, 0 skipped)
+- targeted ESLint ✓
+- `verify:proof -- --no-tests` ✓ (lint, tsc node/web, bundle and renderer smoke)
+
+**Notes:** Accepted root Steering now drains only at a safe model-dispatch boundary: after
+streaming ends or after every tool side effect and result append completes. Ordered
+text/image/local-image items join the existing API transcript, while one transaction
+persists the canonical user row and delivered follow-up disposition. Final output becomes
+an intermediate round when Steering is present, then recursion continues under the same
+`turnId` without a second turn-start event. Deterministic races cover in-stream arrival,
+in-tool arrival, completion winning atomically, provider failure recovery, duplicate client
+retries, renderer reload during event emission, and rejection-persistence failure. Bounded
+renderer events exclude attachment bytes, image URLs, and raw local paths.
+
+**Commit:** see git log (ST-5).
+
 ## Codex July 2026 Parity — Prompt ST-4 Typed follow-up IPC — 2026-07-17
 
 **Files changed:** `electron/ipc/turn-control.ts`,

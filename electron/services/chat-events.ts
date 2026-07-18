@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import type { AgentRunPhase } from './agent-run-phase'
 import type { ToolProviderKind, ToolRisk } from './tool-registry'
+import type { SafeTurnInputMetadata } from './steer-transcript'
 
 // Typed event surface for the chat tool loop.
 //
@@ -36,6 +37,21 @@ export interface ChatDonePayload {
   // src/lib/types.ts; left as unknown here so this module does not have
   // to take a dependency on the message-row type.
   message: unknown
+}
+
+export interface ChatRoundCompletePayload {
+  conversationId: string
+  turnId: string
+  message: unknown
+}
+
+export interface ChatUserMessagePayload {
+  conversationId: string
+  turnId: string
+  followUpId: string
+  clientUserMessageId: string | null
+  message: unknown
+  inputMetadata: SafeTurnInputMetadata[]
 }
 
 /** Reasoning Audit Phase R4 — emitted by the multi-agent pipeline right
@@ -241,6 +257,8 @@ export interface ChatEventMap {
   'chat:chunk': ChatChunkPayload
   'chat:reasoning': ChatReasoningPayload
   'chat:done': ChatDonePayload
+  'chat:round-complete': ChatRoundCompletePayload
+  'chat:user-message': ChatUserMessagePayload
   'chat:planner-message': ChatPlannerMessagePayload
   'chat:error': ChatErrorPayload
   'chat:phase': ChatPhasePayload

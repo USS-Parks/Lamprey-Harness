@@ -92,6 +92,27 @@ const api = {
       ipcRenderer.on('chat:done', h)
       return () => ipcRenderer.removeListener('chat:done', h)
     },
+    onRoundComplete: (
+      cb: (e: { conversationId: string; turnId: string; message: unknown }) => void
+    ): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:round-complete', h)
+      return () => ipcRenderer.removeListener('chat:round-complete', h)
+    },
+    onUserMessage: (
+      cb: (e: {
+        conversationId: string
+        turnId: string
+        followUpId: string
+        clientUserMessageId: string | null
+        message: unknown
+        inputMetadata: unknown[]
+      }) => void
+    ): (() => void) => {
+      const h = (_: unknown, e: any): void => cb(e)
+      ipcRenderer.on('chat:user-message', h)
+      return () => ipcRenderer.removeListener('chat:user-message', h)
+    },
     /** Reasoning Audit Phase R4 — Planner row persisted during a
      *  multi-agent pipeline turn. Renderer treats it as audit-only:
      *  the row is appended to the conversation message list but R7's
@@ -161,6 +182,8 @@ const api = {
         'chat:chunk',
         'chat:reasoning',
         'chat:done',
+        'chat:round-complete',
+        'chat:user-message',
         'chat:error',
         'chat:tool-call',
         'chat:tool-call-result',
@@ -177,6 +200,8 @@ const api = {
         onChunk?: (e: { conversationId: string; content: string }) => void
         onReasoning?: (e: { conversationId: string; content: string }) => void
         onDone?: (e: { conversationId: string; message: unknown }) => void
+        onRoundComplete?: (e: { conversationId: string; turnId: string; message: unknown }) => void
+        onUserMessage?: (e: { conversationId: string; turnId: string; message: unknown }) => void
         onError?: (e: { conversationId: string; error: string }) => void
       }
     ) => {
@@ -192,6 +217,8 @@ const api = {
       wire('chat:chunk', cbs.onChunk)
       wire('chat:reasoning', cbs.onReasoning)
       wire('chat:done', cbs.onDone)
+      wire('chat:round-complete', cbs.onRoundComplete)
+      wire('chat:user-message', cbs.onUserMessage)
       wire('chat:error', cbs.onError)
       return () => {
         for (const [ch, h] of handlers) ipcRenderer.removeListener(ch, h)

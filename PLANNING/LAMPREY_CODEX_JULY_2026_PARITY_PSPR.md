@@ -323,10 +323,10 @@ CDP observation service, and event/monitor automation triggers.
 - Verify: IPC contract/negative tests; envelope source-lock; tsc ×2.
 
 #### **ST-5 — Consume Steering inside the active turn**
-- [ ] Drain accepted steer input at the CJP-0-pinned safe boundaries, append canonical user
+- [x] Drain accepted steer input at the CJP-0-pinned safe boundaries, append canonical user
       input items to the same API transcript, persist/emit the user item once, and continue
       the same `turnId` without another turn-start event.
-- [ ] Cover streaming, tool-running, completion-race, provider error, and duplicate-client-ID
+- [x] Cover streaming, tool-running, completion-race, provider error, and duplicate-client-ID
       cases. A mutating tool is never interrupted midway by Steering.
 - Files: `chat.ts`, provider transcript helpers as needed, turn runtime/store/tests.
 - Verify: deterministic multi-round harness tests for all §1 timing cases; existing FC and

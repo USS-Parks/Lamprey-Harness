@@ -87,6 +87,8 @@ interface ChatState {
   appendStreamingDocument: (doc: DocumentAttachment) => void
   finishStream: (message: Message) => void
   streamError: (error: string) => void
+  continueStreamAfterRound: (message: Message) => void
+  appendSteerUserMessage: (message: Message) => void
   setStreamingVitals: (
     v: ChatState['streamingVitals']
   ) => void
@@ -531,7 +533,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   finishStream: (message: Message) => {
     set((state) => ({
-      messages: [...state.messages, message],
+      messages: state.messages.some((existing) => existing.id === message.id)
+        ? state.messages
+        : [...state.messages, message],
       isStreaming: false,
       streamingContent: '',
       streamingReasoning: '',
@@ -541,6 +545,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
       runPhase: null
     }))
     get().loadConversations()
+  },
+
+  continueStreamAfterRound: (message: Message) => {
+    set((state) => ({
+      messages: state.messages.some((existing) => existing.id === message.id)
+        ? state.messages
+        : [...state.messages, message],
+      isStreaming: true,
+      streamingContent: '',
+      streamingReasoning: '',
+      streamingDocuments: [],
+      streamingVitals: null,
+      streamStartedAt: Date.now(),
+      runPhase: 'understanding'
+    }))
+  },
+
+  appendSteerUserMessage: (message: Message) => {
+    set((state) => ({
+      messages: state.messages.some((existing) => existing.id === message.id)
+        ? state.messages
+        : [...state.messages, message]
+    }))
   },
 
   streamError: (_error: string) => {

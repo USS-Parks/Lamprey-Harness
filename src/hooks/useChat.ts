@@ -102,6 +102,21 @@ export function useChat(): void {
     )
 
     track(
+      window.api.chat.onRoundComplete((e) => {
+        if (!matchesActive(e)) return
+        flushNow()
+        useChatStore.getState().continueStreamAfterRound(e.message as any)
+      })
+    )
+
+    track(
+      window.api.chat.onUserMessage((e) => {
+        if (!matchesActive(e)) return
+        useChatStore.getState().appendSteerUserMessage(e.message as any)
+      })
+    )
+
+    track(
       window.api.chat.onError((e) => {
         if (!matchesActive(e)) return
         flushNow()

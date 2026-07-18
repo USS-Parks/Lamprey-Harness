@@ -8886,3 +8886,24 @@ cursor pagination, and cycle-safe descendant traversal. The existing untracked `
 tree remains untouched.
 
 **Commit:** see git log (TC-1).
+## Codex July 2026 Parity — Prompt TC-2 Task read and wait tools — 2026-07-18
+
+**Files changed:** `electron/services/task-query.ts`,
+`electron/services/task-query.test.ts`, `electron/services/task-wait-signal.ts`,
+`electron/services/task-control-tool-pack.ts`, `electron/services/tool-packs.ts`,
+`electron/services/agent-run-notify.ts`, `electron/services/turn-lifecycle-events.ts`,
+`electron/ipc/turn-control.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused task wait, graph, turn lifecycle, turn-control, tool-schema, and lazy-surface
+  suites ✓ (41 tests, 0 skipped)
+
+**Notes:** `list_tasks`, `read_task`, and `wait_tasks` are read-risk native tools over the
+canonical task graph. Wait accepts one to eight cursor-qualified targets, caps timeouts at
+five minutes, propagates cancellation, and subscribes to turn, agent-run, and Steering
+signals without polling SQLite or occupying the main process between events. The tools are
+lazy-discoverable through the existing tool registry and retain its schema and audit path.
+
+**Commit:** see git log (TC-2).

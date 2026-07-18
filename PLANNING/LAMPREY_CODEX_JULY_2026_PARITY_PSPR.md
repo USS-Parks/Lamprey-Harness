@@ -456,7 +456,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-2 — Add list, read, and bounded wait tools**
 
-- [ ] Register `list_tasks`, `read_task`, and `wait_tasks` as read-risk tools. Wait supports
+- [x] Register `list_tasks`, `read_task`, and `wait_tasks` as read-risk tools. Wait supports
       one or many targets, cursors, bounded timeout, cancellation, and Steering wake-up;
       it does not busy-poll or monopolize the main process.
 - Verify: schema coverage, cursor/wake/timeout/cancel tests, lazy-tool discovery tests.

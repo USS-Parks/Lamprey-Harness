@@ -31,6 +31,7 @@ import {
   type TurnId,
   type UpdateFollowUpRequest
 } from '../services/turn-control-types'
+import { notifyTaskChange } from '../services/task-wait-signal'
 
 export type TurnControlEnvelope<T> =
   { success: true; data: T } | { success: false; error: string; rejection?: FollowUpRejection }
@@ -276,6 +277,11 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       if (runtime) {
         try {
           runtime.enqueueSteer(toPendingSteer(created.record, deps.now()))
+          notifyTaskChange({
+            conversationId: created.record.conversationId,
+            entityId: created.record.id,
+            kind: 'steer'
+          })
         } catch (err) {
           const targetDisposition = submission.targetAgentRunId
             ? runtime.classifyAgentTarget(submission.targetAgentRunId)
@@ -497,6 +503,11 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       }
       try {
         runtime.enqueueSteer(toPendingSteer(accepted, deps.now()))
+        notifyTaskChange({
+          conversationId: accepted.conversationId,
+          entityId: accepted.id,
+          kind: 'steer'
+        })
         emit(
           buildFollowUpAuditEvent(accepted, 'accepted', {
             correlationId: runtime.correlationId,

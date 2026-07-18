@@ -298,7 +298,7 @@ CDP observation service, and event/monitor automation triggers.
 - Verify: table-driven validator tests cover all §1 input and rejection shapes; tsc ×2.
 
 #### **ST-2 — Persist turns and follow-ups with migration v21**
-- [ ] Add additive `conversation_turns` and `turn_followups` tables with indexes and exact
+- [x] Add additive `conversation_turns` and `turn_followups` tables with indexes and exact
       input JSON versioning. Preserve ordered Queue positions, client IDs, target IDs,
       status transitions, and recovery metadata. No rewrite of messages or agent tables.
 - Files: `db-migrations.ts`, schema module, store, `schema-init` coverage.

@@ -9,6 +9,7 @@ vi.mock('./rag/vec-loader', () => ({
 }))
 
 import { initLegacySchema } from './schema-init'
+import { LATEST_VERSION, runMigrations } from './db-migrations'
 
 const HAS_NATIVE_SQLITE: boolean = (() => {
   try {
@@ -114,9 +115,9 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('initLegacySchema (PS6)', () => {
   }
 
   function getTableNames(db: Database, type: 'table' | 'trigger'): Set<string> {
-    const rows = db
-      .prepare(`SELECT name FROM sqlite_master WHERE type = ?`)
-      .all(type) as Array<{ name: string }>
+    const rows = db.prepare(`SELECT name FROM sqlite_master WHERE type = ?`).all(type) as Array<{
+      name: string
+    }>
     return new Set(rows.map((r) => r.name).filter((n) => !n.startsWith('sqlite_')))
   }
 
@@ -184,6 +185,19 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('initLegacySchema (PS6)', () => {
     db.close()
   })
 
+  it('hands a fresh legacy schema to all migrations including the turn ledger', () => {
+    const db = freshDb()
+    initLegacySchema(db)
+    const result = runMigrations(db)
+    expect(result.endVersion).toBe(LATEST_VERSION)
+    expect(result.applied).toContain(21)
+    const tables = getTableNames(db, 'table')
+    expect(tables).toContain('conversation_turns')
+    expect(tables).toContain('turn_followups')
+    expect(runMigrations(db).applied).toEqual([])
+    db.close()
+  })
+
   it('preserves CASCADE FK from messages to conversations', () => {
     const db = freshDb()
     db.pragma('foreign_keys = ON')
@@ -195,9 +209,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('initLegacySchema (PS6)', () => {
       'INSERT INTO messages (id, conversation_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)'
     ).run('m1', 'c1', 'user', 'hi', 1)
     db.prepare('DELETE FROM conversations WHERE id = ?').run('c1')
-    const remaining = db
-      .prepare('SELECT COUNT(*) AS c FROM messages')
-      .get() as { c: number }
+    const remaining = db.prepare('SELECT COUNT(*) AS c FROM messages').get() as { c: number }
     expect(remaining.c).toBe(0)
     db.close()
   })

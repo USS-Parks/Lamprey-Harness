@@ -29,9 +29,14 @@ function makeBaselineDb(): Database {
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
   db.exec(`
-    CREATE TABLE conversations (id TEXT PRIMARY KEY);
+    CREATE TABLE conversations (
+      id TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL DEFAULT 0
+    );
     CREATE TABLE messages (id TEXT PRIMARY KEY);
     CREATE TABLE events (id TEXT PRIMARY KEY);
+    CREATE TABLE projects (id TEXT PRIMARY KEY);
+    CREATE TABLE agent_runs (id TEXT PRIMARY KEY);
   `)
   return db
 }
@@ -65,9 +70,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     const result = runMigrations(db)
     expect(result.startVersion).toBe(0)
     expect(result.endVersion).toBe(LATEST_VERSION)
-    expect(result.applied).toEqual(
-      MIGRATIONS.map((m) => m.version).filter((v) => v > 0)
-    )
+    expect(result.applied).toEqual(MIGRATIONS.map((m) => m.version).filter((v) => v > 0))
     expect(db.pragma('user_version', { simple: true })).toBe(LATEST_VERSION)
   })
 
@@ -138,9 +141,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
         // The canary table was rolled back — the v2 transaction died.
         const exists = db
-          .prepare(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'rollback_canary'"
-          )
+          .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'rollback_canary'")
           .get()
         expect(exists).toBeUndefined()
       }
@@ -164,9 +165,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
       CREATE TABLE messages (id TEXT PRIMARY KEY);
       CREATE TABLE events (id TEXT PRIMARY KEY);
     `)
-    expect(() => runMigrations(db)).toThrowError(
-      /baseline table "conversations" is missing/
-    )
+    expect(() => runMigrations(db)).toThrowError(/baseline table "conversations" is missing/)
     expect(db.pragma('user_version', { simple: true })).toBe(0)
   })
 
@@ -176,9 +175,11 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     //   2. inserting a row with NULL proof_status succeeds
     //   3. running the migration again is a no-op (idempotency)
     runMigrations(db)
-    const cols = db
-      .prepare('PRAGMA table_info(messages)')
-      .all() as Array<{ name: string; type: string; notnull: number }>
+    const cols = db.prepare('PRAGMA table_info(messages)').all() as Array<{
+      name: string
+      type: string
+      notnull: number
+    }>
     const proofStatusCol = cols.find((c) => c.name === 'proof_status')
     expect(proofStatusCol, 'messages.proof_status must exist').toBeDefined()
     expect(proofStatusCol?.type).toBe('TEXT')
@@ -187,6 +188,18 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     // Idempotency — second run does not throw.
     const second = runMigrations(db)
     expect(second.applied).toEqual([])
+  })
+
+  it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
+    const result = runMigrations(db)
+    expect(result.endVersion).toBe(21)
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+      .all() as Array<{ name: string }>
+    expect(tables.map((row) => row.name)).toEqual(
+      expect.arrayContaining(['conversation_turns', 'turn_followups'])
+    )
+    expect(runMigrations(db).applied).toEqual([])
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

@@ -1,3 +1,25 @@
+## Codex July 2026 Parity — Prompt ST-2 Persist turns and follow-ups — 2026-07-17
+
+**Files changed:** `electron/services/turn-control-schema.ts`,
+`electron/services/turn-control-store.ts`,
+`electron/services/turn-control-db-integration.test.ts`,
+`electron/services/turn-control-store.test.ts`, `electron/services/db-migrations.ts`,
+`electron/services/db-migrations.test.ts`, `electron/services/schema-init.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- node:sqlite `turn-control-db-integration.test.ts` ✓ (8 tests, 0 skipped)
+- Electron ABI-148 native store/migration/schema-init suites ✓ (26 tests, 0 skipped)
+
+**Notes:** Migration v21 adds additive turn and follow-up ledgers with versioned ordered
+input JSON, one-running-turn and queue-position constraints, client-message dedupe,
+attribution, terminal dispositions, cascade cleanup, and restart recovery that leaves Queue
+rows ordered. Running the old migration suite under the correct native ABI exposed a stale
+minimal fixture; its legacy baseline now includes the columns/tables required by v11–v20.
+
+**Commit:** see git log (ST-2).
+
 ## Codex July 2026 Parity — Prompt ST-1 Define turn contracts — 2026-07-17
 
 **Files changed:** `electron/services/turn-control-types.ts`,

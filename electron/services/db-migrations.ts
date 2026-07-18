@@ -4,6 +4,7 @@ import { applyProofReceiptSchema } from './proof-receipt-schema'
 import { applyFailureLedgerSchema } from './failure-ledger-schema'
 import { LOOP_SCHEMA_SQL } from './loop-schema'
 import { AGENT_IDENTITY_SCHEMA_SQL } from './agent-identity-schema'
+import { TURN_CONTROL_SCHEMA_SQL } from './turn-control-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -248,6 +249,13 @@ export const MIGRATIONS: Migration[] = [
       }
       safeAdd('agent_runs', 'tokens_est INTEGER NOT NULL DEFAULT 0')
       safeAdd('agent_runs', 'tool_calls INTEGER NOT NULL DEFAULT 0')
+    }
+  },
+  {
+    version: 21,
+    description: 'Codex July parity ST-2 — durable conversation_turns and turn_followups ledgers',
+    up(db) {
+      db.exec(TURN_CONTROL_SCHEMA_SQL)
     }
   }
 ]

@@ -588,7 +588,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **PR-2 — Add PR inspection tools**
 
-- [ ] Register read tools for PR summary, files, diff hunks, checks, comments, and patch
+- [x] Register read tools for PR summary, files, diff hunks, checks, comments, and patch
       inspection using existing GitHub service/auth. Tool results spill through the normal
       large-result valve.
 - Verify: schemas, pagination, redaction, stale/permission/network error tests.

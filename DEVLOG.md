@@ -9318,3 +9318,24 @@ bootstrap table existed; v27 now creates the canonical table when absent and ide
 extends older tables. No GitHub write surface was added in PR-1.
 
 **Commit:** see git log (PR-1).
+
+## Codex July 2026 Parity — Prompt PR-2 PR inspection tools — 2026-07-18
+
+**Files changed:** `electron/services/pr-chat-tool-pack.ts`,
+`electron/services/pr-chat-tool-pack.test.ts`, `electron/services/tool-packs.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- strict schema, pagination, stale guard, redaction, network/permission error, and normal
+  spill-valve cohort ✓ (4 files, 28 tests, 0 skipped)
+
+**Notes:** Six lazy native tools now inspect the active conversation's bound PR: summary,
+files, one-path diff hunks, checks, review comments, and patch metadata. All are read-only,
+parallelizable network tools with strict schemas and no approval prompt. They reuse PR-1's
+repository/SHA guards and the chat dispatcher's existing large-result spill valve.
+Credential-shaped text in PR bodies, comments, and patches is redacted before model delivery;
+permission and network failures surface once without an implicit retry.
+
+**Commit:** see git log (PR-2).

@@ -8868,3 +8868,21 @@ anything is genuinely missing.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+## Codex July 2026 Parity — Prompt TC-1 Canonical task graph — 2026-07-18
+
+**Files changed:** `electron/services/task-graph.ts`,
+`electron/services/task-graph.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused graph construction, ownership, cycle-defense, filtering, and cursor tests ✓
+  (4 tests, 0 skipped)
+
+**Notes:** The task graph is a read model, not a replacement store. Conversations,
+forks, agent runs, identities, and turns retain their canonical persistence while the graph
+assigns stable typed node IDs, direct and root conversation ownership, status, bounded
+cursor pagination, and cycle-safe descendant traversal. The existing untracked `.agents/`
+tree remains untouched.
+
+**Commit:** see git log (TC-1).

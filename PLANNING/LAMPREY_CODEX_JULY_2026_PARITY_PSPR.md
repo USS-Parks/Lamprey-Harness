@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M1 RELEASED AS IMPLEMENTATION-COMPLETE; PAIRED PARITY EVIDENCE OPEN**
+**Status:** **M2 STS IN PROGRESS; M1 RELEASED WITH PAIRED PARITY EVIDENCE OPEN**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -186,6 +186,8 @@ evidence is unavailable, M1 may be labeled implementation-complete but not parit
 
 - **APPROVED FOR M0 + M1** — STS began 2026-07-17. Execute CJP-0 and ST-1
   through ST-12 sequentially, one gated prompt/commit at a time. Stop before M2.
+- **APPROVED FOR M2** — STS began 2026-07-18. Execute TC-1 through TC-7
+  sequentially, release v0.21.0, update governance, push, and run Bucket.
 
 ---
 
@@ -447,7 +449,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **TC-1 — Define the canonical task graph**
 
-- [ ] Add one read model spanning conversations, parent/child conversation forks,
+- [x] Add one read model spanning conversations, parent/child conversation forks,
       `agent_runs`, identities, and turn lineage without merging their storage semantics.
       Define descendant traversal, cursoring, status, and ownership.
 - Verify: graph construction/cycle-defense/pagination tests; tsc ×2.
@@ -810,6 +812,17 @@ Decisions: 1 = one enhancement at a time, interpreted conservatively as CJP-0 on
   2-8 = unresolved and not consumed by CJP-0; untracked AGENTS.md and .agents/ remain
   untouched; push is not authorized.
 STS instruction: "C:\Users\17076\Documents\Claude\Lamprey Harness\PLANNING\LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md" Approved to run STS. Only ONE enhancement at a time.
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+```text
+APPROVED: 2026-07-18 (M2 task-control tranche)
+Milestones: M2 / TC-1 through TC-7; stop before M3.
+Decisions: release v0.21.0; update all governance documents; commit and push the
+  completed milestone; run Bucket to update R2, GitHub release artifacts, and CDN.
+  Existing untracked .agents/ remains preserved and unstaged.
+STS instruction: "Run the next major session STS. When complete, release v0.21.0 and
+  update all governance docs, and Bucket to update R2, etc."
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
 

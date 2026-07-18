@@ -9107,3 +9107,31 @@ bundle smokes passing. The earlier Electron-native migration/schema receipt rema
 The owner task-control GUI playbook remains `USER-VERIFICATION-NEEDED`; M3 is not started.
 
 **Commit:** see git log (v0.21.0 publication receipt).
+
+## Codex July 2026 Parity — Prompt VA-1 Artifact identity and revision persistence — 2026-07-18
+
+**Files changed:** `electron/services/artifact-schema.ts`,
+`electron/services/artifact-store.ts`, `electron/services/artifact-schema-db-integration.test.ts`,
+`electron/services/artifact-store.test.ts`, `electron/services/db-migrations.ts`,
+`electron/services/db-migrations.test.ts`, `electron/ipc/artifact.ts`,
+`electron/services/research-artifacts-store.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- node:sqlite exact-schema, native store, migration, and research regression cohort ✓
+  (4 files, 34 tests, 0 skipped under Electron's matching native ABI)
+
+**Notes:** Migration v24 adds additive artifact, immutable revision, and revision-bound
+annotation ledgers with typed sandbox policy, export metadata, live conversation/message
+references, and immutable provenance snapshots. Existing `messages.documents` JSON is
+backfilled deterministically without being rewritten; malformed legacy JSON remains
+untouched. Research Markdown files remain canonical and mirror best-effort into the ledger.
+The existing two-argument artifact preview remains compatible while its process-local source
+is mirrored idempotently by type and content hash. Transcript deletion nulls live links but
+retains artifact revisions, annotations, and original provenance. The normal Node test ABI
+skips native `better-sqlite3`; the focused cohort was therefore rerun through Electron 43 and
+all native tests executed.
+
+**Commit:** see git log (VA-1).

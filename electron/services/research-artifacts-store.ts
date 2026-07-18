@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { mirrorLegacyResearchArtifact } from './artifact-store'
 
 // In-memory manifest of research artifacts on disk.
 //
@@ -28,6 +29,24 @@ const FILENAME_RE = /^research-(.+)-(\d+)\.md$/
 const manifest = new Map<string, ResearchArtifactEntry>()
 let inited = false
 
+function mirrorEntry(entry: ResearchArtifactEntry): void {
+  try {
+    if (!existsSync(entry.path)) return
+    const content = readFileSync(entry.path, 'utf-8')
+    mirrorLegacyResearchArtifact({
+      filename: entry.filename,
+      question: entry.question,
+      content,
+      createdAt: entry.createdAt,
+      sizeBytes: entry.sizeBytes
+    })
+  } catch (err) {
+    // The Markdown file remains canonical. A DB/read-only failure must not
+    // invalidate the existing research list/open/download behavior.
+    console.warn('[research-artifacts] durable mirror unavailable:', err)
+  }
+}
+
 function defaultDir(): string {
   return join(app.getPath('userData'), 'artifacts', 'research')
 }
@@ -46,17 +65,23 @@ export function initResearchArtifactStore(dirOverride?: string): void {
     if (!m) continue
     const full = join(dir, entry)
     let st
-    try { st = statSync(full) } catch { continue }
+    try {
+      st = statSync(full)
+    } catch {
+      continue
+    }
     const question = m[1].replace(/-/g, ' ')
     const createdAt = Number.parseInt(m[2], 10)
-    manifest.set(entry, {
+    const record: ResearchArtifactEntry = {
       runId: entry, // filename is the stable key; no separate runId on disk
       filename: entry,
       path: full,
       question,
       createdAt: Number.isFinite(createdAt) ? createdAt : st.mtimeMs,
       sizeBytes: st.size
-    })
+    }
+    manifest.set(entry, record)
+    mirrorEntry(record)
   }
 }
 
@@ -64,7 +89,13 @@ export function initResearchArtifactStore(dirOverride?: string): void {
  * Register a freshly-written artifact. Called by the orchestrator after
  * writing the `.md` file.
  */
-export function registerArtifact(filename: string, fullPath: string, question: string, sizeBytes: number, createdAt: number): ResearchArtifactEntry {
+export function registerArtifact(
+  filename: string,
+  fullPath: string,
+  question: string,
+  sizeBytes: number,
+  createdAt: number
+): ResearchArtifactEntry {
   const entry: ResearchArtifactEntry = {
     runId: filename,
     filename,
@@ -74,6 +105,7 @@ export function registerArtifact(filename: string, fullPath: string, question: s
     sizeBytes
   }
   manifest.set(filename, entry)
+  mirrorEntry(entry)
   return entry
 }
 
@@ -82,7 +114,9 @@ export function listResearchArtifacts(): ResearchArtifactEntry[] {
   return Array.from(manifest.values()).sort((a, b) => b.createdAt - a.createdAt)
 }
 
-export function readResearchArtifact(filename: string): { entry: ResearchArtifactEntry; content: string } | null {
+export function readResearchArtifact(
+  filename: string
+): { entry: ResearchArtifactEntry; content: string } | null {
   initResearchArtifactStore()
   const entry = manifest.get(filename)
   if (!entry) return null
@@ -106,9 +140,16 @@ export function readResearchArtifact(filename: string): { entry: ResearchArtifac
 export function downloadResearchArtifact(filename: string, destPath: string): boolean {
   const r = readResearchArtifact(filename)
   if (!r) return false
-  const destDir = destPath.slice(0, destPath.lastIndexOf('\\') !== -1 ? destPath.lastIndexOf('\\') : destPath.lastIndexOf('/'))
+  const destDir = destPath.slice(
+    0,
+    destPath.lastIndexOf('\\') !== -1 ? destPath.lastIndexOf('\\') : destPath.lastIndexOf('/')
+  )
   if (destDir && !existsSync(destDir)) {
-    try { mkdirSync(destDir, { recursive: true }) } catch { /* ignore */ }
+    try {
+      mkdirSync(destDir, { recursive: true })
+    } catch {
+      /* ignore */
+    }
   }
   try {
     writeFileSync(destPath, r.content, 'utf-8')

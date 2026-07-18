@@ -7,6 +7,7 @@ import { AGENT_IDENTITY_SCHEMA_SQL } from './agent-identity-schema'
 import { TURN_CONTROL_SCHEMA_SQL } from './turn-control-schema'
 import { FORK_TURN_SCHEMA_SQL } from './fork-turn-schema'
 import { TASK_LIFECYCLE_SCHEMA_SQL } from './task-lifecycle-schema'
+import { applyArtifactSchema } from './artifact-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -288,6 +289,15 @@ export const MIGRATIONS: Migration[] = [
             ON conversations(closed_at);
         `)
       }
+    }
+  },
+  {
+    version: 24,
+    description:
+      'Codex July parity VA-1 — persistent artifact identities, revisions, annotations, ' +
+      'and additive legacy document backfill',
+    up(db) {
+      applyArtifactSchema(db)
     }
   }
 ]

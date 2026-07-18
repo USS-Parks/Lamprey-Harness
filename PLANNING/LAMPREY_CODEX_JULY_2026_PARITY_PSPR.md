@@ -496,7 +496,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **VA-1 — Persist artifact identities and revisions**
 
-- [ ] Add additive artifact/revision/annotation storage with conversation/message provenance,
+- [x] Add additive artifact/revision/annotation storage with conversation/message provenance,
       type, sandbox policy, current revision, and export metadata; migrate current ephemeral
       source without invalidating existing document/research artifacts.
 - Verify: node:sqlite exact-schema tests, native store tests RUN, retention/provenance tests.
@@ -823,6 +823,15 @@ Decisions: release v0.21.0; update all governance documents; commit and push the
   Existing untracked .agents/ remains preserved and unstaged.
 STS instruction: "Run the next major session STS. When complete, release v0.21.0 and
   update all governance docs, and Bucket to update R2, etc."
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+```text
+APPROVED: 2026-07-18 (M3 visualization/artifact tranche)
+Milestones: M3 / VA-1 through VA-6; execute sequentially with one focused commit per prompt.
+Publication: not authorized by this instruction; stop after the local M3 wrap unless separately
+  directed to push, release, or run Bucket.
+STS instruction: "Continue STS: M3 — Inline visualizations and direct artifact editing"
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
 

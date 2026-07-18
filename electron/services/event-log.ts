@@ -41,6 +41,19 @@ export const EVENT_TYPES = [
   'chat.cancelled',
   'chat.error',
 
+  // Codex July parity ST-10: turn/follow-up disposition audit. Payloads are
+  // metadata-only and never include input text, attachment bytes, or paths.
+  'turn.followup.accepted',
+  'turn.followup.queued',
+  'turn.followup.edited',
+  'turn.followup.reordered',
+  'turn.followup.delivered',
+  'turn.followup.rejected',
+  'turn.followup.deleted',
+  'turn.followup.recovered',
+  'turn.interrupted',
+  'turn.recovered',
+
   // Track 2 / E1 — session chapter marker. Emitted by the chapters store
   // every time a row is inserted via the `mark_chapter` tool or the
   // `session:markChapter` IPC. Plan §2 invariant 10.
@@ -600,9 +613,7 @@ export function getEvent(id: string): EventRecord | null {
   if (dbAvailable()) {
     try {
       const db = getDb()
-      const row = db.prepare(`SELECT * FROM events WHERE id = ?`).get(id) as
-        | EventRow
-        | undefined
+      const row = db.prepare(`SELECT * FROM events WHERE id = ?`).get(id) as EventRow | undefined
       return row ? rowToEvent(row) : null
     } catch (err: any) {
       activateFallback(err)
@@ -670,8 +681,7 @@ function buildListQuery(filter: EventFilter): BuiltQuery {
   const order = filter.order === 'asc' ? 'ASC' : 'DESC'
   const limit = clampLimit(filter.limit)
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
-  const sql =
-    `SELECT * FROM events ${whereClause} ORDER BY created_at ${order} LIMIT ?`.trim()
+  const sql = `SELECT * FROM events ${whereClause} ORDER BY created_at ${order} LIMIT ?`.trim()
   params.push(limit)
   return { sql, params }
 }
@@ -717,9 +727,7 @@ export function listEvents(filter: EventFilter = {}): EventRecord[] {
   const order = filter.order === 'asc' ? 'asc' : 'desc'
   const limit = clampLimit(filter.limit)
   const matched = memoryFallback.filter((e) => eventMatchesFilter(e, filter))
-  matched.sort((a, b) =>
-    order === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt
-  )
+  matched.sort((a, b) => (order === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt))
   return matched.slice(0, limit)
 }
 

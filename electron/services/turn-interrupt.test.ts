@@ -70,7 +70,7 @@ describe('ST-7 turn-aware interrupt', () => {
     expect(h.events).toHaveLength(1)
     expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'interrupted', persisted: true }])
     expect(h.events[0]).toMatchObject({
-      type: 'chat.cancelled',
+      type: 'turn.interrupted',
       entityKind: 'turn',
       entityId: 'turn-1',
       payload: {

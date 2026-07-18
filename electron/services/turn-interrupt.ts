@@ -145,7 +145,7 @@ export function createTurnInterruptAction(deps: TurnInterruptDependencies) {
 
     try {
       deps.record({
-        type: 'chat.cancelled',
+        type: 'turn.interrupted',
         actorKind: 'user',
         severity: 'warning',
         conversationId: runtime.conversationId,
@@ -163,7 +163,7 @@ export function createTurnInterruptAction(deps: TurnInterruptDependencies) {
         }
       })
     } catch (error) {
-      deps.reportError('[turn-interrupt] chat.cancelled event failed', error)
+      deps.reportError('[turn-interrupt] turn.interrupted event failed', error)
     }
 
     return {

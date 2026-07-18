@@ -369,7 +369,7 @@ CDP observation service, and event/monitor automation triggers.
   tests, build + renderer smoke, CJP smoke cases; tsc ×2.
 
 #### **ST-10 — Complete turn activity and audit truth**
-- [ ] Add bounded events for every §1 disposition and show accepted/delivered/queued/rejected
+- [x] Add bounded events for every §1 disposition and show accepted/delivered/queued/rejected
       progress without duplicate user bubbles. Activity items carry IDs/status/counts, never
       attachment bytes, secrets, or raw local paths beyond existing redaction policy.
 - Files: event log/types, ActivityFeed/tool activity components, tests.

@@ -1,8 +1,4 @@
-import type {
-  EventRecord,
-  EventSeverity,
-  EventType
-} from './types'
+import type { EventRecord, EventSeverity, EventType } from './types'
 
 // Pure presentation helpers for Activity Timeline rows. Lives in `src/lib`
 // (not in a component) so the helpers can be exercised by vitest in node-env
@@ -25,6 +21,16 @@ const TYPE_LABELS: Record<EventType, string> = {
   'model.request.failed': 'Model error',
   'chat.cancelled': 'Chat cancelled',
   'chat.error': 'Chat error',
+  'turn.followup.accepted': 'Steering accepted',
+  'turn.followup.queued': 'Follow-up queued',
+  'turn.followup.edited': 'Follow-up edited',
+  'turn.followup.reordered': 'Queue reordered',
+  'turn.followup.delivered': 'Steering delivered',
+  'turn.followup.rejected': 'Steering rejected',
+  'turn.followup.deleted': 'Follow-up deleted',
+  'turn.followup.recovered': 'Follow-up recovered',
+  'turn.interrupted': 'Turn interrupted',
+  'turn.recovered': 'Turn state recovered',
   'chat.chapter.marked': 'Chapter marked',
   'chat.compressed': 'Context compressed',
   'workspace.changed': 'Workspace changed',
@@ -111,7 +117,7 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
     case 'agent.stage.failed': {
       const role = typeof p.role === 'string' ? p.role : undefined
       const model = typeof p.model === 'string' ? p.model : undefined
-      s = role && model ? `${role} · ${model}` : role ?? null
+      s = role && model ? `${role} · ${model}` : (role ?? null)
       break
     }
     case 'workspace.changed': {
@@ -135,7 +141,7 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
     case 'automation.failed': {
       const label = typeof p.label === 'string' ? p.label : undefined
       const model = typeof p.model === 'string' ? p.model : undefined
-      s = label && model ? `${label} · ${model}` : label ?? model ?? null
+      s = label && model ? `${label} · ${model}` : (label ?? model ?? null)
       break
     }
     case 'loop.wakeup.scheduled':
@@ -178,26 +184,20 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
     case 'rag.ingest.started':
     case 'rag.ingest.completed':
     case 'rag.ingest.failed': {
-      const displayName =
-        typeof p.displayName === 'string' ? p.displayName : undefined
+      const displayName = typeof p.displayName === 'string' ? p.displayName : undefined
       const chunkCount = typeof p.chunkCount === 'number' ? p.chunkCount : undefined
       s =
         displayName && chunkCount !== undefined
           ? `${displayName} (${chunkCount} chunks)`
-          : displayName ?? null
+          : (displayName ?? null)
       break
     }
     case 'rag.query.completed':
     case 'rag.query.failed':
     case 'rag.rerank.completed': {
-      const preview =
-        typeof p.queryPreview === 'string' ? p.queryPreview : undefined
-      const fusedCount =
-        typeof p.fusedCount === 'number' ? p.fusedCount : undefined
-      s =
-        preview && fusedCount !== undefined
-          ? `${preview} → ${fusedCount}`
-          : preview ?? null
+      const preview = typeof p.queryPreview === 'string' ? p.queryPreview : undefined
+      const fusedCount = typeof p.fusedCount === 'number' ? p.fusedCount : undefined
+      s = preview && fusedCount !== undefined ? `${preview} → ${fusedCount}` : (preview ?? null)
       break
     }
     case 'persistence.checkpoint':
@@ -214,7 +214,10 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
     case 'conversation.seed.truncated': {
       const seedKind = typeof p.seedKind === 'string' ? p.seedKind : undefined
       const seedBytes = typeof p.seedBytes === 'number' ? p.seedBytes : undefined
-      s = seedKind && seedBytes !== undefined ? `${seedKind} (${seedBytes} bytes)` : seedKind ?? null
+      s =
+        seedKind && seedBytes !== undefined
+          ? `${seedKind} (${seedBytes} bytes)`
+          : (seedKind ?? null)
       break
     }
     case 'proof.receipt.created':
@@ -226,6 +229,38 @@ export function eventSubtitle(event: EventRecord, maxChars = 120): string | null
       const status = typeof p.status === 'string' ? p.status : undefined
       const kind = typeof p.kind === 'string' ? p.kind : undefined
       s = [id, kind, status].filter((part): part is string => Boolean(part)).join(' · ') || null
+      break
+    }
+    case 'turn.followup.accepted':
+    case 'turn.followup.queued':
+    case 'turn.followup.edited':
+    case 'turn.followup.reordered':
+    case 'turn.followup.delivered':
+    case 'turn.followup.rejected':
+    case 'turn.followup.deleted':
+    case 'turn.followup.recovered': {
+      const followUpId = typeof p.followUpId === 'string' ? p.followUpId : undefined
+      const ids = Array.isArray(p.followUpIds) ? (p.followUpIds as unknown[]) : []
+      const count = typeof p.count === 'number' ? p.count : ids.length || undefined
+      const status = typeof p.disposition === 'string' ? p.disposition : undefined
+      s = followUpId
+        ? [status, followUpId.slice(0, 8)].filter(Boolean).join(' · ')
+        : count !== undefined
+          ? `${status ?? 'updated'} · ${count} item${count === 1 ? '' : 's'}`
+          : (status ?? null)
+      break
+    }
+    case 'turn.interrupted':
+    case 'turn.recovered': {
+      const turnId = typeof p.turnId === 'string' ? p.turnId : undefined
+      const recoveredTurns = typeof p.recoveredTurns === 'number' ? p.recoveredTurns : undefined
+      const recoveredFollowUps =
+        typeof p.recoveredFollowUps === 'number' ? p.recoveredFollowUps : undefined
+      s = turnId
+        ? turnId.slice(0, 8)
+        : recoveredTurns !== undefined || recoveredFollowUps !== undefined
+          ? `${recoveredTurns ?? 0} turns · ${recoveredFollowUps ?? 0} follow-ups`
+          : null
       break
     }
     case 'chat.cancelled':
@@ -335,8 +370,6 @@ export function groupEventsByCorrelation(
       events: bucket
     })
   }
-  groups.sort((a, b) =>
-    order === 'asc' ? a.startedAt - b.startedAt : b.startedAt - a.startedAt
-  )
+  groups.sort((a, b) => (order === 'asc' ? a.startedAt - b.startedAt : b.startedAt - a.startedAt))
   return groups
 }

@@ -23,6 +23,7 @@ import type {
   TurnId,
   TurnInputItem
 } from '../services/turn-control-types'
+import type { RecordEventInput } from '../services/event-log'
 
 class FakeStore implements TurnControlStoreLike {
   records = new Map<string, FollowUpRecord>()
@@ -160,13 +161,15 @@ function makeHarness() {
   const runtimes = new TurnRuntimeRegistry({ createTurn: () => null, settleTurn: () => true })
   let now = 100
   let id = 0
+  const events: RecordEventInput[] = []
   const deps: TurnControlDependencies = {
     store,
     runtimes,
     now: () => now++,
-    newId: () => `follow-up-${++id}` as FollowUpId
+    newId: () => `follow-up-${++id}` as FollowUpId,
+    record: (event) => events.push(event)
   }
-  return { store, runtimes, deps, actions: createTurnControlActions(deps) }
+  return { store, runtimes, deps, events, actions: createTurnControlActions(deps) }
 }
 
 function submission(
@@ -196,7 +199,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
   beforeEach(() => electronMocks.handle.mockClear())
 
   it('accepts a validated Steer, persists it once, and retains ordered input in the inbox', () => {
-    const { actions, runtimes, store } = makeHarness()
+    const { actions, runtimes, store, events } = makeHarness()
     const runtime = runtimes.register({
       conversationId: 'conversation-1',
       correlationId: 'correlation-1',
@@ -212,6 +215,15 @@ describe('ST-4 typed Steering and Queue actions', () => {
     expect(store.createCalls).toBe(1)
     expect(runtime.pendingSteers).toHaveLength(1)
     expect(runtime.pendingSteers[0]?.input).toEqual(submission('steer').input)
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'turn.followup.accepted',
+        entityId: 'follow-up-1',
+        payload: expect.objectContaining({ inputItemCount: 2, inputTypes: ['text', 'localImage'] })
+      })
+    )
+    expect(JSON.stringify(events)).not.toContain('C:\\tmp\\image.png')
+    expect(JSON.stringify(events)).not.toContain('first')
   })
 
   it.each([
@@ -231,6 +243,25 @@ describe('ST-4 typed Steering and Queue actions', () => {
     const result = actions.steer(submission('steer', { expectedTurnId: expectedTurnId as TurnId }))
     expect(result).toMatchObject({ success: false, rejection: { reason } })
     expect(store.createCalls).toBe(0)
+  })
+
+  it('audits a pre-persistence rejection without logging submitted content', () => {
+    const { actions, events } = makeHarness()
+    const result = actions.steer(submission('steer', { clientUserMessageId: 'client-1' as any }))
+    expect(result).toMatchObject({ success: false, rejection: { reason: 'noActiveTurn' } })
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'turn.followup.rejected',
+        entityId: 'client-1',
+        payload: expect.objectContaining({
+          disposition: 'rejected',
+          rejectionReason: 'noActiveTurn',
+          inputItemCount: 2
+        })
+      })
+    )
+    expect(JSON.stringify(events)).not.toContain('C:\\tmp\\image.png')
+    expect(JSON.stringify(events)).not.toContain('first')
   })
 
   it('rejects unsupported input and settings overrides before persistence', () => {
@@ -319,7 +350,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
   })
 
   it('queues deterministically without an active runtime and enforces channel mode', () => {
-    const { actions } = makeHarness()
+    const { actions, events } = makeHarness()
     expect(actions.queue(submission('queue'))).toMatchObject({
       success: true,
       data: { followUp: { status: 'queued', position: 0 } }
@@ -337,7 +368,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
   })
 
   it('lists, edits, reorders, and deletes owned queued records', () => {
-    const { actions } = makeHarness()
+    const { actions, events } = makeHarness()
     actions.queue(submission('queue'))
     actions.queue(submission('queue', { input: [{ type: 'text', text: 'second' }] }))
 
@@ -367,6 +398,13 @@ describe('ST-4 typed Steering and Queue actions', () => {
     expect(
       actions.deleteFollowUp({ conversationId: 'conversation-1', followUpId: 'follow-up-1' })
     ).toMatchObject({ success: true, data: { status: 'deleted' } })
+    expect(events.map((event) => event.type)).toEqual([
+      'turn.followup.queued',
+      'turn.followup.queued',
+      'turn.followup.edited',
+      'turn.followup.reordered',
+      'turn.followup.deleted'
+    ])
   })
 
   it('hydrates one conversation snapshot with active identity and ordered follow-ups', () => {
@@ -489,7 +527,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
     )
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'persistence.recovery',
+        type: 'turn.recovered',
         payload: expect.objectContaining({ recoveredTurns: 2, recoveredFollowUps: 3 })
       })
     )

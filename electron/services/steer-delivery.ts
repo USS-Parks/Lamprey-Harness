@@ -9,6 +9,7 @@ import {
   type SteerBoundaryResult
 } from './steer-transcript'
 import { TurnControlStore } from './turn-control-store'
+import { recordFollowUpAuditEvent } from './turn-control-events'
 import type { TurnRuntime } from './turn-runtime'
 
 export type { SteerBoundaryResult } from './steer-transcript'
@@ -52,12 +53,18 @@ export async function consumeSteersAtBoundary(
           })
         })
         commit()
+        recordFollowUpAuditEvent(followUp, 'delivered', {
+          correlationId: runtime.correlationId
+        })
         return { message, followUp }
       },
       reject: (steer, reason) => {
-        store.transitionFollowUp(steer.followUpId, 'rejected', Date.now(), {
+        const rejected = store.transitionFollowUp(steer.followUpId, 'rejected', Date.now(), {
           rejectionReason: 'invalidInput',
           rejectionMessage: reason
+        })
+        recordFollowUpAuditEvent(rejected, 'rejected', {
+          correlationId: runtime.correlationId
         })
       },
       emit: (input) => {
@@ -81,8 +88,11 @@ export function recoverPendingRuntimeSteers(runtime: TurnRuntime, reason: string
   return recoverUndeliveredSteers(
     runtime,
     (steer, recoveryReason) => {
-      store.transitionFollowUp(steer.followUpId, 'recovered', Date.now(), {
+      const recovered = store.transitionFollowUp(steer.followUpId, 'recovered', Date.now(), {
         recoveryReason
+      })
+      recordFollowUpAuditEvent(recovered, 'recovered', {
+        correlationId: runtime.correlationId
       })
     },
     reason
@@ -100,8 +110,16 @@ export function recoverTargetSteers(
   let recovered = 0
   for (let index = 0; index < pending.length; index += 1) {
     try {
-      store.transitionFollowUp(pending[index].followUpId, 'recovered', Date.now(), {
-        recoveryReason: reason
+      const recoveredRecord = store.transitionFollowUp(
+        pending[index].followUpId,
+        'recovered',
+        Date.now(),
+        {
+          recoveryReason: reason
+        }
+      )
+      recordFollowUpAuditEvent(recoveredRecord, 'recovered', {
+        correlationId: runtime.correlationId
       })
       recovered += 1
     } catch (err) {

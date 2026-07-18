@@ -44,7 +44,7 @@ describe('ST-7 interrupt and recovery wiring contract', () => {
       control.indexOf('export interface TurnControlDependencies')
     )
     expect(recovery).toContain('store.recoverOrphans(recoveredAt, reason)')
-    expect(recovery).toContain("type: 'persistence.recovery'")
+    expect(recovery).toContain("type: 'turn.recovered'")
     expect(control).toMatch(
       /if \(productionStore\) recoverTurnControlOnStartup\(productionStore, Date\.now\(\)\)\s*\n\s*const actions/
     )

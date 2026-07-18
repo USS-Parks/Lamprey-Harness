@@ -8650,3 +8650,43 @@ Every renderer action uses the typed turn-control IPC and rehydrates the durable
 there is no alternate provider or ordinary-send path.
 
 **Commit:** see git log (ST-9).
+
+## Codex July 2026 Parity - Prompt ST-10 Turn activity and audit truth - 2026-07-18
+
+**Files changed:** `electron/ipc/turn-control.ts`,
+`electron/ipc/turn-control.test.ts`, `electron/ipc/turn-interrupt-wiring.test.ts`,
+`electron/services/event-log.ts`, `electron/services/steer-delivery.ts`,
+`electron/services/turn-control-events.ts`,
+`electron/services/turn-control-events.test.ts`,
+`electron/services/turn-control-audit-wiring.test.ts`,
+`electron/services/turn-interrupt.ts`, `electron/services/turn-interrupt.test.ts`,
+`src/components/chat/ToolActivityChip.tsx`, `src/lib/event-presentation.ts`,
+`src/lib/event-presentation.test.ts`, `src/lib/follow-up-activity.ts`,
+`src/lib/follow-up-activity.test.ts`, `src/lib/types.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- lint OK
+- tsc node OK
+- tsc web OK
+- focused event-order/payload/redaction/turn-control/UI wiring regressions OK
+  (89 tests, 0 skipped)
+- production build OK
+- bundle smoke OK
+- renderer smoke OK
+- `verify:proof -- --no-tests` OK; native better-sqlite3 cohort available
+- user-verification-needed: inspect the consolidated activity popover and Settings Activity
+  Timeline during the ST-11 Codex/Lamprey desktop replay
+
+**Notes:** Added metadata-only event types for accepted, queued, edited, reordered,
+delivered, rejected, deleted, recovered, interrupted, and startup-recovered turn state.
+Validated pre-persistence rejections emit only bounded identifiers, known input-type names,
+and counts. Persisted follow-up events carry lineage and final disposition but never input
+text, data URLs, attachment bytes, filenames, MIME values, or local paths. Lists are capped
+at 64 items before the event log's existing 16 KiB serialization cap and secret-key
+redaction. Event-write failures remain non-fatal to the real turn-control action. The
+existing consolidated tool-activity chip now includes a 20-row, newest-first follow-up
+status section with short IDs and input counts; it does not write transcript messages.
+The read-only Activity Timeline presents the new durable event types and their bounded
+subtitles.
+
+**Commit:** see git log (ST-10).

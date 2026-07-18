@@ -11,6 +11,12 @@ import { interruptTurn } from '../services/turn-interrupt'
 import { nextTurnControlRevision } from '../services/turn-lifecycle-events'
 import { turnRuntimeRegistry, type PendingSteer, type TurnRuntime } from '../services/turn-runtime'
 import {
+  buildFollowUpAuditEvent,
+  buildQueueReorderedEvent,
+  buildSubmissionRejectedEvent,
+  tryRecordTurnControlEvent
+} from '../services/turn-control-events'
+import {
   validateFollowUpSubmission,
   validateTurnInputItems,
   type DeleteFollowUpRequest,
@@ -65,7 +71,7 @@ export function recoverTurnControlOnStartup(
   const recovered = store.recoverOrphans(recoveredAt, reason)
   if (recovered.turns > 0 || recovered.followUps > 0) {
     record({
-      type: 'persistence.recovery',
+      type: 'turn.recovered',
       actorKind: 'system',
       severity: 'warning',
       entityKind: 'turn-control',
@@ -90,6 +96,8 @@ export interface TurnControlDependencies {
   runtimes: TurnRuntimeRegistryLike
   now: () => number
   newId: () => FollowUpId
+  record?: (input: RecordEventInput) => unknown
+  reportError?: (message: string, error: unknown) => void
 }
 
 const MAX_ID_LENGTH = 256
@@ -176,15 +184,30 @@ function toPendingSteer(record: FollowUpRecord, receivedAt: number): PendingStee
 }
 
 export function createTurnControlActions(deps: TurnControlDependencies) {
+  function emit(input: RecordEventInput): void {
+    if (!deps.record) return
+    tryRecordTurnControlEvent(input, deps.record, deps.reportError)
+  }
+
   function submit(
     raw: unknown,
     expectedMode: 'steer' | 'queue'
   ): TurnControlEnvelope<{ followUp: FollowUpRecord; duplicate: boolean }> {
+    const rejectSubmission = (
+      rejection: FollowUpRejection
+    ): TurnControlEnvelope<{ followUp: FollowUpRecord; duplicate: boolean }> => {
+      emit(buildSubmissionRejectedEvent(raw, expectedMode, rejection))
+      return failed(rejection)
+    }
     const validated = validateFollowUpSubmission(raw)
-    if (!validated.ok) return failed(validated.rejection)
+    if (!validated.ok) return rejectSubmission(validated.rejection)
     const submission = validated.value
     if (submission.deliveryMode !== expectedMode) {
-      return invalid(`turn:${expectedMode} requires deliveryMode ${expectedMode}`, 'deliveryMode')
+      return rejectSubmission({
+        reason: 'invalidInput',
+        message: `turn:${expectedMode} requires deliveryMode ${expectedMode}`,
+        field: 'deliveryMode'
+      })
     }
 
     if (submission.clientUserMessageId) {
@@ -194,7 +217,7 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       )
       if (existing) {
         if (!requestMatchesRecord(submission, existing)) {
-          return failed({
+          return rejectSubmission({
             reason: 'duplicateClientMessage',
             message: 'clientUserMessageId is already bound to a different follow-up.'
           })
@@ -209,10 +232,10 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
         submission.conversationId,
         submission.expectedTurnId!
       )
-      if (!guarded.ok) return failed(guarded.rejection)
+      if (!guarded.ok) return rejectSubmission(guarded.rejection)
       runtime = deps.runtimes.lookupActive(submission.conversationId)
       if (!runtime || runtime.turnId !== guarded.turn.turnId) {
-        return failed({
+        return rejectSubmission({
           reason: 'turnNotRunning',
           message: 'The active turn settled before Steering could be accepted.',
           expectedTurnId: submission.expectedTurnId
@@ -221,13 +244,13 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       if (submission.targetAgentRunId) {
         const disposition = runtime.classifyAgentTarget(submission.targetAgentRunId)
         if (disposition === 'unknown') {
-          return failed({
+          return rejectSubmission({
             reason: 'targetNotFound',
             message: `Agent target ${submission.targetAgentRunId} is not part of the active turn.`
           })
         }
         if (disposition !== 'steerable') {
-          return failed({
+          return rejectSubmission({
             reason: 'targetNotSteerable',
             message: `Agent target ${submission.targetAgentRunId} has already completed.`
           })
@@ -243,7 +266,7 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       })
       if (created.duplicate) {
         if (!requestMatchesRecord(submission, created.record)) {
-          return failed({
+          return rejectSubmission({
             reason: 'duplicateClientMessage',
             message: 'clientUserMessageId was concurrently bound to a different follow-up.'
           })
@@ -263,11 +286,21 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
               : targetDisposition === 'completed'
                 ? 'targetNotSteerable'
                 : 'turnNotRunning'
-          deps.store.transitionFollowUp(created.record.id, 'rejected', deps.now(), {
-            rejectionReason,
-            rejectionMessage:
-              err instanceof Error ? err.message : 'The active turn settled before delivery.'
-          })
+          const rejected = deps.store.transitionFollowUp(
+            created.record.id,
+            'rejected',
+            deps.now(),
+            {
+              rejectionReason,
+              rejectionMessage:
+                err instanceof Error ? err.message : 'The active turn settled before delivery.'
+            }
+          )
+          emit(
+            buildFollowUpAuditEvent(rejected, 'rejected', {
+              correlationId: runtime.correlationId
+            })
+          )
           return failed({
             reason: rejectionReason,
             message:
@@ -280,6 +313,11 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
           })
         }
       }
+      emit(
+        buildFollowUpAuditEvent(created.record, expectedMode === 'steer' ? 'accepted' : 'queued', {
+          correlationId: runtime?.correlationId
+        })
+      )
       return {
         success: true,
         data: { followUp: created.record, duplicate: false }
@@ -367,9 +405,11 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       )
       if (!existing.success) return existing
       try {
+        const updated = deps.store.updateFollowUpInput(existing.data.id, input.value, deps.now())
+        emit(buildFollowUpAuditEvent(updated, 'edited'))
         return {
           success: true,
-          data: deps.store.updateFollowUpInput(existing.data.id, input.value, deps.now())
+          data: updated
         }
       } catch (err) {
         return failed({
@@ -394,13 +434,15 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
         })
       }
       try {
+        const reordered = deps.store.reorderQueuedFollowUps(
+          request.data.conversationId as string,
+          request.data.orderedIds as string[],
+          deps.now()
+        )
+        emit(buildQueueReorderedEvent(request.data.conversationId as string, reordered))
         return {
           success: true,
-          data: deps.store.reorderQueuedFollowUps(
-            request.data.conversationId as string,
-            request.data.orderedIds as string[],
-            deps.now()
-          )
+          data: reordered
         }
       } catch (err) {
         return failed({
@@ -455,13 +497,27 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       }
       try {
         runtime.enqueueSteer(toPendingSteer(accepted, deps.now()))
+        emit(
+          buildFollowUpAuditEvent(accepted, 'accepted', {
+            correlationId: runtime.correlationId,
+            previousStatus: 'queued',
+            action: 'send-now'
+          })
+        )
         return { success: true, data: accepted }
       } catch (err) {
-        deps.store.transitionFollowUp(accepted.id, 'rejected', deps.now(), {
+        const rejected = deps.store.transitionFollowUp(accepted.id, 'rejected', deps.now(), {
           rejectionReason: 'turnNotRunning',
           rejectionMessage:
             err instanceof Error ? err.message : 'The active turn settled before delivery.'
         })
+        emit(
+          buildFollowUpAuditEvent(rejected, 'rejected', {
+            correlationId: runtime.correlationId,
+            previousStatus: 'queued',
+            action: 'send-now'
+          })
+        )
         return failed({
           reason: 'turnNotRunning',
           message: 'The active turn settled before the queued item could be retained.',
@@ -479,9 +535,11 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       )
       if (!existing.success) return existing
       try {
+        const deleted = deps.store.transitionFollowUp(existing.data.id, 'deleted', deps.now())
+        emit(buildFollowUpAuditEvent(deleted, 'deleted'))
         return {
           success: true,
-          data: deps.store.transitionFollowUp(existing.data.id, 'deleted', deps.now())
+          data: deleted
         }
       } catch (err) {
         return failed({
@@ -500,7 +558,9 @@ export function registerTurnControlHandlers(dependencies?: TurnControlDependenci
     store: activeStore,
     runtimes: turnRuntimeRegistry,
     now: Date.now,
-    newId: () => randomUUID() as FollowUpId
+    newId: () => randomUUID() as FollowUpId,
+    record: recordEvent,
+    reportError: (message, error) => console.error(message, error)
   }
   if (productionStore) recoverTurnControlOnStartup(productionStore, Date.now())
   const actions = createTurnControlActions(activeDependencies)

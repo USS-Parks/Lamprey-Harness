@@ -45,6 +45,16 @@ describe('eventTypeLabel', () => {
       'agent.stage.completed',
       'model.request.failed',
       'chat.cancelled',
+      'turn.followup.accepted',
+      'turn.followup.queued',
+      'turn.followup.edited',
+      'turn.followup.reordered',
+      'turn.followup.delivered',
+      'turn.followup.rejected',
+      'turn.followup.deleted',
+      'turn.followup.recovered',
+      'turn.interrupted',
+      'turn.recovered',
       'workspace.changed',
       'worktree.created',
       'worktree.removed',
@@ -139,6 +149,25 @@ describe('eventSubtitle', () => {
   it('returns null for categories that have no useful subtitle', () => {
     expect(eventSubtitle(makeEvent({ type: 'chat.cancelled' }))).toBeNull()
     expect(eventSubtitle(makeEvent({ type: 'chat.error' }))).toBeNull()
+  })
+
+  it('shows bounded follow-up identity and recovery counts', () => {
+    expect(
+      eventSubtitle(
+        makeEvent({
+          type: 'turn.followup.delivered',
+          payload: { disposition: 'delivered', followUpId: 'follow-up-123456' }
+        })
+      )
+    ).toBe('delivered · follow-u')
+    expect(
+      eventSubtitle(
+        makeEvent({
+          type: 'turn.recovered',
+          payload: { recoveredTurns: 2, recoveredFollowUps: 3 }
+        })
+      )
+    ).toBe('2 turns · 3 follow-ups')
   })
 })
 

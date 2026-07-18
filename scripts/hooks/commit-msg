@@ -4,7 +4,7 @@
 # Bypassing requires --no-verify, which is a deliberate human decision.
 
 MSG_FILE="$1"
-TRAILER="Agentically Engineered and Reviewed by Basho Parks - 2026"
+TRAILER="Authored and reviewed by Basho Parks, copyright 2026"
 
 fail() {
   echo "commit-msg: $1" >&2

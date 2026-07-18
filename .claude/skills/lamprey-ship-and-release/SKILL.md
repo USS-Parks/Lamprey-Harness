@@ -1,6 +1,6 @@
 ---
 name: lamprey-ship-and-release
-description: How Lamprey runs and ships — run modes, userData layout, the four Windows release artifacts, the one-command "Bucket" pipeline (build → tag → R2 upload → GitHub release → CDN purge), CI release paths, and failure recovery. Load when the user says "ship", "release", "tag it", "Bucket", or when a release step fails partway.
+description: How Lamprey runs and ships — run modes, userData layout, Windows release artifacts, the one-command "Bucket" pipeline, macOS/Linux CI mirroring, GitHub publication, CDN purge, and failure recovery. Load when the user says "ship", "release", "tag it", "Bucket", or when a release step fails partway.
 ---
 
 # Lamprey Ship & Release
@@ -46,15 +46,21 @@ Names are deliberately version-free so the CDN URLs (fronted by `cdn.islandmount
 When the user says **"Bucket"** (any variant), run from the repo root:
 
 ```powershell
-pwsh scripts\bucket.ps1          # flags: -NoBuild -NoTag -DryRun
+pwsh scripts\bucket.ps1          # flags: -NoBuild -NoTag -NoCrossPlatform -DryRun
 ```
 
 What it does, in order:
 1. Builds `dist/` if `latest.yml` doesn't match `package.json` version.
 2. Tags + pushes `vX.Y.Z` if the tag is missing.
 3. Uploads `Lamprey-x64.exe` + `Lamprey-x64.zip` to the R2 bucket.
-4. Creates or `--clobber`-updates the GitHub release with all four artifacts.
-5. Purges the Cloudflare cache for the two CDN URLs (if `.cf/token` exists).
+4. Creates or updates the GitHub release with all four Windows artifacts and the
+   human release note at `RELEASE_NOTES/vX.Y.Z.md`.
+5. Waits for the tag workflow, then mirrors `Lamprey-arm64.dmg` and
+   `Lamprey-x86_64.AppImage` to R2.
+6. Purges the Cloudflare cache for every published CDN URL.
+
+Lamprey has no iOS target or `.ipa`. The Apple artifact is a macOS DMG and must
+not be described as an iOS build.
 
 **Preconditions:**
 - **PowerShell 7** (`pwsh`) — the script uses PS7-only syntax; Windows PowerShell 5.1 cannot parse it. If `Get-Command pwsh` fails: `winget install --id Microsoft.PowerShell --silent`.
@@ -62,13 +68,15 @@ What it does, in order:
 - **Run from the primary repo, not a worktree.** Worktrees have no `node_modules`; electron-builder fails with "Cannot compute electron version". From a worktree session: push the ship-arc to `origin/main`, fast-forward the primary (`git -C <primary> pull --ff-only origin main`), then Bucket from primary.
 
 **Failure recovery:**
-- `gh release create` failing mid-upload with HTTP 404: do **not** rerun the bucket script. Recover manually with one command carrying all four artifacts:
+- `gh release create` failing mid-upload with HTTP 404: check the release row,
+  the R2 objects, and the final Bucket summary before retrying. If only GitHub
+  failed, recover with one command carrying the four Windows artifacts:
   `gh release create vX.Y.Z dist/Lamprey-x64.exe dist/Lamprey-x64.exe.blockmap dist/Lamprey-x64.zip dist/latest.yml --title … --notes …`
   then delete any orphaned `untagged-<hash>` draft. R2 upload and CF purge are independent of the GH release — check whether they already succeeded before redoing them.
 
 ## CI release paths (`.github/workflows/build.yml`)
 
-- **Tag push `v*`** → windows/linux/macos build jobs attach artifacts to a **draft** GitHub release (the Bucket pipeline publishes the real one).
+- **Tag push `v*`** → Windows, Linux, and macOS build jobs attach their artifacts to the tag release. Bucket creates the release row first and mirrors the two cross-platform packages after the workflow passes.
 - **Branch push to `main`** → same builds, but artifacts upload only as workflow artifacts (14-day retention), no release.
 - All build jobs run both tsc configs + `smoke:bundle` + `smoke:renderer`. macOS builds unsigned (`CSC_IDENTITY_AUTO_DISCOVERY: 'false'`).
 
@@ -78,7 +86,9 @@ What it does, in order:
 2. DEVLOG phase/release entry written; CLAUDE.md current-state updated (formats: `lamprey-docs-and-writing`).
 3. **README.md updated** — download heading/URLs, "New in vX.Y.Z" paragraph, Quick start link, Roadmap top entry. This is a standing rule on every release, without exception.
 4. `pwsh scripts\bucket.ps1` (or tag + `gh release create` for a manual path).
-5. Final verification: four artifacts in `dist/` with fresh timestamps; `latest.yml` version matches; GitHub release page shows all four; CDN URLs serve the new build after purge.
+5. Final verification: four Windows artifacts in `dist/` with fresh timestamps;
+   `latest.yml` matches; GitHub shows Windows, macOS, and Linux packages; all four
+   downloadable packages are present in R2 and served by the CDN after purge.
 
 Push policy still applies (`lamprey-change-control`): a ship instruction from the user authorizes the pushes it requires; don't ask again mid-flow.
 
@@ -88,10 +98,14 @@ Builds are unsigned; the updater verifies sha512 from `latest.yml` only. When an
 
 ## Provenance and maintenance
 
-Based on reads of `scripts/bucket.ps1`, `scripts/bucket-setup.ps1`, `electron-builder.yml`, `.github/workflows/build.yml`, CLAUDE.md ship rules, and release-practice memory notes, at v0.16.0 (2026-07-02).
+Based on reads of `scripts/bucket.ps1`, `scripts/bucket-setup.ps1`, `electron-builder.yml`, `.github/workflows/build.yml`, and CLAUDE.md ship rules, at v0.20.0 (2026-07-18).
 
 Re-verify:
 - Pipeline steps/flags: `head -60 scripts/bucket.ps1`
 - Artifact names: `grep -n "artifactName\|productName" electron-builder.yml`
 - CI paths: `grep -n "tags:\|startsWith" .github/workflows/build.yml`
 - pwsh present: `pwsh -v`
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

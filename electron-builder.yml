@@ -18,7 +18,7 @@ files:
   # only the production dependencies declared in package.json.
 
 asarUnpack:
-  - "**/*.node"
+  - '**/*.node'
 
 extraResources:
   - from: resources/vendor
@@ -112,4 +112,4 @@ linux:
 publish:
   provider: github
   owner: USS-Parks
-  repo: lamprey
+  repo: Lamprey-Harness

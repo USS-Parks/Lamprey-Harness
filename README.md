@@ -5,32 +5,34 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/USS-Parks/lamprey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/USS-Parks/lamprey?style=flat-square&color=2ea44f" /></a>
-  <a href="https://github.com/USS-Parks/lamprey/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" /></a>
+  <a href="https://github.com/USS-Parks/Lamprey-Harness/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/USS-Parks/Lamprey-Harness?style=flat-square&color=2ea44f" /></a>
+  <a href="https://github.com/USS-Parks/Lamprey-Harness/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" /></a>
   <img alt="Platform: Windows · macOS · Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078d4?style=flat-square" />
-  <img alt="Electron 35" src="https://img.shields.io/badge/electron-35-47848F?style=flat-square" />
+  <img alt="Electron 43" src="https://img.shields.io/badge/electron-43-47848F?style=flat-square" />
 </p>
 
 ---
 
-Lamprey is the transmission for the open-source LLM engine of your choice. It's a desktop coding IDE that grafts Claude Desktop-quality UX onto a Codex-style developer toolset: streaming markdown, reasoning blocks, skills, MCP servers, autonomous loops, sub-agent orchestration, and session memory welded directly onto a file tree, multi-tab Chromium browser, git diff review, integrated terminal, Brave search engine, and side-thread conversations. Plug in DeepSeek, Gemma, Qwen, GLM, or anything on OpenRouter. When the next breakthrough model drops, swap the key and the harness will adapt. Everything stays local, everything persists in SQLite, and API keys never leave the OS keychain. No Token Overlords watching your prompts for the next chance to roach your bank account.
+Lamprey is a local-first desktop coding harness for the model provider you already use. It combines a Codex-style workspace with streaming chat, reasoning traces, skills, MCP servers, research, durable queues, optional loops and sub-agent orchestration, a file tree, browser, git review, and terminal. Seventeen providers are built in, local Ollama and LM Studio work without keys, and custom OpenAI-compatible endpoints can be added from Settings.
 
-The target user is the developer who looked at Claude Code and Codex and said *"I want exactly this, but I'm not paying predatorial prices."* Lamprey is a bring-your-own-keys alternative to the two most capable agentic coding tools on the market, built for people who want the power without the leash. It's ready for next-gen models out of the box, as the harness evolves naturally with the ecosystem. 100% vibe-coded over nearly 300 sessions in Claude Code and Codex using WhisprFlow.
+Conversations and control state live in SQLite on your machine. API keys stay in the operating-system keychain. Lamprey sends requests only to the providers and connectors you configure.
 
 ---
 
 ## Download
 
-| Platform | Format | Link |
-|---|---|---|
-| **Windows** x64 | Installer | [Lamprey-x64.exe](https://github.com/USS-Parks/lamprey/releases/download/v0.18.0/Lamprey-x64.exe) |
-| **Windows** x64 | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/lamprey/releases/download/v0.18.0/Lamprey-x64.zip) |
-| **macOS** Apple Silicon | DMG | [Lamprey-arm64.dmg](https://github.com/USS-Parks/lamprey/releases/download/v0.18.0/Lamprey-arm64.dmg) |
-| **Linux** x64 | AppImage | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/lamprey/releases/download/v0.18.0/Lamprey-x86_64.AppImage) |
+| Platform                | Format       | Link                                                                                                                      |
+| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.20.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.20.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.20.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.20.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
-> **Linux note:** `chmod +x Lamprey-x64.AppImage` then run it.
-All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Parks/lamprey/releases)
+> **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
+> All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
+
+**New in v0.20.0 — Steering and Queue.** Keep typing while a turn runs. Enter steers the active turn at its next safe model boundary; Tab puts the follow-up in the durable next-turn queue. Accepted Steering appears as a quiet pending row above the composer, while Stop remains a separate 36-pixel control. Queue items can be edited, reordered, sent now, or deleted, and survive restart. Exact turn IDs, idempotent client IDs, visible rejection reasons, metadata-safe audit events, and one `runHeadlessTurn` execution seam keep races and recovery honest. The complete automated 20-row contract gate passes. The paired Codex/Lamprey desktop replay remains an owner-run conformance check, so this release does not make a blanket current-Codex parity claim.
 
 **New in v0.18.0 — the Agentic Orchestration release.** A light local orchestration layer, **off by default**. Turn it on in Settings → Orchestration and sub-agents get their own **identity** — you approve or refuse each tool it asks for, and that grant is enforced at dispatch, not in a prompt a model can be talked out of. Every orchestrated run is **metered against a budget** (tokens, active wall-clock, candidates, fork depth) enforced outside the model, with per-agent spend receipts and an honest abort when a ceiling is crossed. Three composition strategies compose the seventeen providers into search: **fan-out + judge** (`agent_fanout` / `/fanout`) runs competing candidates — a cheap local generator against a frontier judge — and picks the winner; **generator + adversarial critic** (`agent_critique` / `/critique`) drafts, breaks, and revises to a hard cap with a critic that's read-only by construction; **advisor escalation** (`agent_advisor`) lets a stuck agent ask a smarter model one bounded question. `/outcome "<goal>" --tokens 200k --strategy fanout` is the whole thing as one line. A right-panel **Agents** pill inventories every identity — grants, live spend, and a revoke/kill switch that aborts the whole fork tree. Everything runs on your machine; nothing leaves it. The always-on multi-agent pipeline that was deleted in v0.14.0 stays deleted — this never fans out a plain turn on its own.
 
@@ -64,6 +66,7 @@ All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Par
 ## What you get
 
 - **Multi-provider chat** &mdash; seventeen built-in providers (frontier labs, open-source hosts, keyless local runtimes) plus unlimited custom OpenAI-compatible endpoints. Pick a model per task: cheap for boilerplate, smart for hard bugs, local for air-gapped.
+- **Steering + Queue** &mdash; redirect a running turn without restarting it, or line up the next turn. Follow-ups are durable, identity-guarded, and visible above the composer.
 - **Codex-style developer panes** &mdash; file tree (`Ctrl+P`), multi-tab browser (`Ctrl+T`), git diff review with "Fix this" per-hunk seeding (`Ctrl+Shift+G`), shell terminal (`` Ctrl+` ``), side-thread chat.
 - **Deep Research** &mdash; research-shaped turns fan out across search providers, corroborate claims by independent domain, and kill the report if they detect fabricated citations. `/research <q>` forces it; coding turns are never escalated.
 - **Snip** &mdash; an in-process token filter (same idea as [rtk](https://github.com/rtk-ai/rtk)) that strips noisy shell output down to signal before it hits the model context. ~120 built-in YAML filters, hot-reloadable, extensible.
@@ -78,8 +81,8 @@ All releases: [github.com/USS-Parks/lamprey/releases](https://github.com/USS-Par
 ## Build from source
 
 ```bash
-git clone https://github.com/USS-Parks/lamprey
-cd lamprey
+git clone https://github.com/USS-Parks/Lamprey-Harness
+cd Lamprey-Harness
 npm install
 npm run dev
 ```
@@ -98,7 +101,8 @@ Renderer (React 19 + Zustand)
        |  window.api (typed contextBridge)
        v
 Main process (Node.js)
-  Provider registry -> DeepSeek / Google / DashScope / OpenRouter
+  Provider registry -> 17 built-ins + custom OpenAI-compatible endpoints
+  Turn runtime -> Steering inbox / durable Queue / interrupt settlement
   MCP manager (SSE + stdio + OAuth)
   better-sqlite3 (WAL, foreign keys)
   Browser manager (WebContentsView per tab)
@@ -122,7 +126,7 @@ Renderer is sandboxed (`contextIsolation`, no `nodeIntegration`). Keys and OAuth
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and PRs welcome at [github.com/USS-Parks/lamprey/issues](https://github.com/USS-Parks/lamprey/issues). Every change lands through a pull request with a human review and sign-off before merge &mdash; see the [Review and sign-off](CONTRIBUTING.md#review-and-sign-off) policy.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and PRs are welcome at [github.com/USS-Parks/Lamprey-Harness/issues](https://github.com/USS-Parks/Lamprey-Harness/issues). External contributions land through a pull request with human review and sign-off before merge.
 
 ## Author
 
@@ -132,4 +136,4 @@ Authored and maintained by Basho Parks.
 
 MIT &mdash; see [LICENSE](LICENSE).
 
-© 2026 Basho Parks
+Authored and reviewed by Basho Parks, copyright 2026

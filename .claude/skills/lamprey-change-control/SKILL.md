@@ -57,7 +57,7 @@ Install once: `npm run hooks:install` (sets `core.hooksPath` to `scripts/hooks`)
 **pre-commit** runs, in order: `node scripts/check-ai-artifacts.cjs` → `npm run lint` → `npx tsc --noEmit -p tsconfig.node.json` → `npx tsc --noEmit -p tsconfig.web.json`. First failure stops the commit.
 
 **commit-msg** hard rules:
-- Required trailer, verbatim, on its own line: `Agentically Engineered and Reviewed by Basho Parks - 2026`
+- Required owner footer, verbatim, on its own line: `Authored and reviewed by Basho Parks, copyright 2026`
 - Subject: non-empty, ≤ 72 chars, states the change (no filler openers: "This commit", "Updated", "Various", "Misc", "WIP", "Changes", "Some")
 - Banned phrases anywhere in the message (case-insensitive): `Co-Authored-By: Claude`, `Generated with`, `🤖`, `As an AI`, `Certainly`, `Here's what`, `Here is what`, `Key changes:`, `Summary of changes`, `In this commit`, `This PR `, `delve`, `seamlessly`, `leverages `
 - Body cap: subject + up to 12 body lines (trailer excluded). Long explanations go in `DEVLOG.md`.
@@ -98,10 +98,14 @@ Corollary: the multi-agent pipeline, auto-router, runtime proof gate, and compos
 
 ## Provenance and maintenance
 
-Based on direct reads of `scripts/hooks/commit-msg`, `scripts/hooks/pre-commit`, `scripts/hooks/pre-push`, `scripts/check-ai-artifacts.cjs`, `PLANNING/PSPR_TEMPLATE.md`, and CLAUDE.md Execution Rules, at v0.16.0 (2026-07-02).
+Based on direct reads of `scripts/hooks/commit-msg`, `scripts/hooks/pre-commit`, `scripts/hooks/pre-push`, `scripts/check-ai-artifacts.cjs`, the active parity PSPR, and CLAUDE.md Execution Rules, at v0.20.0 (2026-07-18).
 
 Re-verify when in doubt:
 - Trailer text: `grep -n "TRAILER=" scripts/hooks/commit-msg`
 - Gate composition: `cat scripts/hooks/pre-commit scripts/hooks/pre-push`
 - Current version: `node -e "console.log(require('./package.json').version)"`
-- Active plan (should be none unless a new phase started): `ls PLANNING/*.md` + check CLAUDE.md "Current State"
+- Active plan: inspect `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md` and CLAUDE.md "Current State"
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

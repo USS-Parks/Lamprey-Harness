@@ -6,8 +6,9 @@
 #   3. Tags + pushes vX.Y.Z if the tag doesn't already exist on origin.
 #   4. In parallel:
 #        - Uploads Lamprey-x64.exe + Lamprey-x64.zip to R2 (overwrites).
-#        - Creates/updates the GitHub release with all four artifacts.
-#   5. Purges Cloudflare cache for the two CDN URLs (if .cf/token exists).
+#        - Creates/updates the GitHub release with all four Windows artifacts.
+#   5. Waits for the tag workflow, then mirrors the DMG and AppImage to R2.
+#   6. Purges Cloudflare cache for every published download (if .cf/token exists).
 #
 # Setup once: `pwsh scripts/bucket-setup.ps1`. After that this script is the
 # entire ship-arc — no env vars to remember, no credential dance.
@@ -18,12 +19,14 @@
 # Optional flags:
 #   -NoBuild        Skip the build step (use whatever's in dist/ now).
 #   -NoTag          Skip git tag creation/push (use existing tag).
+#   -NoCrossPlatform  Skip waiting for CI and mirroring DMG/AppImage.
 #   -DryRun         Print what would happen; don't actually upload.
 
 [CmdletBinding()]
 param(
   [switch]$NoBuild,
   [switch]$NoTag,
+  [switch]$NoCrossPlatform,
   [switch]$DryRun
 )
 
@@ -73,6 +76,7 @@ if (-not (Test-Path $awsExe)) {
 $pkg = Get-Content (Join-Path $repoRoot "package.json") -Raw | ConvertFrom-Json
 $version = $pkg.version
 $tag = "v$version"
+$releaseNotes = Join-Path $repoRoot "RELEASE_NOTES\$tag.md"
 
 Write-Host ""
 Write-Host "=== Bucket: ship v$version ===" -ForegroundColor Cyan
@@ -148,6 +152,10 @@ if ($DryRun) {
   Write-Host "[DRY-RUN] Would upload to R2:" -ForegroundColor Yellow
   Write-Host "  s3://$($config.r2.bucket)/Lamprey-x64.exe"
   Write-Host "  s3://$($config.r2.bucket)/Lamprey-x64.zip"
+  if (-not $NoCrossPlatform) {
+    Write-Host "  s3://$($config.r2.bucket)/Lamprey-arm64.dmg"
+    Write-Host "  s3://$($config.r2.bucket)/Lamprey-x86_64.AppImage"
+  }
   Write-Host "[DRY-RUN] Would create/update GH release: $tag" -ForegroundColor Yellow
   Write-Host "[DRY-RUN] Would purge CF cache for cdn.islandmountain.io URLs" -ForegroundColor Yellow
   exit 0
@@ -159,6 +167,7 @@ if ($DryRun) {
 # surface a non-zero exit at the very end. R2 + CF never get stranded by GH.
 $ghError = $null
 $r2Failed = $false
+$crossPlatformError = $null
 
 # Kick off R2 upload in a background job (multipart for the big zip)
 $endpoint = "https://$($config.r2.accountId).r2.cloudflarestorage.com"
@@ -194,7 +203,11 @@ try {
 
   if (-not $releaseExists) {
     for ($attempt = 1; $attempt -le 3 -and -not $releaseExists; $attempt++) {
-      gh release create $tag --repo $config.github.repo --title $tag --notes "Release $tag"
+      if (Test-Path $releaseNotes) {
+        gh release create $tag --repo $config.github.repo --title $tag --notes-file $releaseNotes
+      } else {
+        gh release create $tag --repo $config.github.repo --title $tag --notes "Release $tag"
+      }
       if ($LASTEXITCODE -eq 0) {
         $releaseExists = $true
       } else {
@@ -208,6 +221,11 @@ try {
   if (-not $ghError) {
     gh release upload $tag --repo $config.github.repo --clobber @artifactPaths
     if ($LASTEXITCODE -ne 0) { $ghError = "gh release upload failed (exit $LASTEXITCODE)" }
+  }
+
+  if (-not $ghError -and (Test-Path $releaseNotes)) {
+    gh release edit $tag --repo $config.github.repo --title $tag --notes-file $releaseNotes
+    if ($LASTEXITCODE -ne 0) { $ghError = "gh release notes update failed (exit $LASTEXITCODE)" }
   }
 
   if (-not $ghError) {
@@ -240,15 +258,85 @@ if ($r2State -ne "Completed") {
   Write-Host "  R2 upload done" -ForegroundColor Green
 }
 
+# === Cross-platform release assets ===
+# Windows cannot build the macOS DMG or Linux AppImage. The tag workflow does,
+# attaches both to the same release, and this step mirrors them to R2 so GitHub
+# and the CDN expose the same existing platform set. Lamprey has no iOS target.
+$publishedFiles = @("Lamprey-x64.exe", "Lamprey-x64.zip")
+if (-not $NoCrossPlatform) {
+  Write-Host "  Waiting for macOS/Linux tag artifacts..." -ForegroundColor White
+  $crossDir = Join-Path $dist "bucket-cross-$version"
+  New-Item -ItemType Directory -Path $crossDir -Force | Out-Null
+  $crossNames = @("Lamprey-arm64.dmg", "Lamprey-x86_64.AppImage")
+
+  $downloadCrossAssets = {
+    gh release download $tag --repo $config.github.repo --clobber --dir $crossDir `
+      --pattern "*.dmg" --pattern "*.AppImage" 2>$null
+    return ($crossNames | ForEach-Object { Test-Path (Join-Path $crossDir $_) }) -notcontains $false
+  }
+
+  $crossReady = & $downloadCrossAssets
+  if (-not $crossReady) {
+    $tagSha = (git -C $repoRoot rev-list -n 1 $tag).Trim()
+    $workflowRun = $null
+    for ($attempt = 1; $attempt -le 12 -and -not $workflowRun; $attempt++) {
+      $runsJson = gh run list --repo $config.github.repo --workflow build.yml --event push `
+        --limit 20 --json databaseId,headBranch,headSha,status,conclusion,url
+      if ($LASTEXITCODE -eq 0 -and $runsJson) {
+        $workflowRun = @($runsJson | ConvertFrom-Json) |
+          Where-Object { $_.headBranch -eq $tag -or $_.headSha -eq $tagSha } |
+          Select-Object -First 1
+      }
+      if (-not $workflowRun) { Start-Sleep -Seconds 5 }
+    }
+
+    if (-not $workflowRun) {
+      $crossPlatformError = "tag workflow was not found for $tag"
+    } else {
+      Write-Host "  Watching workflow run $($workflowRun.databaseId)..." -ForegroundColor White
+      gh run watch $workflowRun.databaseId --repo $config.github.repo --exit-status
+      if ($LASTEXITCODE -ne 0) {
+        $crossPlatformError = "tag workflow failed (run $($workflowRun.databaseId))"
+      } else {
+        for ($attempt = 1; $attempt -le 6 -and -not $crossReady; $attempt++) {
+          $crossReady = & $downloadCrossAssets
+          if (-not $crossReady) { Start-Sleep -Seconds 5 }
+        }
+        if (-not $crossReady) {
+          $crossPlatformError = "DMG/AppImage were not attached after workflow completion"
+        }
+      }
+    }
+  }
+
+  if (-not $crossPlatformError) {
+    foreach ($f in $crossNames) {
+      $src = Join-Path $crossDir $f
+      & $awsExe s3 cp $src "s3://$($config.r2.bucket)/$f" `
+        --endpoint-url $endpoint --profile $awsProfile --checksum-algorithm CRC32
+      if ($LASTEXITCODE -ne 0) {
+        $crossPlatformError = "R2 upload failed for $f (exit $LASTEXITCODE)"
+        break
+      }
+      $publishedFiles += $f
+    }
+  }
+
+  if ($crossPlatformError) {
+    Write-Host "  WARNING: $crossPlatformError" -ForegroundColor Yellow
+  } else {
+    Write-Host "  macOS/Linux release assets mirrored to R2" -ForegroundColor Green
+  }
+}
+
 # === Cloudflare cache purge ===
 if (Test-Path $cfTokenPath) {
   Write-Host "  Purging Cloudflare cache..." -ForegroundColor White
   $token = (Get-Content $cfTokenPath -Raw).Trim()
   $purgeBody = @{
-    files = @(
-      "https://$($config.cloudflare.cdnHost)/Lamprey-x64.exe",
-      "https://$($config.cloudflare.cdnHost)/Lamprey-x64.zip"
-    )
+    files = @($publishedFiles | ForEach-Object {
+      "https://$($config.cloudflare.cdnHost)/$_"
+    })
   } | ConvertTo-Json
   try {
     Invoke-RestMethod -Method Post `
@@ -266,7 +354,7 @@ if (Test-Path $cfTokenPath) {
 
 # === Done ===
 Write-Host ""
-if ($ghError -or $r2Failed) {
+if ($ghError -or $r2Failed -or $crossPlatformError) {
   Write-Host "=== Ship PARTIAL: $tag ===" -ForegroundColor Yellow
   if ($ghError) {
     Write-Host "  GitHub release step FAILED: $ghError" -ForegroundColor Red
@@ -275,6 +363,9 @@ if ($ghError -or $r2Failed) {
   if ($r2Failed) {
     Write-Host "  R2 upload FAILED — the CDN .exe/.zip may be stale. Re-run the aws s3 cp." -ForegroundColor Red
   }
+  if ($crossPlatformError) {
+    Write-Host "  Cross-platform publish FAILED: $crossPlatformError" -ForegroundColor Red
+  }
   Write-Host "  Steps that succeeded are NOT rolled back — fix the failed step and re-run." -ForegroundColor Yellow
 } else {
   Write-Host "=== Ship complete: $tag ===" -ForegroundColor Cyan
@@ -282,8 +373,14 @@ if ($ghError -or $r2Failed) {
 Write-Host "  GitHub: https://github.com/$($config.github.repo)/releases/tag/$tag"
 Write-Host "  CDN:    https://$($config.cloudflare.cdnHost)/Lamprey-x64.exe"
 Write-Host "  CDN:    https://$($config.cloudflare.cdnHost)/Lamprey-x64.zip"
+if (-not $NoCrossPlatform) {
+  Write-Host "  CDN:    https://$($config.cloudflare.cdnHost)/Lamprey-arm64.dmg"
+  Write-Host "  CDN:    https://$($config.cloudflare.cdnHost)/Lamprey-x86_64.AppImage"
+}
 Write-Host ""
 
 # Non-zero exit at the very end if any step failed — but only AFTER every step
 # has run, so a GH flake never strands the R2 upload or CF purge again.
-if ($ghError -or $r2Failed) { exit 1 }
+if ($ghError -or $r2Failed -or $crossPlatformError) { exit 1 }
+
+# Authored and reviewed by Basho Parks, copyright 2026

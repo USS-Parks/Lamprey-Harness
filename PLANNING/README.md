@@ -7,3 +7,15 @@ A single canonical `PLANNING/*.md` file that defines one phase end to end: goal,
 
 **STS = Stem to Stern.**
 After the user explicitly approves a P-SPR or says to run it STS, execute the roster in order from first prompt through phase wrap, verifying/logging/committing each prompt as specified. Do not treat a plan's own "STS authorization" wording as approval by itself. Do not skip prompts, batch prompts, push early, or reopen plan decisions unless blocked by new facts.
+
+## Current roster
+
+`LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md` is the current canonical roster.
+Its Steering and Queue milestone shipped as v0.20.0. Later milestones remain
+unapproved and must not start from the v0.20.0 release instruction alone. The
+paired Codex/Lamprey Steering replay remains an open evidence gate; the release
+is implementation-complete, not parity-complete.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

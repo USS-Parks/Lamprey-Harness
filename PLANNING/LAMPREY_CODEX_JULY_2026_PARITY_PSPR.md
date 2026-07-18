@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **APPROVED — STS ACTIVE FOR M0 + M1**
+**Status:** **M1 RELEASED AS IMPLEMENTATION-COMPLETE; PAIRED PARITY EVIDENCE OPEN**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -84,18 +84,18 @@ waive these invariants:
 
 ### Milestones and approval cuts
 
-| Milestone | Prompts | Deliverable | Dependency | Recommended release cut |
-|---|---|---|---|---|
-| M0 | CJP-0 | Dated Codex/Lamprey baseline and conformance fixtures | none | documentation only |
-| M1 | ST-1–ST-12 | Full Steering + Queue behavior | M0 | next available minor |
-| M2 | TC-1–TC-7 | Model- and user-facing task/thread control suite | M1 | independent minor |
-| M3 | VA-1–VA-6 | Inline visualizations + direct artifact editing | M1 | independent minor |
-| M4 | CM-1–CM-6 | Sandboxed Code Mode orchestration | M1, threat gate | independent minor; OFF by default |
-| M5 | PR-1–PR-6 | PR Chat and patch review workflow | M1 | independent minor |
-| M6 | MR-1–MR-5 | MCP resources, templates, and session auth | M1 | independent minor |
-| M7 | BD-1–BD-6 | Browser Developer Mode | M1 | independent minor; OFF by default |
-| M8 | GA-1–GA-6 | Model-callable automations + operational goals | M1 | independent minor; loops remain gated |
-| M9 | CJP-WRAP | Current-parity ledger, docs, and honest-gaps closeout | M1–M8 as approved | no forced version bump |
+| Milestone | Prompts    | Deliverable                                           | Dependency        | Recommended release cut               |
+| --------- | ---------- | ----------------------------------------------------- | ----------------- | ------------------------------------- |
+| M0        | CJP-0      | Dated Codex/Lamprey baseline and conformance fixtures | none              | documentation only                    |
+| M1        | ST-1–ST-12 | Full Steering + Queue behavior                        | M0                | v0.20.0                               |
+| M2        | TC-1–TC-7  | Model- and user-facing task/thread control suite      | M1                | independent minor                     |
+| M3        | VA-1–VA-6  | Inline visualizations + direct artifact editing       | M1                | independent minor                     |
+| M4        | CM-1–CM-6  | Sandboxed Code Mode orchestration                     | M1, threat gate   | independent minor; OFF by default     |
+| M5        | PR-1–PR-6  | PR Chat and patch review workflow                     | M1                | independent minor                     |
+| M6        | MR-1–MR-5  | MCP resources, templates, and session auth            | M1                | independent minor                     |
+| M7        | BD-1–BD-6  | Browser Developer Mode                                | M1                | independent minor; OFF by default     |
+| M8        | GA-1–GA-6  | Model-callable automations + operational goals        | M1                | independent minor; loops remain gated |
+| M9        | CJP-WRAP   | Current-parity ledger, docs, and honest-gaps closeout | M1–M8 as approved | no forced version bump                |
 
 M1 is mandatory and first. M2–M8 are independently approvable. “Approve all and run STS”
 authorizes them in dependency order; approval of M1 alone does not authorize later
@@ -161,8 +161,8 @@ evidence is unavailable, M1 may be labeled implementation-complete but not parit
 ### Commit, branch, and worktree discipline
 
 - One focused commit per prompt; no batching across prompt IDs.
-- Present-tense imperative subject, no co-author trailer, and the required hook trailer:
-  `Agentically Engineered and Reviewed by Basho Parks - 2026`.
+- Present-tense imperative subject, no co-author trailer, and the required owner footer:
+  `Authored and reviewed by Basho Parks, copyright 2026`.
 - Append a DEVLOG entry per prompt with files, actual gate output, honest skips/gaps, and SHA.
 - Recommended branches: `codex/steering-parity`, then one `codex/cjp-<milestone>` branch per
   later milestone. Separate worktrees are mandatory for parallel sessions.
@@ -243,25 +243,25 @@ must be shown to the user before implementation.
 
 ## §2 — Reuse ledger
 
-| Capability | Current Lamprey substrate | Decision |
-|---|---|---|
-| Turn execution | `electron/ipc/chat.ts` `runHeadlessTurn` / `runChatRound` | **Extend at the seam** with `TurnRuntime`; do not duplicate dispatch |
-| Cancellation | `activeAbortControllers`, `chat:cancel` | **Extract/extend** into turn runtime; preserve cancel behavior |
-| Conversation history | `conversation-store.ts`, messages/events | **Extend** with turn/follow-up identity and lineage |
-| Attachments | existing chat attachment/RAG/image metadata | **Reuse** canonical input shapes; no new blob store unless CJP-0 proves necessary |
-| Event spine | `event-log.ts`, `chat-events.ts` | **Extend** with bounded turn/follow-up events |
-| Agent tasks | `agent_runs`, `tasks:*`, identities, receipts, kill | **Reuse/extend** for wait, steer, descendants, and task tools |
-| Cross-session messaging | `send_to_session`, async event bridge | **Extract common delivery service**; keep next-turn semantics as Queue |
-| Spawn/fork | `spawn_task`, conversation fork, worktrees | **Extend** with turn lineage and fork-at-turn |
-| Tool authority | `tool-registry.ts` risks/approval/cancel/audit | **Reuse without bypass** for every new tool and Code Mode nested call |
-| Artifacts | `create_document`, artifact sandbox, Mermaid/HTML/SVG/JSX | **Extend** with persistence, inline items, revisions, and annotations |
-| GitHub | existing PR panel, diff/check/comment services | **Extend** into chat and patch lifecycle; do not replace the panel |
-| MCP | manager connection + tool discovery/calls | **Extend** with resources/templates/auth; preserve tool behavior |
-| Browser | WebContentsView manager, selectors, screenshot, read-only evaluation | **Extend** via CDP with an explicit developer-mode gate |
-| Automations | CRUD IPC/store, cron runner/history | **Wrap as model tools**, then add trigger kinds incrementally |
-| Goals/loops | persisted goal tools, loop/wakeup engine | **Bridge** operational lifecycle to loops; loops remain independently gated |
-| Node REPL MCP | existing default MCP server | **Do not relabel as Code Mode**; preserve as a separate capability |
-| Deleted pipeline | historical code/docs only | **Do not rebuild** |
+| Capability              | Current Lamprey substrate                                            | Decision                                                                          |
+| ----------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Turn execution          | `electron/ipc/chat.ts` `runHeadlessTurn` / `runChatRound`            | **Extend at the seam** with `TurnRuntime`; do not duplicate dispatch              |
+| Cancellation            | `activeAbortControllers`, `chat:cancel`                              | **Extract/extend** into turn runtime; preserve cancel behavior                    |
+| Conversation history    | `conversation-store.ts`, messages/events                             | **Extend** with turn/follow-up identity and lineage                               |
+| Attachments             | existing chat attachment/RAG/image metadata                          | **Reuse** canonical input shapes; no new blob store unless CJP-0 proves necessary |
+| Event spine             | `event-log.ts`, `chat-events.ts`                                     | **Extend** with bounded turn/follow-up events                                     |
+| Agent tasks             | `agent_runs`, `tasks:*`, identities, receipts, kill                  | **Reuse/extend** for wait, steer, descendants, and task tools                     |
+| Cross-session messaging | `send_to_session`, async event bridge                                | **Extract common delivery service**; keep next-turn semantics as Queue            |
+| Spawn/fork              | `spawn_task`, conversation fork, worktrees                           | **Extend** with turn lineage and fork-at-turn                                     |
+| Tool authority          | `tool-registry.ts` risks/approval/cancel/audit                       | **Reuse without bypass** for every new tool and Code Mode nested call             |
+| Artifacts               | `create_document`, artifact sandbox, Mermaid/HTML/SVG/JSX            | **Extend** with persistence, inline items, revisions, and annotations             |
+| GitHub                  | existing PR panel, diff/check/comment services                       | **Extend** into chat and patch lifecycle; do not replace the panel                |
+| MCP                     | manager connection + tool discovery/calls                            | **Extend** with resources/templates/auth; preserve tool behavior                  |
+| Browser                 | WebContentsView manager, selectors, screenshot, read-only evaluation | **Extend** via CDP with an explicit developer-mode gate                           |
+| Automations             | CRUD IPC/store, cron runner/history                                  | **Wrap as model tools**, then add trigger kinds incrementally                     |
+| Goals/loops             | persisted goal tools, loop/wakeup engine                             | **Bridge** operational lifecycle to loops; loops remain independently gated       |
+| Node REPL MCP           | existing default MCP server                                          | **Do not relabel as Code Mode**; preserve as a separate capability                |
+| Deleted pipeline        | historical code/docs only                                            | **Do not rebuild**                                                                |
 
 Genuinely new work: persistent turn/follow-up ledger, live turn mailbox and wake signal,
 Codex-like queue UX, task wait/control tools, persistent visualization revision model,
@@ -275,6 +275,7 @@ CDP observation service, and event/monitor automation triggers.
 ### M0 — Current baseline
 
 #### **CJP-0 — Pin the July 2026 behavior and wiring baseline**
+
 - [x] Create `PLANNING/CJ26_BASELINE.md` with: dated official source/version ledger;
       old-plan claim-vs-current-source matrix; current tool inventory; exact call sites;
       and Codex conformance traces for Steering during streaming, tool execution,
@@ -291,6 +292,7 @@ CDP observation service, and event/monitor automation triggers.
 ### M1 — Steering and Queue parity
 
 #### **ST-1 — Define canonical turn and follow-up contracts**
+
 - [x] Add pure types and validators for `TurnId`, turn kind/status, ordered input items,
       delivery mode, follow-up status, typed rejection reasons, expected-turn guard, and
       client-message deduplication. Keep API naming consistent across main/preload/renderer.
@@ -298,6 +300,7 @@ CDP observation service, and event/monitor automation triggers.
 - Verify: table-driven validator tests cover all §1 input and rejection shapes; tsc ×2.
 
 #### **ST-2 — Persist turns and follow-ups with migration v21**
+
 - [x] Add additive `conversation_turns` and `turn_followups` tables with indexes and exact
       input JSON versioning. Preserve ordered Queue positions, client IDs, target IDs,
       status transitions, and recovery metadata. No rewrite of messages or agent tables.
@@ -306,6 +309,7 @@ CDP observation service, and event/monitor automation triggers.
   restart/dedup/reorder/state-machine tests; tsc node.
 
 #### **ST-3 — Replace the abort map with a TurnRuntime registry**
+
 - [x] Extract `ActiveRun` into a service owning `turnId`, correlation ID, controller,
       kind/status, steer inbox, wake signal, active agent target, and settlement. Provide
       one registration/lookup/settle API for normal chat, research, loops, and wake-ups.
@@ -315,6 +319,7 @@ CDP observation service, and event/monitor automation triggers.
   `verify:proof -- --no-tests`; tsc ×2.
 
 #### **ST-4 — Add typed Steer, Queue, and queue-management IPC**
+
 - [x] Add `turn:steer`, `turn:queue`, `turn:listFollowups`, `turn:updateFollowup`,
       `turn:reorderFollowups`, `turn:sendFollowupNow`, and `turn:deleteFollowup` handlers.
 - [x] Enforce `expectedTurnId`, steerable kind, idempotency, input validation, envelope
@@ -323,6 +328,7 @@ CDP observation service, and event/monitor automation triggers.
 - Verify: IPC contract/negative tests; envelope source-lock; tsc ×2.
 
 #### **ST-5 — Consume Steering inside the active turn**
+
 - [x] Drain accepted steer input at the CJP-0-pinned safe boundaries, append canonical user
       input items to the same API transcript, persist/emit the user item once, and continue
       the same `turnId` without another turn-start event.
@@ -333,6 +339,7 @@ CDP observation service, and event/monitor automation triggers.
   ghost-reply suites; prompt-byte guard; `verify:proof -- --no-tests`; tsc ×2.
 
 #### **ST-6 — Wake and target waiting subagents**
+
 - [x] Thread the turn wake signal through current agent-run, strategy, and multi-agent wait
       points so root Steering interrupts a wait and child Steering targets the selected
       steerable run. Preserve identity, grants, budget, kill, and receipt enforcement.
@@ -342,6 +349,7 @@ CDP observation service, and event/monitor automation triggers.
   regression tests; tsc ×2.
 
 #### **ST-7 — Separate interrupt and recovery semantics**
+
 - [x] Give interrupt a turn-aware expected-ID contract, settle status/events exactly once,
       and preserve background terminals. On startup, settle orphan running turns and expose
       undelivered steer items as recoverable drafts; keep Queue items ordered.
@@ -350,6 +358,7 @@ CDP observation service, and event/monitor automation triggers.
   source lock, ghost-reply and turn-settlement suites; tsc ×2.
 
 #### **ST-8 — Add renderer state and reconnect reconciliation**
+
 - [x] Replace the single global streaming lock with per-conversation active-turn state.
       Hydrate/reconcile active turn and Queue state through preload without leaking a prior
       conversation's state during navigation or reload.
@@ -359,6 +368,7 @@ CDP observation service, and event/monitor automation triggers.
   regression locks; tsc web.
 
 #### **ST-9 — Ship the Codex follow-up composer UX**
+
 - [x] Keep the composer editable while a turn runs. Add Follow-up behavior setting
       (Steer/Queue), exact alternate shortcut from CJP-0, clear action labeling, separate
       Stop, and input-type support.
@@ -369,6 +379,7 @@ CDP observation service, and event/monitor automation triggers.
   tests, build + renderer smoke, CJP smoke cases; tsc ×2.
 
 #### **ST-10 — Complete turn activity and audit truth**
+
 - [x] Add bounded events for every §1 disposition and show accepted/delivered/queued/rejected
       progress without duplicate user bubbles. Activity items carry IDs/status/counts, never
       attachment bytes, secrets, or raw local paths beyond existing redaction policy.
@@ -412,96 +423,118 @@ CDP observation service, and event/monitor automation triggers.
   `verify:proof -- --no-tests`; tsc ×2.
 
 #### **ST-11 — Run the complete Steering conformance gate**
-- [ ] Complete automated contract coverage for all 20 §1 rows and run
-      `CJ26_SMOKE_PLAYBOOK.md` against both current Codex and the built Lamprey app using the
-      pinned configuration. Record traces/screenshots/results in `PLANNING/CJ26_STEERING_AFTER.md`.
-- [ ] Any mismatch becomes a new ST prompt addendum; do not weaken the matrix to pass.
-- Verify: Steering suite green; full build; renderer smoke; owner GUI evidence recorded.
+
+- [x] Complete automated contract coverage for all 20 §1 rows and record the exact receipt in
+      `PLANNING/CJ26_STEERING_AFTER.md`.
+- [ ] Run `CJ26_SMOKE_PLAYBOOK.md` against both current Codex and the built Lamprey app using
+      the pinned configuration. Record the paired traces/screenshots/results in
+      `PLANNING/CJ26_STEERING_AFTER.md`.
+- [x] Any mismatch becomes a new ST prompt addendum; do not weaken the matrix to pass.
+- Verify: automated Steering suite green; full build and renderer smoke green. The owner's
+  report that Steering works in Lamprey is recorded, but it does not replace the full paired
+  replay and therefore does not establish blanket current-Codex parity.
 
 #### **ST-12 — Steering milestone wrap**
-- [ ] Write `ARCHITECTURE/TURN_CONTROL_AND_STEERING.md` with real invocation sites and state
+
+- [x] Write `ARCHITECTURE/TURN_CONTROL_AND_STEERING.md` with real invocation sites and state
       machine; update README/current-state docs/DEVLOG; choose and apply the approved next
-      minor version; run the full milestone gate. List honest gaps explicitly.
-- Verify: full gate from §0; live conformance is required for “parity-complete.”
+      release version; run the full milestone gate. List honest gaps explicitly.
+- Verify: full gate from §0. The owner explicitly authorized the v0.20.0 release on
+  2026-07-18 despite the still-open paired replay. M1 is implementation-complete and shipped;
+  “parity-complete” remains withheld.
 
 ### M2 — Task and thread controls
 
 #### **TC-1 — Define the canonical task graph**
+
 - [ ] Add one read model spanning conversations, parent/child conversation forks,
       `agent_runs`, identities, and turn lineage without merging their storage semantics.
       Define descendant traversal, cursoring, status, and ownership.
 - Verify: graph construction/cycle-defense/pagination tests; tsc ×2.
 
 #### **TC-2 — Add list, read, and bounded wait tools**
+
 - [ ] Register `list_tasks`, `read_task`, and `wait_tasks` as read-risk tools. Wait supports
       one or many targets, cursors, bounded timeout, cancellation, and Steering wake-up;
       it does not busy-poll or monopolize the main process.
 - Verify: schema coverage, cursor/wake/timeout/cancel tests, lazy-tool discovery tests.
 
 #### **TC-3 — Add send, steer, queue, and interrupt task tools**
+
 - [ ] Replace duplicated delivery logic beneath `send_to_session` with a shared service and
       add `send_to_task` delivery modes plus `interrupt_task`. Steer routes through M1 and
       requires expected turn identity; Queue preserves next-turn semantics.
 - Verify: target/race/attribution/approval tests; `send_to_session` compatibility tests.
 
 #### **TC-4 — Add historical fork-at-turn**
+
 - [ ] Extend conversation fork/worktree metadata so `fork_task` can branch history through a
       specified completed turn and retain a backlink to the source task/turn.
 - Verify: history-boundary, invalid-turn, worktree-isolation, and backlink tests.
 
 #### **TC-5 — Add lifecycle metadata tools**
+
 - [ ] Add title, pin, archive, close, and optional permanent-delete operations using distinct
       risk levels. Delete requires explicit destructive approval and descendant impact
       preview; close/archive remain recoverable.
 - Verify: risk metadata, descendant cleanup/retention, archive recovery, approval tests.
 
 #### **TC-6 — Surface task graph and activity controls**
+
 - [ ] Make parent/child links, live status, unread state, waits, Steering, interrupt, and
       lifecycle actions discoverable in existing sessions/agents/activity UI.
 - Verify: UI wiring tests, build/renderer smoke, task-control GUI playbook.
 
 #### **TC-7 — Task-control milestone wrap**
+
 - [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate and owner task-control smoke.
 
 ### M3 — Inline visualizations and direct artifact editing
 
 #### **VA-1 — Persist artifact identities and revisions**
+
 - [ ] Add additive artifact/revision/annotation storage with conversation/message provenance,
       type, sandbox policy, current revision, and export metadata; migrate current ephemeral
       source without invalidating existing document/research artifacts.
 - Verify: node:sqlite exact-schema tests, native store tests RUN, retention/provenance tests.
 
 #### **VA-2 — Add visualization and artifact tools**
+
 - [ ] Add `create_visualization`, `update_visualization`, `artifact_read`,
       `artifact_update`, and `artifact_annotate` with strict schemas and type-specific
       validation for Mermaid, charts, tables, and sandboxed interactive content.
 - Verify: tool schema/risk/size/sanitization/revision-conflict tests.
 
 #### **VA-3 — Render visualizations inline**
+
 - [ ] Introduce first-class visualization message items with loading/error/ready states,
       accessible fallback data, expand/open/export actions, and sandbox isolation. Do not
       encode an interactive visualization as untrusted raw chat HTML.
 - Verify: renderer wiring tests, CSP/sandbox regression tests, build/renderer smoke.
 
 #### **VA-4 — Add selection editing and inline annotations**
+
 - [ ] Let users select Markdown/code/artifact ranges, request revisions in chat, preview a
       diff, and accept/reject without losing the prior revision. Persist annotations and
       actor provenance.
 - Verify: range/version-conflict/diff/accept/reject tests and GUI playbook.
 
 #### **VA-5 — Align tool activity and file-opening feedback**
+
 - [ ] Apply the July task-activity pattern to visualization generation, artifact edits, and
       file open outcomes with honest queued/running/complete/error states.
 - Verify: event-to-UI state tests, no-false-success negative cases, renderer smoke.
 
 #### **VA-6 — Visualization/artifact milestone wrap**
+
 - [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate and owner visualization/editing smoke.
 
 ### M4 — Sandboxed Code Mode
 
 #### **CM-1 — Complete the sandbox threat model and runtime spike**
+
 - [ ] Compare viable runtimes against escape resistance, Electron/Windows packaging,
       cancellation, deterministic limits, source-map quality, and native-dependency cost.
       Required boundary: no Node/process/env/fs/network/global Electron access.
@@ -510,11 +543,13 @@ CDP observation service, and event/monitor automation triggers.
 - Verify: adversarial escape corpus and packaging spike; no production registration yet.
 
 #### **CM-2 — Build the isolated execution engine**
+
 - [ ] Execute bounded JavaScript in the approved isolate with wall-clock, source-byte,
       memory, output, nested-call, and concurrency ceilings plus cancellation.
 - Verify: timeout/memory/output/cancel/escape tests and packaged Windows load smoke.
 
 #### **CM-3 — Expose registered tools through one authority-preserving facade**
+
 - [ ] Add `code_exec` behind `codeModeEnabled: false`. Nested `tools.*` calls resolve through
       the normal registry and retain schema validation, risk, approval, plan-mode,
       fallback-provenance, audit, workspace, and abort context.
@@ -522,6 +557,7 @@ CDP observation service, and event/monitor automation triggers.
   default-OFF lock.
 
 #### **CM-4 — Add composition helpers and structured output**
+
 - [ ] Provide Codex-like `text`, `image`, `generatedImage`, `store`, `load`, `notify`, and
       `yield_control`, plus safe parallel composition and bounded persisted temporary state.
       Unawaited operations are cancelled when the isolate ends.
@@ -529,11 +565,13 @@ CDP observation service, and event/monitor automation triggers.
   unawaited-call cleanup tests.
 
 #### **CM-5 — Add Code Mode activity, approvals, and diagnostics**
+
 - [ ] Show script, nested calls, approvals, progress, limits, failure locus, and final
       outputs without leaking secrets. Add Settings toggle/ceilings and a kill action.
 - Verify: redaction/event/UI wiring tests, build/renderer smoke, escape/approval GUI playbook.
 
 #### **CM-6 — Code Mode milestone wrap**
+
 - [ ] Threat model + architecture doc, README/current-state/DEVLOG/version update, full gate,
       packaged Windows smoke, and honest gaps. Keep OFF by default.
 - Verify: full milestone gate plus adversarial corpus.
@@ -541,97 +579,114 @@ CDP observation service, and event/monitor automation triggers.
 ### M5 — PR Chat
 
 #### **PR-1 — Bind PR context to a conversation**
+
 - [ ] Extend the current conversation↔PR association so chat receives bounded PR metadata,
       base/head SHAs, file list, checks, review threads, and selected diff context on demand.
 - Verify: stale-SHA, pagination, context-budget, and repository-identity tests.
 
 #### **PR-2 — Add PR inspection tools**
+
 - [ ] Register read tools for PR summary, files, diff hunks, checks, comments, and patch
       inspection using existing GitHub service/auth. Tool results spill through the normal
       large-result valve.
 - Verify: schemas, pagination, redaction, stale/permission/network error tests.
 
 #### **PR-3 — Add review and annotation tools**
+
 - [ ] Add inline comment, reply, pending review, submit review, and detached finding flows.
       External writes require normal approval and show the exact target before execution.
 - Verify: risk/approval, line mapping, stale-diff, idempotency, and draft-review tests.
 
 #### **PR-4 — Add patch propose/edit/accept/reject**
+
 - [ ] Let chat draft a patch against the bound head SHA, render it for editing, and require
       explicit accept before applying through the normal patch/workspace authority. Reject
       is non-mutating; stale head blocks application.
 - Verify: patch path confinement, SHA race, accept/reject, rollback, audit tests.
 
 #### **PR-5 — Connect the existing PR panel and chat activity**
+
 - [ ] Add “Chat about this PR,” selected-hunk send, patch cards, annotations, check progress,
       and review-submit confirmation without replacing the current panel.
 - Verify: UI wiring, build/renderer smoke, live test-repository playbook.
 
 #### **PR-6 — PR Chat milestone wrap**
+
 - [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate; owner GitHub smoke with no unintended external review.
 
 ### M6 — MCP resources and authenticated sessions
 
 #### **MR-1 — Extend the MCP manager with resources and templates**
+
 - [ ] Add capability-aware list/read APIs, cursor pagination, change notifications where
       supported, bounded content handling, and URI validation without changing current tool
       discovery/call behavior.
 - Verify: SDK fixture tests for supported/unsupported servers, pagination, timeout/cancel.
 
 #### **MR-2 — Add MCP resource tools**
+
 - [ ] Register `list_mcp_resources`, `list_mcp_resource_templates`, and
       `read_mcp_resource`; preserve server provenance and use the spill valve for large text
       or blobs. Binary/image items use canonical content blocks.
 - Verify: schemas, lazy discovery, MIME/content, spill, URI/server mismatch tests.
 
 #### **MR-3 — Add authenticated-session and elicitation lifecycle**
+
 - [ ] Support hosted-session auth status, reauthorization, user-consent elicitation, expiry,
       reconnect, and actionable errors. Credentials remain in keychain/safe storage and
       never enter prompts/events.
 - Verify: auth state machine, cancellation, secret-redaction, reconnect tests.
 
 #### **MR-4 — Surface resources and auth status**
+
 - [ ] Extend connector/plugin UI with resources/templates, auth state, reauthorize, and
       safe preview/open actions; expose progress in activity.
 - Verify: UI wiring, build/renderer smoke, local fixture-server and hosted-auth playbooks.
 
 #### **MR-5 — MCP milestone wrap**
+
 - [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate; owner hosted-auth evidence if available.
 
 ### M7 — Browser Developer Mode
 
 #### **BD-1 — Add an explicit CDP session service**
+
 - [ ] Attach/detach through Electron's supported debugger/CDP seam with one owner per browser
       target, protocol-version handling, cancellation, and cleanup. Gate behind
       `browserDeveloperModeEnabled: false`.
 - Verify: lifecycle/reattach/target-close/version tests; packaged Electron smoke.
 
 #### **BD-2 — Add console and network observation tools**
+
 - [ ] Register bounded tools for console events/errors and network request/response metadata,
       filters, cursors, and clear operations. Bodies are opt-in, size-capped, MIME-aware,
       and redacted for auth/cookies/secrets.
 - Verify: redaction, cap, pagination, target navigation, and disabled-mode tests.
 
 #### **BD-3 — Add DOM snapshot, runtime, and performance tools**
+
 - [ ] Add structured DOM/accessibility snapshot, constrained runtime inspection, layout and
       performance metrics, trace windows, and screenshot annotation references. Do not turn
       this into unrestricted page-world code execution.
 - Verify: schema/size/cancel/navigation race and untrusted-page tests.
 
 #### **BD-4 — Enforce domain, approval, and dangerous-action policy**
+
 - [ ] Reuse browser/domain trust and tool risk metadata; require explicit approval for body
       capture, sensitive context, or mutation. Extend dangerous-command detection and
       conservative PowerShell inspection before broader control surfaces ship.
 - Verify: policy matrix, deny/approval, secret, dangerous-command, uninspectable-AST tests.
 
 #### **BD-5 — Add Developer Mode UI and annotations**
+
 - [ ] Show attached target, recording state, console/network progress, captured evidence,
       annotations, clear/detach, and per-site control in the existing browser surface.
 - Verify: UI wiring, build/renderer smoke, local test-page playbook.
 
 #### **BD-6 — Browser Developer Mode milestone wrap**
+
 - [ ] Architecture/security doc, README/current-state/DEVLOG/version update, full gate,
       AFTER matrix. Keep OFF by default.
 - Verify: full milestone gate and owner browser-CDP smoke.
@@ -639,24 +694,28 @@ CDP observation service, and event/monitor automation triggers.
 ### M8 — Model-callable automations and operational goals
 
 #### **GA-1 — Wrap existing automation CRUD as tools**
+
 - [ ] Add `automation_list`, `automation_update`, `automation_delete`, and
       `automation_run_now` over the existing store/runner. Mutations require appropriate
       approval; the tool cannot invent raw internal scheduler directives.
 - Verify: schema/risk/approval/CRUD/run-history tests and UI compatibility.
 
 #### **GA-2 — Add one-shot, schedule, event, and monitor trigger types**
+
 - [ ] Version the automation schema beyond cron while preserving existing rows. Define
       deterministic next-run, deduplication, retry, missed-run, and disabled semantics for
       each trigger kind.
 - Verify: node:sqlite migration tests, fake-clock trigger matrix, restart/dedup tests.
 
 #### **GA-3 — Make goal lifecycle operational**
+
 - [ ] Extend current goal records/tools with edit, pause, resume, clear, abort, budget usage,
       blocker, completion, and elapsed-time semantics. User/system-controlled states remain
       distinct from model-requested transitions.
 - Verify: state-machine/authority/persistence/restart tests.
 
 #### **GA-4 — Bridge goals and automations to the loop engine**
+
 - [ ] A goal may own a bounded loop/backlog and an automation may wake it through the single
       turn seam. `loopsEnabled` remains an outer gate at every entry point; automation/goal
       ceilings may tighten but never raise loop ceilings.
@@ -664,17 +723,20 @@ CDP observation service, and event/monitor automation triggers.
   `verify:proof -- --no-tests` if chat seam changes.
 
 #### **GA-5 — Surface management, progress, and reminders**
+
 - [ ] Extend existing Automations and Plan/Goal surfaces with trigger kind, next run,
       progress, budget, pause/resume/abort, reminders, and honest blocked/completed states.
 - Verify: UI wiring, fake-clock state tests, build/renderer smoke, automation/goal playbook.
 
 #### **GA-6 — Automation/goal milestone wrap**
+
 - [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate and owner background/restart smoke.
 
 ### M9 — Initiative closeout
 
 #### **CJP-WRAP — Publish the dated parity ledger and follow-on boundary**
+
 - [ ] Write `PLANNING/CJ26_AFTER.md` with every CJP-0 row marked complete, partial, parked,
       superseded, or owner-verification-needed; include exact releases, settings, tests,
       skips, GUI traces, and commit SHAs.
@@ -716,14 +778,14 @@ The user should answer these when approving. Recommended defaults are first.
 
 ## §5 — Parked scope ledger
 
-| Candidate | Why parked | Unparking condition |
-|---|---|---|
-| Claude Code 2026 parity refresh | Separate vendor baseline; avoids destabilizing Steering | Dedicated dated research + PSPR approval |
-| Record and Replay | Depends on stable browser observation and artifact/skill formats | M3 and M7 complete, then skill/plugin PSPR |
-| Computer Use / Chrome profile | High privilege and privacy boundary | Dedicated threat model, explicit user approval, plugin isolation |
-| Remote SSH/control and local↔remote handoff | Host authority, credentials, Git/worktree transfer | Dedicated protocol/security PSPR |
-| Documents/PDF/Sheets/Slides/Sites | Large dependency/UI surface unrelated to core turn control | Common artifact API complete; installable plugin plans |
-| Global cross-project semantic search | Valuable product feature, not required for Steering/tool parity | Separate retrieval/privacy plan |
+| Candidate                                   | Why parked                                                       | Unparking condition                                              |
+| ------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Claude Code 2026 parity refresh             | Separate vendor baseline; avoids destabilizing Steering          | Dedicated dated research + PSPR approval                         |
+| Record and Replay                           | Depends on stable browser observation and artifact/skill formats | M3 and M7 complete, then skill/plugin PSPR                       |
+| Computer Use / Chrome profile               | High privilege and privacy boundary                              | Dedicated threat model, explicit user approval, plugin isolation |
+| Remote SSH/control and local↔remote handoff | Host authority, credentials, Git/worktree transfer               | Dedicated protocol/security PSPR                                 |
+| Documents/PDF/Sheets/Slides/Sites           | Large dependency/UI surface unrelated to core turn control       | Common artifact API complete; installable plugin plans           |
+| Global cross-project semantic search        | Valuable product feature, not required for Steering/tool parity  | Separate retrieval/privacy plan                                  |
 
 Parked means named and deliberately excluded, not forgotten and not authorized.
 
@@ -750,6 +812,22 @@ Decisions: 1 = one enhancement at a time, interpreted conservatively as CJP-0 on
 STS instruction: "C:\Users\17076\Documents\Claude\Lamprey Harness\PLANNING\LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md" Approved to run STS. Only ONE enhancement at a time.
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
+
+```text
+APPROVED: 2026-07-18 (release override)
+Milestones: finish M1 at ST-12; stop before M2.
+Decisions: release as v0.20.0; commit and push to main; run Bucket; update the public
+  repository page and governance; use the owner footer for new documents and commits.
+  The open paired Codex/Lamprey replay remains an explicit evidence gap, not a release block
+  and not a parity pass.
+STS instruction: "Commit and push to Main. This is a major version update: v0.20.0"
+  followed by the full Bucket and governance instruction.
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
 
 ```text
 APPROVED: 2026-07-17 (scope clarification)

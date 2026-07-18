@@ -8763,3 +8763,75 @@ positive. Accounting remains informational; the passing no-addon `node:sqlite` i
 cohort remains the current automated DB evidence for Steering.
 
 **Commit:** see git log (ST-10B).
+
+## Codex July 2026 Parity - Prompt ST-11 Steering conformance cut - 2026-07-18
+
+**Files changed:** `electron/services/steering-conformance-matrix.test.ts`,
+`electron/services/follow-up-composer-wiring.test.ts`,
+`src/components/chat/ChatInput.tsx`, `src/components/chat/FollowUpQueue.tsx`,
+`PLANNING/CJ26_STEERING_AFTER.md`,
+`PLANNING/evidence/CJ26-codex-steering-reference.png`
+
+**Verify gate:**
+
+- focused Steering release cohort OK (15 files, 138 tests, 0 skipped)
+- full Vitest OK (201 passed files, 13 skipped; 2,624 passed tests, 141 skipped)
+- lint OK
+- tsc node OK
+- tsc web OK
+- production build OK
+- bundle smoke OK
+- renderer smoke OK
+- `verify:proof` exits 0 and names the 16 native-DB files skipped by the active
+  Node/Electron ABI mismatch
+- owner evidence: the core Lamprey Steering path works; the complete paired
+  CJ26-S01 through CJ26-S12 replay remains `USER-VERIFICATION-NEEDED`
+
+**Notes:** The final running-composer treatment follows the supplied Codex
+reference without copying a loud text pill into Lamprey. Enter uses the selected
+follow-up default, Tab uses the alternate, and Stop is a separate 36-pixel
+control. Accepted Steering appears as a muted pending row above the composer
+until the next safe model boundary. It has no delete affordance because the
+runtime cannot truthfully cancel an accepted Steer. The new matrix test maps all
+twenty normative rows exactly once to executable evidence. The owner report is
+recorded as real Lamprey evidence, but it is not inflated into a full paired
+Codex/Lamprey replay.
+
+**Commit:** `b1a3cba`
+
+## Codex July 2026 Parity - Prompt ST-12 v0.20.0 release cut - 2026-07-18
+
+**Files changed:** `package.json`, `package-lock.json`, `README.md`,
+`CONTRIBUTING.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`PLANNING/CJ26_STEERING_AFTER.md`, `ARCHITECTURE/TURN_CONTROL_AND_STEERING.md`,
+`RELEASE_NOTES/v0.20.0.md`, `electron-builder.yml`,
+`.github/workflows/build.yml`, `scripts/bucket.ps1`,
+`scripts/hooks/commit-msg`, the release-governance skills, and `DEVLOG.md`
+
+**Verify gate:**
+
+- v0.20.0 package and lockfile versions agree
+- focused Steering release cohort OK (15 files, 138 tests, 0 skipped)
+- full Vitest OK (201 passed files, 13 skipped; 2,624 passed tests, 141 skipped)
+- lint and tsc node/web OK
+- production build and both smokes OK
+- full `verify:proof` OK with explicit native-DB skip accounting
+- Bucket PowerShell 7 dry-run OK for EXE, ZIP, macOS DMG, Linux AppImage,
+  GitHub release, R2 mirror, and Cloudflare purge targets
+
+**Notes:** v0.20.0 is the Steering and Queue release. The owner explicitly
+authorized the release despite the still-open paired desktop replay, so the
+milestone is recorded as implementation-complete rather than parity-complete.
+The public repository name and electron-builder publish target now use
+`USS-Parks/Lamprey-Harness`. Bucket writes the human release note, publishes the
+four Windows artifacts, waits for the tag workflow, and mirrors the existing
+macOS and Linux packages to R2. There is no iOS project or `.ipa`; the Apple
+artifact is correctly identified as a macOS DMG. The new owner footer replaces
+the older JM-0 trailer for all new commits and release documents.
+
+**Commit:** see git log (ST-12 release cut).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

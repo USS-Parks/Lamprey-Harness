@@ -49,7 +49,7 @@ The unit suite runs through `npx vitest run` (also exposed as `npm test`). It ta
 
 Pick one:
 
-- **Add an antivirus exclusion** for the project's `node_modules/esbuild` directory (Defender: *Settings → Virus & threat protection → Manage settings → Exclusions → Add folder*). This is the persistent fix.
+- **Add an antivirus exclusion** for the project's `node_modules/esbuild` directory (Defender: _Settings → Virus & threat protection → Manage settings → Exclusions → Add folder_). This is the persistent fix.
 - **Whitelist via single-run prompt**: from the repo root, run `node node_modules/esbuild/bin/esbuild --version`. If your AV uses an on-access prompt, allowing this single invocation usually lifts the block for subsequent spawns. The version flag is harmless.
 - **Reinstall after exclusion**: if the binary was quarantined, `rm -rf node_modules/esbuild && npm install` will restore it once the exclusion is in place.
 
@@ -99,9 +99,9 @@ These are enforced mechanically by `scripts/hooks/commit-msg` and
 `scripts/check-ai-artifacts.cjs` (wired via `npm run hooks:install`, which sets
 `core.hooksPath` to `scripts/hooks`). They are not style suggestions.
 
-1. **Every commit carries the trailer** `Agentically Engineered and Reviewed by Basho Parks - 2026`
-   on its own line. It states the authorship model plainly: machine-drafted,
-   human-reviewed. No `Co-Authored-By` lines.
+1. **Every commit carries the owner footer**
+   `Authored and reviewed by Basho Parks, copyright 2026` on its own line.
+   No `Co-Authored-By` lines.
 2. **Plain speak.** Subject ≤ 72 chars, states the change, no filler openers
    ("This commit…", "Various…", "Updated…"). Body caps at 12 lines — a commit
    message is a label, not an essay; long rationale goes in `DEVLOG.md`.
@@ -126,7 +126,9 @@ If a PR touches more than ~600 lines, break it up. Reviewers can't hold more tha
 
 ## Review and sign-off
 
-Every change — including the maintainer's own — lands through a pull request. Nothing is pushed straight to `main`. A PR does not merge until all three hold:
+External contributions land through a pull request. Maintainer release work may
+go straight to `main` only when Basho Parks explicitly authorizes that ship.
+A pull request does not merge until all three hold:
 
 1. **CI is green** — the gates listed under [Required before every PR](#required-before-every-pr).
 2. **A human has read the diff** — the maintainer (Basho Parks) reviews the change and leaves an explicit approval, not a rubber stamp.
@@ -148,7 +150,7 @@ AI assistants are welcome to draft code and open PRs — much of this project wa
 
 - Style-only churn (rename / reformat with no behavior change).
 - New abstractions added "for future flexibility." If you can't show three call sites today, the abstraction is premature.
-- Multi-provider AI client refactors. v0.2 will address provider abstraction; v0.1 is DeepSeek-only on purpose.
+- Provider changes that bypass the registry or duplicate its dispatch path.
 
 ---
 
@@ -173,3 +175,7 @@ Feature requests should include:
 ## License
 
 By contributing you agree your changes are released under the MIT license that covers the rest of the project.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

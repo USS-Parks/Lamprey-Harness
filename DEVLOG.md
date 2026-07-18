@@ -9339,3 +9339,30 @@ Credential-shaped text in PR bodies, comments, and patches is redacted before mo
 permission and network failures surface once without an implicit retry.
 
 **Commit:** see git log (PR-2).
+
+## Codex July 2026 Parity — Prompt PR-3 Review and annotation tools — 2026-07-18
+
+**Files changed:** `electron/services/pr-review-schema.ts`,
+`electron/services/pr-review-store.ts`, `electron/services/pr-review-store.test.ts`,
+`electron/services/pr-review-flow.ts`, `electron/services/pr-review-flow.test.ts`,
+`electron/services/pr-chat-tool-pack.ts`, `electron/services/pr-chat-tool-pack.test.ts`,
+`electron/services/github-service.ts`, `electron/services/db-migrations.ts`,
+`electron/services/db-migrations.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- approval metadata, exact target, current-diff line mapping, stale-head, pending review,
+  idempotency, failure retry, and service cohort ✓ (5 files, 56 tests, 0 skipped)
+- Electron-native v28 schema/review cohort ✓ (3 files, 21 tests, 0 skipped)
+
+**Notes:** Four external GitHub tools create a pending review, attach an inline comment,
+reply, and submit the review. Every one is marked `requiresApproval: true`, carries exact
+repo/PR/head/line target arguments, and rechecks the bound head before writing. Unified-diff
+headers validate left/right line anchors. Durable idempotency receipts replay completed
+writes, block duplicate in-flight actions, and clear failed reservations for explicit retry.
+Migration v28 also adds durable detached findings; `pr_finding_create` records locally and
+does not post to GitHub.
+
+**Commit:** see git log (PR-3).

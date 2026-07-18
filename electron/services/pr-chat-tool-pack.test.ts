@@ -1,18 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ loadPullRequestContext: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  loadPullRequestContext: vi.fn(),
+  startDraftReview: vi.fn(),
+  addDraftReviewComment: vi.fn(),
+  replyToDraftReviewComment: vi.fn(),
+  submitDraftReview: vi.fn(),
+  createDetachedFinding: vi.fn()
+}))
 vi.mock('electron', () => ({
   app: { getPath: () => 'C:\\tmp' },
   BrowserWindow: { getAllWindows: () => [] }
 }))
 vi.mock('@electron-toolkit/utils', () => ({ is: { dev: true } }))
 vi.mock('./pr-chat-context', () => ({ loadPullRequestContext: mocks.loadPullRequestContext }))
+vi.mock('./pr-review-flow', () => ({
+  startDraftReview: mocks.startDraftReview,
+  addDraftReviewComment: mocks.addDraftReviewComment,
+  replyToDraftReviewComment: mocks.replyToDraftReviewComment,
+  submitDraftReview: mocks.submitDraftReview,
+  createDetachedFinding: mocks.createDetachedFinding
+}))
 
 import './pr-chat-tool-pack'
 import { toolRegistry } from './tool-registry'
 import { validateToolArguments } from './tool-schema-validator'
 
 const NAMES = ['pr_summary', 'pr_files', 'pr_diff_hunks', 'pr_checks', 'pr_comments', 'pr_patch_inspect']
+const REVIEW_NAMES = ['pr_review_start', 'pr_review_comment', 'pr_review_reply', 'pr_review_submit']
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -28,6 +43,11 @@ beforeEach(() => {
     selectedDiff: { path: 'src/a.ts', patch: '+ok', found: true, truncated: false },
     truncated: { files: false, checks: false, threads: false }
   })
+  mocks.startDraftReview.mockResolvedValue({ replayed: false, result: { id: 1 } })
+  mocks.addDraftReviewComment.mockResolvedValue({ replayed: false, result: { id: 2 } })
+  mocks.replyToDraftReviewComment.mockResolvedValue({ replayed: false, result: { id: 3 } })
+  mocks.submitDraftReview.mockResolvedValue({ replayed: false, result: { id: 1 } })
+  mocks.createDetachedFinding.mockResolvedValue({ id: 'finding-1', status: 'detached' })
 })
 
 describe('PR-2 inspection tools', () => {
@@ -77,5 +97,29 @@ describe('PR-2 inspection tools', () => {
     await expect(toolRegistry.executeNative(
       'pr_comments', { fullName: 'octo/repo', number: 7 }, {}
     )).rejects.toThrow(/active conversation/)
+  })
+
+  it('approval-gates every external review write and keeps detached findings local', () => {
+    for (const name of REVIEW_NAMES) {
+      const descriptor = toolRegistry.getById(name)
+      expect(descriptor?.risks, name).toEqual(['write', 'network'])
+      expect(descriptor?.requiresApproval, name).toBe(true)
+      expect(descriptor?.mutates, name).toBe(true)
+    }
+    const finding = toolRegistry.getById('pr_finding_create')
+    expect(finding?.risks).toEqual(['write'])
+    expect(finding?.requiresApproval).toBe(false)
+  })
+
+  it('passes exact bound head and target identity into pending review creation', async () => {
+    await toolRegistry.executeNative(
+      'pr_review_start',
+      { fullName: 'octo/repo', number: 7, headSha: 'abcdef123', idempotencyKey: 'review:start:7' },
+      { conversationId: 'conversation-1' }
+    )
+    expect(mocks.startDraftReview).toHaveBeenCalledWith(expect.objectContaining({
+      conversationId: 'conversation-1', fullName: 'octo/repo', number: 7,
+      headSha: 'abcdef123', idempotencyKey: 'review:start:7'
+    }))
   })
 })

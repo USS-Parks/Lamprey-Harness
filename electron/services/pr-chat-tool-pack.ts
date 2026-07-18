@@ -1,4 +1,11 @@
 import { loadPullRequestContext } from './pr-chat-context'
+import {
+  addDraftReviewComment,
+  createDetachedFinding,
+  replyToDraftReviewComment,
+  startDraftReview,
+  submitDraftReview
+} from './pr-review-flow'
 import { toolRegistry, type ToolExecutionContext } from './tool-registry'
 
 const BINDING_SCHEMA = {
@@ -90,6 +97,137 @@ registerReadTool(
       binding: value.binding
     }
   }
+)
+
+function registerReviewTool(
+  name: string,
+  title: string,
+  description: string,
+  properties: Record<string, unknown>,
+  required: string[],
+  requiresApproval: boolean,
+  handler: (args: Record<string, unknown>, ctx: ToolExecutionContext) => Promise<unknown>
+): void {
+  toolRegistry.registerNative(
+    {
+      id: name,
+      name,
+      title,
+      description,
+      providerKind: 'native',
+      providerId: 'github',
+      inputSchema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          ...BINDING_SCHEMA,
+          headSha: { type: 'string', description: 'Exact bound PR head SHA.' },
+          ...properties
+        },
+        required
+      },
+      risks: requiresApproval ? ['write', 'network'] : ['write'],
+      requiresApproval,
+      enabled: true,
+      lazy: true,
+      mutates: true
+    },
+    async (args, ctx) => {
+      if (!ctx.conversationId) throw new Error('PR review tools require an active conversation')
+      return JSON.stringify(
+        await handler(args, { ...ctx, conversationId: ctx.conversationId })
+      )
+    }
+  )
+}
+
+const idempotency = {
+  idempotencyKey: {
+    type: 'string',
+    description: 'Stable unique key for this exact external write.'
+  }
+}
+
+registerReviewTool(
+  'pr_review_start',
+  'Start pending PR review',
+  'Create a pending GitHub review pinned to the exact bound head SHA.',
+  { body: { type: 'string' }, ...idempotency },
+  ['fullName', 'number', 'headSha', 'idempotencyKey'],
+  true,
+  async (args, ctx) => startDraftReview({
+    conversationId: ctx.conversationId!, fullName: String(args.fullName), number: Number(args.number),
+    headSha: String(args.headSha), body: typeof args.body === 'string' ? args.body : undefined,
+    idempotencyKey: String(args.idempotencyKey)
+  })
+)
+
+registerReviewTool(
+  'pr_review_comment',
+  'Add pending review comment',
+  'Add one exact path/line annotation to a pending review after current-diff validation.',
+  {
+    reviewId: { type: 'number' }, path: { type: 'string' }, line: { type: 'number' },
+    startLine: { type: 'number' }, side: { type: 'string', enum: ['LEFT', 'RIGHT'] },
+    body: { type: 'string' }, ...idempotency
+  },
+  ['fullName', 'number', 'headSha', 'reviewId', 'path', 'line', 'side', 'body', 'idempotencyKey'],
+  true,
+  async (args, ctx) => addDraftReviewComment({
+    conversationId: ctx.conversationId!, fullName: String(args.fullName), number: Number(args.number),
+    headSha: String(args.headSha), reviewId: Number(args.reviewId), path: String(args.path),
+    line: Number(args.line), startLine: typeof args.startLine === 'number' ? args.startLine : undefined,
+    side: String(args.side) as 'LEFT' | 'RIGHT', body: String(args.body),
+    idempotencyKey: String(args.idempotencyKey)
+  })
+)
+
+registerReviewTool(
+  'pr_review_reply',
+  'Reply to PR review comment',
+  'Reply to an existing review comment on the exact bound PR head.',
+  { commentId: { type: 'number' }, body: { type: 'string' }, ...idempotency },
+  ['fullName', 'number', 'headSha', 'commentId', 'body', 'idempotencyKey'],
+  true,
+  async (args, ctx) => replyToDraftReviewComment({
+    conversationId: ctx.conversationId!, fullName: String(args.fullName), number: Number(args.number),
+    headSha: String(args.headSha), commentId: Number(args.commentId), body: String(args.body),
+    idempotencyKey: String(args.idempotencyKey)
+  })
+)
+
+registerReviewTool(
+  'pr_review_submit',
+  'Submit pending PR review',
+  'Submit one pending review as comment, approval, or request-changes on the exact bound head.',
+  {
+    reviewId: { type: 'number' },
+    event: { type: 'string', enum: ['COMMENT', 'APPROVE', 'REQUEST_CHANGES'] },
+    body: { type: 'string' }, ...idempotency
+  },
+  ['fullName', 'number', 'headSha', 'reviewId', 'event', 'idempotencyKey'],
+  true,
+  async (args, ctx) => submitDraftReview({
+    conversationId: ctx.conversationId!, fullName: String(args.fullName), number: Number(args.number),
+    headSha: String(args.headSha), reviewId: Number(args.reviewId),
+    event: String(args.event) as 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES',
+    body: typeof args.body === 'string' ? args.body : undefined,
+    idempotencyKey: String(args.idempotencyKey)
+  })
+)
+
+registerReviewTool(
+  'pr_finding_create',
+  'Record detached PR finding',
+  'Record a local detached review finding without posting anything to GitHub.',
+  { path: { type: 'string' }, line: { type: 'number' }, body: { type: 'string' } },
+  ['fullName', 'number', 'headSha', 'body'],
+  false,
+  async (args, ctx) => createDetachedFinding({
+    conversationId: ctx.conversationId!, fullName: String(args.fullName), number: Number(args.number),
+    headSha: String(args.headSha), path: typeof args.path === 'string' ? args.path : undefined,
+    line: typeof args.line === 'number' ? args.line : undefined, body: String(args.body)
+  })
 )
 
 registerReadTool(

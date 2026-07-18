@@ -192,7 +192,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(27)
+    expect(result.endVersion).toBe(28)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
@@ -270,6 +270,16 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     }>
     expect(columns.map((column) => column.name)).toEqual(
       expect.arrayContaining(['repo_id', 'base_sha', 'head_sha', 'updated_at'])
+    )
+  })
+
+  it('PR-3 - migration v28 adds detached findings and idempotency receipts', () => {
+    runMigrations(db)
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
+      name: string
+    }>
+    expect(tables.map((table) => table.name)).toEqual(
+      expect.arrayContaining(['pr_review_findings', 'pr_review_action_receipts'])
     )
   })
 

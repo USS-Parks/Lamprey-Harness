@@ -9,6 +9,7 @@ import { FORK_TURN_SCHEMA_SQL } from './fork-turn-schema'
 import { TASK_LIFECYCLE_SCHEMA_SQL } from './task-lifecycle-schema'
 import { applyArtifactSchema } from './artifact-schema'
 import { ARTIFACT_EDIT_SCHEMA_SQL } from './artifact-edit-schema'
+import { applyPrReviewSchema } from './pr-review-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -349,6 +350,13 @@ export const MIGRATIONS: Migration[] = [
       safeAdd('base_sha TEXT')
       safeAdd('head_sha TEXT')
       safeAdd('updated_at INTEGER NOT NULL DEFAULT 0')
+    }
+  },
+  {
+    version: 28,
+    description: 'Codex July parity PR-3 - review findings and idempotency receipts',
+    up(db) {
+      applyPrReviewSchema(db)
     }
   }
 ]

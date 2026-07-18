@@ -1100,6 +1100,72 @@ export async function createPullRequestReview(
   }
 }
 
+export async function createPendingPullRequestReview(input: {
+  owner: string
+  repo: string
+  number: number
+  commitId: string
+  body?: string
+}): Promise<CreatedPullRequestReview> {
+  if (!isValidSlug(input.owner) || !isValidSlug(input.repo)) throw new Error('Invalid repo')
+  if (!Number.isInteger(input.number) || input.number <= 0) throw new Error('Invalid PR number')
+  if (!/^[a-f0-9]{7,64}$/i.test(input.commitId)) throw new Error('Invalid commit id')
+  const raw = await githubRequest<{ id: number; state: string; html_url: string; submitted_at: string | null }>(
+    `/repos/${input.owner}/${input.repo}/pulls/${input.number}/reviews`,
+    { method: 'POST', body: { commit_id: input.commitId, ...(input.body?.trim() ? { body: input.body.trim() } : {}) } },
+    provider()
+  )
+  return { id: raw.id, state: raw.state, htmlUrl: raw.html_url, submittedAt: raw.submitted_at }
+}
+
+export async function addPendingReviewComment(input: {
+  owner: string
+  repo: string
+  number: number
+  reviewId: number
+  path: string
+  body: string
+  line: number
+  side: 'LEFT' | 'RIGHT'
+  startLine?: number
+}): Promise<PullRequestReviewComment> {
+  if (!isValidSlug(input.owner) || !isValidSlug(input.repo)) throw new Error('Invalid repo')
+  if (![input.number, input.reviewId, input.line].every((value) => Number.isInteger(value) && value > 0)) {
+    throw new Error('Invalid review target')
+  }
+  if (!input.path || !input.body.trim()) throw new Error('path and comment body are required')
+  const raw = await githubRequest<RawReviewComment>(
+    `/repos/${input.owner}/${input.repo}/pulls/${input.number}/reviews/${input.reviewId}/comments`,
+    { method: 'POST', body: {
+      path: input.path, body: input.body.trim(), line: input.line, side: input.side,
+      ...(input.startLine ? { start_line: input.startLine, start_side: input.side } : {})
+    } },
+    provider()
+  )
+  return parseReviewComment(raw)
+}
+
+export async function submitPendingPullRequestReview(input: {
+  owner: string
+  repo: string
+  number: number
+  reviewId: number
+  event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'
+  body?: string
+}): Promise<CreatedPullRequestReview> {
+  if (!isValidSlug(input.owner) || !isValidSlug(input.repo)) throw new Error('Invalid repo')
+  if (![input.number, input.reviewId].every((value) => Number.isInteger(value) && value > 0)) {
+    throw new Error('Invalid review target')
+  }
+  if (!['APPROVE', 'REQUEST_CHANGES', 'COMMENT'].includes(input.event)) throw new Error('Invalid review event')
+  const raw = await githubRequest<{ id: number; state: string; html_url: string; submitted_at: string | null }>(
+    `/repos/${input.owner}/${input.repo}/pulls/${input.number}/reviews/${input.reviewId}/events`,
+    { method: 'POST', body: { event: input.event, ...(input.body?.trim() ? { body: input.body.trim() } : {}) } },
+    provider()
+  )
+  return { id: raw.id, state: raw.state, htmlUrl: raw.html_url, submittedAt: raw.submitted_at }
+}
+
 export interface ReplyToReviewCommentInput {
   owner: string
   repo: string

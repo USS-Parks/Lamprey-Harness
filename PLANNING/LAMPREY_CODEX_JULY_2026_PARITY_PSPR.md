@@ -595,7 +595,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **PR-3 — Add review and annotation tools**
 
-- [ ] Add inline comment, reply, pending review, submit review, and detached finding flows.
+- [x] Add inline comment, reply, pending review, submit review, and detached finding flows.
       External writes require normal approval and show the exact target before execution.
 - Verify: risk/approval, line mapping, stale-diff, idempotency, and draft-review tests.
 

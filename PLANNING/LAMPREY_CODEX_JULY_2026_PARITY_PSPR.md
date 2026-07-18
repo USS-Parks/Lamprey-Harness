@@ -826,6 +826,18 @@ STS instruction: "Run the next major session STS. When complete, release v0.21.0
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
 
+### M2 pre-publication correction — 2026-07-18
+
+The release tag was deliberately withheld after the first post-push Ubuntu coverage job
+reported two provider-registry failures. Root cause was cache identity keyed only by
+`settings.json` mtime across different profile paths. `electron/services/providers/registry.ts`
+now keys the base-URL override, custom-provider, and custom-model caches by path plus mtime;
+the deterministic same-mtime/two-profile regression passes 41/41 under the focused suite.
+The linked provider failures disappeared in the full Windows coverage reproduction. Its
+only remaining failure was the separately documented Windows real-time-scanning timeout in
+the 210-file memory stress case. No v0.21.0 tag or public artifact existed before this
+correction; Bucket resumes only from the corrected commit.
+
 ```text
 APPROVED: 2026-07-18 (release override)
 Milestones: finish M1 at ST-12; stop before M2.

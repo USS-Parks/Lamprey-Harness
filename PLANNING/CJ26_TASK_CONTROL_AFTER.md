@@ -50,6 +50,16 @@ rejected valid pure literals under load. The bounded production guard is now one
 Load-sensitive catalog-import, process-exit, and 210-file-generation test deadlines were
 aligned with observed Windows real-time-scanning latency; focused and complete suites pass.
 
+The first post-push Ubuntu coverage job exposed a separate release blocker before the tag
+was created: three settings-backed provider caches used only `mtimeMs` as identity, so two
+different temporary/profile `settings.json` files with the same timestamp could reuse a
+stale base-URL override, custom-provider set, or custom-model set. The caches now key on
+canonical file path plus mtime. A deterministic same-mtime/two-profile regression passes
+as part of the 41-test provider suite under coverage. A repeat full Windows coverage run
+showed both reported provider assertions fixed; its only failure was the already documented
+210-file memory-store stress test exceeding 240 seconds under Windows coverage and real-time
+scanning. The ordinary full suite and proof gate remain the release authority for that host.
+
 ## Owner GUI ledger
 
 `PLANNING/CJ26_TASK_CONTROL_PLAYBOOK.md` defines eight packaged checks. They remain

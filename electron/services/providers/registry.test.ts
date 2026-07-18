@@ -890,4 +890,56 @@ describe('custom endpoint providers (settings.json customProviders)', () => {
       }
     )
   })
+
+  it('keeps settings-backed caches isolated when profile files share an mtime', async () => {
+    const { mkdtempSync, writeFileSync: wf, utimesSync } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const sharedMtime = new Date('2024-01-01T00:00:00.000Z')
+
+    const writeProfile = (suffix: string, host: string) => {
+      const dir = mkdtempSync(j(tmpdir(), `lamprey-provider-cache-${suffix}-`))
+      const path = j(dir, 'settings.json')
+      wf(
+        path,
+        JSON.stringify({
+          providerBaseUrlOverrides: { ollama: `http://${host}:11434/v1` },
+          customProviders: [{ id: `cache-${suffix}`, baseURL: `http://${host}:8000/v1` }],
+          customModels: [
+            {
+              id: `model-${suffix}`,
+              name: `Model ${suffix}`,
+              provider: 'ollama',
+              contextWindow: 8192,
+              supportsTools: false
+            }
+          ]
+        })
+      )
+      utimesSync(path, sharedMtime, sharedMtime)
+      return dir
+    }
+
+    const firstDir = writeProfile('first', '192.0.2.10')
+    const secondDir = writeProfile('second', '192.0.2.20')
+    mockGetKey.mockImplementation(() => null)
+    mockCreate.mockResolvedValue(okCompletion)
+
+    try {
+      setUserDataPathProvider(() => firstDir)
+      expect(listAllProviders().at(-1)?.id).toBe('cache-first')
+      expect(resolveModel('model-first').provider).toBe('ollama')
+      await chatOnce([{ role: 'user', content: 'q' }], 'model-first')
+      expect(mockCtorOpts.at(-1)?.baseURL).toBe('http://192.0.2.10:11434/v1')
+
+      setUserDataPathProvider(() => secondDir)
+      expect(listAllProviders().at(-1)?.id).toBe('cache-second')
+      expect(resolveModel('model-second').provider).toBe('ollama')
+      await chatOnce([{ role: 'user', content: 'q' }], 'model-second')
+      expect(mockCtorOpts.at(-1)?.baseURL).toBe('http://192.0.2.20:11434/v1')
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  })
 })

@@ -9046,3 +9046,33 @@ Electron binary and passed 19/19. The packaged owner task-control GUI playbook r
 current-Codex parity claim. Existing untracked `.agents/` remains untouched and unstaged.
 
 **Commit:** see git log (TC-7 release cut).
+
+## Codex July 2026 Parity — TC-7 pre-publication CI correction — 2026-07-18
+
+**Files changed:** `electron/services/providers/registry.ts`,
+`electron/services/providers/registry.test.ts`,
+`PLANNING/CJ26_TASK_CONTROL_AFTER.md`, `RELEASE_NOTES/v0.21.0.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Trigger:** The first post-push Ubuntu coverage job failed two provider-registry assertions:
+an Ollama base-URL override resolved to the default URL, and a custom provider was absent.
+Bucket was stopped before tag creation.
+
+**Root cause and fix:** Base-URL override, custom-provider, and custom-model caches compared
+only `settings.json` `mtimeMs`. Distinct profiles created in the same filesystem timestamp
+quantum could therefore reuse another profile's cached value. Cache identity now includes
+the settings file path as well as mtime. A deterministic regression creates two profiles
+with exactly the same mtime and proves all three caches switch to the second profile.
+
+**Verify gate:**
+- focused provider suite under coverage: 41 tests passed, 0 failed
+- TypeScript: PASS
+- ESLint: PASS
+- full Windows coverage reproduction: both linked provider failures fixed; 209 files and
+  2,651 tests passed, 13 files and 143 tests skipped; only the known 210-file memory-store
+  stress test exceeded its 240-second Windows coverage deadline under real-time scanning
+
+**Publication state:** no `v0.21.0` tag existed and no v0.21.0 assets were published before
+this correction. Resume Bucket only after committing and pushing the corrected release head.
+
+**Commit:** see git log (TC-7 pre-publication correction).

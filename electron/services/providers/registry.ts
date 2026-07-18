@@ -994,8 +994,12 @@ export function resetProviderClient(provider: string): void {
 // for LAN inference boxes and non-default local ports. Values must be
 // http(s) URLs — anything else is ignored at this consumption site (the
 // settings sanitizer is open-by-design and does not validate shapes).
-// Cached on settings.json mtime like the custom-model reader.
-let baseUrlOverrideCache: { mtimeMs: number; overrides: Record<string, string> } | null = null
+// Cached on settings.json path + mtime like the custom-model reader.
+let baseUrlOverrideCache: {
+  path: string
+  mtimeMs: number
+  overrides: Record<string, string>
+} | null = null
 
 function readBaseUrlOverride(providerId: string): string | null {
   if (!userDataPathProvider) return null
@@ -1003,7 +1007,11 @@ function readBaseUrlOverride(providerId: string): string | null {
     const path = join(userDataPathProvider(), 'settings.json')
     if (!existsSync(path)) return null
     const mtimeMs = statSync(path).mtimeMs
-    if (!baseUrlOverrideCache || baseUrlOverrideCache.mtimeMs !== mtimeMs) {
+    if (
+      !baseUrlOverrideCache ||
+      baseUrlOverrideCache.path !== path ||
+      baseUrlOverrideCache.mtimeMs !== mtimeMs
+    ) {
       const raw = JSON.parse(readFileSync(path, 'utf-8')) as {
         providerBaseUrlOverrides?: unknown
       }
@@ -1014,7 +1022,7 @@ function readBaseUrlOverride(providerId: string): string | null {
           if (typeof v === 'string' && /^https?:\/\//i.test(v)) overrides[k] = v
         }
       }
-      baseUrlOverrideCache = { mtimeMs, overrides }
+      baseUrlOverrideCache = { path, mtimeMs, overrides }
     }
     return baseUrlOverrideCache.overrides[providerId] ?? null
   } catch {
@@ -1040,6 +1048,7 @@ export interface CustomProviderConfig {
 const CUSTOM_PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/
 
 let customProviderCache: {
+  path: string
   mtimeMs: number
   providers: Map<string, ProviderDescriptor>
 } | null = null
@@ -1051,7 +1060,11 @@ function readCustomProviderDescriptors(): Map<string, ProviderDescriptor> {
     const path = join(userDataPathProvider(), 'settings.json')
     if (!existsSync(path)) return empty
     const mtimeMs = statSync(path).mtimeMs
-    if (customProviderCache && customProviderCache.mtimeMs === mtimeMs) {
+    if (
+      customProviderCache &&
+      customProviderCache.path === path &&
+      customProviderCache.mtimeMs === mtimeMs
+    ) {
       return customProviderCache.providers
     }
     const raw = JSON.parse(readFileSync(path, 'utf-8')) as { customProviders?: unknown }
@@ -1070,7 +1083,7 @@ function readCustomProviderDescriptors(): Map<string, ProviderDescriptor> {
         keyOptional: p.requiresKey !== true
       })
     }
-    customProviderCache = { mtimeMs, providers }
+    customProviderCache = { path, mtimeMs, providers }
     return providers
   } catch {
     return empty
@@ -1144,8 +1157,8 @@ const RETIRED_MODEL_MAP: Record<string, string> = {
 // resolveModel never consulted them: any unknown id fell through to the
 // hard-coded DeepSeek descriptor, so a DashScope/AI-Studio id pasted per the
 // catalog's own instructions dispatched to api.deepseek.com with the DeepSeek
-// key. Cached on settings.json mtime — resolveModel is on every hot path.
-let customModelCache: { mtimeMs: number; models: ModelDescriptor[] } | null = null
+// key. Cached on settings.json path + mtime — resolveModel is on every hot path.
+let customModelCache: { path: string; mtimeMs: number; models: ModelDescriptor[] } | null = null
 
 function readCustomModelDescriptors(): ModelDescriptor[] {
   if (!userDataPathProvider) return []
@@ -1153,7 +1166,11 @@ function readCustomModelDescriptors(): ModelDescriptor[] {
     const path = join(userDataPathProvider(), 'settings.json')
     if (!existsSync(path)) return []
     const mtimeMs = statSync(path).mtimeMs
-    if (customModelCache && customModelCache.mtimeMs === mtimeMs) {
+    if (
+      customModelCache &&
+      customModelCache.path === path &&
+      customModelCache.mtimeMs === mtimeMs
+    ) {
       return customModelCache.models
     }
     const raw = JSON.parse(readFileSync(path, 'utf-8')) as { customModels?: unknown }
@@ -1179,7 +1196,7 @@ function readCustomModelDescriptors(): ModelDescriptor[] {
         description: 'Custom model.'
       })
     }
-    customModelCache = { mtimeMs, models }
+    customModelCache = { path, mtimeMs, models }
     return models
   } catch {
     return []

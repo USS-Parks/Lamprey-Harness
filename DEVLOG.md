@@ -8832,6 +8832,39 @@ the older JM-0 trailer for all new commits and release documents.
 
 **Commit:** see git log (ST-12 release cut).
 
+## Codex July 2026 Parity - Prompt ST-12 v0.20.0 publication receipt - 2026-07-18
+
+**Published revision:** `17df19f120d2becd836f24dbe56e4ddd0aaa71ac`
+
+**Publication receipts:**
+
+- `main` and tag `v0.20.0` resolve to the published revision
+- GitHub release is public, not a prerelease, with all six expected assets:
+  Windows EXE, blockmap, ZIP, updater metadata, macOS DMG, and Linux AppImage
+- GitHub tag workflow `29653413094` completed successfully for the published
+  revision
+- R2 contains `Lamprey-x64.exe` (300,826,335 bytes), `Lamprey-x64.zip`
+  (401,687,225 bytes), `Lamprey-arm64.dmg` (326,437,333 bytes), and
+  `Lamprey-x86_64.AppImage` (545,638,259 bytes)
+- the four public `cdn.islandmountain.io` download URLs return HTTP 200 with
+  content lengths and ETags matching R2 after the Cloudflare purge
+- the locally mirrored Windows executable reports product/file version 0.20.0;
+  its SHA-256 is
+  `5203D30AE2E6A8D64083CF96E3EDD7E406F9E1EA161EC2C078604F172E80F32C`
+  and it is unsigned as disclosed in the release notes
+- the GitHub repository About text now describes the local-first desktop,
+  Steering, durable Queue, tools, skills, MCP, research, and opt-in orchestration
+
+**Notes:** GitHub Actions and the local Bucket build independently produced the
+Windows artifacts from the same tagged revision. The tag workflow finished its
+upload while Bucket's `gh release upload --clobber` was active, so GitHub returned
+an upload-endpoint 404 for the colliding ZIP even though the live release inventory
+was complete. Bucket still finished the R2 mirrors and Cloudflare purge, then
+truthfully returned a partial verdict. The script now reconciles the live uploaded
+asset names after an upload error; it reports success when the tag workflow has
+already supplied every expected Windows asset and preserves a partial verdict when
+anything is genuinely missing.
+
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026

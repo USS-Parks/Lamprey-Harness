@@ -220,7 +220,32 @@ try {
 
   if (-not $ghError) {
     gh release upload $tag --repo $config.github.repo --clobber @artifactPaths
-    if ($LASTEXITCODE -ne 0) { $ghError = "gh release upload failed (exit $LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) {
+      $uploadExit = $LASTEXITCODE
+      # The tag workflow may finish its own Windows upload while this command is
+      # running. GitHub then returns 404/422 for the colliding asset even though
+      # the release is complete. Reconcile the live inventory before calling the
+      # ship partial; names are sufficient because both producers build this tag.
+      $assetJson = gh release view $tag --repo $config.github.repo --json assets 2>$null
+      if ($LASTEXITCODE -eq 0) {
+        try {
+          $uploadedNames = @(($assetJson | ConvertFrom-Json).assets |
+            Where-Object { $_.state -eq "uploaded" } |
+            ForEach-Object { $_.name })
+          $expectedNames = @($artifactPaths | ForEach-Object { Split-Path -Leaf $_ })
+          $missingNames = @($expectedNames | Where-Object { $_ -notin $uploadedNames })
+          if ($missingNames.Count -eq 0) {
+            Write-Host "  GH upload raced the tag workflow; live release inventory is complete" -ForegroundColor Green
+          } else {
+            $ghError = "gh release upload failed (exit $uploadExit); missing: $($missingNames -join ', ')"
+          }
+        } catch {
+          $ghError = "gh release upload failed (exit $uploadExit); release inventory could not be parsed"
+        }
+      } else {
+        $ghError = "gh release upload failed (exit $uploadExit); release inventory check failed"
+      }
+    }
   }
 
   if (-not $ghError -and (Test-Path $releaseNotes)) {

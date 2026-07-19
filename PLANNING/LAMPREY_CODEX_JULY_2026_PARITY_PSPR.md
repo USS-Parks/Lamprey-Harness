@@ -940,6 +940,23 @@ STS instruction: "This needs full Bucket treatment and production. Push to main 
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
 
+### M3 + M5 production publication receipt — 2026-07-18
+
+Release commit `da8744160de02659ae974b2d0f451b41e741584b`, `origin/main`, and annotated tag
+`v0.23.0` aligned before publication. Bucket built the Windows installer, portable ZIP,
+blockmap, and updater manifest; published the six-asset GitHub release; mirrored the Windows,
+macOS, and Linux downloads to R2; and purged Cloudflare. Tag workflow `29668900892` completed
+successfully on the release commit. Independent R2 HEAD and CDN HEAD checks returned exact
+byte lengths and HTTP 200 for all four public platform downloads.
+
+The first GitHub inventory check exposed a race-reconciliation defect: the tag workflow's
+Windows assets had the expected names but different bytes from the local installer described
+by `latest.yml`. The four Windows assets were clobbered individually with the matching local
+set, then size and SHA-256 equality were verified. Bucket now requires matching name, size,
+and available digest before treating a failed upload as a harmless workflow race. The
+disposable GitHub and packaged GUI playbooks remain `USER-VERIFICATION-NEEDED`; M4 and M6–M9
+remain unapproved.
+
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026

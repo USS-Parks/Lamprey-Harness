@@ -225,19 +225,40 @@ try {
       # The tag workflow may finish its own Windows upload while this command is
       # running. GitHub then returns 404/422 for the colliding asset even though
       # the release is complete. Reconcile the live inventory before calling the
-      # ship partial; names are sufficient because both producers build this tag.
+      # ship partial. The tag workflow can build different bytes from the local
+      # package, so a matching name alone does not prove updater integrity.
       $assetJson = gh release view $tag --repo $config.github.repo --json assets 2>$null
       if ($LASTEXITCODE -eq 0) {
         try {
-          $uploadedNames = @(($assetJson | ConvertFrom-Json).assets |
-            Where-Object { $_.state -eq "uploaded" } |
-            ForEach-Object { $_.name })
-          $expectedNames = @($artifactPaths | ForEach-Object { Split-Path -Leaf $_ })
-          $missingNames = @($expectedNames | Where-Object { $_ -notin $uploadedNames })
-          if ($missingNames.Count -eq 0) {
-            Write-Host "  GH upload raced the tag workflow; live release inventory is complete" -ForegroundColor Green
+          $uploadedAssets = @(($assetJson | ConvertFrom-Json).assets |
+            Where-Object { $_.state -eq "uploaded" })
+          $expectedAssets = @($artifactPaths | ForEach-Object {
+            $item = Get-Item -LiteralPath $_
+            [pscustomobject]@{
+              Name = $item.Name
+              Size = $item.Length
+              Digest = "sha256:$((Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant())"
+            }
+          })
+          $missingNames = @($expectedAssets | Where-Object {
+            $_.Name -notin $uploadedAssets.name
+          } | ForEach-Object { $_.Name })
+          $mismatchedNames = @($expectedAssets | Where-Object {
+            $expected = $_
+            $actual = $uploadedAssets | Where-Object { $_.name -eq $expected.Name } |
+              Select-Object -First 1
+            $actual -and (
+              [int64]$actual.size -ne [int64]$expected.Size -or
+              ($actual.digest -and $actual.digest -ne $expected.Digest)
+            )
+          } | ForEach-Object { $_.Name })
+          if ($missingNames.Count -eq 0 -and $mismatchedNames.Count -eq 0) {
+            Write-Host "  GH upload raced the tag workflow; live release inventory matches local artifacts" -ForegroundColor Green
           } else {
-            $ghError = "gh release upload failed (exit $uploadExit); missing: $($missingNames -join ', ')"
+            $problems = @()
+            if ($missingNames.Count -gt 0) { $problems += "missing: $($missingNames -join ', ')" }
+            if ($mismatchedNames.Count -gt 0) { $problems += "mismatched: $($mismatchedNames -join ', ')" }
+            $ghError = "gh release upload failed (exit $uploadExit); $($problems -join '; ')"
           }
         } catch {
           $ghError = "gh release upload failed (exit $uploadExit); release inventory could not be parsed"

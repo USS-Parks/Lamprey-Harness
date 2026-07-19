@@ -9530,6 +9530,30 @@ remains the database evidence at 5 files, 29 tests, and zero skips. The disposab
 and packaged GUI playbooks remain owner evidence, not a hidden parity claim. The untracked
 `.agents/` library remains outside the release commit.
 
+## v0.23.0 production publication receipt — 2026-07-18
+
+**Files changed:** `scripts/bucket.ps1`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Production evidence:**
+- release commit, `origin/main`, and annotated tag `v0.23.0`: `da8744160de02659ae974b2d0f451b41e741584b`
+- GitHub release: published, not draft or prerelease, with six uploaded assets
+- tag workflow `29668900892`: success on `da87441`
+- GitHub Windows assets: local size and SHA-256 match for installer, ZIP, blockmap, and manifest
+- R2 object HEAD: exact byte lengths for installer, ZIP, DMG, and AppImage
+- CDN HTTP HEAD: 200 with matching content lengths for all four public downloads
+- `dist/latest.yml`: version 0.23.0 and the matching local installer size/hash
+- Cloudflare cache purge: success
+
+**Notes:** Bucket completed, but independent verification found that its GitHub race
+reconciliation accepted the tag workflow's Windows artifacts by filename even though their
+bytes differed from the local installer hashed by `latest.yml`. The release was repaired by
+clobbering the installer, ZIP, blockmap, and manifest individually; all four now match local
+size and SHA-256. `scripts/bucket.ps1` now compares live size and digest as well as name, so
+the same race reports a partial ship instead of a false success. In plain terms, every
+published platform download is live, and the Windows updater metadata describes the exact
+installer users receive.
+
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026

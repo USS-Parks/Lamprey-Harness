@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M8 RELEASED AS v0.26.0; OWNER BACKGROUND/RESTART SMOKE OPEN; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
+**Status:** **M9 CJP-WRAP COMPLETE; M8 RELEASED AS v0.26.0; OWNER LIVE PLAYBOOKS OPEN; M4 PARKED INDEFINITELY**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -739,14 +739,14 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **CJP-WRAP — Publish the dated parity ledger and follow-on boundary**
 
-- [ ] Write `PLANNING/CJ26_AFTER.md` with every CJP-0 row marked complete, partial, parked,
+- [x] Write `PLANNING/CJ26_AFTER.md` with every CJP-0 row marked complete, partial, parked,
       superseded, or owner-verification-needed; include exact releases, settings, tests,
       skips, GUI traces, and commit SHAs.
-- [ ] Update `PLANNING/README.md` to identify this PSPR as the current Codex parity authority
+- [x] Update `PLANNING/README.md` to identify this PSPR as the current Codex parity authority
       and the June documents as historical, without rewriting them.
-- [ ] Record dedicated follow-on PSPR candidates for: Claude Code refresh; Record and Replay;
+- [x] Record dedicated follow-on PSPR candidates for: Claude Code refresh; Record and Replay;
       Computer Use/Chrome; remote control/handoff; and Office/PDF/Sheets/Slides/Sites plugins.
-- [ ] Run the full repository gate and append the final DEVLOG closeout. Do not claim blanket
+- [x] Run the full repository gate and append the final DEVLOG closeout. Do not claim blanket
       parity beyond the dated matrix.
 - Verify: full §0 milestone gate; documentation link/source audit; all approved prompts
   closed with real SHAs and honest gaps.
@@ -1116,6 +1116,51 @@ After the local GA-6 closeout, the owner instructed: “Push to main and bucket 
 That instruction authorizes the v0.26.0 release metadata commit, push to `origin/main`,
 annotated tag, Bucket artifact publication, GitHub release, R2 mirroring, and CDN purge.
 It does not close the owner background/restart playbook or authorize M9.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### Owner M9 STS authorization — 2026-07-19
+
+```text
+APPROVED: 2026-07-19 (initiative closeout)
+Milestones: M9 / CJP-WRAP only; execute the dated parity ledger, current planning authority,
+  follow-on boundary, full repository gate, DEVLOG closeout, and focused commit.
+Decisions: preserve M4 as parked indefinitely; do not convert open owner playbooks into passing
+  evidence; preserve the untracked .agents skill library outside commits; no forced version bump.
+Publication: not authorized by this instruction; do not push, tag, release, run Bucket, or
+  publish artifacts without a separate owner instruction.
+STS instruction: "Commence STS with full authorization for this session M9 CJP-WRAP"
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+This authorization supersedes the M8 publication record's M9-unapproved boundary only. It does
+not close any owner playbook, unpark Code Mode, or extend the dated upstream ceiling.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### M9 initiative closeout — 2026-07-19
+
+CJP-WRAP completed on `codex/steering-parity` without a version bump. `CJ26_AFTER.md`
+adjudicates every CJP-0 source, historical-claim, Steering/Queue behavior, and Lamprey-wiring
+row. `PLANNING/README.md` names this PSPR as the current dated Codex parity authority, and
+`CJ26_FOLLOW_ON_CANDIDATES.md` prevents unapproved successor work from silently entering it.
+
+**Final gate:** build OK · lint OK · tsc node+web OK · 246 test files passed / 15 skipped ·
+vitest 2,834 passed / 165 skipped / 0 failed · bundle+renderer smokes OK ·
+`verify:proof --require-smokes` exit 0 · documentation link/source audit OK ·
+61 referenced commit SHAs resolve · release-tag audit OK · `git diff --check` OK.
+
+**Honest gaps:** Eighteen named native-DB files remain outside host-Node execution because the
+installed `better-sqlite3` binding targets Electron's ABI. The paired Steering replay and the
+task-control, artifact, PR Chat, MCP, Browser Developer, and automation/goal owner playbooks
+remain open. M4 remains parked indefinitely. No push, tag, release, Bucket run, or artifact
+publication was authorized or performed by M9.
+
+**Commit:** see Git history (CJP-WRAP).
 
 ---
 

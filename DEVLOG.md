@@ -10178,3 +10178,44 @@ purge. The packaged-app background/restart playbook remains open and M9 remains 
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt CJP-WRAP initiative closeout — 2026-07-19
+
+**Files changed:** `PLANNING/CJ26_AFTER.md`,
+`PLANNING/CJ26_FOLLOW_ON_CANDIDATES.md`, `PLANNING/README.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `AGENTS.md`, `DEVLOG.md`
+
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- full vitest ✓ (246 files passed / 15 skipped; 2,834 tests passed / 165 skipped /
+  0 failed)
+- production build, bundle smoke, and renderer smoke ✓
+- `npm run verify:all` / `verify:proof --require-smokes` exit 0 ✓
+- documentation link/source, 61-SHA, release-tag, and `git diff --check` audits ✓
+- user-verification-needed: paired Steering replay and the packaged/hosted task-control,
+  artifact, PR Chat, MCP, Browser Developer, and automation/goal playbooks remain open
+
+**Notes:** The dated AFTER ledger closes every CJP-0 table row without claiming blanket
+current-Codex parity. M0-M3 and M5-M9 are implementation-complete; M4 / Code Mode remains
+parked indefinitely. Published releases are pinned to their real tag SHAs; local v0.22.0 and
+v0.25.0 cuts remain explicitly untagged. Exact settings, milestone test/skip receipts, owner
+trace gaps, focused prompt SHAs, and follow-on candidates are recorded. The first full-gate
+attempt could not resolve `electron.vite.config.ts` inside the restricted filesystem sandbox;
+the authorized rerun outside that sandbox completed successfully. Eighteen named native-DB
+files remain outside host-Node execution because the installed binding targets Electron's ABI.
+The untracked `.agents/` skill library remains untouched and outside the commit. No version
+bump, push, tag, release, Bucket run, or artifact publication occurred.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2,834 passed / 165 skipped / 0 failed ·
+build OK · bundle+renderer smokes OK · verify:proof exit 0
+
+**Honest gaps:** all owner/live playbooks named above remain open; M4 remains parked; native-DB
+host-Node skip accounting remains explicit.
+
+**Commit:** see Git history (CJP-WRAP).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

@@ -389,6 +389,7 @@ const api = {
     addCustom: (model: {
       id: string
       name: string
+      apiModelId?: string
       provider?: string
       contextWindow: number
       supportsTools: boolean
@@ -396,7 +397,9 @@ const api = {
     }) => ipcRenderer.invoke('model:addCustom', model),
     removeCustom: (id: string) => ipcRenderer.invoke('model:removeCustom', id),
     verifyCatalog: () => ipcRenderer.invoke('model:verifyCatalog'),
-    listLive: (provider: string) => ipcRenderer.invoke('model:listLive', provider)
+    listLive: (provider: string) => ipcRenderer.invoke('model:listLive', provider),
+    importLive: (provider: string, ids: string[]) =>
+      ipcRenderer.invoke('model:importLive', { provider, ids })
   },
 
   skills: {

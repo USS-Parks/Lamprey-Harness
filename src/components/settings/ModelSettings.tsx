@@ -107,7 +107,9 @@ export function ModelSettings() {
   >([])
   const [importProvider, setImportProvider] = useState<string>('ollama')
   const [liveIds, setLiveIds] = useState<string[] | null>(null)
+  const [liveFilter, setLiveFilter] = useState('')
   const [loadingLive, setLoadingLive] = useState(false)
+  const [importingLive, setImportingLive] = useState(false)
 
   useEffect(() => {
     if (!window.api) return
@@ -220,22 +222,28 @@ export function ModelSettings() {
     }
   }
 
-  const handleImportOne = async (liveId: string) => {
+  const filteredLiveIds = useMemo(() => {
+    if (!liveIds) return []
+    const query = liveFilter.trim().toLowerCase()
+    return query ? liveIds.filter((id) => id.toLowerCase().includes(query)) : liveIds
+  }, [liveFilter, liveIds])
+
+  const handleImportMany = async (ids: string[]) => {
     if (!window.api) return
-    const result = await window.api.model.addCustom({
-      id: liveId,
-      name: liveId,
-      provider: importProvider,
-      contextWindow: 65536,
-      supportsTools: true,
-      supportsVision: false
-    })
-    if (!result.success) {
-      toast.error(`Failed to add ${liveId}: ${result.error}`)
-      return
+    setImportingLive(true)
+    try {
+      const result = await window.api.model.importLive(importProvider, ids)
+      if (!result.success) {
+        toast.error(`Failed to import models: ${result.error}`)
+        return
+      }
+      const data = result.data as { imported: number; skipped: number }
+      await loadModels()
+      if (data.imported > 0) toast.success(`Imported ${data.imported} model(s) from ${importProvider}`)
+      else toast.info(`${data.skipped} model(s) were already present`)
+    } finally {
+      setImportingLive(false)
     }
-    await loadModels()
-    toast.success(`${liveId} added from ${importProvider}`)
   }
 
   const statusByModelId = useMemo(() => {
@@ -658,6 +666,7 @@ export function ModelSettings() {
               onChange={(e) => {
                 setImportProvider(e.target.value)
                 setLiveIds(null)
+                setLiveFilter('')
               }}
               className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
             >
@@ -676,8 +685,28 @@ export function ModelSettings() {
             </button>
           </div>
           {liveIds && liveIds.length > 0 && (
-            <div className="max-h-48 space-y-1 overflow-y-auto">
-              {liveIds.map((id) => (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="search"
+                  value={liveFilter}
+                  onChange={(e) => setLiveFilter(e.target.value)}
+                  placeholder="Filter model ids"
+                  className="min-w-48 flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+                />
+                <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                  {filteredLiveIds.length} of {liveIds.length}
+                </span>
+                <button
+                  onClick={() => handleImportMany(filteredLiveIds)}
+                  disabled={importingLive || filteredLiveIds.length === 0}
+                  className="rounded bg-[var(--bg-tertiary)] px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] disabled:opacity-40"
+                >
+                  {importingLive ? 'Importing...' : 'Import all visible'}
+                </button>
+              </div>
+              <div className="max-h-48 space-y-1 overflow-y-auto">
+              {filteredLiveIds.map((id) => (
                 <div
                   key={id}
                   className="flex items-center gap-2 rounded border border-[var(--panel-border)] px-2 py-1 text-xs"
@@ -686,19 +715,21 @@ export function ModelSettings() {
                     {id}
                   </span>
                   <button
-                    onClick={() => handleImportOne(id)}
+                    onClick={() => handleImportMany([id])}
+                    disabled={importingLive}
                     className="rounded bg-[var(--bg-tertiary)] px-2 py-0.5 font-mono text-[12px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
                   >
                     Add
                   </button>
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
           <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
             Pulls the provider's live model list with your stored key (local runtimes need no key).
-            Imported models land in Custom models with default capability flags — adjust after
-            import if a model lacks tools or has vision.
+            Imported models land in Custom models with conservative capability flags (tools,
+            vision, and reasoning off) until you explicitly enable documented capabilities.
           </p>
         </div>
       </div>

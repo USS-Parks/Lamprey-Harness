@@ -7,10 +7,12 @@ import {
   verifyCatalog
 } from '../services/providers/registry'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
+import { buildLiveModelImports } from '../services/providers/model-import'
 
 interface ModelInfo {
   id: string
   name: string
+  apiModelId?: string
   /** Built-in ProviderId or a custom provider id from settings.json. */
   provider: string
   contextWindow: number
@@ -110,6 +112,10 @@ export function registerModelHandlers(): void {
       filtered.push({
         id: model.id.trim(),
         name: model.name.trim(),
+        apiModelId:
+          typeof model.apiModelId === 'string' && model.apiModelId.trim()
+            ? model.apiModelId.trim()
+            : model.id.trim(),
         provider: isKnownProvider(model.provider) ? model.provider : 'deepseek',
         contextWindow:
           typeof model.contextWindow === 'number' && model.contextWindow > 0
@@ -160,4 +166,38 @@ export function registerModelHandlers(): void {
       return { success: false, error: err?.message || 'Live model listing failed.' }
     }
   })
+
+  ipcMain.handle(
+    'model:importLive',
+    async (_event, input: { provider?: unknown; ids?: unknown }) => {
+      try {
+        const provider = input?.provider
+        if (!isKnownProvider(provider)) {
+          return { success: false, error: `Unknown provider: ${String(provider)}` }
+        }
+        if (!Array.isArray(input?.ids)) {
+          return { success: false, error: 'Model ids must be an array.' }
+        }
+        const settings = readSettings()
+        const existing = (settings.customModels as ModelInfo[] | undefined) ?? []
+        const { additions, skipped } = buildLiveModelImports(provider, input.ids, [
+          ...MODEL_CATALOG.map((m) => ({
+            id: m.id,
+            provider: m.provider,
+            apiModelId: m.apiModelId
+          })),
+          ...existing
+        ])
+
+        settings.customModels = [...existing, ...additions]
+        writeSettings(settings)
+        return {
+          success: true,
+          data: { imported: additions.length, skipped, models: combinedModels() }
+        }
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Live model import failed.' }
+      }
+    }
+  )
 }

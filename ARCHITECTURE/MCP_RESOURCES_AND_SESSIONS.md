@@ -1,6 +1,6 @@
 # MCP resources and authenticated sessions
 
-**Local release:** v0.24.0 (not published)
+**Release:** v0.24.0 production publication authorized 2026-07-19
 
 **Scope:** capability-aware MCP resources/templates, strict lazy model tools, Streamable HTTP OAuth sessions, consent-gated URL elicitation, and safe connector UI.
 

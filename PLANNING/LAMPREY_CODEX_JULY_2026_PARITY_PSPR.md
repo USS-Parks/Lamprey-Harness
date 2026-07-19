@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M6 LOCALLY IMPLEMENTATION-COMPLETE; OWNER PLAYBOOKS OPEN; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
+**Status:** **M6 v0.24.0 PRODUCTION RELEASE AUTHORIZED; BUCKET PENDING; OWNER PLAYBOOKS OPEN; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -981,6 +981,27 @@ This append-only decision supersedes the earlier recommendation to consider M4 b
 OFF-by-default threat gate. The CM-1 through CM-6 text remains historical and unchanged;
 Code Mode has no unparking condition and is not a dependency or completion blocker for M6
 or the remaining separately approved parity milestones.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### M6 production publication authorization — 2026-07-19
+
+```text
+APPROVED: 2026-07-19 (v0.24.0 production release override)
+Milestones: productionize the completed M6 / MR-1 through MR-5 tranche; do not start M4 or
+  M7 through M9.
+Decisions: commit and push the M6 chain to main, run the full Bucket pipeline, publish the
+  platform artifacts, update release governance, and verify GitHub, R2, and CDN delivery.
+  Preserve the untracked .agents skill library outside the public commit.
+STS instruction: "Commit and push to main and Bucket."
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+This instruction supersedes only M6's earlier no-publication boundary. It does not unpark
+Code Mode or authorize M7 through M9. The local-fixture and real hosted-provider playbooks
+remain evidence gaps and are not converted into parity claims by publication.
 
 ---
 

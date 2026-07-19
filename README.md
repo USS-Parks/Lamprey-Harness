@@ -23,16 +23,16 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.23.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.23.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.23.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.23.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.24.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.24.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.24.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.24.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**In local v0.24.0 source — MCP resources and hosted sessions.** Connected MCP servers can expose paginated resources and URI templates to the model and to Customize → Connectors. Resource reads retain server provenance and use the existing large-result spill valve. Hosted Streamable HTTP connectors can use OAuth 2.1 with PKCE, encrypted keychain storage, explicit domain confirmation, reauthorization, expiry/reconnect state, and consent-gated URL elicitation. Preview renders text as text, allows only known raster image formats, and leaves SVG or other blobs as metadata. The local fixture and real hosted-provider playbooks remain open, so v0.24.0 is locally implementation-complete without claiming live hosted-provider parity. The public download links above remain v0.23.0 until a separate release is authorized.
+**New in v0.24.0 — MCP resources and hosted sessions.** Connected MCP servers can expose paginated resources and URI templates to the model and to Customize → Connectors. Resource reads retain server provenance and use the existing large-result spill valve. Hosted Streamable HTTP connectors can use OAuth 2.1 with PKCE, encrypted keychain storage, explicit domain confirmation, reauthorization, expiry/reconnect state, and consent-gated URL elicitation. Preview renders text as text, allows only known raster image formats, and leaves SVG or other blobs as metadata. The local fixture and real hosted-provider playbooks remain open, so this release claims implementation completion without claiming live hosted-provider parity.
 
 **New in v0.23.0 — PR Chat and patch review.** Open a pull request in the existing panel and bring the exact review context into the conversation, down to one selected hunk. Lamprey can inspect files, checks, and comments; draft a review; or prepare an editable patch. Nothing posts or touches the workspace silently: GitHub writes show their exact target and wait for approval, while patch acceptance rechecks the head SHA and restores affected files if application fails. The disposable-repository GUI playbook is still open, so this release claims implementation completion rather than blanket current-Codex parity.
 

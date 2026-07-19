@@ -9713,3 +9713,27 @@ parked indefinitely; M7–M9 remain unapproved.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## v0.24.0 production release cut — 2026-07-19
+
+**Files changed:** `README.md`, `AGENTS.md`, `CLAUDE.md`,
+`ARCHITECTURE/MCP_RESOURCES_AND_SESSIONS.md`, `PLANNING/README.md`,
+`PLANNING/CJ26_MCP_AFTER.md`, `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`RELEASE_NOTES/v0.24.0.md`, `DEVLOG.md`
+
+**Verify gate:**
+- release-cut commit hook: lint + tsc node + tsc web
+- pre-push: full `verify:proof`
+- Bucket: pending this release-cut commit
+
+**Notes:** The owner authorized the completed M6 tranche for a v0.24.0 production release,
+including push to `main` and the full Bucket pipeline. README download links and the public
+release summary now target v0.24.0. The authorization does not start M4 or M7–M9, and it
+does not convert the open local-fixture or hosted-provider playbooks into live parity
+evidence. The untracked `.agents/` skill library remains outside the public commit.
+
+**Commit:** see git log (v0.24.0 release cut).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

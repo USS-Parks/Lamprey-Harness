@@ -26,3 +26,14 @@ Implementation completion means every approved M6 prompt is gated and locally co
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Production override — 2026-07-19
+
+The owner authorized the completed M6 tranche for v0.24.0 production publication: push the
+release cut to `main`, run Bucket, and verify GitHub, R2, and CDN delivery. This supersedes
+only the earlier no-publication boundary. The local-fixture and hosted-provider playbooks
+remain `USER-VERIFICATION-NEEDED`, and M4 plus M7–M9 remain outside this release.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

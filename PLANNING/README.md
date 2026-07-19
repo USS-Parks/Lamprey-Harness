@@ -19,7 +19,8 @@ approved M6 MCP resources/authenticated-session lane was released as v0.24.0 on 
 The independently approved M7 Browser Developer Mode lane is locally complete as v0.25.0.
 The independently approved M8 automations/operational-goals lane was released as v0.26.0
 on 2026-07-19 and remains OFF by default. M9 / CJP-WRAP closed the dated ledger without a
-version bump; `CJ26_AFTER.md` is the final row-by-row disposition and
+version bump and was source-published to `main` on 2026-07-19; `CJ26_AFTER.md` is the final
+row-by-row disposition and
 `CJ26_FOLLOW_ON_CANDIDATES.md` records unapproved successor boundaries. The paired
 Steering replay, packaged task-control/artifact/PR Chat GUI playbooks, and M6 local-fixture/
 hosted-auth playbooks remain open evidence gates. M7's owner Browser Developer playbook is

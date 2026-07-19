@@ -1165,3 +1165,23 @@ publication was authorized or performed by M9.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+### M9 source publication authorization and receipt — 2026-07-19
+
+After the focused CJP-WRAP commit, the owner instructed: “Commit and push all to main. Update
+governance docs accordingly. Do not do anything else proactive; it is not helpful.” This
+authorized the M9 source push plus this governance-only receipt commit. It did not authorize a
+version bump, tag, release, Bucket run, artifact upload, CDN change, or any follow-on candidate.
+
+`origin/main` accepted the complete CJP-WRAP source commit
+`70d6be78f82e371217cf692af1b101dde3b2e6c7`. The pre-push proof gate passed lint, both
+TypeScript programs, 2,834 tests with 165 explicit skips and zero failures, bundle smoke, and
+renderer smoke. The 18 named native-DB files remain explicitly outside host-Node execution.
+The untracked `.agents/` skill library remained outside the push.
+
+This governance receipt is the only follow-up change and is published to `main` under the same
+instruction. Its exact commit is recorded in Git history and the session closeout.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

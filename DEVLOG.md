@@ -10219,3 +10219,30 @@ host-Node skip accounting remains explicit.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## CJP-WRAP source publication and governance receipt — 2026-07-19
+
+**Files changed:** `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`PLANNING/README.md`, `AGENTS.md`, `DEVLOG.md`
+
+**Verify gate:**
+- pre-push lint ✓
+- pre-push tsc node + web ✓
+- pre-push full vitest ✓ (246 files passed / 15 skipped; 2,834 tests passed /
+  165 skipped / 0 failed)
+- pre-push bundle smoke + renderer smoke ✓
+- `npm run verify:proof` exit 0 ✓
+- `origin/main` accepted `70d6be78f82e371217cf692af1b101dde3b2e6c7` ✓
+
+**Notes:** The owner explicitly authorized committing and pushing M9 to `main` and requested
+the governance records be updated. The CJP-WRAP source commit is published. This receipt commit
+records only that source publication; it does not bump version metadata, create or move a tag,
+run Bucket, publish artifacts, change CDN state, execute a follow-on candidate, or absorb the
+untracked `.agents/` skill library. The 18 native-DB files disclosed by the proof harness remain
+outside host-Node execution.
+
+**Commit:** see Git history (CJP-WRAP governance receipt).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

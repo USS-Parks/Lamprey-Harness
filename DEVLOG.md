@@ -8868,6 +8868,7 @@ anything is genuinely missing.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
 ## Codex July 2026 Parity — Prompt TC-1 Canonical task graph — 2026-07-18
 
 **Files changed:** `electron/services/task-graph.ts`,
@@ -9481,6 +9482,27 @@ v0.21.0 artifacts. The disposable PR Chat and packaged artifact GUI playbooks re
 
 **Publication commit:** `b4ba3e2`
 **Receipt commit:** see git log.
+
+## v0.23.0 source publication — cross-platform patch-path hotfix — 2026-07-18
+
+**Files changed:** `electron/services/pr-patch-flow.ts`,
+`electron/services/pr-patch-flow.test.ts`, `DEVLOG.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`
+**Verify gate:**
+- focused ESLint ✓
+- tsc node ✓
+- patch flow and tool-pack cohort ✓ (2 files, 6 tests, 0 skipped)
+- Electron-runtime patch-flow cohort ✓ (1 file, 3 tests, 0 skipped)
+- `git diff --check` ✓
+
+**Notes:** GitHub Actions run `29667235683` passed Windows coverage but failed Ubuntu on
+the Windows-drive escape case in `pr-patch-flow.test.ts`. Node's host-native
+`path.isAbsolute('C:\\escape.txt')` is false on POSIX, so the validator accepted a Windows
+absolute path when it ran on Linux. The validator now checks `posix.isAbsolute` and
+`win32.isAbsolute` explicitly before host-native containment resolution. This keeps one path
+authority, adds no wrapper, and rejects drive, UNC, and POSIX absolute forms on every host.
+
+**Commit:** see git log (v0.23.0 path hotfix).
 
 ---
 

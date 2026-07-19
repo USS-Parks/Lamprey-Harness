@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
-import { dirname, isAbsolute, relative, resolve } from 'path'
+import { dirname, isAbsolute, posix, relative, resolve, win32 } from 'path'
 import { executeApplyPatch, parsePatch } from './apply-patch-tool'
 import { loadPullRequestContext, StalePullRequestError } from './pr-chat-context'
 import {
@@ -13,7 +13,9 @@ export function validatePrPatchPaths(patch: string, workspacePath?: string): str
   const ops = parsePatch(patch)
   const root = resolve(workspacePath ?? process.cwd())
   return ops.map((op) => {
-    if (isAbsolute(op.path)) throw new Error(`patch path must be relative: ${op.path}`)
+    if (posix.isAbsolute(op.path) || win32.isAbsolute(op.path)) {
+      throw new Error(`patch path must be relative: ${op.path}`)
+    }
     const target = resolve(root, op.path)
     const rel = relative(root, target)
     if (!rel || rel.startsWith('..') || isAbsolute(rel)) throw new Error(`patch path escapes workspace: ${op.path}`)

@@ -920,3 +920,15 @@ plus packaged artifact GUI playbooks remain `USER-VERIFICATION-NEEDED`.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+### M3 + M5 source publication correction — 2026-07-18
+
+The first source-push CI run (`29667235683`) passed its Windows coverage job but exposed one
+real Ubuntu failure: host-native `path.isAbsolute` did not recognize a Windows drive path.
+`validatePrPatchPaths` now applies the explicit POSIX and Windows absolute-path classifiers
+before resolving beneath the current workspace. The focused host and Electron-runtime gates
+pass, and the existing traversal/rollback authority remains unchanged.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

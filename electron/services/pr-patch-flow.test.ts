@@ -42,6 +42,9 @@ describe('PR-4 patch flow', () => {
     expect(() => validatePrPatchPaths(
       '*** Begin Patch\n*** Add File: C:\\escape.txt\n+x\n*** End Patch', dir
     )).toThrow(/relative/)
+    expect(() => validatePrPatchPaths(
+      '*** Begin Patch\n*** Add File: /escape.txt\n+x\n*** End Patch', dir
+    )).toThrow(/relative/)
   })
 
   it('applies only after fresh-head validation and marks accepted', async () => {

@@ -9557,3 +9557,29 @@ installer users receive.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt MR-1 MCP resources and templates manager — 2026-07-18
+
+**Files changed:** `electron/services/mcp-manager.ts`,
+`electron/services/mcp-manager.test.ts`, `AGENTS.md`, `PLANNING/README.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused MCP manager suite ✓ (16 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** The owner parked M4 indefinitely and authorized M6 STS beginning at MR-1;
+publication remains outside this lane. The MCP manager now negotiates resource capability
+before list/read/subscribe operations, passes opaque cursors one page at a time, validates
+absolute URIs, propagates AbortSignal and the configured MCP timeout, and rejects oversized
+metadata/content instead of silently truncating it. Resource list/update notifications use
+a disposable callback subscription. Existing tool discovery and `callTool` behavior remain
+unchanged for tool-capable servers; resource-only servers can now connect without a false
+`tools/list` request.
+
+**Commit:** see git log (MR-1).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

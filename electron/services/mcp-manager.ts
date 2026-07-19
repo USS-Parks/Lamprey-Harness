@@ -2,7 +2,12 @@ import { app, BrowserWindow } from 'electron'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js'
+import {
+  McpError,
+  ErrorCode,
+  ResourceListChangedNotificationSchema,
+  ResourceUpdatedNotificationSchema
+} from '@modelcontextprotocol/sdk/types.js'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
@@ -21,6 +26,33 @@ export class MCPTimeoutError extends Error {
       `MCP tool '${serverId}__${toolName}' did not respond within ${Math.round(timeoutMs / 1000)}s — the server is likely stalled or the operation is too slow.`
     )
     this.name = 'MCPTimeoutError'
+  }
+}
+
+export class MCPRequestTimeoutError extends Error {
+  constructor(
+    public readonly serverId: string,
+    public readonly operation: string,
+    public readonly timeoutMs: number
+  ) {
+    super(
+      `MCP request '${operation}' on '${serverId}' did not respond within ${Math.round(timeoutMs / 1000)}s.`
+    )
+    this.name = 'MCPRequestTimeoutError'
+  }
+}
+
+export class McpResourceCapabilityError extends Error {
+  constructor(public readonly serverId: string) {
+    super(`MCP server '${serverId}' does not advertise resource support`)
+    this.name = 'McpResourceCapabilityError'
+  }
+}
+
+export class McpResourceBoundsError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'McpResourceBoundsError'
   }
 }
 
@@ -51,6 +83,106 @@ export interface McpTool {
   name: string
   description?: string
   inputSchema?: unknown
+}
+
+export interface McpResource {
+  uri: string
+  name: string
+  title?: string
+  description?: string
+  mimeType?: string
+  size?: number
+  annotations?: Record<string, unknown>
+  _meta?: Record<string, unknown>
+}
+
+export interface McpResourceTemplate {
+  uriTemplate: string
+  name: string
+  title?: string
+  description?: string
+  mimeType?: string
+  annotations?: Record<string, unknown>
+  _meta?: Record<string, unknown>
+}
+
+export type McpResourceContent =
+  | { uri: string; mimeType?: string; text: string; _meta?: Record<string, unknown> }
+  | { uri: string; mimeType?: string; blob: string; _meta?: Record<string, unknown> }
+
+export interface McpResourcePage<T> {
+  items: T[]
+  nextCursor?: string
+}
+
+export interface McpResourceCapabilities {
+  supported: boolean
+  subscribe: boolean
+  listChanged: boolean
+}
+
+export type McpResourceChange =
+  | { serverId: string; kind: 'list-changed' }
+  | { serverId: string; kind: 'resource-updated'; uri: string }
+
+export const MCP_RESOURCE_LIMITS = Object.freeze({
+  maxUriBytes: 8_192,
+  maxCursorBytes: 4_096,
+  maxPageItems: 500,
+  maxPageBytes: 512 * 1024,
+  maxContentItems: 32,
+  maxContentBytes: 4 * 1024 * 1024
+})
+
+function hasControlCharacters(value: string): boolean {
+  for (const character of value) {
+    const code = character.charCodeAt(0)
+    if (code <= 0x1f || code === 0x7f) return true
+  }
+  return false
+}
+
+function validateResourceUri(uri: string): string {
+  if (typeof uri !== 'string' || uri.length === 0) {
+    throw new TypeError('MCP resource URI must be a non-empty string')
+  }
+  if (Buffer.byteLength(uri, 'utf8') > MCP_RESOURCE_LIMITS.maxUriBytes) {
+    throw new McpResourceBoundsError('MCP resource URI exceeds the 8192-byte limit')
+  }
+  if (uri.trim() !== uri || hasControlCharacters(uri)) {
+    throw new TypeError('MCP resource URI contains whitespace or control characters')
+  }
+  try {
+    new URL(uri)
+  } catch {
+    throw new TypeError(`Invalid MCP resource URI: ${uri}`)
+  }
+  return uri
+}
+
+function validateCursor(cursor: string | undefined): string | undefined {
+  if (cursor === undefined) return undefined
+  if (!cursor || Buffer.byteLength(cursor, 'utf8') > MCP_RESOURCE_LIMITS.maxCursorBytes) {
+    throw new McpResourceBoundsError('MCP cursor must be 1 to 4096 bytes')
+  }
+  if (hasControlCharacters(cursor)) {
+    throw new TypeError('MCP cursor contains control characters')
+  }
+  return cursor
+}
+
+function assertBoundedPage(kind: string, items: unknown[]): void {
+  if (items.length > MCP_RESOURCE_LIMITS.maxPageItems) {
+    throw new McpResourceBoundsError(
+      `MCP ${kind} page returned ${items.length} items; limit is ${MCP_RESOURCE_LIMITS.maxPageItems}`
+    )
+  }
+  const bytes = Buffer.byteLength(JSON.stringify(items), 'utf8')
+  if (bytes > MCP_RESOURCE_LIMITS.maxPageBytes) {
+    throw new McpResourceBoundsError(
+      `MCP ${kind} page returned ${bytes} bytes; limit is ${MCP_RESOURCE_LIMITS.maxPageBytes}`
+    )
+  }
 }
 
 export interface McpServerConfig {
@@ -145,6 +277,7 @@ function saveConfigs(configs: McpServerConfig[]): void {
 export class McpManager {
   private servers = new Map<string, ServerState>()
   private statusCallbacks: ((serverId: string, status: ServerStatus, error?: string) => void)[] = []
+  private resourceChangeCallbacks = new Set<(change: McpResourceChange) => void>()
   private initialized = false
   // Customize C11: plugin-owned servers live in a separate Map keyed by
   // namespaced id (`<pluginId>:<connectorId>`). They're NEVER persisted
@@ -445,6 +578,100 @@ export class McpManager {
     return result
   }
 
+  getResourceCapabilities(serverId: string): McpResourceCapabilities {
+    const state = this.findServer(serverId)
+    const resources = state?.client?.getServerCapabilities()?.resources
+    return {
+      supported: resources !== undefined,
+      subscribe: resources?.subscribe === true,
+      listChanged: resources?.listChanged === true
+    }
+  }
+
+  async listResources(
+    serverId: string,
+    cursor?: string,
+    signal?: AbortSignal
+  ): Promise<McpResourcePage<McpResource>> {
+    const result = await this.runResourceRequest(serverId, 'resources/list', signal, (client, options) =>
+      client.listResources(cursor === undefined ? undefined : { cursor: validateCursor(cursor) }, options)
+    )
+    assertBoundedPage('resource', result.resources)
+    for (const resource of result.resources) validateResourceUri(resource.uri)
+    return { items: result.resources as McpResource[], nextCursor: result.nextCursor }
+  }
+
+  async listResourceTemplates(
+    serverId: string,
+    cursor?: string,
+    signal?: AbortSignal
+  ): Promise<McpResourcePage<McpResourceTemplate>> {
+    const result = await this.runResourceRequest(
+      serverId,
+      'resources/templates/list',
+      signal,
+      (client, options) =>
+        client.listResourceTemplates(
+          cursor === undefined ? undefined : { cursor: validateCursor(cursor) },
+          options
+        )
+    )
+    assertBoundedPage('resource template', result.resourceTemplates)
+    return {
+      items: result.resourceTemplates as McpResourceTemplate[],
+      nextCursor: result.nextCursor
+    }
+  }
+
+  async readResource(
+    serverId: string,
+    uri: string,
+    signal?: AbortSignal
+  ): Promise<McpResourceContent[]> {
+    const validatedUri = validateResourceUri(uri)
+    const result = await this.runResourceRequest(serverId, 'resources/read', signal, (client, options) =>
+      client.readResource({ uri: validatedUri }, options)
+    )
+    if (result.contents.length > MCP_RESOURCE_LIMITS.maxContentItems) {
+      throw new McpResourceBoundsError(
+        `MCP resource returned ${result.contents.length} content items; limit is ${MCP_RESOURCE_LIMITS.maxContentItems}`
+      )
+    }
+    for (const content of result.contents) validateResourceUri(content.uri)
+    const bytes = Buffer.byteLength(JSON.stringify(result.contents), 'utf8')
+    if (bytes > MCP_RESOURCE_LIMITS.maxContentBytes) {
+      throw new McpResourceBoundsError(
+        `MCP resource returned ${bytes} bytes; limit is ${MCP_RESOURCE_LIMITS.maxContentBytes}`
+      )
+    }
+    return result.contents as McpResourceContent[]
+  }
+
+  async subscribeResource(serverId: string, uri: string, signal?: AbortSignal): Promise<void> {
+    const capabilities = this.getResourceCapabilities(serverId)
+    if (!capabilities.subscribe) {
+      throw new McpResourceCapabilityError(serverId)
+    }
+    await this.runResourceRequest(serverId, 'resources/subscribe', signal, (client, options) =>
+      client.subscribeResource({ uri: validateResourceUri(uri) }, options)
+    )
+  }
+
+  async unsubscribeResource(serverId: string, uri: string, signal?: AbortSignal): Promise<void> {
+    const capabilities = this.getResourceCapabilities(serverId)
+    if (!capabilities.subscribe) {
+      throw new McpResourceCapabilityError(serverId)
+    }
+    await this.runResourceRequest(serverId, 'resources/unsubscribe', signal, (client, options) =>
+      client.unsubscribeResource({ uri: validateResourceUri(uri) }, options)
+    )
+  }
+
+  onResourceChange(cb: (change: McpResourceChange) => void): () => void {
+    this.resourceChangeCallbacks.add(cb)
+    return () => this.resourceChangeCallbacks.delete(cb)
+  }
+
   async callTool(serverId: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
     const state = this.servers.get(serverId)
     if (!state || !state.client || state.status !== 'connected') {
@@ -529,6 +756,74 @@ export class McpManager {
       await this.cleanupServer(state)
     }
     this.servers.clear()
+    this.resourceChangeCallbacks.clear()
+  }
+
+  private findServer(id: string): ServerState | undefined {
+    return this.servers.get(id) ?? this.pluginServers.get(id)
+  }
+
+  private async runResourceRequest<T>(
+    serverId: string,
+    operation: string,
+    signal: AbortSignal | undefined,
+    request: (
+      client: Client,
+      options:
+        | { timeout?: number; resetTimeoutOnProgress?: boolean; signal?: AbortSignal }
+        | undefined
+    ) => Promise<T>
+  ): Promise<T> {
+    const state = this.findServer(serverId)
+    if (!state || !state.client || state.status !== 'connected') {
+      throw new Error(`MCP server '${serverId}' is not connected`)
+    }
+    if (!state.client.getServerCapabilities()?.resources) {
+      throw new McpResourceCapabilityError(serverId)
+    }
+    const timeoutMs = readMcpCallTimeoutMs()
+    const options =
+      timeoutMs > 0
+        ? { timeout: timeoutMs, resetTimeoutOnProgress: true as const, ...(signal ? { signal } : {}) }
+        : signal
+          ? { signal }
+          : undefined
+    try {
+      return await request(state.client, options)
+    } catch (error) {
+      if (error instanceof McpError && error.code === ErrorCode.RequestTimeout) {
+        throw new MCPRequestTimeoutError(serverId, operation, timeoutMs > 0 ? timeoutMs : 60_000)
+      }
+      throw error
+    }
+  }
+
+  private emitResourceChange(change: McpResourceChange): void {
+    for (const callback of this.resourceChangeCallbacks) {
+      try {
+        callback(change)
+      } catch {
+        // A subscriber cannot break MCP notification processing.
+      }
+    }
+  }
+
+  private wireResourceNotifications(serverId: string, client: Client): void {
+    const capabilities = client.getServerCapabilities()?.resources
+    if (capabilities?.listChanged) {
+      client.setNotificationHandler(ResourceListChangedNotificationSchema, () => {
+        this.emitResourceChange({ serverId, kind: 'list-changed' })
+      })
+    }
+    if (capabilities?.subscribe) {
+      client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+        this.emitResourceChange({
+          serverId,
+          kind: 'resource-updated',
+          uri: validateResourceUri(notification.params.uri)
+        })
+      })
+    }
   }
 
   private async connectServer(id: string): Promise<void> {
@@ -679,12 +974,19 @@ export class McpManager {
       try {
         await client.connect(transport)
 
-        const toolsResult = await client.listTools()
-        state.tools = toolsResult.tools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema
-        }))
+        this.wireResourceNotifications(state.config.id, client)
+
+        const capabilities = client.getServerCapabilities()
+        if (capabilities?.tools) {
+          const toolsResult = await client.listTools()
+          state.tools = toolsResult.tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema
+          }))
+        } else {
+          state.tools = []
+        }
 
         state.client = client
         state.transport = transport

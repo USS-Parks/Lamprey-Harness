@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M3 + M5 RELEASED AS v0.23.0; OWNER LIVE GUI EVIDENCE OPEN; M4 + M6–M9 UNAPPROVED**
+**Status:** **M6 STS ACTIVE AT MR-1; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -621,7 +621,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **MR-1 — Extend the MCP manager with resources and templates**
 
-- [ ] Add capability-aware list/read APIs, cursor pagination, change notifications where
+- [x] Add capability-aware list/read APIs, cursor pagination, change notifications where
       supported, bounded content handling, and URI validation without changing current tool
       discovery/call behavior.
 - Verify: SDK fixture tests for supported/unsupported servers, pagination, timeout/cancel.
@@ -956,6 +956,31 @@ set, then size and SHA-256 equality were verified. Bucket now requires matching 
 and available digest before treating a failed upload as a harmless workflow race. The
 disposable GitHub and packaged GUI playbooks remain `USER-VERIFICATION-NEEDED`; M4 and M6–M9
 remain unapproved.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### Owner sequencing decision and M6 STS authorization — 2026-07-18
+
+```text
+APPROVED: 2026-07-18 (M6 MCP resources and authenticated sessions tranche)
+Milestones: M6 / MR-1 through MR-5; execute sequentially with one focused gated commit per
+  prompt. Begin at MR-1 and stop after the local MR-5 wrap.
+Decisions: M4 / CM-1 through CM-6 is parked indefinitely. Do not research, spike,
+  implement, schedule, or treat Code Mode as a blocker. M6 is the next parity milestone.
+  M7 through M9 remain unapproved. Preserve the historical M4 roster text as written.
+Publication: not authorized by this instruction; do not push, tag, release, run Bucket, or
+  publish artifacts without a separate owner instruction.
+Sequence instruction: "M6 is next" established sequence but was not execution authority.
+STS instruction: "STS Authorized"
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+This append-only decision supersedes the earlier recommendation to consider M4 behind an
+OFF-by-default threat gate. The CM-1 through CM-6 text remains historical and unchanged;
+Code Mode has no unparking condition and is not a dependency or completion blocker for M6
+or the remaining separately approved parity milestones.
 
 ---
 

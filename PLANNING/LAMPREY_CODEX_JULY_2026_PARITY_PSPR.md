@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M5 SOURCE-PUBLISHED TO MAIN AS v0.23.0; BINARIES REMAIN v0.21.0; OWNER LIVE GITHUB EVIDENCE OPEN**
+**Status:** **M3 + M5 RELEASED AS v0.23.0; OWNER LIVE GUI EVIDENCE OPEN; M4 + M6–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -928,6 +928,17 @@ real Ubuntu failure: host-native `path.isAbsolute` did not recognize a Windows d
 `validatePrPatchPaths` now applies the explicit POSIX and Windows absolute-path classifiers
 before resolving beneath the current workspace. The focused host and Electron-runtime gates
 pass, and the existing traversal/rollback authority remains unchanged.
+
+```text
+APPROVED: 2026-07-18 (v0.23.0 production release override)
+Milestones: productionize the completed M3 and M5 tranches; do not start M4 or M6–M9.
+Decisions: update release and governance records, commit and push to main, run the full
+  Bucket pipeline, publish all platform artifacts, update the GitHub release, and verify R2
+  plus CDN delivery. Preserve the untracked .agents/ library outside the public commit.
+STS instruction: "This needs full Bucket treatment and production. Push to main and get to
+  bucketing please."
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
 
 ---
 

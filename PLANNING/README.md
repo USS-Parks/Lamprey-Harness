@@ -13,7 +13,7 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 `LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md` is the current canonical roster.
 Its Steering and Queue milestone shipped as v0.20.0, and its independently approved Task and
 Thread Control milestone shipped as v0.21.0. The visualization/artifact and PR Chat
-milestones are source-published to `main` as v0.23.0; packaged downloads remain v0.21.0.
+milestones shipped together as v0.23.0.
 M4, M6, M7, M8, and M9 remain unapproved and must not start from any earlier release
 instruction. The paired Steering replay and packaged task-control/artifact/PR Chat GUI
 playbooks remain open evidence gates; these milestones are implementation-complete, not

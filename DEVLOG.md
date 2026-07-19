@@ -9504,6 +9504,32 @@ authority, adds no wrapper, and rejects drive, UNC, and POSIX absolute forms on 
 
 **Commit:** see git log (v0.23.0 path hotfix).
 
+## v0.23.0 production release cut — 2026-07-18
+
+**Files changed:** `README.md`, `AGENTS.md`, `CLAUDE.md`, `PLANNING/README.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `RELEASE_NOTES/v0.23.0.md`,
+`DEVLOG.md`
+
+**Verify gate:**
+- `npm run verify:all` ✓
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (225 files passed / 15 skipped; 2717 tests passed / 162 skipped / 0 failed)
+- production build ✓
+- bundle smoke ✓
+- renderer smoke ✓
+- `git diff --check` ✓
+
+**Notes:** The user authorized the completed M3 and M5 work for full production release.
+Download links now target v0.23.0, release notes use a plain-language summary, and project
+governance records the production cut without extending approval to M4 or M6–M9. The full
+Node gate explicitly reports 18 native-database files skipped because the installed
+`better-sqlite3` binding targets Electron's ABI; PR-6's separate Electron-native M5 cohort
+remains the database evidence at 5 files, 29 tests, and zero skips. The disposable GitHub
+and packaged GUI playbooks remain owner evidence, not a hidden parity claim. The untracked
+`.agents/` library remains outside the release commit.
+
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026

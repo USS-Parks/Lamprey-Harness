@@ -10333,3 +10333,39 @@ publication receipt follow.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## v0.27.1 Bucket publication receipt — 2026-07-19
+
+**Release authority:** release commit `839882e2ccd40042d47e5ed76d2dc5450ec1e392`;
+annotated tag `v0.27.1` dereferences to the same commit; release URL
+`https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.27.1`
+
+**Verification and publication:**
+- source CI `29700444815` ✓ (lint, Ubuntu tests, Windows tests)
+- cross-platform main build `29700444827` ✓ (Windows, Linux, macOS package + smokes)
+- tag build `29701019294`, attempt 2 ✓ (Windows, Linux, macOS package + smokes +
+  release attachment)
+- GitHub release ✓ (six uploaded assets: installer, blockmap, portable ZIP, updater
+  manifest, DMG, AppImage; authored v0.27.1 notes present)
+- R2/CDN ✓ (`Lamprey-x64.exe` 301,925,920 bytes; `Lamprey-x64.zip` 403,025,373;
+  `Lamprey-arm64.dmg` 327,813,778; `Lamprey-x86_64.AppImage` 547,082,269; all
+  public URLs returned HTTP 200 after purge)
+- local/remote source state ✓ (`origin/main` and release commit matched before this
+  post-tag receipt; tracked worktree clean)
+
+**Recovery notes:** The first Bucket pass tagged and published Windows to R2, but GitHub's
+authenticated core API quota was exhausted and prevented release creation plus workflow
+discovery. The tag workflow independently created the release. Its first Linux attempt
+`88229974860` was marked timed out during `npm ci` after about 16 seconds; the same SHA's
+main Linux build was already green. After the API reset, `gh run rerun --failed` produced
+attempt-2 Linux job `88232689165`, which passed dependency install, both typechecks,
+AppImage build, both smokes, upload, and release attachment. Bucket then reconciled the
+four Windows GitHub assets to the local SHA-256 values and installed the authored release
+notes. Independent final inventory found the AppImage object in R2 was still the v0.27.0
+size, so the verified v0.27.1 AppImage from the green tag release was uploaded directly,
+its Cloudflare URL was purged, and R2 plus public CDN metadata were rechecked. No partial
+state remains. The user-owned untracked `.agents/` directory remained untouched.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

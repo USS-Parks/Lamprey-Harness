@@ -88,6 +88,13 @@ export interface BrowserObservationPage<T> {
   nextCursor: string | null
 }
 
+export interface BrowserDeveloperObservationStatus {
+  targetId: string
+  navigationId: number
+  consoleCount: number
+  networkCount: number
+}
+
 export interface ConsoleObservationArgs {
   tab_id?: string
   action?: 'list' | 'clear'
@@ -304,6 +311,25 @@ export class BrowserDeveloperObserver {
 
   clearAll(): void {
     for (const targetId of [...this.targets.keys()]) this.clearTarget(targetId)
+  }
+
+  clearObservations(targetId: string): boolean {
+    const state = this.targets.get(targetId)
+    if (!state) return false
+    state.console = []
+    state.network = []
+    return true
+  }
+
+  getStatus(targetId: string): BrowserDeveloperObservationStatus | null {
+    const state = this.targets.get(targetId)
+    if (!state) return null
+    return {
+      targetId,
+      navigationId: state.navigationId,
+      consoleCount: state.console.length,
+      networkCount: state.network.length
+    }
   }
 
   private async ensure(tabId?: string, signal?: AbortSignal): Promise<TargetState> {

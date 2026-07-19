@@ -72,6 +72,9 @@ describe('BD-2 BrowserDeveloperObserver', () => {
 
     const cleared = await h.observer.observeConsole({ action: 'clear' })
     expect(cleared.entries).toEqual([])
+    expect(h.observer.getStatus('tab-1')).toEqual({
+      targetId: 'tab-1', navigationId: 0, consoleCount: 0, networkCount: 0
+    })
   })
 
   it('tracks navigation, filters network metadata, and redacts sensitive headers and URLs', async () => {
@@ -107,6 +110,9 @@ describe('BD-2 BrowserDeveloperObserver', () => {
     expect(result.entries[0]?.url).not.toContain('secret')
     expect(result.entries[0]?.requestHeaders.Authorization).toBe('[REDACTED]')
     expect(result.entries[0]?.responseHeaders?.['Set-Cookie']).toBe('[REDACTED]')
+    expect(h.observer.getStatus('tab-1')?.networkCount).toBe(1)
+    expect(h.observer.clearObservations('tab-1')).toBe(true)
+    expect(h.observer.getStatus('tab-1')?.networkCount).toBe(0)
   })
 
   it('reads only text-safe response bodies, caps output, and redacts secrets', async () => {

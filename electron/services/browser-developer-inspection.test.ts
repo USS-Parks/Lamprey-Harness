@@ -140,6 +140,9 @@ describe('BD-3 BrowserDeveloperInspection', () => {
       annotations: [{ id: 'annotation-1', label: 'Submit', x: 10, y: 20, width: 30, height: 40, color: '#ff0000' }]
     })
     expect(h.screenshotWriter).toHaveBeenCalledOnce()
+    expect(h.inspection.listEvidence('tab-1')).toEqual([result])
+    expect(h.inspection.clearEvidence('tab-1')).toBe(1)
+    expect(h.inspection.listEvidence('tab-1')).toEqual([])
   })
 
   it('fails closed while disabled or pre-cancelled', async () => {

@@ -17,6 +17,7 @@ const MAX_TRACE_MS = 10_000
 const MAX_TRACE_EVENTS = 1_000
 const MAX_SCREENSHOT_BYTES = 15 * 1024 * 1024
 const MAX_ANNOTATIONS = 50
+const MAX_EVIDENCE_RECORDS = 100
 
 const COMPUTED_STYLE_ALLOWLIST = new Set([
   'display', 'visibility', 'position', 'width', 'height', 'color', 'background-color',
@@ -97,6 +98,16 @@ export interface ScreenshotAnnotation {
 export interface ScreenshotAnnotationArgs {
   tab_id?: string
   annotations?: ScreenshotAnnotation[]
+}
+
+export interface BrowserDeveloperEvidence {
+  referenceId: string
+  targetId: string
+  url: string
+  path: string
+  bytes: number
+  annotations: Array<Record<string, unknown>>
+  at: number
 }
 
 interface RuntimeEvaluateResult {
@@ -237,6 +248,8 @@ function normalizeAxTree(raw: any, maxNodes: number): Record<string, unknown> {
 }
 
 export class BrowserDeveloperInspection {
+  private readonly evidence: BrowserDeveloperEvidence[] = []
+
   constructor(
     private readonly adapter: BrowserDeveloperCdpAdapter = browserDeveloperCdpAdapter,
     private readonly isEnabled = enabled,
@@ -390,7 +403,7 @@ export class BrowserDeveloperInspection {
   async captureAnnotatedScreenshot(
     args: ScreenshotAnnotationArgs = {},
     signal?: AbortSignal
-  ): Promise<Record<string, unknown>> {
+  ): Promise<BrowserDeveloperEvidence> {
     const targetId = this.attach(args.tab_id, signal)
     const startUrl = await this.currentUrl(targetId, signal)
     const annotations = (args.annotations ?? []).slice(0, MAX_ANNOTATIONS).map((annotation, index) => {
@@ -419,14 +432,38 @@ export class BrowserDeveloperInspection {
     await this.assertStableNavigation(targetId, startUrl, signal)
     const at = this.now()
     const path = this.screenshotWriter(targetId, bytes, at)
-    return {
+    const evidence: BrowserDeveloperEvidence = {
       referenceId: `browser-screenshot:${targetId}:${at}`,
       targetId,
       url: startUrl,
       path,
       bytes: bytes.length,
-      annotations
+      annotations,
+      at
     }
+    this.evidence.push(evidence)
+    if (this.evidence.length > MAX_EVIDENCE_RECORDS) {
+      this.evidence.splice(0, this.evidence.length - MAX_EVIDENCE_RECORDS)
+    }
+    return evidence
+  }
+
+  listEvidence(targetId?: string): BrowserDeveloperEvidence[] {
+    return this.evidence
+      .filter((record) => !targetId || record.targetId === targetId)
+      .map((record) => ({ ...record, annotations: record.annotations.map((item) => ({ ...item })) }))
+  }
+
+  clearEvidence(targetId?: string): number {
+    const before = this.evidence.length
+    if (!targetId) {
+      this.evidence.length = 0
+      return before
+    }
+    for (let index = this.evidence.length - 1; index >= 0; index -= 1) {
+      if (this.evidence[index]?.targetId === targetId) this.evidence.splice(index, 1)
+    }
+    return before - this.evidence.length
   }
 
   private attach(tabId?: string, signal?: AbortSignal): string {

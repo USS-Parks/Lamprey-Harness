@@ -42,6 +42,7 @@ interface Session {
   targetId: string
   debugger: CdpDebuggerLike
   protocolVersion: string
+  developerModeConsumer: boolean
   messageListeners: Set<CdpMessageListener>
   onMessage: CdpMessageListener
   onDetach: CdpDetachListener
@@ -91,6 +92,7 @@ export class BrowserCdpSessionService {
       if (existing.debugger !== target.debugger) {
         throw new Error(`CDP target ${target.id} already has a different owner`)
       }
+      if (requiresDeveloperMode) existing.developerModeConsumer = true
       this.bindAbort(existing, options.signal)
       return this.snapshot(existing, true)
     }
@@ -131,6 +133,7 @@ export class BrowserCdpSessionService {
     session.targetId = target.id
     session.debugger = target.debugger
     session.protocolVersion = attachedVersion
+    session.developerModeConsumer = requiresDeveloperMode
     session.messageListeners = new Set()
     session.onMessage = (event, method, params, sessionId) => {
       for (const listener of session.messageListeners) {
@@ -182,6 +185,12 @@ export class BrowserCdpSessionService {
 
   detachAll(): void {
     for (const targetId of [...this.sessions.keys()]) this.detach(targetId)
+  }
+
+  detachDeveloperSessions(): void {
+    for (const session of [...this.sessions.values()]) {
+      if (session.developerModeConsumer) this.detach(session.targetId)
+    }
   }
 
   get(targetId: string): BrowserCdpSessionSnapshot | null {

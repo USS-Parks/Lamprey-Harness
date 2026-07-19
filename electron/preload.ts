@@ -1039,6 +1039,25 @@ const api = {
       ipcRenderer.invoke('browser:setBounds', args),
     setVisible: (args: { visible: boolean }) => ipcRenderer.invoke('browser:setVisible', args),
     listTabs: () => ipcRenderer.invoke('browser:listTabs'),
+    developerStatus: (args?: { id?: string }) => ipcRenderer.invoke('browser:developerStatus', args),
+    developerSetEnabled: (args: { enabled: boolean }) =>
+      ipcRenderer.invoke('browser:developerSetEnabled', args),
+    developerSetSitePolicy: (args: { id?: string; decision: 'allow' | 'ask' | 'deny' }) =>
+      ipcRenderer.invoke('browser:developerSetSitePolicy', args),
+    developerAttach: (args?: { id?: string }) => ipcRenderer.invoke('browser:developerAttach', args),
+    developerDetach: (args?: { id?: string }) => ipcRenderer.invoke('browser:developerDetach', args),
+    developerCapture: (args?: {
+      id?: string
+      annotations?: Array<{
+        label: string
+        x: number
+        y: number
+        width?: number
+        height?: number
+        color?: string
+      }>
+    }) => ipcRenderer.invoke('browser:developerCapture', args),
+    developerClear: (args?: { id?: string }) => ipcRenderer.invoke('browser:developerClear', args),
     onTabUpdated: (
       cb: (e: {
         id: string

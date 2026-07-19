@@ -119,4 +119,17 @@ describe('BrowserCdpSessionService', () => {
       'Browser Developer Mode is disabled'
     )
   })
+
+  it('detaches developer sessions without disrupting preview-only owners', () => {
+    const service = new BrowserCdpSessionService(() => true)
+    const preview = new FakeDebugger()
+    const developer = new FakeDebugger()
+    service.attach({ id: 'preview', debugger: preview }, { requireDeveloperMode: false })
+    service.attach({ id: 'developer', debugger: developer })
+
+    service.detachDeveloperSessions()
+
+    expect(service.get('preview')?.attached).toBe(true)
+    expect(service.get('developer')).toBeNull()
+  })
 })

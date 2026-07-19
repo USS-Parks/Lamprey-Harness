@@ -9891,7 +9891,45 @@ force one-shot dangerous approval; no-window behavior remains default deny. The 
 gate reports its expected 18 native-DB skips because the package build left the binding on
 Electron's ABI; BD-4 adds no database path and its focused cohort has zero skips.
 
-**Commit:** pending (BD-4).
+**Commit:** `1397c47`.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt BD-5 Developer Mode UI — 2026-07-19
+
+**Files changed:** `electron/ipc/browser.ts`, `electron/preload.ts`,
+`electron/services/browser-developer-observer.ts`,
+`electron/services/browser-developer-observer.test.ts`,
+`electron/services/browser-developer-inspection.ts`,
+`electron/services/browser-developer-inspection.test.ts`,
+`electron/services/browser-developer-ui-wiring.test.ts`,
+`src/components/tools/panels/BrowserPanel.tsx`,
+`PLANNING/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused CDP/observer/inspection/tool/UI-wiring cohort ✓ (5 files, 29 tests, 0 skipped)
+- production build, bundle smoke, and renderer smoke ✓
+- focused ESLint and `git diff --check` ✓
+- user-verification-needed: run `PLANNING/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md`
+  in a visible packaged app against an owner-controlled HTTP(S) fixture
+
+**Notes:** The existing Browser panel now has a collapsible developer toolbar that shows
+the active target, negotiated CDP protocol, recording state, bounded console/network counts,
+exact-origin Ask/Allow/Deny policy, and in-memory screenshot evidence with annotation
+coordinates. Renderer controls cross typed preload IPC; the main process remains authoritative
+for settings, trust, session ownership, observations, and evidence. Turning the feature off
+detaches every Developer Mode CDP session and observer without disrupting a preview-only
+session. Clear removes bounded observation buffers and the
+current target's evidence record; detach leaves captured files intact until owner cleanup.
+The panel polls only the bounded status snapshot once per second and never attaches its own
+debugger. Live UI/CDP parity remains explicitly unclaimed until the owner playbook receipt.
+
+**Commit:** pending (BD-5).
 
 ---
 

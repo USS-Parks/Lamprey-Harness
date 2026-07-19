@@ -347,6 +347,19 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     })
   })
 
+  it('GA-4 - migration v32 adds persistent goal and automation loop bindings', () => {
+    runMigrations(db)
+    const goalColumns = db.prepare('PRAGMA table_info(goals)').all() as Array<{ name: string }>
+    const automationColumns = db.prepare('PRAGMA table_info(automations)').all() as Array<{ name: string }>
+    expect(goalColumns.map((column) => column.name)).toEqual(expect.arrayContaining([
+      'loop_id', 'loop_max_iterations', 'loop_max_wallclock_ms', 'loop_token_budget'
+    ]))
+    expect(automationColumns.map((column) => column.name)).toEqual(expect.arrayContaining([
+      'goal_id', 'goal_conversation_id', 'loop_max_iterations',
+      'loop_max_wallclock_ms', 'loop_token_budget'
+    ]))
+  })
+
   it('stops applying after a failure and reports the partial result via thrown error', () => {
     const order: number[] = []
     withMigrations(

@@ -11,6 +11,8 @@ import {
   __resetPlanGoalPersistence,
   type ConversationPlanGoalState
 } from './plan-goal-persistence'
+import { applyGoalLoopTransition } from './goal-loop-transition-runtime'
+import { readLoopConfig } from './loop-config'
 
 // Per-conversation plan + goal state for the `update_plan`, `get_goal`,
 // `create_goal`, and `update_goal` native tools.
@@ -70,6 +72,10 @@ export interface Goal {
   blocker: string | null
   completion: string | null
   transitionReason: string | null
+  loopId: string | null
+  loopMaxIterations: number | null
+  loopMaxWallclockMs: number | null
+  loopTokenBudget: number | null
   createdAt: number
   updatedAt: number
 }
@@ -315,6 +321,10 @@ export function createGoal(
     blocker: null,
     completion: null,
     transitionReason: null,
+    loopId: null,
+    loopMaxIterations: null,
+    loopMaxWallclockMs: null,
+    loopTokenBudget: null,
     createdAt: now,
     updatedAt: now
   }
@@ -337,7 +347,15 @@ export function transitionGoal(
   if ((input.action === 'abort' || input.action === 'clear') && input.actor === 'model') {
     throw new Error(`update_goal: model authority cannot ${input.action} a goal.`)
   }
+  if (
+    goal.loopId &&
+    (input.action === 'start' || input.action === 'resume') &&
+    !readLoopConfig().enabled
+  ) {
+    throw new Error('update_goal: loops are disabled; the goal-owned loop cannot be started.')
+  }
   if (input.action === 'clear') {
+    applyGoalLoopTransition(conversationId, publicGoal(goal, now), input.action)
     s.goals.delete(goal.id)
     removeGoal(keyOf(conversationId), goal.id)
     return null
@@ -418,9 +436,38 @@ export function transitionGoal(
     goal.transitionReason = input.reason?.trim() || goal.transitionReason
   }
   goal.updatedAt = now
+  applyGoalLoopTransition(conversationId, publicGoal(goal, now), input.action)
   s.goals.set(goal.id, goal)
   upsertGoal(keyOf(conversationId), goal)
   return publicGoal(goal, now)
+}
+
+export function bindGoalLoop(
+  conversationId: string | undefined,
+  goalId: string,
+  binding: {
+    loopId: string
+    maxIterations: number | null
+    maxWallclockMs: number | null
+    tokenBudget: number | null
+  }
+): Goal {
+  const s = getState(conversationId)
+  const goal = s.goals.get(goalId)
+  if (!goal) throw new Error(`goal loop bridge: no goal with id "${goalId}"`)
+  if (goal.loopId && goal.loopId !== binding.loopId) {
+    throw new Error(`goal loop bridge: goal already owns loop "${goal.loopId}".`)
+  }
+  goal.loopId = binding.loopId
+  goal.loopMaxIterations = binding.maxIterations
+  goal.loopMaxWallclockMs = binding.maxWallclockMs
+  goal.loopTokenBudget = binding.tokenBudget
+  goal.lastActor = 'system'
+  goal.transitionReason = 'loop-bound'
+  goal.updatedAt = monoNow()
+  s.goals.set(goal.id, goal)
+  upsertGoal(keyOf(conversationId), goal)
+  return publicGoal(goal)
 }
 
 export function updateGoal(

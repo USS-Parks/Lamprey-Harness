@@ -11,6 +11,7 @@ import {
 import { chatOnce } from './providers/registry'
 import { boundedJsonPreview, recordEvent } from './event-log'
 import { readLoopConfig } from './loop-config'
+import { wakeGoalFromAutomation } from './goal-automation-loop-bridge'
 import {
   describeCron,
   nextFireAfter,
@@ -136,12 +137,14 @@ async function runOne(
   })
 
   try {
-    const replyResult = await chatOnce(
-      [{ role: 'user', content: automation.prompt }] as any,
-      model,
-      undefined,
-      { correlationId, purpose: 'other', role: 'automation' }
-    )
+    const replyResult = automation.goalId
+      ? { content: JSON.stringify(wakeGoalFromAutomation(automation)) }
+      : await chatOnce(
+          [{ role: 'user', content: automation.prompt }] as any,
+          model,
+          undefined,
+          { correlationId, purpose: 'other', role: 'automation' }
+        )
     const finishedAt = Date.now()
     const reply = replyResult.content
     const isManual = invocation.triggerKind === 'manual'

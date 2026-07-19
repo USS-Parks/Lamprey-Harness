@@ -43,6 +43,10 @@ interface GoalRow {
   blocker: string | null
   completion: string | null
   transition_reason: string | null
+  loop_id: string | null
+  loop_max_iterations: number | null
+  loop_max_wallclock_ms: number | null
+  loop_token_budget: number | null
   created_at: number
   updated_at: number
 }
@@ -106,6 +110,10 @@ function rowToGoal(r: GoalRow): Goal {
     blocker: r.blocker,
     completion: r.completion,
     transitionReason: r.transition_reason,
+    loopId: r.loop_id,
+    loopMaxIterations: r.loop_max_iterations,
+    loopMaxWallclockMs: r.loop_max_wallclock_ms,
+    loopTokenBudget: r.loop_token_budget,
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }
@@ -178,11 +186,13 @@ export function upsertGoal(key: string, goal: Goal): void {
              (id, conversation_id, title, description, due_date, status,
               lifecycle_status, last_actor, token_budget, token_used, time_budget_ms,
               elapsed_ms, active_since, paused_at, completed_at, aborted_at,
-              blocker, completion, transition_reason, created_at, updated_at)
+              blocker, completion, transition_reason, loop_id, loop_max_iterations,
+              loop_max_wallclock_ms, loop_token_budget, created_at, updated_at)
            VALUES (@id, @conversation_id, @title, @description, @due_date, @status,
               @lifecycle_status, @last_actor, @token_budget, @token_used, @time_budget_ms,
               @elapsed_ms, @active_since, @paused_at, @completed_at, @aborted_at,
-              @blocker, @completion, @transition_reason, @created_at, @updated_at)
+              @blocker, @completion, @transition_reason, @loop_id, @loop_max_iterations,
+              @loop_max_wallclock_ms, @loop_token_budget, @created_at, @updated_at)
            ON CONFLICT(id) DO UPDATE SET
              title = excluded.title,
              description = excluded.description,
@@ -201,6 +211,10 @@ export function upsertGoal(key: string, goal: Goal): void {
              blocker = excluded.blocker,
              completion = excluded.completion,
              transition_reason = excluded.transition_reason,
+             loop_id = excluded.loop_id,
+             loop_max_iterations = excluded.loop_max_iterations,
+             loop_max_wallclock_ms = excluded.loop_max_wallclock_ms,
+             loop_token_budget = excluded.loop_token_budget,
              updated_at = excluded.updated_at`
         )
         .run({
@@ -223,6 +237,10 @@ export function upsertGoal(key: string, goal: Goal): void {
           blocker: goal.blocker,
           completion: goal.completion,
           transition_reason: goal.transitionReason,
+          loop_id: goal.loopId,
+          loop_max_iterations: goal.loopMaxIterations,
+          loop_max_wallclock_ms: goal.loopMaxWallclockMs,
+          loop_token_budget: goal.loopTokenBudget,
           created_at: goal.createdAt,
           updated_at: goal.updatedAt
         })

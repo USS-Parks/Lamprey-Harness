@@ -27,6 +27,11 @@ export interface AutomationRow {
   retry_attempt: number
   retry_at: number | null
   disabled_reason: string | null
+  goal_id: string | null
+  goal_conversation_id: string | null
+  loop_max_iterations: number | null
+  loop_max_wallclock_ms: number | null
+  loop_token_budget: number | null
 }
 
 export interface Automation {
@@ -45,6 +50,11 @@ export interface Automation {
   retryAttempt: number
   retryAt: number | null
   disabledReason: string | null
+  goalId: string | null
+  goalConversationId: string | null
+  loopMaxIterations: number | null
+  loopMaxWallclockMs: number | null
+  loopTokenBudget: number | null
 }
 
 export interface AutomationRun {
@@ -96,7 +106,12 @@ function fromRow(row: AutomationRow): Automation {
     lastTriggerKey: row.last_trigger_key,
     retryAttempt: row.retry_attempt,
     retryAt: row.retry_at,
-    disabledReason: row.disabled_reason
+    disabledReason: row.disabled_reason,
+    goalId: row.goal_id ?? null,
+    goalConversationId: row.goal_conversation_id ?? null,
+    loopMaxIterations: row.loop_max_iterations ?? null,
+    loopMaxWallclockMs: row.loop_max_wallclock_ms ?? null,
+    loopTokenBudget: row.loop_token_budget ?? null
   }
 }
 
@@ -134,6 +149,11 @@ export function createAutomation(input: {
   prompt: string
   model?: string | null
   trigger?: AutomationTrigger
+  goalId?: string | null
+  goalConversationId?: string | null
+  loopMaxIterations?: number | null
+  loopMaxWallclockMs?: number | null
+  loopTokenBudget?: number | null
   now?: number
 }): Automation {
   const db = getDb()
@@ -147,8 +167,9 @@ export function createAutomation(input: {
   db.prepare(
     `INSERT INTO automations (
        id, label, cron, prompt, model, enabled, created_at,
-       trigger_kind, trigger_config_json, next_run_at
-     ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`
+       trigger_kind, trigger_config_json, next_run_at,
+       goal_id, goal_conversation_id, loop_max_iterations, loop_max_wallclock_ms, loop_token_budget
+     ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.label,
@@ -158,7 +179,12 @@ export function createAutomation(input: {
     now,
     trigger.kind,
     serializeAutomationTrigger(trigger),
-    nextRunAt
+    nextRunAt,
+    input.goalId ?? null,
+    input.goalConversationId ?? null,
+    input.loopMaxIterations ?? null,
+    input.loopMaxWallclockMs ?? null,
+    input.loopTokenBudget ?? null
   )
   return getAutomation(id)!
 }
@@ -172,6 +198,11 @@ export function updateAutomation(
     model: string | null
     enabled: boolean
     trigger: AutomationTrigger
+    goalId: string | null
+    goalConversationId: string | null
+    loopMaxIterations: number | null
+    loopMaxWallclockMs: number | null
+    loopTokenBudget: number | null
     now: number
   }>
 ): Automation | null {
@@ -198,7 +229,9 @@ export function updateAutomation(
     `UPDATE automations
         SET label = ?, cron = ?, prompt = ?, model = ?, enabled = ?,
             trigger_kind = ?, trigger_config_json = ?, next_run_at = ?,
-            retry_attempt = ?, retry_at = ?, disabled_reason = ?
+            retry_attempt = ?, retry_at = ?, disabled_reason = ?,
+            goal_id = ?, goal_conversation_id = ?, loop_max_iterations = ?,
+            loop_max_wallclock_ms = ?, loop_token_budget = ?
       WHERE id = ?`
   ).run(
     patch.label ?? current.label,
@@ -212,6 +245,11 @@ export function updateAutomation(
     triggerChanged ? 0 : current.retry_attempt,
     triggerChanged ? null : current.retry_at,
     enabled ? null : current.disabled_reason ?? 'disabled',
+    patch.goalId !== undefined ? patch.goalId : current.goal_id,
+    patch.goalConversationId !== undefined ? patch.goalConversationId : current.goal_conversation_id,
+    patch.loopMaxIterations !== undefined ? patch.loopMaxIterations : current.loop_max_iterations,
+    patch.loopMaxWallclockMs !== undefined ? patch.loopMaxWallclockMs : current.loop_max_wallclock_ms,
+    patch.loopTokenBudget !== undefined ? patch.loopTokenBudget : current.loop_token_budget,
     id
   )
   return getAutomation(id)

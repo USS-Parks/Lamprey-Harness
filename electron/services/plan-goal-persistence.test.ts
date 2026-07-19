@@ -50,6 +50,10 @@ const goal = (id: string, overrides: Partial<Goal> = {}): Goal => ({
   blocker: null,
   completion: null,
   transitionReason: null,
+  loopId: null,
+  loopMaxIterations: null,
+  loopMaxWallclockMs: null,
+  loopTokenBudget: null,
   createdAt: 1,
   updatedAt: 1,
   ...overrides

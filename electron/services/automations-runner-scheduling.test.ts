@@ -12,7 +12,8 @@ const mocks = vi.hoisted(() => ({
     return `run:${key}`
   }),
   settleAutomationRun: vi.fn(),
-  chatOnce: vi.fn(async () => ({ content: 'ok' }))
+  chatOnce: vi.fn(async () => ({ content: 'ok' })),
+  wakeGoal: vi.fn(() => ({ goalId: 'g1', loopId: 'l1', nextFireAt: 10_000, ceilings: {} }))
 }))
 
 vi.mock('electron', () => ({
@@ -30,6 +31,7 @@ vi.mock('./automations-store', () => ({
   initializeAutomationNextRuns: vi.fn(() => 0)
 }))
 vi.mock('./providers/registry', () => ({ chatOnce: mocks.chatOnce }))
+vi.mock('./goal-automation-loop-bridge', () => ({ wakeGoalFromAutomation: mocks.wakeGoal }))
 vi.mock('./event-log', () => ({
   boundedJsonPreview: (value: unknown) => value,
   recordEvent: vi.fn()
@@ -50,6 +52,7 @@ function row(overrides: Record<string, unknown> = {}): Record<string, any> {
     retryAttempt: 0,
     retryAt: null,
     disabledReason: null,
+    goalId: null,
     ...overrides
   }
 }
@@ -64,6 +67,7 @@ beforeEach(() => {
   mocks.settleAutomationRun.mockClear()
   mocks.chatOnce.mockReset()
   mocks.chatOnce.mockResolvedValue({ content: 'ok' })
+  mocks.wakeGoal.mockClear()
 })
 
 afterEach(() => {
@@ -92,6 +96,13 @@ describe('GA-2 automation runner scheduling', () => {
       retryAttempt: 0,
       retryAt: null
     }))
+  })
+
+  it('wakes a bound goal loop without calling the provider directly', async () => {
+    mocks.rows = [row({ goalId: 'g1', goalConversationId: 'c1' })]
+    expect(await tickAutomationsOnce(10_000)).toBe(1)
+    expect(mocks.wakeGoal).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', goalId: 'g1' }))
+    expect(mocks.chatOnce).not.toHaveBeenCalled()
   })
 
   it('deduplicates named events by stable event id', async () => {

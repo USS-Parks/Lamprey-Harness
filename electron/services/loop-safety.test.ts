@@ -76,7 +76,15 @@ describe('LP-10 loop safety gates', () => {
 
   it('the cron automation tick rides the master toggle', () => {
     const src = read('electron/services/automations-runner.ts')
-    const fn = src.slice(src.indexOf('function tick()'))
+    const fn = src.slice(src.indexOf('export async function tickAutomationsOnce'))
     expect(fn).toMatch(/if \(!readLoopConfig\(\)\.enabled\) return/)
+  })
+
+  it('goal and automation loop bridge entry points fail closed on the master toggle', () => {
+    const src = read('electron/services/goal-automation-loop-bridge.ts')
+    expect(src).toMatch(/function requireLoopsEnabled[\s\S]*?if \(!config\.enabled\)/)
+    expect(src).toMatch(/createGoalOwnedLoop[\s\S]*?requireLoopsEnabled\(\)/)
+    expect(src).toMatch(/bindAutomationToGoal[\s\S]*?requireLoopsEnabled\(\)/)
+    expect(src).toMatch(/wakeGoalFromAutomation[\s\S]*?requireLoopsEnabled\(\)/)
   })
 })

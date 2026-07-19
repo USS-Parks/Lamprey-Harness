@@ -13,6 +13,7 @@ import { applyPrReviewSchema } from './pr-review-schema'
 import { applyPrPatchSchema } from './pr-patch-schema'
 import { applyAutomationTriggerSchema } from './automation-schema'
 import { applyOperationalGoalSchema } from './goal-schema'
+import { applyGoalAutomationBridgeSchema } from './goal-automation-bridge-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -383,6 +384,14 @@ export const MIGRATIONS: Migration[] = [
       'Codex July parity GA-3 — operational goal lifecycle, authority, budgets, and elapsed time',
     up(db) {
       applyOperationalGoalSchema(db)
+    }
+  },
+  {
+    version: 32,
+    description:
+      'Codex July parity GA-4 — persistent goal ownership and automation loop bridge ceilings',
+    up(db) {
+      applyGoalAutomationBridgeSchema(db)
     }
   }
 ]

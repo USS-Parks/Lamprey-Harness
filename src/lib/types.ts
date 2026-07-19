@@ -650,6 +650,10 @@ export interface Goal {
   blocker: string | null
   completion: string | null
   transitionReason: string | null
+  loopId: string | null
+  loopMaxIterations: number | null
+  loopMaxWallclockMs: number | null
+  loopTokenBudget: number | null
   createdAt: number
   updatedAt: number
 }

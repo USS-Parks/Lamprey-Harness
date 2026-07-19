@@ -10059,3 +10059,34 @@ and the v31 Node-SQLite suite executes independently of the native ABI guard.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt GA-4 goal/automation loop bridge — 2026-07-19
+
+**Files changed:** `electron/services/goal-automation-bridge-schema.ts`,
+`electron/services/goal-automation-loop-bridge.ts`,
+`electron/services/goal-loop-transition-runtime.ts`,
+`electron/services/goal-loop-tool-pack.ts`, goal/automation/loop stores and runner,
+migration v32, preload-facing types, focused tests,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node + web ✓
+- focused bridge/lifecycle/persistence/runner safety cohort ✓ (6 files, 63 tests, 0 skipped)
+- focused schema/controller/tool regression cohort ✓ (5 files, 82 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** A goal can now own exactly one persistent bounded loop/backlog through the
+`goal_bind_loop` tool, and `automation_bind_goal` can attach an existing automation as a
+wake source. A bound automation never calls a provider directly: it marks the existing loop
+due and the established loop controller remains the only recurring execution path into
+`runHeadlessTurn`. `loopsEnabled` fails closed for create, bind, wake, resume, scheduled
+ticks, and event dispatch. Global, goal, and automation ceilings compose by the tightest
+positive cap, so narrower scopes can never relax an outer policy. Goal pause/block aborts
+in-flight work and pauses the loop; completion, abort, and clear settle the owned loop with
+honest stop reasons. Migration v32 persists ownership and wake bindings, with a unique loop
+owner index and a Node-SQLite restart-safe integration test.
+
+**Commit:** see git log (GA-4).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

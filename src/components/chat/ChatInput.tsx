@@ -265,7 +265,7 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
 
   useEffect(() => {
     void refreshProviders()
-  }, [refreshProviders])
+  }, [open, refreshProviders])
 
   const fallback: ModelInfo[] = [
     {
@@ -333,33 +333,26 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
       supportsVision: false
     },
     {
-      id: 'gemma-4-31b-it-free',
-      name: 'Gemma 4 31B (free, OpenRouter)',
-      provider: 'openrouter',
+      id: 'kimi-k3',
+      name: 'Kimi K3',
+      provider: 'moonshot',
+      contextWindow: 1_000_000,
+      supportsTools: true,
+      supportsVision: true,
+      isReasoner: true
+    },
+    {
+      id: 'gemma-4-31b-it-google',
+      name: 'Gemma 4 31B (Google AI)',
+      provider: 'google',
       contextWindow: 262144,
       supportsTools: true,
       supportsVision: true
     },
     {
-      id: 'gemma-4-31b-it',
-      name: 'Gemma 4 31B (OpenRouter)',
-      provider: 'openrouter',
-      contextWindow: 262144,
-      supportsTools: true,
-      supportsVision: true
-    },
-    {
-      id: 'gemma-4-26b-a4b-it-free',
-      name: 'Gemma 4 26B A4B (free, OpenRouter)',
-      provider: 'openrouter',
-      contextWindow: 262144,
-      supportsTools: true,
-      supportsVision: true
-    },
-    {
-      id: 'gemma-4-26b-a4b-it',
-      name: 'Gemma 4 26B A4B (OpenRouter)',
-      provider: 'openrouter',
+      id: 'gemma-4-26b-a4b-it-google',
+      name: 'Gemma 4 26B A4B (Google AI)',
+      provider: 'google',
       contextWindow: 262144,
       supportsTools: true,
       supportsVision: true

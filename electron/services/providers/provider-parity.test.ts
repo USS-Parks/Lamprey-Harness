@@ -41,9 +41,13 @@ describe('ProviderId union parity (main ↔ renderer)', () => {
     expect(Object.keys(PROVIDERS).sort()).toEqual([...mainMembers].sort())
   })
 
-  it('locks the v0.27.0 public provider and pinned-model counts', () => {
+  it('locks the v0.27.1 direct-provider and pinned-model counts', () => {
     expect(Object.keys(PROVIDERS)).toHaveLength(32)
-    expect(MODEL_CATALOG).toHaveLength(79)
+    expect(MODEL_CATALOG).toHaveLength(70)
+  })
+
+  it('does not broker any pinned model through OpenRouter', () => {
+    expect(MODEL_CATALOG.filter((model) => model.provider === 'openrouter')).toEqual([])
   })
 
   it('every catalog model points at a provider that exists in PROVIDERS', () => {

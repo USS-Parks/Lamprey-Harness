@@ -509,55 +509,6 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     tier: 'open',
     description: 'Google-hosted Gemma 4 26B A4B instruction model via the Gemini API.'
   },
-  // Gemma 4 via OpenRouter — verified live on openrouter.ai/api/v1/models.
-  // Free variants are rate-limited; the non-free entries bill via OpenRouter
-  // credits. AI Studio's native Gemma 4 endpoints exist too but their id
-  // strings aren't published on any public-readable page — paste those into
-  // Settings → Models → Custom Models if you prefer the direct route.
-  {
-    id: 'gemma-4-31b-it-free',
-    name: 'Gemma 4 31B (free, OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'google/gemma-4-31b-it:free',
-    contextWindow: 262144,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'open',
-    description: 'Gemma 4 31B-instruction-tuned, rate-limited free tier via OpenRouter.'
-  },
-  {
-    id: 'gemma-4-31b-it',
-    name: 'Gemma 4 31B (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'google/gemma-4-31b-it',
-    contextWindow: 262144,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'open',
-    description: 'Gemma 4 31B-instruction-tuned, paid tier via OpenRouter credits.'
-  },
-  {
-    id: 'gemma-4-26b-a4b-it-free',
-    name: 'Gemma 4 26B A4B (free, OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'google/gemma-4-26b-a4b-it:free',
-    contextWindow: 262144,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'open',
-    description: 'Gemma 4 26B activation-tuned, rate-limited free tier via OpenRouter.'
-  },
-  {
-    id: 'gemma-4-26b-a4b-it',
-    name: 'Gemma 4 26B A4B (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'google/gemma-4-26b-a4b-it',
-    contextWindow: 262144,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'open',
-    description: 'Gemma 4 26B activation-tuned, paid tier via OpenRouter credits.'
-  },
   {
     id: 'qwen3-max',
     name: 'Qwen3 Max',
@@ -1265,65 +1216,6 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     tier: 'pro',
     description: 'Inception Labs diffusion language model with configurable reasoning effort.'
   },
-
-  // ── OpenRouter broadening ── frontier + open flagships through the one
-  // OpenRouter key; every id below was present on openrouter.ai/api/v1/models
-  // with tools support at catalog time.
-  {
-    id: 'or-claude-sonnet-5',
-    name: 'Claude Sonnet 5 (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'anthropic/claude-sonnet-5',
-    contextWindow: 1_000_000,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'pro',
-    description: 'Claude Sonnet 5 billed through OpenRouter credits.'
-  },
-  {
-    id: 'or-gpt-5.6-terra',
-    name: 'GPT-5.6 Terra (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'openai/gpt-5.6-terra',
-    contextWindow: 1_050_000,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'pro',
-    description: 'GPT-5.6 Terra billed through OpenRouter credits.'
-  },
-  {
-    id: 'or-grok-4.5',
-    name: 'Grok 4.5 (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'x-ai/grok-4.5',
-    contextWindow: 500_000,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'pro',
-    description: 'Grok 4.5 billed through OpenRouter credits.'
-  },
-  {
-    id: 'or-kimi-k2.5',
-    name: 'Kimi K2.5 (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'moonshotai/kimi-k2.5',
-    contextWindow: 262_144,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'open',
-    description: 'Kimi K2.5 billed through OpenRouter credits.'
-  },
-  {
-    id: 'or-llama-4-maverick',
-    name: 'Llama 4 Maverick (OpenRouter)',
-    provider: 'openrouter',
-    apiModelId: 'meta-llama/llama-4-maverick',
-    contextWindow: 1_048_576,
-    supportsTools: true,
-    supportsVision: true,
-    tier: 'open',
-    description: 'Meta Llama 4 Maverick — 1M context via OpenRouter.'
-  }
 ]
 
 export interface ChatStreamParams {

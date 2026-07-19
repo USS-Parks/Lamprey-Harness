@@ -42,12 +42,14 @@ describe('FC-2 — supportsTools flag audit', () => {
     expect(gemma12b.supportsTools).toBe(true)
   })
 
-  it('OpenRouter Gemma 4 models have correct supportsTools', () => {
-    const g4free = resolveModel('gemma-4-31b-it-free')
-    expect(g4free.supportsTools).toBe(true)
+  it('direct Google Gemma 4 models have correct supportsTools', () => {
+    const g431b = resolveModel('gemma-4-31b-it-google')
+    expect(g431b.provider).toBe('google')
+    expect(g431b.supportsTools).toBe(true)
 
-    const g4paid = resolveModel('gemma-4-31b-it')
-    expect(g4paid.supportsTools).toBe(true)
+    const g426b = resolveModel('gemma-4-26b-a4b-it-google')
+    expect(g426b.provider).toBe('google')
+    expect(g426b.supportsTools).toBe(true)
   })
 
   it('resolveModel for unknown model falls back to supportsTools=true', () => {

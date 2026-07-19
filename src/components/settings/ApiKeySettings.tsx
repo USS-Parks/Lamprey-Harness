@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
 import type { ProviderInfo } from '@/lib/types'
 import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
+import { useProvidersStore } from '@/stores/providers-store'
 
 interface ProviderEntry extends ProviderInfo {
   hasKey: boolean
@@ -96,6 +97,7 @@ export function ApiKeySettings() {
     if (list.success) {
       const entries = list.data as ProviderEntry[]
       setProviders(entries)
+      useProvidersStore.getState().setProviders(entries)
       setBaseURLDrafts((current) => {
         const next = { ...current }
         for (const provider of entries) {

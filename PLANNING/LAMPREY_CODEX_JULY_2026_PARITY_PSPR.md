@@ -892,10 +892,6 @@ STS instruction: "Commit and push to Main. This is a major version update: v0.20
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
 
----
-
-Authored and reviewed by Basho Parks, copyright 2026
-
 ```text
 APPROVED: 2026-07-17 (scope clarification)
 Milestones: M0 + M1; CJP-0 and ST-1 through ST-12; stop before M2.
@@ -907,6 +903,19 @@ STS instruction: "No, what I want is ALL of these done. STS" followed by the
   complete §1 Normative Steering and Queue contract reproduced in this plan.
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
+
+### M3 + M5 source publication receipt — 2026-07-18
+
+`origin/main` accepted the complete VA-1 through VA-6 and PR-1 through PR-6 chains plus the
+source-publication governance commit at `b4ba3e2`. The pre-push proof gate passed lint, both
+TypeScript projects, 2717 tests with 162 explicitly reported skips and zero failures, bundle
+smoke, and renderer smoke. The GitHub repository About description was updated and read back
+through the authenticated API. The untracked `.agents/` skill library remained outside the
+published scope.
+
+This is a source publication only. No v0.23.0 tag, Bucket run, CDN update, binary upload, or
+GitHub release was performed. Packaged downloads remain v0.21.0, and the disposable PR Chat
+plus packaged artifact GUI playbooks remain `USER-VERIFICATION-NEEDED`.
 
 ---
 

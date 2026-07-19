@@ -9450,3 +9450,38 @@ run. No push, tag, Bucket run, CDN update, or public release was authorized or p
 M4 and M6–M9 remain unapproved.
 
 **Commit:** see git log (PR-6).
+
+## Codex July 2026 Parity — M3 + M5 source publication — 2026-07-18
+
+**Files changed:** `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`,
+`PLANNING/README.md`, `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`RELEASE_NOTES/v0.23.0.md`, `DEVLOG.md`
+**Verify gate:**
+- staged whitespace and machine-residue scans ✓
+- canonical footer present on all 13 unpublished commits ✓
+- pre-commit lint and both TypeScript projects ✓
+- pre-push `verify:proof` ✓
+- vitest ✓ (225 files passed / 15 skipped; 2717 tests passed / 162 skipped / 0 failed)
+- bundle smoke and renderer smoke ✓
+- `origin/main` accepted the complete feature and governance chain at `b4ba3e2` ✓
+- GitHub repository About description read back after update ✓
+
+**Notes:** The v0.23.0 source is now on `main`. In ordinary terms, reviewers can bring an
+exact pull request or hunk into chat, inspect it, draft a response, and prepare a patch while
+GitHub writes and workspace mutation remain visible and approval-gated. The public README and
+release notes say that directly. Governance now rejects generated filler, duplicate
+authorities, speculative abstractions, dead flags, wrapper stacks, placeholders, and
+formatting churn. The repository About line now names task controls, inline artifacts, and PR
+review. The local `.agents/` skill library remains untracked and was not swept into the public
+repository.
+
+**Honest gaps:** v0.23.0 has no tag or binary release; packaged downloads remain the verified
+v0.21.0 artifacts. The disposable PR Chat and packaged artifact GUI playbooks remain
+`USER-VERIFICATION-NEEDED`. M4 and M6–M9 remain unapproved.
+
+**Publication commit:** `b4ba3e2`
+**Receipt commit:** see git log.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

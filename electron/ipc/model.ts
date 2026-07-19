@@ -4,6 +4,7 @@ import {
   isKnownProvider,
   listAllProviders,
   listLiveModelIds,
+  resolveModel,
   verifyCatalog
 } from '../services/providers/registry'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
@@ -84,7 +85,10 @@ export function registerModelHandlers(): void {
 
   ipcMain.handle('model:getActive', async () => {
     const settings = readSettings()
-    return { success: true, data: (settings.defaultModel as string) || 'deepseek-v4-pro' }
+    const preferred = (settings.defaultModel as string) || 'deepseek-v4-pro'
+    const resolved = resolveModel(preferred)
+    const available = combinedModels().some((model) => model.id === resolved.id)
+    return { success: true, data: available ? resolved.id : 'deepseek-v4-pro' }
   })
 
   ipcMain.handle('model:setActive', async (_event, id) => {

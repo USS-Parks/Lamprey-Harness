@@ -720,6 +720,22 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     expect(resolveModel('kimi-k2-thinking').id).toBe('kimi-k3')
   })
 
+  it('migrates retired broker aliases to their direct providers', () => {
+    const expected = new Map([
+      ['gemma-4-31b-it-free', ['gemma-4-31b-it-google', 'google']],
+      ['gemma-4-31b-it', ['gemma-4-31b-it-google', 'google']],
+      ['gemma-4-26b-a4b-it-free', ['gemma-4-26b-a4b-it-google', 'google']],
+      ['gemma-4-26b-a4b-it', ['gemma-4-26b-a4b-it-google', 'google']],
+      ['or-claude-sonnet-5', ['claude-sonnet-5', 'anthropic']],
+      ['or-gpt-5.6-terra', ['gpt-5.6-terra', 'openai']],
+      ['or-grok-4.5', ['grok-4.5', 'xai']],
+      ['or-kimi-k2.5', ['kimi-k2.5', 'moonshot']]
+    ])
+    for (const [retired, [id, provider]] of expected) {
+      expect(resolveModel(retired)).toMatchObject({ id, provider })
+    }
+  })
+
   it('pins the current direct Gemma 4 and Grok 4.20 rosters', () => {
     expect(
       MODEL_CATALOG.filter((m) => m.provider === 'google' && m.id.includes('gemma-4')).map(

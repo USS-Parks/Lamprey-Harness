@@ -149,7 +149,7 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
   },
   openrouter: {
     id: 'openrouter',
-    label: 'OpenRouter (Gemma 4, multi-model)',
+    label: 'OpenRouter (optional aggregator)',
     baseURL: 'https://openrouter.ai/api/v1',
     keyEnv: 'openrouter',
     docsUrl: 'https://openrouter.ai/keys'
@@ -689,8 +689,8 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     description: 'Fastest, most cost-effective Claude — also the key-validation probe model.'
   },
 
-  // ── xAI (Grok) ── ids from docs.x.ai; capabilities cross-referenced from
-  // OpenRouter's live listing of the same models (tools + vision true).
+  // ── xAI (Grok) ── ids and capabilities from docs.x.ai. Requests route
+  // directly to xAI with the independently stored xai key.
   {
     id: 'grok-4.5',
     name: 'Grok 4.5',
@@ -1524,7 +1524,15 @@ const RETIRED_MODEL_MAP: Record<string, string> = {
   'deepseek-reasoner': 'deepseek-v4-pro',
   'deepseek-v3': 'deepseek-v4-flash',
   'deepseek-r1': 'deepseek-v4-pro',
-  'kimi-k2-thinking': 'kimi-k3'
+  'kimi-k2-thinking': 'kimi-k3',
+  'gemma-4-31b-it-free': 'gemma-4-31b-it-google',
+  'gemma-4-31b-it': 'gemma-4-31b-it-google',
+  'gemma-4-26b-a4b-it-free': 'gemma-4-26b-a4b-it-google',
+  'gemma-4-26b-a4b-it': 'gemma-4-26b-a4b-it-google',
+  'or-claude-sonnet-5': 'claude-sonnet-5',
+  'or-gpt-5.6-terra': 'gpt-5.6-terra',
+  'or-grok-4.5': 'grok-4.5',
+  'or-kimi-k2.5': 'kimi-k2.5'
 }
 
 // JM-11 (CC-7) — user-defined Custom Models. `model:addCustom` persists id,

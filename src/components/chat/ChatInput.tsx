@@ -260,6 +260,7 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   const refreshProviders = useProvidersStore((s) => s.refresh)
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   useClickOutside(wrapRef, () => setOpen(false), open)
 
   useEffect(() => {
@@ -384,6 +385,16 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   const active = models.find((m) => m.id === activeModel) ?? models[0]
   const activeLocked = providersLoaded && !hasKey(active.provider)
 
+  useEffect(() => {
+    if (!open) return
+    const frame = requestAnimationFrame(() => {
+      listRef.current
+        ?.querySelector<HTMLElement>('[data-active-model="true"]')
+        ?.scrollIntoView({ block: 'nearest' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [open, activeModel, models.length])
+
   return (
     <div ref={wrapRef} className="relative">
       <DropdownButton open={open} onToggle={() => setOpen((v) => !v)} title="Switch model">
@@ -398,12 +409,21 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
         <span className="font-medium">{active.name}</span>
       </DropdownButton>
       {open && (
-        <div className="absolute bottom-full right-0 z-30 mb-1 w-72 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-xl">
+        <div
+          ref={listRef}
+          role="menu"
+          aria-label="Models"
+          className="scrollbar-visible absolute bottom-full right-0 z-30 mb-1 max-h-[min(70vh,36rem)] w-72 overflow-y-auto overscroll-contain rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-xl"
+        >
           {models.map((m) => {
             const locked = providersLoaded && !hasKey(m.provider)
             return (
               <button
                 key={m.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={m.id === activeModel}
+                data-active-model={m.id === activeModel ? 'true' : undefined}
                 onClick={() => {
                   setOpen(false)
                   if (locked) {

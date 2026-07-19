@@ -18,26 +18,30 @@ describe('ST-9 follow-up composer UX wiring', () => {
     expect(general).toContain('updateSettings({ followUpBehavior: mode })')
   })
 
-  it('keeps the running composer editable with Enter default, Tab alternate, and separate Stop', () => {
+  it('keeps the running composer editable until an explicit follow-up action', () => {
     const input = read('src/components/chat/ChatInput.tsx')
-    expect(input).toContain("if (e.key === 'Tab' && isStreaming)")
-    expect(input).toContain('handleSubmit(alternateFollowUpBehavior)')
-    expect(input).toMatch(/if \(e\.key === 'Enter' && !e\.shiftKey\)[\s\S]*?handleSubmit\(\)/)
+    expect(input).not.toContain("if (e.key === 'Tab' && isStreaming)")
+    expect(input).toContain("if (e.key === 'Enter' && !e.shiftKey && !isStreaming)")
+    expect(input).toContain("'Write a follow-up, then choose Steer or Queue'")
     expect(input).toContain('aria-label="Stop current turn"')
     expect(input).toContain('Your draft is still editable.')
     const canSend = input.slice(input.indexOf('const canSend ='), input.indexOf('const planMode ='))
     expect(canSend).not.toContain('!isStreaming')
   })
 
-  it('uses the Codex running-composer pattern instead of a prominent Steer button', () => {
+  it('renders working Steer and Queue controls beside the separate Stop button', () => {
     const input = read('src/components/chat/ChatInput.tsx')
     const actions = input.slice(
       input.indexOf('{isStreaming ? ('),
       input.indexOf(') : memoryShortcut ? (')
     )
     expect(actions).toContain('className="flex h-9 w-9')
-    expect(actions).not.toContain('data-follow-up-action')
-    expect(actions).not.toContain('min-w-[72px]')
+    expect(actions).toContain('data-follow-up-action={followUpBehavior}')
+    expect(actions).toContain('onClick={() => handleSubmit(followUpBehavior)}')
+    expect(actions).toContain('data-follow-up-action={alternateFollowUpBehavior}')
+    expect(actions).toContain('onClick={() => handleSubmit(alternateFollowUpBehavior)}')
+    expect(actions).toContain('disabled={!canSend || followUpSubmitting}')
+    expect(actions).toContain('min-w-[72px]')
     expect(actions).toContain('aria-label="Stop current turn"')
   })
 

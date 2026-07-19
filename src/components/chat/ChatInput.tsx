@@ -1217,13 +1217,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       cycleMode()
       return
     }
-    if (e.key === 'Tab' && isStreaming) {
-      if (!content.trim() && pendingAttachments.length === 0) return
-      e.preventDefault()
-      handleSubmit(alternateFollowUpBehavior)
-      return
-    }
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault()
       handleSubmit()
     }
@@ -1431,7 +1425,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             onPaste={handlePaste}
             placeholder={
               isStreaming
-                ? `${followUpLabel} this turn — Enter ${followUpLabel} · Tab ${alternateFollowUpLabel}`
+                ? 'Write a follow-up, then choose Steer or Queue'
                 : 'Ask anything — ↑ for history'
             }
             rows={1}
@@ -1441,7 +1435,29 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           />
 
           {isStreaming ? (
-            <div className="flex shrink-0 items-center self-end">
+            <div className="flex shrink-0 items-center gap-2 self-end">
+              <button
+                type="button"
+                data-follow-up-action={followUpBehavior}
+                onClick={() => handleSubmit(followUpBehavior)}
+                disabled={!canSend || followUpSubmitting}
+                title={`${followUpLabel} this turn`}
+                aria-label={`${followUpLabel} this turn`}
+                className="flex h-9 min-w-[72px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] px-3 text-sm font-medium text-[var(--bg-primary)] transition-[background-color,opacity,transform] hover:scale-[1.03] hover:opacity-90 disabled:opacity-40 disabled:hover:scale-100"
+              >
+                {followUpLabel}
+              </button>
+              <button
+                type="button"
+                data-follow-up-action={alternateFollowUpBehavior}
+                onClick={() => handleSubmit(alternateFollowUpBehavior)}
+                disabled={!canSend || followUpSubmitting}
+                title={`${alternateFollowUpLabel} this turn`}
+                aria-label={`${alternateFollowUpLabel} this turn`}
+                className="flex h-9 min-w-[72px] shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] px-3 text-sm font-medium text-[var(--text-secondary)] transition-[background-color,color,opacity,transform] hover:scale-[1.03] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:hover:scale-100"
+              >
+                {alternateFollowUpLabel}
+              </button>
               <button
                 type="button"
                 onClick={onCancel}

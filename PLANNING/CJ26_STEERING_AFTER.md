@@ -122,6 +122,14 @@ Owner action: run CJ26-S01 through CJ26-S12 against both products, fill the
 packet fields above, name the redacted artifacts, and return the results for
 adjudication. `BLOCKED` and `USER-VERIFICATION-NEEDED` remain non-passing.
 
+> **Correction (2026-07-18):** The v0.20.0 composer behavior above is the
+> shipped historical record. Owner use found that its visible Steer copy was
+> placeholder text rather than a click target, while Enter could submit a draft
+> before explicit confirmation. The current composer instead provides real
+> Steer and Queue buttons; Enter edits the running-turn draft and Tab performs
+> ordinary keyboard focus navigation. The transport, delivery boundary,
+> durable Queue, retry identity, and separate Stop behavior are unchanged.
+
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026

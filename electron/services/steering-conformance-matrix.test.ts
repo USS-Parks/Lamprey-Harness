@@ -172,7 +172,10 @@ const rows: SteeringContractRow[] = [
     evidence: [
       {
         file: 'electron/services/follow-up-composer-wiring.test.ts',
-        contains: ['locks Steer as the main and renderer default', 'Enter default, Tab alternate']
+        contains: [
+          'locks Steer as the main and renderer default',
+          'renders working Steer and Queue controls'
+        ]
       }
     ]
   },

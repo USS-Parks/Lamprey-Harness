@@ -35,14 +35,34 @@ const PROVIDER_GROUPS: Array<{ title: string; ids: string[] }> = [
       'mistral',
       'zhipu',
       'google',
-      'dashscope'
+      'dashscope',
+      'cohere',
+      'minimax'
     ]
   },
   {
     title: 'Open-source hosts & aggregators',
-    ids: ['openrouter', 'groq', 'together', 'fireworks', 'cerebras', 'huggingface']
+    ids: [
+      'openrouter',
+      'aihubmix',
+      'groq',
+      'together',
+      'fireworks',
+      'cerebras',
+      'huggingface',
+      'nvidia',
+      'github-models',
+      'sambanova',
+      'siliconflow',
+      'deepinfra',
+      'hyperbolic'
+    ]
   },
-  { title: 'Local runtimes', ids: ['ollama', 'lmstudio'] }
+  {
+    title: 'Regional & specialist labs',
+    ids: ['reka', 'sealion', 'perplexity', 'sarvam', 'inception']
+  },
+  { title: 'Local runtimes & gateways', ids: ['freellmapi', 'ollama', 'lmstudio'] }
 ]
 const GROUPED_IDS = new Set(PROVIDER_GROUPS.flatMap((g) => g.ids))
 
@@ -56,6 +76,7 @@ export function ApiKeySettings() {
   const [searchDrafts, setSearchDrafts] = useState<Record<string, string>>({})
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [showSearchKey, setShowSearchKey] = useState<Record<string, boolean>>({})
+  const [baseURLDrafts, setBaseURLDrafts] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [testStatus, setTestStatus] = useState<Record<string, TestResult | null>>({})
   const [cpDraft, setCpDraft] = useState({
@@ -72,7 +93,19 @@ export function ApiKeySettings() {
       window.api.settings.listSearchProviderKeys(),
       window.api.settings.isEncryptionAvailable()
     ])
-    if (list.success) setProviders(list.data as ProviderEntry[])
+    if (list.success) {
+      const entries = list.data as ProviderEntry[]
+      setProviders(entries)
+      setBaseURLDrafts((current) => {
+        const next = { ...current }
+        for (const provider of entries) {
+          if (provider.baseUrlConfigurable && next[provider.id] === undefined) {
+            next[provider.id] = provider.baseURL ?? ''
+          }
+        }
+        return next
+      })
+    }
     if (searchList.success) setSearchProviders(searchList.data as SearchProviderEntry[])
     setEncrypted(enc.success ? Boolean(enc.data) : false)
   }
@@ -158,6 +191,40 @@ export function ApiKeySettings() {
         return
       }
       toast.success(`${label} key deleted`)
+      await refresh()
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleSaveBaseURL = async (providerId: string, label: string) => {
+    const baseURL = (baseURLDrafts[providerId] ?? '').trim().replace(/\/+$/, '')
+    if (!/^https?:\/\//i.test(baseURL)) {
+      toast.warning('Base URL must start with http:// or https://')
+      return
+    }
+    setBusy(`base:${providerId}`)
+    try {
+      const current = await window.api.settings.get()
+      if (!current.success) {
+        toast.error('Could not read settings')
+        return
+      }
+      const settings = current.data as Record<string, unknown>
+      const existing =
+        settings.providerBaseUrlOverrides &&
+        typeof settings.providerBaseUrlOverrides === 'object' &&
+        !Array.isArray(settings.providerBaseUrlOverrides)
+          ? (settings.providerBaseUrlOverrides as Record<string, string>)
+          : {}
+      const saved = await window.api.settings.set({
+        providerBaseUrlOverrides: { ...existing, [providerId]: baseURL }
+      })
+      if (!saved.success) {
+        toast.error(`Failed to save ${label} address: ${saved.error}`)
+        return
+      }
+      toast.success(`${label} address saved`)
       await refresh()
     } finally {
       setBusy(null)
@@ -313,6 +380,27 @@ export function ApiKeySettings() {
               <span className="mt-1 inline-block font-mono text-[12px] text-[var(--text-muted)]">
                 Custom OpenAI-compatible endpoint
               </span>
+            )}
+            {p.baseUrlConfigurable && (
+              <div className="mt-2 flex min-w-0 gap-2">
+                <input
+                  type="url"
+                  aria-label={`${p.label} base URL`}
+                  value={baseURLDrafts[p.id] ?? p.baseURL ?? ''}
+                  onChange={(e) =>
+                    setBaseURLDrafts((state) => ({ ...state, [p.id]: e.target.value }))
+                  }
+                  className="min-w-0 flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSaveBaseURL(p.id, p.label)}
+                  disabled={busy === `base:${p.id}`}
+                  className="rounded border border-[var(--panel-border)] px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40"
+                >
+                  Save address
+                </button>
+              </div>
             )}
           </div>
         </div>

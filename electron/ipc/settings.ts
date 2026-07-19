@@ -3,6 +3,7 @@ import * as keychain from '../services/keychain'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
 import { deepseekClient } from '../services/deepseek'
 import {
+  getProviderBaseURL,
   isKnownProvider,
   listAllProviders,
   resetProviderClient,
@@ -114,6 +115,8 @@ export function registerSettingsHandlers(): void {
         docsUrl: p.docsUrl,
         keyOptional: p.keyOptional === true,
         keyHint: p.keyHint,
+        baseURL: getProviderBaseURL(p.id) ?? p.baseURL,
+        baseUrlConfigurable: p.baseUrlConfigurable === true,
         hasKey: keychain.hasKey(p.id)
       }))
       return { success: true, data }

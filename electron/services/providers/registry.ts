@@ -1135,6 +1135,7 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     ['minimax-m2.5', 'MiniMax M2.5', 'MiniMax-M2.5', 'pro'],
     ['minimax-m2.5-highspeed', 'MiniMax M2.5 HighSpeed', 'MiniMax-M2.5-highspeed', 'flash'],
     ['minimax-m2.1', 'MiniMax M2.1', 'MiniMax-M2.1', 'pro'],
+    ['minimax-m2.1-highspeed', 'MiniMax M2.1 HighSpeed', 'MiniMax-M2.1-highspeed', 'flash'],
     ['minimax-m2', 'MiniMax M2', 'MiniMax-M2', 'pro']
   ].map(([id, name, apiModelId, tier]) => ({
     id,
@@ -1932,6 +1933,23 @@ export interface ChatOnceResult {
   reasoning?: string
 }
 
+function providerChatExtras(desc: ModelDescriptor): Record<string, unknown> {
+  // MiniMax otherwise embeds <think> in visible content. Its documented
+  // reasoning_split flag preserves the same trace in reasoning_details.
+  return desc.provider === 'minimax' ? { reasoning_split: true } : {}
+}
+
+function reasoningDetailsText(value: unknown): string {
+  if (!Array.isArray(value)) return ''
+  return value
+    .map((part) =>
+      part && typeof (part as { text?: unknown }).text === 'string'
+        ? (part as { text: string }).text
+        : ''
+    )
+    .join('')
+}
+
 export async function chatOnce(
   messages: ChatCompletionMessageParam[],
   modelId: string,
@@ -1959,12 +1977,18 @@ export async function chatOnce(
       {
         model: desc.apiModelId,
         messages,
-        ...(desc.defaultMaxTokens != null && { max_tokens: desc.defaultMaxTokens })
-      },
+        ...(desc.defaultMaxTokens != null && { max_tokens: desc.defaultMaxTokens }),
+        ...providerChatExtras(desc)
+      } as any,
       signal ? { signal } : undefined
     )
     const message = response.choices[0]?.message as
-      | { content?: string | null; reasoning?: string | null; reasoning_content?: string | null }
+      | {
+          content?: string | null
+          reasoning?: string | null
+          reasoning_content?: string | null
+          reasoning_details?: unknown
+        }
       | undefined
     const content = message?.content || ''
     // Provider field-name variance — see ChatOnceResult docstring. Take
@@ -1974,7 +1998,7 @@ export async function chatOnce(
         ? message.reasoning
         : typeof message?.reasoning_content === 'string' && message.reasoning_content.length > 0
           ? message.reasoning_content
-          : '') ?? ''
+          : reasoningDetailsText(message?.reasoning_details)) ?? ''
     const reasoning = rawReasoning.trim().length > 0 ? rawReasoning.trim() : undefined
     const finishReason = response.choices[0]?.finish_reason ?? undefined
     trace('chatOnce.complete', {
@@ -2178,7 +2202,8 @@ export async function chatStream(
           ...(params?.temperature !== undefined && { temperature: params.temperature }),
           ...(params?.topP !== undefined && { top_p: params.topP }),
           ...(effectiveMaxTokens != null && { max_tokens: effectiveMaxTokens }),
-          ...reasoningCap
+          ...reasoningCap,
+          ...providerChatExtras(desc)
         } as any,
         { signal: attemptController.signal }
       )
@@ -2252,6 +2277,7 @@ export async function chatStream(
           | ((typeof chunk.choices)[0]['delta'] & {
               reasoning_content?: string | null
               reasoning?: string | null
+              reasoning_details?: unknown
             })
           | undefined
 
@@ -2269,6 +2295,7 @@ export async function chatStream(
         const reasoningDelta =
           (typeof delta?.reasoning_content === 'string' && delta.reasoning_content) ||
           (typeof delta?.reasoning === 'string' && delta.reasoning) ||
+          reasoningDetailsText(delta?.reasoning_details) ||
           ''
         if (reasoningDelta) {
           chunkKind = chunkKind === 'content' ? 'content+reasoning' : 'reasoning'

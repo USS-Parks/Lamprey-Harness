@@ -344,6 +344,27 @@ describe('chatStream — streaming-vitals heartbeat (T4)', () => {
 // compatible APIs use) must be picked up. Without this pin, a future
 // refactor could silently drop reasoning at the boundary again.
 describe('chatOnce — reasoning channel extraction (R2)', () => {
+  it('requests and extracts MiniMax reasoning_details without leaking think tags', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: 'Visible answer',
+            reasoning_details: [{ type: 'reasoning.text', text: 'Private trace' }]
+          },
+          finish_reason: 'stop'
+        }
+      ]
+    })
+
+    const result = await chatOnce([{ role: 'user', content: 'q' }], 'minimax-m2.7')
+    expect(result).toEqual({ content: 'Visible answer', reasoning: 'Private trace' })
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'MiniMax-M2.7', reasoning_split: true }),
+      undefined
+    )
+  })
+
   it('returns body only when neither reasoning field is set', async () => {
     mockCreate.mockResolvedValueOnce({
       choices: [
@@ -710,6 +731,18 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
         (m) => m.apiModelId
       )
     ).toEqual(['grok-4.20-reasoning', 'grok-4.20-non-reasoning', 'grok-4.20-multi-agent'])
+  })
+
+  it('pins every MiniMax model documented by the OpenAI compatibility API', () => {
+    expect(MODEL_CATALOG.filter((m) => m.provider === 'minimax').map((m) => m.apiModelId)).toEqual([
+      'MiniMax-M2.7',
+      'MiniMax-M2.7-highspeed',
+      'MiniMax-M2.5',
+      'MiniMax-M2.5-highspeed',
+      'MiniMax-M2.1',
+      'MiniMax-M2.1-highspeed',
+      'MiniMax-M2'
+    ])
   })
 
   it('defaultMaxTokens appears only alongside the reasoning cap (guard pairing)', () => {

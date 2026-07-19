@@ -5,6 +5,7 @@ import {
   listAllPlanGoalState,
   loadGoals,
   loadPlanSteps,
+  removeGoal,
   savePlanSteps,
   upsertGoal,
   __resetPlanGoalPersistence,
@@ -37,6 +38,18 @@ export interface PlanStep {
 }
 
 export type GoalStatus = 'open' | 'in_progress' | 'done' | 'abandoned'
+export type GoalLifecycleStatus = 'open' | 'active' | 'paused' | 'blocked' | 'completed' | 'aborted'
+export type GoalActor = 'user' | 'system' | 'model'
+export type GoalAction =
+  | 'edit'
+  | 'start'
+  | 'pause'
+  | 'resume'
+  | 'block'
+  | 'complete'
+  | 'abort'
+  | 'clear'
+  | 'record_usage'
 
 export interface Goal {
   id: string
@@ -44,6 +57,19 @@ export interface Goal {
   description?: string
   dueDate?: string
   status: GoalStatus
+  lifecycleStatus: GoalLifecycleStatus
+  lastActor: GoalActor
+  tokenBudget: number | null
+  tokenUsed: number
+  timeBudgetMs: number | null
+  elapsedMs: number
+  activeSince: number | null
+  pausedAt: number | null
+  completedAt: number | null
+  abortedAt: number | null
+  blocker: string | null
+  completion: string | null
+  transitionReason: string | null
   createdAt: number
   updatedAt: number
 }
@@ -177,6 +203,9 @@ export interface CreateGoalInput {
   title: string
   description?: string
   dueDate?: string
+  tokenBudget?: number | null
+  timeBudgetMs?: number | null
+  actor?: GoalActor
 }
 
 export interface UpdateGoalInput {
@@ -185,6 +214,80 @@ export interface UpdateGoalInput {
   description?: string
   dueDate?: string
   status?: GoalStatus
+  tokenBudget?: number | null
+  timeBudgetMs?: number | null
+  actor?: GoalActor
+  reason?: string
+  completion?: string
+}
+
+export interface GoalTransitionInput {
+  goalId: string
+  action: GoalAction
+  actor: GoalActor
+  reason?: string
+  title?: string
+  description?: string
+  dueDate?: string
+  blocker?: string
+  completion?: string
+  tokensUsed?: number
+  elapsedMs?: number
+  tokenBudget?: number | null
+  timeBudgetMs?: number | null
+  now?: number
+}
+
+function nonNegativeInteger(value: number | null | undefined, field: string): number | null {
+  if (value === null || value === undefined) return null
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`update_goal: "${field}" must be a non-negative integer or null.`)
+  }
+  return value
+}
+
+function legacyStatus(status: GoalLifecycleStatus): GoalStatus {
+  if (status === 'active') return 'in_progress'
+  if (status === 'completed') return 'done'
+  if (status === 'aborted') return 'abandoned'
+  return 'open'
+}
+
+function accrueActiveTime(goal: Goal, now: number): void {
+  if (goal.lifecycleStatus === 'active' && goal.activeSince !== null) {
+    goal.elapsedMs += Math.max(0, now - goal.activeSince)
+    goal.activeSince = null
+  }
+}
+
+function publicGoal(goal: Goal, now = Date.now()): Goal {
+  return {
+    ...goal,
+    elapsedMs:
+      goal.elapsedMs +
+      (goal.lifecycleStatus === 'active' && goal.activeSince !== null
+        ? Math.max(0, now - goal.activeSince)
+        : 0)
+  }
+}
+
+function assertNonTerminal(goal: Goal, action: GoalAction): void {
+  if (goal.lifecycleStatus === 'completed' || goal.lifecycleStatus === 'aborted') {
+    throw new Error(`update_goal: cannot ${action} a ${goal.lifecycleStatus} goal.`)
+  }
+}
+
+function applyBudgetBlock(goal: Goal, now: number): boolean {
+  const tokenExhausted = goal.tokenBudget !== null && goal.tokenUsed >= goal.tokenBudget
+  const timeExhausted = goal.timeBudgetMs !== null && goal.elapsedMs >= goal.timeBudgetMs
+  if (!tokenExhausted && !timeExhausted) return false
+  accrueActiveTime(goal, now)
+  goal.lifecycleStatus = 'blocked'
+  goal.status = 'open'
+  goal.blocker = tokenExhausted ? 'token-budget-exhausted' : 'time-budget-exhausted'
+  goal.lastActor = 'system'
+  goal.transitionReason = goal.blocker
+  return true
 }
 
 export function createGoal(
@@ -199,29 +302,166 @@ export function createGoal(
     description: input.description,
     dueDate: input.dueDate,
     status: 'open',
+    lifecycleStatus: 'open',
+    lastActor: input.actor ?? 'model',
+    tokenBudget: nonNegativeInteger(input.tokenBudget, 'tokenBudget'),
+    tokenUsed: 0,
+    timeBudgetMs: nonNegativeInteger(input.timeBudgetMs, 'timeBudgetMs'),
+    elapsedMs: 0,
+    activeSince: null,
+    pausedAt: null,
+    completedAt: null,
+    abortedAt: null,
+    blocker: null,
+    completion: null,
+    transitionReason: null,
     createdAt: now,
     updatedAt: now
   }
   if (!goal.title) throw new Error('create_goal: title is required')
   s.goals.set(goal.id, goal)
   upsertGoal(keyOf(conversationId), goal)
-  return goal
+  return publicGoal(goal, now)
+}
+
+export function transitionGoal(
+  conversationId: string | undefined,
+  input: GoalTransitionInput
+): Goal | null {
+  const s = getState(conversationId)
+  const goal = s.goals.get(input.goalId)
+  if (!goal) throw new Error(`update_goal: no goal with id "${input.goalId}"`)
+  const now = input.now ?? monoNow()
+  let systemBudgetBlock = false
+
+  if ((input.action === 'abort' || input.action === 'clear') && input.actor === 'model') {
+    throw new Error(`update_goal: model authority cannot ${input.action} a goal.`)
+  }
+  if (input.action === 'clear') {
+    s.goals.delete(goal.id)
+    removeGoal(keyOf(conversationId), goal.id)
+    return null
+  }
+
+  if (input.action === 'edit') {
+    if (input.title !== undefined) {
+      const title = String(input.title).trim()
+      if (!title) throw new Error('update_goal: title is required')
+      goal.title = title
+    }
+    if (input.description !== undefined) goal.description = input.description
+    if (input.dueDate !== undefined) goal.dueDate = input.dueDate
+    if (input.tokenBudget !== undefined) {
+      goal.tokenBudget = nonNegativeInteger(input.tokenBudget, 'tokenBudget')
+    }
+    if (input.timeBudgetMs !== undefined) {
+      goal.timeBudgetMs = nonNegativeInteger(input.timeBudgetMs, 'timeBudgetMs')
+    }
+    systemBudgetBlock = applyBudgetBlock(goal, now)
+  } else if (input.action === 'start') {
+    if (goal.lifecycleStatus !== 'open') {
+      throw new Error(`update_goal: start requires open status, got ${goal.lifecycleStatus}.`)
+    }
+    goal.lifecycleStatus = 'active'
+    goal.activeSince = now
+    goal.pausedAt = null
+  } else if (input.action === 'pause') {
+    if (goal.lifecycleStatus !== 'active') {
+      throw new Error(`update_goal: pause requires active status, got ${goal.lifecycleStatus}.`)
+    }
+    accrueActiveTime(goal, now)
+    goal.lifecycleStatus = 'paused'
+    goal.pausedAt = now
+  } else if (input.action === 'resume') {
+    if (goal.lifecycleStatus !== 'paused' && goal.lifecycleStatus !== 'blocked') {
+      throw new Error(`update_goal: resume requires paused or blocked status, got ${goal.lifecycleStatus}.`)
+    }
+    goal.lifecycleStatus = 'active'
+    goal.activeSince = now
+    goal.pausedAt = null
+    goal.blocker = null
+  } else if (input.action === 'block') {
+    assertNonTerminal(goal, input.action)
+    const blocker = String(input.blocker ?? '').trim()
+    if (!blocker) throw new Error('update_goal: blocker is required for action=block.')
+    accrueActiveTime(goal, now)
+    goal.lifecycleStatus = 'blocked'
+    goal.blocker = blocker
+  } else if (input.action === 'complete') {
+    assertNonTerminal(goal, input.action)
+    const completion = String(input.completion ?? '').trim()
+    if (!completion) throw new Error('update_goal: completion is required for action=complete.')
+    accrueActiveTime(goal, now)
+    goal.lifecycleStatus = 'completed'
+    goal.completedAt = now
+    goal.completion = completion
+    goal.blocker = null
+  } else if (input.action === 'abort') {
+    assertNonTerminal(goal, input.action)
+    accrueActiveTime(goal, now)
+    goal.lifecycleStatus = 'aborted'
+    goal.abortedAt = now
+  } else if (input.action === 'record_usage') {
+    assertNonTerminal(goal, input.action)
+    const tokens = nonNegativeInteger(input.tokensUsed, 'tokensUsed') ?? 0
+    const elapsed = nonNegativeInteger(input.elapsedMs, 'elapsedMs') ?? 0
+    accrueActiveTime(goal, now)
+    goal.tokenUsed += tokens
+    goal.elapsedMs += elapsed
+    if (goal.lifecycleStatus === 'active') goal.activeSince = now
+    systemBudgetBlock = applyBudgetBlock(goal, now)
+  }
+
+  goal.status = legacyStatus(goal.lifecycleStatus)
+  if (!systemBudgetBlock) {
+    goal.lastActor = input.actor
+    goal.transitionReason = input.reason?.trim() || goal.transitionReason
+  }
+  goal.updatedAt = now
+  s.goals.set(goal.id, goal)
+  upsertGoal(keyOf(conversationId), goal)
+  return publicGoal(goal, now)
 }
 
 export function updateGoal(
   conversationId: string | undefined,
   input: UpdateGoalInput
 ): Goal {
-  const s = getState(conversationId)
-  const goal = s.goals.get(input.goalId)
-  if (!goal) throw new Error(`update_goal: no goal with id "${input.goalId}"`)
-  if (input.title !== undefined) goal.title = String(input.title)
-  if (input.description !== undefined) goal.description = input.description
-  if (input.dueDate !== undefined) goal.dueDate = input.dueDate
-  if (input.status !== undefined) goal.status = input.status
-  goal.updatedAt = monoNow()
-  s.goals.set(goal.id, goal)
-  upsertGoal(keyOf(conversationId), goal)
+  const actor = input.actor ?? 'model'
+  let goal = transitionGoal(conversationId, {
+    goalId: input.goalId,
+    action: 'edit',
+    actor,
+    title: input.title,
+    description: input.description,
+    dueDate: input.dueDate,
+    tokenBudget: input.tokenBudget,
+    timeBudgetMs: input.timeBudgetMs,
+    reason: input.reason
+  })!
+  if (input.status === 'in_progress' && goal.lifecycleStatus !== 'active') {
+    goal = transitionGoal(conversationId, {
+      goalId: input.goalId,
+      action: goal.lifecycleStatus === 'open' ? 'start' : 'resume',
+      actor,
+      reason: input.reason
+    })!
+  } else if (input.status === 'done' && goal.lifecycleStatus !== 'completed') {
+    goal = transitionGoal(conversationId, {
+      goalId: input.goalId,
+      action: 'complete',
+      actor,
+      completion: input.completion ?? 'Marked done.',
+      reason: input.reason
+    })!
+  } else if (input.status === 'abandoned' && goal.lifecycleStatus !== 'aborted') {
+    goal = transitionGoal(conversationId, {
+      goalId: input.goalId,
+      action: 'abort',
+      actor,
+      reason: input.reason
+    })!
+  }
   return goal
 }
 
@@ -230,12 +470,15 @@ export function getGoal(
   goalId: string
 ): Goal | null {
   const s = getState(conversationId)
-  return s.goals.get(goalId) ?? null
+  const goal = s.goals.get(goalId)
+  return goal ? publicGoal(goal) : null
 }
 
 export function listGoals(conversationId: string | undefined): Goal[] {
   const s = getState(conversationId)
-  return Array.from(s.goals.values()).sort((a, b) => b.updatedAt - a.updatedAt)
+  return Array.from(s.goals.values())
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map((goal) => publicGoal(goal))
 }
 
 /** Every conversation with plan or goal state, for the inspect/clear UI.

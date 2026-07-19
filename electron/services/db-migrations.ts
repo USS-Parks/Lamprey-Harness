@@ -12,6 +12,7 @@ import { ARTIFACT_EDIT_SCHEMA_SQL } from './artifact-edit-schema'
 import { applyPrReviewSchema } from './pr-review-schema'
 import { applyPrPatchSchema } from './pr-patch-schema'
 import { applyAutomationTriggerSchema } from './automation-schema'
+import { applyOperationalGoalSchema } from './goal-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -374,6 +375,14 @@ export const MIGRATIONS: Migration[] = [
       'Codex July parity GA-2 — typed automation triggers and durable run deduplication',
     up(db) {
       applyAutomationTriggerSchema(db)
+    }
+  },
+  {
+    version: 31,
+    description:
+      'Codex July parity GA-3 — operational goal lifecycle, authority, budgets, and elapsed time',
+    up(db) {
+      applyOperationalGoalSchema(db)
     }
   }
 ]

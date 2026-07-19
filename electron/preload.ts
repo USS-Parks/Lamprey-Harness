@@ -621,6 +621,32 @@ const api = {
     clearConversationState: (conversationId: string) =>
       ipcRenderer.invoke('plan:clearConversationState', conversationId),
     clearAllState: () => ipcRenderer.invoke('plan:clearAllState'),
+    goalTransition: (
+      conversationId: string,
+      input: {
+        goalId: string
+        action:
+          | 'edit'
+          | 'start'
+          | 'pause'
+          | 'resume'
+          | 'block'
+          | 'complete'
+          | 'abort'
+          | 'clear'
+          | 'record_usage'
+        reason?: string
+        title?: string
+        description?: string
+        dueDate?: string
+        blocker?: string
+        completion?: string
+        tokensUsed?: number
+        elapsedMs?: number
+        tokenBudget?: number | null
+        timeBudgetMs?: number | null
+      }
+    ) => ipcRenderer.invoke('plan:goalTransition', conversationId, input),
     onUpdated: (cb: (e: { conversationId: string; snapshot: unknown }) => void): (() => void) => {
       const handler = (_: unknown, e: { conversationId: string; snapshot: unknown }) => cb(e)
       ipcRenderer.on('plan:updated', handler)

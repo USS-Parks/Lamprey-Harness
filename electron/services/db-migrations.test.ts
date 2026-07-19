@@ -48,6 +48,16 @@ function makeBaselineDb(): Database {
       last_run_at INTEGER,
       last_result TEXT
     );
+    CREATE TABLE goals (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date TEXT,
+      status TEXT NOT NULL CHECK(status IN ('open','in_progress','done','abandoned')),
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `)
   return db
 }
@@ -317,6 +327,24 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     expect(db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='automation_runs'"
     ).get()).toBeDefined()
+  })
+
+  it('GA-3 - migration v31 adds operational goal lifecycle fields', () => {
+    db.prepare(
+      `INSERT INTO goals (id,conversation_id,title,status,created_at,updated_at)
+       VALUES ('g1','c1','Ship','in_progress',100,200)`
+    ).run()
+    runMigrations(db)
+    const row = db.prepare(
+      'SELECT lifecycle_status, last_actor, active_since, token_used, elapsed_ms FROM goals'
+    ).get() as Record<string, unknown>
+    expect(row).toMatchObject({
+      lifecycle_status: 'active',
+      last_actor: 'system',
+      active_since: 200,
+      token_used: 0,
+      elapsed_ms: 0
+    })
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

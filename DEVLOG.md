@@ -10029,3 +10029,33 @@ remain compatible while typed trigger fields are available to tools and preload 
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt GA-3 operational goal lifecycle — 2026-07-19
+
+**Files changed:** `electron/services/goal-schema.ts`,
+`electron/services/plan-goal-store.ts`, `electron/services/plan-goal-persistence.ts`,
+`electron/services/native-dev-tool-pack.ts`, `electron/services/db-migrations.ts`,
+`electron/ipc/plan.ts`, `electron/preload.ts`, `src/lib/types.ts`, focused tests,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- zero-skip goal lifecycle/migration/persistence/registry cohort ✓ (4 files, 67 tests)
+- legacy native migration suite: 19 explicitly reported ABI skips
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Additive migration v31 backfills existing open/in-progress/done/abandoned rows
+into open/active/completed/aborted lifecycle states and preserves the legacy status column
+for existing UI consumers. Goal records now persist actor provenance, token/time budgets,
+usage, active elapsed time, pause/completion/abort timestamps, blocker, completion evidence,
+and transition reason. Explicit transitions cover edit, start, pause, resume, block,
+complete, abort, clear, and usage recording. Model tools may manage work but cannot abort or
+clear; typed user IPC and system callers retain those stronger authorities. Reaching a
+budget blocks the goal under system provenance. Restart rehydration preserves every field,
+and the v31 Node-SQLite suite executes independently of the native ABI guard.
+
+**Commit:** see git log (GA-3).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

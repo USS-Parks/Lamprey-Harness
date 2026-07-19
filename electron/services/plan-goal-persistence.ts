@@ -1,5 +1,12 @@
 import { getDb } from './database'
-import type { Goal, GoalStatus, PlanStep, PlanStepStatus } from './plan-goal-store'
+import type {
+  Goal,
+  GoalActor,
+  GoalLifecycleStatus,
+  GoalStatus,
+  PlanStep,
+  PlanStepStatus
+} from './plan-goal-store'
 
 // Write-through SQLite persistence for per-conversation plan steps + goals.
 // Mirrors permission-policies-store: the database is the durable layer, and an
@@ -23,6 +30,19 @@ interface GoalRow {
   description: string | null
   due_date: string | null
   status: GoalStatus
+  lifecycle_status: GoalLifecycleStatus
+  last_actor: GoalActor
+  token_budget: number | null
+  token_used: number
+  time_budget_ms: number | null
+  elapsed_ms: number
+  active_since: number | null
+  paused_at: number | null
+  completed_at: number | null
+  aborted_at: number | null
+  blocker: string | null
+  completion: string | null
+  transition_reason: string | null
   created_at: number
   updated_at: number
 }
@@ -73,6 +93,19 @@ function rowToGoal(r: GoalRow): Goal {
     description: r.description ?? undefined,
     dueDate: r.due_date ?? undefined,
     status: r.status,
+    lifecycleStatus: r.lifecycle_status,
+    lastActor: r.last_actor,
+    tokenBudget: r.token_budget,
+    tokenUsed: r.token_used,
+    timeBudgetMs: r.time_budget_ms,
+    elapsedMs: r.elapsed_ms,
+    activeSince: r.active_since,
+    pausedAt: r.paused_at,
+    completedAt: r.completed_at,
+    abortedAt: r.aborted_at,
+    blocker: r.blocker,
+    completion: r.completion,
+    transitionReason: r.transition_reason,
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }
@@ -142,13 +175,32 @@ export function upsertGoal(key: string, goal: Goal): void {
       getDb()
         .prepare(
           `INSERT INTO goals
-             (id, conversation_id, title, description, due_date, status, created_at, updated_at)
-           VALUES (@id, @conversation_id, @title, @description, @due_date, @status, @created_at, @updated_at)
+             (id, conversation_id, title, description, due_date, status,
+              lifecycle_status, last_actor, token_budget, token_used, time_budget_ms,
+              elapsed_ms, active_since, paused_at, completed_at, aborted_at,
+              blocker, completion, transition_reason, created_at, updated_at)
+           VALUES (@id, @conversation_id, @title, @description, @due_date, @status,
+              @lifecycle_status, @last_actor, @token_budget, @token_used, @time_budget_ms,
+              @elapsed_ms, @active_since, @paused_at, @completed_at, @aborted_at,
+              @blocker, @completion, @transition_reason, @created_at, @updated_at)
            ON CONFLICT(id) DO UPDATE SET
              title = excluded.title,
              description = excluded.description,
              due_date = excluded.due_date,
              status = excluded.status,
+             lifecycle_status = excluded.lifecycle_status,
+             last_actor = excluded.last_actor,
+             token_budget = excluded.token_budget,
+             token_used = excluded.token_used,
+             time_budget_ms = excluded.time_budget_ms,
+             elapsed_ms = excluded.elapsed_ms,
+             active_since = excluded.active_since,
+             paused_at = excluded.paused_at,
+             completed_at = excluded.completed_at,
+             aborted_at = excluded.aborted_at,
+             blocker = excluded.blocker,
+             completion = excluded.completion,
+             transition_reason = excluded.transition_reason,
              updated_at = excluded.updated_at`
         )
         .run({
@@ -158,6 +210,19 @@ export function upsertGoal(key: string, goal: Goal): void {
           description: goal.description ?? null,
           due_date: goal.dueDate ?? null,
           status: goal.status,
+          lifecycle_status: goal.lifecycleStatus,
+          last_actor: goal.lastActor,
+          token_budget: goal.tokenBudget,
+          token_used: goal.tokenUsed,
+          time_budget_ms: goal.timeBudgetMs,
+          elapsed_ms: goal.elapsedMs,
+          active_since: goal.activeSince,
+          paused_at: goal.pausedAt,
+          completed_at: goal.completedAt,
+          aborted_at: goal.abortedAt,
+          blocker: goal.blocker,
+          completion: goal.completion,
+          transition_reason: goal.transitionReason,
           created_at: goal.createdAt,
           updated_at: goal.updatedAt
         })
@@ -170,6 +235,19 @@ export function upsertGoal(key: string, goal: Goal): void {
   const idx = bucket.goals.findIndex((g) => g.id === goal.id)
   if (idx >= 0) bucket.goals[idx] = { ...goal }
   else bucket.goals.push({ ...goal })
+}
+
+export function removeGoal(key: string, goalId: string): void {
+  if (!useFallback) {
+    try {
+      getDb().prepare('DELETE FROM goals WHERE conversation_id = ? AND id = ?').run(key, goalId)
+      return
+    } catch (err: any) {
+      activateFallback(err?.message ?? 'unknown')
+    }
+  }
+  const bucket = memBucket(key)
+  bucket.goals = bucket.goals.filter((goal) => goal.id !== goalId)
 }
 
 /** Every conversation that has any plan or goal state, with that state loaded. */

@@ -5,6 +5,8 @@ import {
   clearConversationState,
   getAllPlanGoalState,
   getPlanSnapshot,
+  transitionGoal,
+  type GoalAction,
   type PlanStepStatus
 } from '../services/plan-goal-store'
 import { emitChatEvent } from '../services/chat-events'
@@ -70,6 +72,41 @@ export function registerPlanHandlers(): void {
       return { success: false, error: err?.message ?? 'plan:clearAllState failed' }
     }
   })
+
+  ipcMain.handle(
+    'plan:goalTransition',
+    async (
+      _event,
+      conversationId: string,
+      input: {
+        goalId: string
+        action: GoalAction
+        reason?: string
+        title?: string
+        description?: string
+        dueDate?: string
+        blocker?: string
+        completion?: string
+        tokensUsed?: number
+        elapsedMs?: number
+        tokenBudget?: number | null
+        timeBudgetMs?: number | null
+      }
+    ) => {
+      try {
+        if (typeof conversationId !== 'string' || !conversationId) {
+          return { success: false, error: 'conversationId is required' }
+        }
+        if (!input || typeof input.goalId !== 'string' || !input.goalId) {
+          return { success: false, error: 'goalId is required' }
+        }
+        const goal = transitionGoal(conversationId, { ...input, actor: 'user' })
+        return { success: true, data: goal }
+      } catch (err: any) {
+        return { success: false, error: err?.message ?? 'plan:goalTransition failed' }
+      }
+    }
+  )
 
   ipcMain.handle(
     'plan:update',

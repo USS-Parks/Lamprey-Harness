@@ -13,8 +13,10 @@ import {
   createGoal,
   getGoal,
   listGoals,
+  transitionGoal,
   updateGoal,
   type CreateGoalInput,
+  type GoalAction,
   type UpdateGoalInput,
   type UpdatePlanInput
 } from './plan-goal-store'
@@ -257,6 +259,14 @@ toolRegistry.registerNative(
         due_date: {
           type: 'string',
           description: 'Optional ISO-formatted due date (free-form string; not validated).'
+        },
+        token_budget: {
+          type: 'number',
+          description: 'Optional non-negative token ceiling. Omit for no token ceiling.'
+        },
+        time_budget_ms: {
+          type: 'number',
+          description: 'Optional non-negative elapsed-time ceiling in milliseconds.'
         }
       },
       required: ['title'],
@@ -271,7 +281,10 @@ toolRegistry.registerNative(
     const input: CreateGoalInput = {
       title: String(a.title ?? ''),
       description: typeof a.description === 'string' ? a.description : undefined,
-      dueDate: typeof a.due_date === 'string' ? a.due_date : undefined
+      dueDate: typeof a.due_date === 'string' ? a.due_date : undefined,
+      tokenBudget: typeof a.token_budget === 'number' ? a.token_budget : undefined,
+      timeBudgetMs: typeof a.time_budget_ms === 'number' ? a.time_budget_ms : undefined,
+      actor: 'model'
     }
     const goal = createGoal(ctx.conversationId, input)
     return JSON.stringify(goal, null, 2)
@@ -284,7 +297,7 @@ toolRegistry.registerNative(
     name: 'update_goal',
     title: 'Update goal',
     description:
-      'Update fields on an existing goal. Returns the updated goal as JSON. Status transitions: open / in_progress / done / abandoned.',
+      'Edit or advance one operational goal. Model authority may edit, start, pause, resume, block, complete, or record usage. Abort and clear remain user/system-only.',
     providerKind: 'native',
     providerId: 'internal',
     inputSchema: {
@@ -294,11 +307,23 @@ toolRegistry.registerNative(
         title: { type: 'string', description: 'Optional new title for the goal.' },
         description: { type: 'string', description: 'Optional new description for the goal.' },
         due_date: { type: 'string', description: 'Optional new due date (ISO format).' },
+        action: {
+          type: 'string',
+          enum: ['edit', 'start', 'pause', 'resume', 'block', 'complete', 'record_usage'],
+          description: 'Explicit lifecycle operation. Abort and clear are intentionally unavailable.'
+        },
         status: {
           type: 'string',
-          enum: ['open', 'in_progress', 'done', 'abandoned'],
-          description: 'Optional new status: open, in_progress, done, or abandoned.'
-        }
+          enum: ['open', 'in_progress', 'done'],
+          description: 'Legacy compatibility status. Prefer action for lifecycle transitions.'
+        },
+        blocker: { type: 'string', description: 'Required when action=block.' },
+        completion: { type: 'string', description: 'Required when action=complete.' },
+        reason: { type: 'string', description: 'Short transition reason recorded with actor provenance.' },
+        tokens_used: { type: 'number', description: 'Non-negative token usage increment.' },
+        elapsed_ms: { type: 'number', description: 'Non-negative elapsed-time usage increment.' },
+        token_budget: { type: ['number', 'null'], description: 'Replace or clear the token ceiling.' },
+        time_budget_ms: { type: ['number', 'null'], description: 'Replace or clear the time ceiling.' }
       },
       required: ['goal_id'],
       additionalProperties: false
@@ -312,12 +337,45 @@ toolRegistry.registerNative(
     if (typeof a.goal_id !== 'string' || a.goal_id.length === 0) {
       throw new Error('update_goal: "goal_id" is required.')
     }
+    if (typeof a.action === 'string') {
+      const goal = transitionGoal(ctx.conversationId, {
+        goalId: a.goal_id,
+        action: a.action as GoalAction,
+        actor: 'model',
+        title: typeof a.title === 'string' ? a.title : undefined,
+        description: typeof a.description === 'string' ? a.description : undefined,
+        dueDate: typeof a.due_date === 'string' ? a.due_date : undefined,
+        blocker: typeof a.blocker === 'string' ? a.blocker : undefined,
+        completion: typeof a.completion === 'string' ? a.completion : undefined,
+        reason: typeof a.reason === 'string' ? a.reason : undefined,
+        tokensUsed: typeof a.tokens_used === 'number' ? a.tokens_used : undefined,
+        elapsedMs: typeof a.elapsed_ms === 'number' ? a.elapsed_ms : undefined,
+        tokenBudget:
+          a.token_budget === null || typeof a.token_budget === 'number'
+            ? a.token_budget
+            : undefined,
+        timeBudgetMs:
+          a.time_budget_ms === null || typeof a.time_budget_ms === 'number'
+            ? a.time_budget_ms
+            : undefined
+      })
+      return JSON.stringify(goal, null, 2)
+    }
     const input: UpdateGoalInput = {
       goalId: a.goal_id,
       title: typeof a.title === 'string' ? a.title : undefined,
       description: typeof a.description === 'string' ? a.description : undefined,
       dueDate: typeof a.due_date === 'string' ? a.due_date : undefined,
-      status: typeof a.status === 'string' ? (a.status as UpdateGoalInput['status']) : undefined
+      status: typeof a.status === 'string' ? (a.status as UpdateGoalInput['status']) : undefined,
+      tokenBudget:
+        a.token_budget === null || typeof a.token_budget === 'number' ? a.token_budget : undefined,
+      timeBudgetMs:
+        a.time_budget_ms === null || typeof a.time_budget_ms === 'number'
+          ? a.time_budget_ms
+          : undefined,
+      actor: 'model',
+      reason: typeof a.reason === 'string' ? a.reason : undefined,
+      completion: typeof a.completion === 'string' ? a.completion : undefined
     }
     // updateGoal throws on unknown goal id; let it propagate so chat.ts
     // marks the call as 'error' instead of pretending success.

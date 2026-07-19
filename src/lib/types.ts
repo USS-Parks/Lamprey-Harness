@@ -628,6 +628,8 @@ export interface PlanUpdatedEvent {
 }
 
 export type GoalStatus = 'open' | 'in_progress' | 'done' | 'abandoned'
+export type GoalLifecycleStatus = 'open' | 'active' | 'paused' | 'blocked' | 'completed' | 'aborted'
+export type GoalActor = 'user' | 'system' | 'model'
 
 export interface Goal {
   id: string
@@ -635,6 +637,19 @@ export interface Goal {
   description?: string
   dueDate?: string
   status: GoalStatus
+  lifecycleStatus: GoalLifecycleStatus
+  lastActor: GoalActor
+  tokenBudget: number | null
+  tokenUsed: number
+  timeBudgetMs: number | null
+  elapsedMs: number
+  activeSince: number | null
+  pausedAt: number | null
+  completedAt: number | null
+  abortedAt: number | null
+  blocker: string | null
+  completion: string | null
+  transitionReason: string | null
   createdAt: number
   updatedAt: number
 }

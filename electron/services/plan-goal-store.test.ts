@@ -21,6 +21,7 @@ import {
   getGoal,
   getPlanSnapshot,
   listGoals,
+  transitionGoal,
   updateGoal
 } from './plan-goal-store'
 
@@ -180,6 +181,119 @@ describe('goals — create / update / get / list', () => {
     const list = listGoals(CONV)
     expect(list[0].id).toBe(b.id)
     expect(list[1].id).toBe(a.id)
+  })
+})
+
+describe('GA-3 operational goal lifecycle', () => {
+  it('tracks start, pause, resume, elapsed time, blocker, and completion', () => {
+    const goal = createGoal(CONV, { title: 'Operate' })
+    const active = transitionGoal(CONV, {
+      goalId: goal.id, action: 'start', actor: 'model', now: 1_000
+    })!
+    expect(active.lifecycleStatus).toBe('active')
+    expect(active.lastActor).toBe('model')
+
+    const paused = transitionGoal(CONV, {
+      goalId: goal.id, action: 'pause', actor: 'user', reason: 'owner pause', now: 1_500
+    })!
+    expect(paused).toMatchObject({
+      lifecycleStatus: 'paused', elapsedMs: 500, pausedAt: 1_500, lastActor: 'user'
+    })
+
+    transitionGoal(CONV, { goalId: goal.id, action: 'resume', actor: 'user', now: 2_000 })
+    const blocked = transitionGoal(CONV, {
+      goalId: goal.id,
+      action: 'block',
+      actor: 'model',
+      blocker: 'waiting for fixture',
+      now: 2_500
+    })!
+    expect(blocked).toMatchObject({
+      lifecycleStatus: 'blocked', elapsedMs: 1_000, blocker: 'waiting for fixture'
+    })
+
+    const completed = transitionGoal(CONV, {
+      goalId: goal.id,
+      action: 'complete',
+      actor: 'model',
+      completion: 'Fixture arrived and acceptance passed.',
+      now: 3_000
+    })!
+    expect(completed).toMatchObject({
+      status: 'done',
+      lifecycleStatus: 'completed',
+      completedAt: 3_000,
+      completion: 'Fixture arrived and acceptance passed.'
+    })
+  })
+
+  it('keeps abort and clear under user/system authority', () => {
+    const goal = createGoal(CONV, { title: 'Controlled' })
+    expect(() => transitionGoal(CONV, {
+      goalId: goal.id, action: 'abort', actor: 'model'
+    })).toThrow(/model authority cannot abort/i)
+    expect(() => transitionGoal(CONV, {
+      goalId: goal.id, action: 'clear', actor: 'model'
+    })).toThrow(/model authority cannot clear/i)
+
+    const aborted = transitionGoal(CONV, {
+      goalId: goal.id, action: 'abort', actor: 'user', reason: 'owner stopped work', now: 2_000
+    })!
+    expect(aborted).toMatchObject({
+      status: 'abandoned', lifecycleStatus: 'aborted', lastActor: 'user', abortedAt: 2_000
+    })
+    expect(transitionGoal(CONV, {
+      goalId: goal.id, action: 'clear', actor: 'system', now: 3_000
+    })).toBeNull()
+    expect(getGoal(CONV, goal.id)).toBeNull()
+  })
+
+  it('blocks automatically when recorded usage reaches a configured budget', () => {
+    const goal = createGoal(CONV, { title: 'Bounded', tokenBudget: 100, timeBudgetMs: 10_000 })
+    transitionGoal(CONV, { goalId: goal.id, action: 'start', actor: 'model', now: 1_000 })
+    const result = transitionGoal(CONV, {
+      goalId: goal.id,
+      action: 'record_usage',
+      actor: 'model',
+      tokensUsed: 100,
+      elapsedMs: 500,
+      now: 2_000
+    })!
+    expect(result).toMatchObject({
+      lifecycleStatus: 'blocked',
+      lastActor: 'system',
+      tokenUsed: 100,
+      elapsedMs: 1_500,
+      blocker: 'token-budget-exhausted',
+      transitionReason: 'token-budget-exhausted'
+    })
+  })
+
+  it('requires explicit blocker and completion evidence', () => {
+    const goal = createGoal(CONV, { title: 'Evidence' })
+    expect(() => transitionGoal(CONV, {
+      goalId: goal.id, action: 'block', actor: 'model'
+    })).toThrow(/blocker is required/i)
+    expect(() => transitionGoal(CONV, {
+      goalId: goal.id, action: 'complete', actor: 'model'
+    })).toThrow(/completion is required/i)
+  })
+
+  it('rehydrates operational fields after a simulated restart', () => {
+    const goal = createGoal(CONV, { title: 'Restart', tokenBudget: 50 })
+    transitionGoal(CONV, { goalId: goal.id, action: 'start', actor: 'model', now: 1_000 })
+    transitionGoal(CONV, {
+      goalId: goal.id, action: 'pause', actor: 'user', reason: 'restart test', now: 1_250
+    })
+    __dropPlanGoalCache()
+    expect(getGoal(CONV, goal.id)).toMatchObject({
+      lifecycleStatus: 'paused',
+      lastActor: 'user',
+      tokenBudget: 50,
+      elapsedMs: 250,
+      pausedAt: 1_250,
+      transitionReason: 'restart test'
+    })
   })
 })
 

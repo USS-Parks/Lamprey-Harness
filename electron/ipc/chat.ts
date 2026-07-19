@@ -71,6 +71,7 @@ import { getActiveWorkspace } from '../services/workspace-state'
 import { classifyToolResult } from '../services/tool-result-status'
 import { validateToolArguments } from '../services/tool-schema-validator'
 import { detectEmptyParams } from '../services/empty-params-guard'
+import { inspectShellCommand } from '../services/dangerous-command-policy'
 import { parseFallbackToolCalls, FALLBACK_TOOL_INSTRUCTION } from '../services/fallback-tool-parser'
 import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { dispatchNativeTool } from '../services/native-dispatch'
@@ -1621,7 +1622,15 @@ async function resolveSingleToolCall(
   const planModeActive = isPlanModeActive(conversationId)
   const blockedByPlanMode = planModeActive && isMutatingDescriptor(descriptor)
 
-  const needsApproval = !blockedByPlanMode && descriptorNeedsApproval(descriptor)
+  const shellInspection = toolName === 'shell_command'
+    ? inspectShellCommand(
+        typeof args?.command === 'string' ? args.command : '',
+        args?.shell === 'bash' || args?.shell === 'powershell' ? args.shell : 'auto'
+      )
+    : null
+  const isDangerousShellCommand = shellInspection?.verdict !== undefined && shellInspection.verdict !== 'safe'
+  const needsApproval =
+    !blockedByPlanMode && (descriptorNeedsApproval(descriptor) || isDangerousShellCommand)
   // S7 / S12 — shell_command + `dangerously_disable_sandbox: true` escalates
   // the approval flow: per-call risks gain `'sandboxBypass'`, any persisted
   // "always allow" is skipped, and the modal re-pops for every call. Other
@@ -1633,10 +1642,17 @@ async function resolveSingleToolCall(
   // persisted "always allow" policy and always re-prompt the user.
   const isFallbackProvenance = tc.id.startsWith('fb_')
   const isFallbackMutating = isFallbackProvenance && isMutatingDescriptor(descriptor)
-  const callRisks =
-    isDangerousShellBypass && descriptor
-      ? [...descriptor.risks, 'sandboxBypass' as const]
-      : descriptor?.risks
+  const callRisks = descriptor
+    ? [
+        ...descriptor.risks,
+        ...(isDangerousShellBypass && !descriptor.risks.includes('sandboxBypass')
+          ? ['sandboxBypass' as const]
+          : []),
+        ...(isDangerousShellCommand && !descriptor.risks.includes('destructive')
+          ? ['destructive' as const]
+          : [])
+      ]
+    : undefined
   const approvalOutcome =
     needsApproval && descriptor
       ? await permissionsService.requestApprovalDetailed({
@@ -1649,7 +1665,10 @@ async function resolveSingleToolCall(
           args,
           conversationId,
           correlationId,
-          dangerous: isDangerousShellBypass || isFallbackMutating ? true : undefined
+          dangerous:
+            isDangerousShellBypass || isDangerousShellCommand || isFallbackMutating
+              ? true
+              : undefined
         })
       : { decision: 'allow' as const, source: 'none' }
   const approvalDecision = approvalOutcome.decision

@@ -9854,7 +9854,44 @@ the top-frame URL changes during capture; trace results report a navigation chan
 Cancellation closes active tracing best-effort, and untrusted page strings are bounded and
 credential-redacted before they reach model context.
 
-**Commit:** pending (BD-3).
+**Commit:** see git log (BD-3).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt BD-4 browser and command policy — 2026-07-19
+
+**Files changed:** `electron/services/browser-developer-policy.ts`,
+`electron/services/browser-developer-policy.test.ts`,
+`electron/services/dangerous-command-policy.ts`,
+`electron/services/dangerous-command-policy.test.ts`, `electron/services/browser-manager.ts`,
+`electron/services/default-app-settings.ts`,
+`electron/services/default-app-settings.test.ts`, `electron/ipc/chat.ts`,
+`src/stores/settings-store.ts`, `src/lib/types.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused site-policy/PowerShell/default/CDP/tool/approval/schema cohort ✓
+  (8 files, 69 tests, 0 skipped)
+- `npm run verify:proof -- --no-tests` ✓
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Browser Developer Mode now fails closed until the exact HTTP(S) origin has an
+explicit allow policy; missing policy is `ask`, exact deny is authoritative, and trust never
+bleeds to a sibling subdomain or port. The action matrix maps metadata to read, sensitive
+context to read/network/secret plus approval, and mutation to write/network/destructive plus
+approval; the already-shipped response-body and browser mutation descriptors match it.
+Shell dispatch now inspects ordinary Windows PowerShell with the platform AST parser without
+executing the command. Destructive command names, encoded/dynamic execution, broad destructive
+POSIX patterns, invalid ASTs, dynamic invocations, parser failure, and oversized source all
+force one-shot dangerous approval; no-window behavior remains default deny. The static proof
+gate reports its expected 18 native-DB skips because the package build left the binding on
+Electron's ABI; BD-4 adds no database path and its focused cohort has zero skips.
+
+**Commit:** pending (BD-4).
 
 ---
 

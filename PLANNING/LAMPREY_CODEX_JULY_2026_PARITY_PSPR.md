@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M7 STS IN PROGRESS AT BD-4; BD-1–BD-3 COMPLETE; M6 RELEASED AS v0.24.0; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
+**Status:** **M7 STS IN PROGRESS AT BD-5; BD-1–BD-4 COMPLETE; M6 RELEASED AS v0.24.0; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -676,7 +676,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **BD-4 — Enforce domain, approval, and dangerous-action policy**
 
-- [ ] Reuse browser/domain trust and tool risk metadata; require explicit approval for body
+- [x] Reuse browser/domain trust and tool risk metadata; require explicit approval for body
       capture, sensitive context, or mutation. Extend dangerous-command detection and
       conservative PowerShell inspection before broader control surfaces ship.
 - Verify: policy matrix, deny/approval, secret, dangerous-command, uninspectable-AST tests.

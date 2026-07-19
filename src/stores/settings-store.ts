@@ -40,6 +40,7 @@ const defaultSettings: AppSettings = {
   includePastReasoningInContext: true,
   // July 2026 parity M7 — privileged CDP inspection, OFF by default.
   browserDeveloperModeEnabled: false,
+  browserDeveloperSitePolicies: {},
   // Loop Phase LP-7 — autonomous loops, OFF by default (deliberate past-era
   // extension). Mirror of DEFAULT_APP_SETTINGS; parity test locks the two.
   loopsEnabled: false,

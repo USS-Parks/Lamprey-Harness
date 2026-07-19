@@ -8,6 +8,7 @@ import {
   type BrowserCdpSessionSnapshot,
   type CdpDebuggerLike
 } from './browser-cdp-session'
+import { assertBrowserDeveloperUrlAllowed } from './browser-developer-policy'
 
 interface Tab {
   id: string
@@ -485,6 +486,7 @@ export function attachBrowserDeveloperSession(
   if (!tabId) throw new Error('No active browser tab')
   const tab = tabs.get(tabId)
   if (!tab) throw new Error(`Unknown browser tab ${tabId}`)
+  assertBrowserDeveloperUrlAllowed(tab.url)
   return browserCdpSessions.attach(
     {
       id: tab.id,

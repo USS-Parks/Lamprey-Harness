@@ -111,6 +111,8 @@ describe('SP-1 defaults parity — canonical vs renderer literal', () => {
   it('BD-1: Browser Developer Mode is OFF and parity-locked', () => {
     expect(DEFAULT_APP_SETTINGS.browserDeveloperModeEnabled).toBe(false)
     expectRendererDefault('browserDeveloperModeEnabled', 'false')
+    expect(DEFAULT_APP_SETTINGS.browserDeveloperSitePolicies).toEqual({})
+    expectRendererDefault('browserDeveloperSitePolicies', '{}')
   })
 
   it('AO-1: orchestration defaults are OFF + bounded, and parity-locked', () => {

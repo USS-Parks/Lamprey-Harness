@@ -12,6 +12,9 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 The independently approved Provider Discovery Expansion v2 roster at
 `LAMPREY_PROVIDER_DISCOVERY_EXPANSION_PLAN.md` is complete and released as v0.27.0.
+Its direct-provider routing and model-menu correction was released as v0.27.1: 70 pinned
+models, zero OpenRouter-brokered aliases, immediate key-state synchronization, and a
+viewport-bounded model picker.
 It is a provider-domain successor to the historical v0.17.0 expansion, not a change to the
 Codex parity roster below.
 

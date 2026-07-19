@@ -23,16 +23,24 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.27.0 — Provider Discovery Expansion v2.** Lamprey now accepts keys for
+**New in v0.27.1 — direct-provider routing hotfix.** The 70 pinned models now route
+exclusively through their named providers and independently stored keys; no pinned model
+uses OpenRouter as a broker. OpenRouter remains available only as an explicit opt-in live
+catalog. Saving a key in Settings immediately updates the chat model menu, so a Moonshot
+key unlocks direct Kimi K3 without restart. The expanded model menu is viewport-bounded,
+scrollable, and opens on the active model. Retired broker aliases migrate to direct
+equivalents; an unsupported stale selection falls back to a known catalog model.
+
+**Previously in v0.27.0 — Provider Discovery Expansion v2.** Lamprey added key support for
 32 built-in providers and ships 79 pinned chat models. The release adds AIHubMix,
 FreeLLMAPI, Cohere, MiniMax, NVIDIA NIM, GitHub Models, SambaNova, SiliconFlow, Reka,
 SEA-LION, DeepInfra, Hyperbolic, Perplexity, Sarvam, and Inception Labs; refreshes Kimi,
@@ -80,9 +88,9 @@ gate. The owner packaged-app playbook remains open.
 
 1. **Download** your platform's installer above and run it.
 2. **Get a key — any one provider is enough to start.** DeepSeek
-   ([platform.deepseek.com](https://platform.deepseek.com)) and OpenRouter's free
-   Gemma tier ([openrouter.ai](https://openrouter.ai/google/gemma-4-31b-it:free#api))
-   are the cheapest doors in; OpenAI, Anthropic, xAI, Mistral, Kimi, Groq,
+   ([platform.deepseek.com](https://platform.deepseek.com)) and direct Google AI Gemma
+   ([aistudio.google.com](https://aistudio.google.com/app/apikey)) are inexpensive doors in;
+   OpenAI, Anthropic, xAI, Mistral, Kimi, Groq,
    Together, Fireworks, Cerebras, Hugging Face, Qwen, GLM, AIHubMix, FreeLLMAPI,
    Cohere, MiniMax, NVIDIA, GitHub Models, SambaNova, SiliconFlow, Reka, SEA-LION,
    DeepInfra, Hyperbolic, Perplexity, Sarvam, and Inception Labs cards all live in

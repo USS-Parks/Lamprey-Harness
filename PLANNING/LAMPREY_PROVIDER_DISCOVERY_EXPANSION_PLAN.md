@@ -143,3 +143,9 @@ smoke PASS · verify:proof exit 0.
 include 18 native-database suites whose installed `better-sqlite3` ABI targets Electron rather
 than the release shell's Node ABI. The settings/model-import GUI still needs the owner's first
 packaged-app pass.
+
+> **Correction (2026-07-19):** v0.27.1 removed all nine pinned OpenRouter-brokered aliases
+> after owner review. The current pinned catalog is 70 direct-provider entries; OpenRouter is
+> explicit opt-in live import only. It also synchronizes saved provider keys into the chat menu,
+> bounds the menu to the viewport, and migrates supported retired aliases to direct providers.
+> Original v0.27.0 counts remain above as the historical release record.

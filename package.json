@@ -1,6 +1,6 @@
 {
   "name": "lamprey-harness",
-  "version": "0.27.0",
+  "version": "0.27.1",
   "description": "Local-first multi-provider desktop coding harness.",
   "main": "./out/main/index.js",
   "bin": {

@@ -10281,3 +10281,55 @@ native-database suites that require an Electron-matching `better-sqlite3` ABI.
 
 **Commits:** `6b18902`, `77d16ad`, `0db6744`, `f3c2f46`, `f6b55bc`; release commit and
 `v0.27.0` tag recorded by the Bucket receipt entry.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+## Direct-provider model routing hotfix — v0.27.1 — 2026-07-19
+
+**Files changed:** `electron/services/providers/registry.ts`,
+`electron/services/providers/registry.test.ts`, `electron/ipc/model.ts`,
+`electron/ipc/model.test.ts`, `src/components/chat/ChatInput.tsx`,
+`src/components/chat/model-dropdown-wiring.test.ts`,
+`src/components/settings/ApiKeySettings.tsx`,
+`src/components/settings/api-key-provider-sync.test.ts`, release metadata,
+release notes, and provider-expansion governance documents
+
+**Verify gate:**
+- focused provider, model, menu, and key-sync suites ✓ (98 tests)
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- full vitest ✓ (248 files passed / 15 skipped; 2,853 tests passed / 166 skipped /
+  0 failed)
+- production build ✓
+- bundle smoke ✓ (`out/main/index.js` loaded)
+- renderer smoke ✓ (renderer entry mounts a root)
+- `npm run verify:proof -- --no-tests` ✓ (exit 0)
+
+**Notes:** The v0.27.0 expansion exposed three connected defects in the enlarged model
+picker. Its list was not viewport-bounded, provider-key mutations refreshed only local
+Settings state, and nine historical pinned convenience aliases still routed through
+OpenRouter. The picker now scrolls within the viewport and brings the active row into view;
+Settings synchronizes every save/delete/test refresh into the shared provider store; and
+the pinned catalog contains 70 models with zero OpenRouter-routed entries. Kimi routes to
+Moonshot, Grok to xAI, Gemma to Google AI, Claude to Anthropic, and GPT to OpenAI. OpenRouter
+remains available only as an explicitly selected optional aggregator with its live catalog.
+Retired OpenRouter aliases migrate to direct equivalents when one exists; an obsolete alias
+without a first-party equivalent falls back to the known DeepSeek default instead of being
+silently brokered. The v0.27.0 installer concern was separately verified as an installed
+NSIS build and then withdrawn by the owner; no installer-format change is included here.
+Before this build overwrote `dist`, the incomplete v0.27.0 GitHub release was repaired and
+all six release assets were verified uploaded.
+
+**Honest gaps:** Live provider calls still require owner-held credentials and the corrected
+menu needs the owner's packaged-GUI pass. The 166 skips include 18 native-database suites
+that require an Electron-matching `better-sqlite3` ABI.
+
+**Commits:** `aafd807`, `7297cd7`, `7efeda3`; release metadata commit and `v0.27.1`
+publication receipt follow.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

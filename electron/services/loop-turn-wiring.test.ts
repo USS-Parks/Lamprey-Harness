@@ -58,8 +58,8 @@ describe('JM-3 overlap guards', () => {
 
   it('an automation never runs concurrently with itself', () => {
     const src = read('electron/services/automations-runner.ts')
-    expect(src).toMatch(/runningAutomations\.has\(autoId\)\) return/)
-    expect(src).toMatch(/runningAutomations\.delete\(autoId\)/)
+    expect(src).toMatch(/if \(runningAutomations\.has\(automationId\)\)/)
+    expect(src).toMatch(/runningAutomations\.delete\(automationId\)/)
   })
 })
 

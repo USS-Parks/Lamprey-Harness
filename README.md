@@ -32,14 +32,19 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**Current development in v0.25.0 — Browser Developer Mode.** The existing Browser panel now
-has an explicit developer surface for bounded, redacted console/network observation,
-structured DOM/accessibility and performance inspection, fixed runtime probes, short traces,
-and annotated screenshot evidence. It is OFF by default, requires exact-origin Allow trust,
-and uses the existing approval path for response bodies, sensitive context, and mutation.
-Windows PowerShell shell requests are parsed as data before approval so destructive or
-uninspectable commands cannot use a persisted allow rule. The owner packaged-app playbook is
-still open; v0.25.0 is prepared locally and has not been published.
+**Current development in v0.26.0 — Automations and Operational Goals.** Local reminders,
+schedules, events, and monitors now have model-callable management, durable trigger identity,
+bounded retries, and explicit next-run/blocked/completed UI. Goals persist lifecycle,
+provenance, budgets, elapsed time, blockers, and completion evidence; one goal may own a
+bounded loop that an automation wakes through the existing controller. Recurring autonomy
+remains OFF by default, and narrower ceilings can only tighten global policy. The owner
+packaged-app background/restart playbook is still open; v0.26.0 is prepared locally and has
+not been published.
+
+**Previously in v0.25.0 — Browser Developer Mode.** The existing Browser panel gained
+bounded, redacted console/network observation, structured inspection, fixed runtime probes,
+short traces, and annotated screenshot evidence behind an OFF-by-default exact-origin trust
+gate. The owner packaged-app playbook remains open.
 
 **New in v0.24.0 — MCP resources and hosted sessions.** Connected MCP servers can expose paginated resources and URI templates to the model and to Customize → Connectors. Resource reads retain server provenance and use the existing large-result spill valve. Hosted Streamable HTTP connectors can use OAuth 2.1 with PKCE, encrypted keychain storage, explicit domain confirmation, reauthorization, expiry/reconnect state, and consent-gated URL elicitation. Preview renders text as text, allows only known raster image formats, and leaves SVG or other blobs as metadata. The local fixture and real hosted-provider playbooks remain open, so this release claims implementation completion without claiming live hosted-provider parity.
 
@@ -91,6 +96,10 @@ still open; v0.25.0 is prepared locally and has not been published.
 - **Browser Developer Mode** &mdash; optional CDP console/network, structured page inspection,
   short traces, and annotated screenshot evidence behind an exact-origin trust gate. It is
   off by default and does not expose arbitrary page-world code execution.
+- **Automations + operational goals** &mdash; create reminders, schedules, event triggers, and
+  monitors with durable retry/dedup state; track goal lifecycle and budgets; optionally wake
+  a goal-owned bounded loop through the existing controller. Recurring autonomy is off by
+  default.
 - **Deep Research** &mdash; research-shaped turns fan out across search providers, corroborate claims by independent domain, and kill the report if they detect fabricated citations. `/research <q>` forces it; coding turns are never escalated.
 - **Snip** &mdash; an in-process token filter (same idea as [rtk](https://github.com/rtk-ai/rtk)) that strips noisy shell output down to signal before it hits the model context. ~120 built-in YAML filters, hot-reloadable, extensible.
 - **Skills + MCP** &mdash; drop a `.md` in your skills directory and it's part of the system prompt. MCP servers use stdio, SSE, or Streamable HTTP; resource/template browsing and strict lazy resource tools are built in, with legacy Google OAuth plus generic hosted OAuth 2.1 session support.

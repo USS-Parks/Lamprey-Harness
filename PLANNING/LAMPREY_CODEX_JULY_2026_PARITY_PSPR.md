@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M8 STS IN PROGRESS AT GA-5; M7 LOCALLY COMPLETE AS v0.25.0; OWNER LIVE SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
+**Status:** **M8 LOCALLY COMPLETE AS v0.26.0; OWNER BACKGROUND/RESTART SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -732,7 +732,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **GA-6 — Automation/goal milestone wrap**
 
-- [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
+- [x] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate and owner background/restart smoke.
 
 ### M9 — Initiative closeout
@@ -1082,6 +1082,29 @@ Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lampre
 This authorization supersedes M7's earlier M8-unapproved boundary only. It does not unpark
 Code Mode, authorize M9, or convert future owner automation/goal background and restart
 smokes into automated evidence.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### M8 local closeout — 2026-07-19
+
+GA-1 through GA-6 executed sequentially on `codex/steering-parity`, with one focused commit
+per prompt: `94be706`, `d08d2ff`, `f1c1f78`, `bb58207`, `0bc81c4`, and the GA-6 wrap commit
+recorded in git history. Package metadata is `0.26.0`; `loopsEnabled` remains false by
+default. Architecture, AFTER, owner-playbook, current-state, and prepared release-note
+records are present.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2,834 passed / 165 skipped / 0 failed ·
+build OK · bundle+renderer smokes OK · `verify:proof --require-smokes` exit 0.
+
+**Honest gaps:** The owner-visible packaged-app background/restart procedure remains
+`USER-VERIFICATION-NEEDED`. The proof gate reports 18 ABI-guarded native-DB files among the
+165 explicit skips because the local binding is built for Electron rather than Node. M8's
+new migration and restart cohorts use Node SQLite and ran without skips. M8 is therefore
+implementation-complete, not live background/restart parity-complete. No push, tag, release,
+Bucket run, or artifact publication was authorized or performed. M4 remains parked
+indefinitely; M9 remains unapproved.
 
 ---
 

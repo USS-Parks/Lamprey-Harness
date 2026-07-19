@@ -10122,3 +10122,35 @@ and restart checks. The real packaged-app background/restart portion remains
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt GA-6 M8 local wrap — 2026-07-19
+
+**Files changed:** `ARCHITECTURE/AUTOMATIONS_AND_OPERATIONAL_GOALS.md`,
+`PLANNING/CJ26_AUTOMATIONS_GOALS_AFTER.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `PLANNING/README.md`,
+`RELEASE_NOTES/v0.26.0.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `package.json`,
+`package-lock.json`, one corrected overlap-guard source lock, `DEVLOG.md`
+**Verify gate:**
+- lint ✓
+- tsc node + web ✓
+- vitest ✓ (246 files passed, 15 skipped; 2,834 tests passed, 165 skipped, 0 failed)
+- production build ✓
+- bundle smoke + renderer smoke ✓
+- `npm run verify:all` / `verify:proof --require-smokes` exit 0 ✓
+- `git diff --check` and documentation path/source audit ✓
+
+**Notes:** M8 is locally wrapped as v0.26.0 with a source-faithful architecture record,
+AFTER matrix, prepared-not-published release notes, current-state updates, and the existing
+owner playbook. The full gate initially exposed one stale source-lock assertion that still
+expected the pre-GA-2 local variable name and one-line overlap return; the guard itself was
+present. The assertion now checks the current `automationId` guard and cleanup path, and the
+fresh full gate passes. Eighteen native-DB test files account for the explicitly reported ABI
+skips; the new M8 Node-SQLite migration/restart cohorts run independently and passed. The
+packaged-app background/restart playbook remains `USER-VERIFICATION-NEEDED`. M4 stays parked,
+M9 is unapproved, and no push, tag, release, Bucket run, or publication occurred.
+
+**Commit:** see git log (GA-6 local wrap).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

@@ -9366,3 +9366,29 @@ Migration v28 also adds durable detached findings; `pr_finding_create` records l
 does not post to GitHub.
 
 **Commit:** see git log (PR-3).
+
+## Codex July 2026 Parity — Prompt PR-4 Patch proposal lifecycle — 2026-07-18
+
+**Files changed:** `electron/services/pr-patch-schema.ts`,
+`electron/services/pr-patch-store.ts`, `electron/services/pr-patch-flow.ts`,
+`electron/services/pr-patch-flow.test.ts`, `electron/services/pr-patch-tool-pack.ts`,
+`electron/services/pr-patch-tool-pack.test.ts`, `electron/services/tool-packs.ts`,
+`electron/services/db-migrations.ts`, `electron/services/db-migrations.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- path confinement, stale-head race, explicit accept/reject, rollback, canonical patch
+  authority, and tool metadata cohort ✓ (4 files, 37 tests, 0 skipped)
+- Electron-native v29 schema/rollback cohort ✓ (2 files, 20 tests, 0 skipped)
+
+**Notes:** Migration v29 adds editable patch proposals pinned to a conversation, PR, and
+exact head SHA. Propose/edit only change local proposal state. Accept is the sole
+approval-gated workspace operation: it rechecks the live head, validates every path beneath
+the active workspace, snapshots affected files, delegates to `executeApplyPatch`, and
+restores all snapshots if any later hunk fails. Reject records terminal state without
+touching workspace files. The normal tool-call event spine supplies proposal/edit/accept/
+reject audit identity and exact arguments.
+
+**Commit:** see git log (PR-4).

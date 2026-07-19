@@ -601,7 +601,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **PR-4 — Add patch propose/edit/accept/reject**
 
-- [ ] Let chat draft a patch against the bound head SHA, render it for editing, and require
+- [x] Let chat draft a patch against the bound head SHA, render it for editing, and require
       explicit accept before applying through the normal patch/workspace authority. Reject
       is non-mutating; stale head blocks application.
 - Verify: patch path confinement, SHA race, accept/reject, rollback, audit tests.

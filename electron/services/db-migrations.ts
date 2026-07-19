@@ -10,6 +10,7 @@ import { TASK_LIFECYCLE_SCHEMA_SQL } from './task-lifecycle-schema'
 import { applyArtifactSchema } from './artifact-schema'
 import { ARTIFACT_EDIT_SCHEMA_SQL } from './artifact-edit-schema'
 import { applyPrReviewSchema } from './pr-review-schema'
+import { applyPrPatchSchema } from './pr-patch-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -357,6 +358,13 @@ export const MIGRATIONS: Migration[] = [
     description: 'Codex July parity PR-3 - review findings and idempotency receipts',
     up(db) {
       applyPrReviewSchema(db)
+    }
+  },
+  {
+    version: 29,
+    description: 'Codex July parity PR-4 - editable PR patch proposals',
+    up(db) {
+      applyPrPatchSchema(db)
     }
   }
 ]

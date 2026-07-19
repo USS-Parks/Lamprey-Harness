@@ -192,7 +192,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(28)
+    expect(result.endVersion).toBe(29)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
@@ -281,6 +281,14 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     expect(tables.map((table) => table.name)).toEqual(
       expect.arrayContaining(['pr_review_findings', 'pr_review_action_receipts'])
     )
+  })
+
+  it('PR-4 - migration v29 adds editable patch proposals', () => {
+    runMigrations(db)
+    const table = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'pr_patch_proposals'"
+    ).get()
+    expect(table).toBeDefined()
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

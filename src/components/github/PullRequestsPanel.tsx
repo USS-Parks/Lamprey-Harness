@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { github as githubClient } from '@/lib/ipc-client'
 import { useGitHubStore } from '@/stores/github-store'
-import type { GitHubPullRequest, PullRequestReviewComment } from '@/lib/github-types'
+import { useChatStore } from '@/stores/chat-store'
+import { toast } from '@/stores/toast-store'
+import type {
+  GitHubPullRequest,
+  GitHubPullRequestFile,
+  PullRequestReviewComment
+} from '@/lib/github-types'
 import { PRDiffView } from './PRDiffView'
 import { PRStatusChecks } from './PRStatusChecks'
 import { InlineCommentComposer } from './InlineCommentComposer'
@@ -23,6 +29,7 @@ interface RepoCoord {
 }
 
 export function PullRequestsPanel() {
+  const activeConversationId = useChatStore((state) => state.activeConversationId)
   const repos = useGitHubStore((s) => s.repos)
   const refreshRepos = useGitHubStore((s) => s.refreshRepos)
   const status = useGitHubStore((s) => s.status)
@@ -96,6 +103,32 @@ export function PullRequestsPanel() {
   }, [selectedRepo, openNumber])
 
   const openPr = useMemo(() => prs.find((p) => p.number === openNumber) ?? null, [prs, openNumber])
+
+  const chatAboutPr = async (pr: GitHubPullRequest, file?: GitHubPullRequestFile) => {
+    if (!selectedRepo || !activeConversationId) {
+      toast.error('Open a chat before sending PR context.')
+      return
+    }
+    const bound = await githubClient.bindPullRequest(
+      activeConversationId,
+      selectedRepo.owner,
+      selectedRepo.repo,
+      pr.number
+    )
+    if (!bound.success) {
+      toast.error(`Could not bind PR: ${bound.error}`)
+      return
+    }
+    const selectedHunk = file?.patch
+      ? `\n\nSelected hunk from \`${file.filename}\`:\n\`\`\`diff\n${file.patch}\n\`\`\``
+      : ''
+    await useChatStore
+      .getState()
+      .sendMessage(
+        `Review ${selectedRepo.owner}/${selectedRepo.repo}#${pr.number} at head ${pr.head.sha}.${selectedHunk}`,
+        []
+      )
+  }
 
   if (!status?.connected) {
     return (
@@ -193,6 +226,13 @@ export function PullRequestsPanel() {
                   </span>
                   <button
                     type="button"
+                    onClick={() => void chatAboutPr(pr)}
+                    className="rounded px-2 py-0.5 text-[11px] text-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
+                  >
+                    Chat about this PR
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => githubClient.openInBrowser(pr.htmlUrl)}
                     className="rounded px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--accent)]"
                   >
@@ -200,7 +240,12 @@ export function PullRequestsPanel() {
                   </button>
                 </div>
                 <PRStatusChecks owner={selectedRepo.owner} repo={selectedRepo.repo} number={pr.number} />
-                <PRDiffView owner={selectedRepo.owner} repo={selectedRepo.repo} pr={pr} />
+                <PRDiffView
+                  owner={selectedRepo.owner}
+                  repo={selectedRepo.repo}
+                  pr={pr}
+                  onSendHunk={(file) => void chatAboutPr(pr, file)}
+                />
                 {comments.length > 0 && (
                   <div className="px-2 py-2 text-[11px]">
                     <span className="block uppercase tracking-wider text-[var(--text-muted)]">

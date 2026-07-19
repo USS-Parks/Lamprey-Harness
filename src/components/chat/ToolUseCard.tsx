@@ -8,6 +8,7 @@ import {
   formatElapsed,
   previewResult
 } from '@/lib/tool-card-helpers'
+import { PrPatchCard } from './PrPatchCard'
 
 // Provider letter for the leading badge. Three explicit entries match the
 // bundled MCP servers; everything else uses the first letter of the
@@ -124,7 +125,8 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
   // Auto-expand failures + destructive-success terminal states. Running /
   // pending / denied stay collapsed (denied result is short; running has
   // its live elapsed in the header).
-  const autoExpanded = isError || (status === 'success' && isDestructive)
+  const isPrPatch = toolName.startsWith('pr_patch_')
+  const autoExpanded = isError || (status === 'success' && (isDestructive || isPrPatch))
   const expanded = userToggled !== null ? userToggled : autoExpanded
 
   // Plain-English label first. Fall back to the bare tool name if the
@@ -240,6 +242,9 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
                   </span>
                 )}
               </div>
+              {isPrPatch ? (
+                <PrPatchCard toolName={toolName} args={args} result={result} />
+              ) : (
               <pre
                 className={
                   'max-h-64 overflow-auto whitespace-pre-wrap break-words text-[12px] font-mono ' +
@@ -252,6 +257,7 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
               >
                 {result || (isDenied ? 'Denied by user.' : '')}
               </pre>
+              )}
               {preview.truncated && (
                 <div className="mt-1 text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
                   showing full result (collapsed preview was truncated)

@@ -1311,6 +1311,19 @@ const api = {
     }) => ipcRenderer.invoke('github:pullRequests', args),
     getPullRequest: (args: { owner: string; repo: string; number: number }) =>
       ipcRenderer.invoke('github:getPullRequest', args),
+    bindPullRequest: (args: {
+      conversationId: string
+      owner: string
+      repo: string
+      number: number
+    }) => ipcRenderer.invoke('github:bindPullRequest', args),
+    getPullRequestFiles: (args: {
+      owner: string
+      repo: string
+      number: number
+      page?: number
+      perPage?: number
+    }) => ipcRenderer.invoke('github:getPullRequestFiles', args),
     listConversationPullRequests: (args: { conversationId: string }) =>
       ipcRenderer.invoke('github:listConversationPullRequests', args),
 

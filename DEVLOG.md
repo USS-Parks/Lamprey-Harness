@@ -9392,3 +9392,32 @@ touching workspace files. The normal tool-call event spine supplies proposal/edi
 reject audit identity and exact arguments.
 
 **Commit:** see git log (PR-4).
+
+## Codex July 2026 Parity — Prompt PR-5 PR panel and chat activity — 2026-07-18
+
+**Files changed:** `electron/ipc/github.ts`, `electron/preload.ts`,
+`src/lib/ipc-client.ts`, `src/components/github/PullRequestsPanel.tsx`,
+`src/components/github/PRDiffView.tsx`, `src/components/chat/PrPatchCard.tsx`,
+`src/components/chat/ToolUseCard.tsx`, `electron/services/pr-chat-ui-wiring.test.ts`,
+`PLANNING/CJ26_PR_CHAT_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused ESLint and `git diff --check` ✓
+- IPC, existing-panel, bound-chat, selected-hunk, patch-card, annotation, check-refresh,
+  and review-confirmation cohort ✓ (4 files, 53 tests, 0 skipped)
+- production build ✓
+- renderer smoke ✓
+- live disposable-repository playbook authored; `USER-VERIFICATION-NEEDED`
+
+**Notes:** The existing Pull Requests panel remains the owner surface. It now binds the
+selected PR to the active conversation using immutable repository ID plus base/head SHA,
+sends either PR-level or selected-hunk context into chat, keeps annotation and 15-second
+check progress surfaces, and retains explicit review-post confirmation. PR patch tool cards
+auto-expand with editable patch text and Send edit / Reject / Accept actions; those actions
+re-enter chat so the canonical tool approval and audit path remains authoritative. The
+owner playbook uses a disposable draft PR and ends by verifying that no unintended external
+review was posted.
+
+**Commit:** see git log (PR-5).

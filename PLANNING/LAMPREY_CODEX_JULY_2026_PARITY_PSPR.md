@@ -608,7 +608,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **PR-5 — Connect the existing PR panel and chat activity**
 
-- [ ] Add “Chat about this PR,” selected-hunk send, patch cards, annotations, check progress,
+- [x] Add “Chat about this PR,” selected-hunk send, patch cards, annotations, check progress,
       and review-submit confirmation without replacing the current panel.
 - Verify: UI wiring, build/renderer smoke, live test-repository playbook.
 

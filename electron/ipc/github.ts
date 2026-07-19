@@ -419,6 +419,58 @@ export function registerGitHubHandlers(): void {
     }
   )
 
+  ipcMain.handle(
+    'github:bindPullRequest',
+    async (_e, args: { conversationId: string; owner: string; repo: string; number: number }) => {
+      try {
+        if (!args?.conversationId) return failure('conversationId required')
+        const [repository, pr] = await Promise.all([
+          github.getRepository(args.owner, args.repo),
+          github.getPullRequest(args.owner, args.repo, args.number)
+        ])
+        const now = Date.now()
+        repoStore.linkPullRequestToConversation({
+          conversationId: args.conversationId,
+          prNumber: pr.number,
+          fullName: repository.fullName,
+          htmlUrl: pr.htmlUrl,
+          title: pr.title,
+          createdAt: now,
+          updatedAt: now,
+          repoId: repository.id,
+          baseSha: pr.base.sha,
+          headSha: pr.head.sha
+        })
+        return envelope(
+          repoStore
+            .listPullRequestsForConversation(args.conversationId)
+            .find(
+              (item) =>
+                item.fullName === repository.fullName && item.prNumber === pr.number
+            )
+        )
+      } catch (err: any) {
+        return failure(err?.message ?? 'Bind PR failed')
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'github:getPullRequestFiles',
+    async (
+      _e,
+      args: { owner: string; repo: string; number: number; page?: number; perPage?: number }
+    ) => {
+      try {
+        return envelope(
+          await github.listPullRequestFiles(args.owner, args.repo, args.number, args)
+        )
+      } catch (err: any) {
+        return failure(err?.message ?? 'List PR files failed')
+      }
+    }
+  )
+
   // -------------------------------------------------------------------------
   // F2 — PR review threading + inline review post
   // -------------------------------------------------------------------------

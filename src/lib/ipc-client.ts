@@ -133,6 +133,7 @@ import type {
   GitHubRepository,
   GitHubPullRequest,
   GitHubCompareSummary,
+  GitHubPullRequestFile,
   GitHubProjectRepoLink,
   ConversationPullRequestLink,
   PushBranchResult,
@@ -202,6 +203,21 @@ export const github = {
     api.github.pullRequests({ owner, repo, ...(opts ?? {}) }),
   getPullRequest: (owner: string, repo: string, number: number): Promise<IpcResponse<GitHubPullRequest>> =>
     api.github.getPullRequest({ owner, repo, number }),
+  bindPullRequest: (
+    conversationId: string,
+    owner: string,
+    repo: string,
+    number: number
+  ): Promise<IpcResponse<ConversationPullRequestLink>> =>
+    api.github.bindPullRequest({ conversationId, owner, repo, number }),
+  getPullRequestFiles: (
+    owner: string,
+    repo: string,
+    number: number,
+    page = 1,
+    perPage = 100
+  ): Promise<IpcResponse<GitHubPullRequestFile[]>> =>
+    api.github.getPullRequestFiles({ owner, repo, number, page, perPage }),
   listConversationPullRequests: (conversationId: string): Promise<IpcResponse<ConversationPullRequestLink[]>> =>
     api.github.listConversationPullRequests({ conversationId }),
   pushBranch: (args: {

@@ -348,6 +348,21 @@ export type ProviderId =
   | 'fireworks'
   | 'cerebras'
   | 'huggingface'
+  | 'aihubmix'
+  | 'freellmapi'
+  | 'cohere'
+  | 'minimax'
+  | 'nvidia'
+  | 'github-models'
+  | 'sambanova'
+  | 'siliconflow'
+  | 'reka'
+  | 'sealion'
+  | 'deepinfra'
+  | 'hyperbolic'
+  | 'perplexity'
+  | 'sarvam'
+  | 'inception'
   | 'ollama'
   | 'lmstudio'
 
@@ -361,6 +376,8 @@ export interface ProviderInfo {
   keyOptional?: boolean
   /** Key-format hint for the settings input placeholder. */
   keyHint?: string
+  baseURL?: string
+  baseUrlConfigurable?: boolean
 }
 
 export type ModelTier = 'pro' | 'flash' | 'open' | 'coder' | 'reasoner'
@@ -368,6 +385,8 @@ export type ModelTier = 'pro' | 'flash' | 'open' | 'coder' | 'reasoner'
 export interface ModelInfo {
   id: string
   name: string
+  /** Verbatim identifier sent to the provider when the local id is namespaced. */
+  apiModelId?: string
   /** Built-in ProviderId or a user-defined custom provider id. */
   provider?: string
   contextWindow: number

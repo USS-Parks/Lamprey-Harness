@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // real network call. The mock has to live ABOVE the registry import so
 // vi.mock hoisting catches it before the module under test loads.
 const mockCreate = vi.fn()
+const mockModelsList = vi.fn()
 // Constructor options per instantiation, so tests can assert which apiKey /
 // baseURL the registry actually handed the SDK (keyless placeholder,
 // base-URL overrides).
@@ -19,6 +20,9 @@ vi.mock('openai', () => {
         completions: {
           create: mockCreate
         }
+      }
+      models = {
+        list: mockModelsList
       }
     }
   }
@@ -129,9 +133,11 @@ function makeChunk(content: string) {
 
 beforeEach(() => {
   mockCreate.mockReset()
+  mockModelsList.mockReset()
   mockGetKey.mockReset()
   mockGetKey.mockImplementation(() => 'test-key')
   mockCtorOpts.length = 0
+  vi.unstubAllGlobals()
   resetProviderClients()
 })
 
@@ -440,6 +446,8 @@ import {
   resolveProviderDescriptor,
   isKnownProvider,
   listAllProviders,
+  listLiveModelIds,
+  validateProviderKeyDetailed,
   PROVIDERS
 } from './registry'
 
@@ -472,6 +480,67 @@ describe('provider descriptor resolution + key handling', () => {
     mockGetKey.mockImplementation(() => null)
     await expect(chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')).rejects.toThrow(
       /API key not configured.*Settings/i
+    )
+  })
+
+  it('accepts a Moonshot key through the live model-list validation path', async () => {
+    mockModelsList.mockResolvedValueOnce({
+      data: [
+        { id: 'kimi-k3' },
+        { id: 'kimi-k2.7-code' },
+        { id: 'kimi-k2.7-code-highspeed' }
+      ]
+    })
+
+    await expect(validateProviderKeyDetailed('moonshot')).resolves.toEqual({
+      ok: true,
+      modelCount: 3
+    })
+    expect(mockCtorOpts.at(-1)?.baseURL).toBe('https://api.moonshot.ai/v1')
+  })
+
+  it('normalizes Reka bare-array catalogs with X-Api-Key auth', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({ 'X-Api-Key': 'test-key' })
+      return new Response(JSON.stringify([{ id: 'reka-edge' }, { id: 'reka-flash' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(listLiveModelIds('reka')).resolves.toEqual(['reka-edge', 'reka-flash'])
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.reka.ai/v1/models',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
+  })
+
+  it('filters the DeepInfra catalog to active text-generation models', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify([
+            { model_name: 'small-chat', reported_type: 'text-generation', deprecated: null },
+            { model_name: 'old-chat', reported_type: 'text-generation', deprecated: 1 },
+            { model_name: 'embed', reported_type: 'embeddings', deprecated: null }
+          ]),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      )
+    )
+
+    await expect(listLiveModelIds('deepinfra')).resolves.toEqual(['small-chat'])
+  })
+
+  it('validates Perplexity with its pinned Sonar probe instead of Agent API models', async () => {
+    mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: 'ok' } }] })
+
+    await expect(validateProviderKeyDetailed('perplexity')).resolves.toEqual({ ok: true })
+    expect(mockModelsList).not.toHaveBeenCalled()
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'sonar', max_tokens: 1 })
     )
   })
 })
@@ -615,6 +684,32 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     const desc = resolveModel(retired)
     expect(desc.id).toBe(expected)
     expect(desc.apiModelId).toBe(expected)
+  })
+
+  it('exposes the current Moonshot Kimi API roster and retires K2 Thinking', () => {
+    const moonshotIds = MODEL_CATALOG.filter((m) => m.provider === 'moonshot').map((m) => m.id)
+
+    expect(moonshotIds).toEqual([
+      'kimi-k3',
+      'kimi-k2.7-code',
+      'kimi-k2.7-code-highspeed',
+      'kimi-k2.6',
+      'kimi-k2.5'
+    ])
+    expect(resolveModel('kimi-k2-thinking').id).toBe('kimi-k3')
+  })
+
+  it('pins the current direct Gemma 4 and Grok 4.20 rosters', () => {
+    expect(
+      MODEL_CATALOG.filter((m) => m.provider === 'google' && m.id.includes('gemma-4')).map(
+        (m) => m.apiModelId
+      )
+    ).toEqual(['gemma-4-31b-it', 'gemma-4-26b-a4b-it'])
+    expect(
+      MODEL_CATALOG.filter((m) => m.provider === 'xai' && m.id.startsWith('grok-4.20')).map(
+        (m) => m.apiModelId
+      )
+    ).toEqual(['grok-4.20-reasoning', 'grok-4.20-non-reasoning', 'grok-4.20-multi-agent'])
   })
 
   it('defaultMaxTokens appears only alongside the reasoning cap (guard pairing)', () => {

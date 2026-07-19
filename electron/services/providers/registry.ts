@@ -73,8 +73,33 @@ export type ProviderId =
   | 'fireworks'
   | 'cerebras'
   | 'huggingface'
+  | 'aihubmix'
+  | 'freellmapi'
+  | 'cohere'
+  | 'minimax'
+  | 'nvidia'
+  | 'github-models'
+  | 'sambanova'
+  | 'siliconflow'
+  | 'reka'
+  | 'sealion'
+  | 'deepinfra'
+  | 'hyperbolic'
+  | 'perplexity'
+  | 'sarvam'
+  | 'inception'
   | 'ollama'
   | 'lmstudio'
+
+export type ModelCatalogStrategy =
+  | { kind: 'openai' }
+  | {
+      kind: 'url'
+      url: string
+      format: 'openai' | 'array' | 'deepinfra'
+      auth: 'bearer' | 'x-api-key' | 'none'
+    }
+  | { kind: 'unsupported' }
 
 export interface ProviderDescriptor {
   /** Built-in ids are ProviderId union members; user-defined custom
@@ -92,6 +117,12 @@ export interface ProviderDescriptor {
   /** Key-format hint rendered as the input placeholder in
    *  Settings → API Keys (e.g. "sk-..."). Purely cosmetic. */
   keyHint?: string
+  /** How Settings -> Models discovers the provider's current chat catalog.
+   *  Omitted means the normal OpenAI SDK `GET /models` shape. */
+  catalog?: ModelCatalogStrategy
+  /** The provider is a local/self-hosted gateway whose address should be
+   *  editable in Settings without hand-editing settings.json. */
+  baseUrlConfigurable?: boolean
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
@@ -220,6 +251,141 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     docsUrl: 'https://huggingface.co/settings/tokens',
     keyHint: 'hf_...'
   },
+  aihubmix: {
+    id: 'aihubmix',
+    label: 'AIHubMix (multi-model)',
+    baseURL: 'https://aihubmix.com/v1',
+    keyEnv: 'aihubmix',
+    docsUrl: 'https://aihubmix.com/token'
+  },
+  freellmapi: {
+    id: 'freellmapi',
+    label: 'FreeLLMAPI (self-hosted)',
+    baseURL: 'http://127.0.0.1:3001/v1',
+    keyEnv: 'freellmapi',
+    docsUrl: 'https://github.com/tashfeenahmed/freellmapi',
+    keyHint: 'freellmapi-...',
+    baseUrlConfigurable: true
+  },
+  cohere: {
+    id: 'cohere',
+    label: 'Cohere',
+    baseURL: 'https://api.cohere.ai/compatibility/v1',
+    keyEnv: 'cohere',
+    docsUrl: 'https://dashboard.cohere.com/api-keys'
+  },
+  minimax: {
+    id: 'minimax',
+    label: 'MiniMax',
+    baseURL: 'https://api.minimax.io/v1',
+    keyEnv: 'minimax',
+    docsUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key'
+  },
+  nvidia: {
+    id: 'nvidia',
+    label: 'NVIDIA API Catalog / NIM',
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+    keyEnv: 'nvidia',
+    docsUrl: 'https://build.nvidia.com/settings/api-keys',
+    keyHint: 'nvapi-...'
+  },
+  'github-models': {
+    id: 'github-models',
+    label: 'GitHub Models',
+    baseURL: 'https://models.github.ai/inference',
+    keyEnv: 'github-models',
+    docsUrl: 'https://github.com/settings/personal-access-tokens',
+    keyHint: 'github_pat_...',
+    catalog: {
+      kind: 'url',
+      url: 'https://models.github.ai/catalog/models',
+      format: 'array',
+      auth: 'bearer'
+    }
+  },
+  sambanova: {
+    id: 'sambanova',
+    label: 'SambaNova Cloud',
+    baseURL: 'https://api.sambanova.ai/v1',
+    keyEnv: 'sambanova',
+    docsUrl: 'https://cloud.sambanova.ai/apis'
+  },
+  siliconflow: {
+    id: 'siliconflow',
+    label: 'SiliconFlow',
+    baseURL: 'https://api.siliconflow.com/v1',
+    keyEnv: 'siliconflow',
+    docsUrl: 'https://cloud.siliconflow.com/account/ak',
+    catalog: {
+      kind: 'url',
+      url: 'https://api.siliconflow.com/v1/models?type=text',
+      format: 'openai',
+      auth: 'bearer'
+    }
+  },
+  reka: {
+    id: 'reka',
+    label: 'Reka AI',
+    baseURL: 'https://api.reka.ai/v1',
+    keyEnv: 'reka',
+    docsUrl: 'https://platform.reka.ai/keys',
+    catalog: {
+      kind: 'url',
+      url: 'https://api.reka.ai/v1/models',
+      format: 'array',
+      auth: 'x-api-key'
+    }
+  },
+  sealion: {
+    id: 'sealion',
+    label: 'AI Singapore (SEA-LION)',
+    baseURL: 'https://api.sea-lion.ai/v1',
+    keyEnv: 'sealion',
+    docsUrl: 'https://playground.sea-lion.ai/'
+  },
+  deepinfra: {
+    id: 'deepinfra',
+    label: 'DeepInfra',
+    baseURL: 'https://api.deepinfra.com/v1/openai',
+    keyEnv: 'deepinfra',
+    docsUrl: 'https://deepinfra.com/dash/api_keys',
+    catalog: {
+      kind: 'url',
+      url: 'https://api.deepinfra.com/models/list',
+      format: 'deepinfra',
+      auth: 'none'
+    }
+  },
+  hyperbolic: {
+    id: 'hyperbolic',
+    label: 'Hyperbolic',
+    baseURL: 'https://api.hyperbolic.xyz/v1',
+    keyEnv: 'hyperbolic',
+    docsUrl: 'https://app.hyperbolic.xyz/settings'
+  },
+  perplexity: {
+    id: 'perplexity',
+    label: 'Perplexity (Sonar)',
+    baseURL: 'https://api.perplexity.ai',
+    keyEnv: 'perplexity',
+    docsUrl: 'https://www.perplexity.ai/settings/api',
+    keyHint: 'pplx-...',
+    catalog: { kind: 'unsupported' }
+  },
+  sarvam: {
+    id: 'sarvam',
+    label: 'Sarvam AI',
+    baseURL: 'https://api.sarvam.ai/v1',
+    keyEnv: 'sarvam',
+    docsUrl: 'https://dashboard.sarvam.ai/'
+  },
+  inception: {
+    id: 'inception',
+    label: 'Inception Labs',
+    baseURL: 'https://api.inceptionlabs.ai/v1',
+    keyEnv: 'inception',
+    docsUrl: 'https://platform.inceptionlabs.ai/'
+  },
   // Local runtimes. Keyless — the running server IS the credential. Their
   // built-in catalogs are empty by design (models are machine-specific);
   // pull the live list via Settings → Models or add Custom Models. A LAN
@@ -320,6 +486,28 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     supportsVision: true,
     tier: 'open',
     description: 'Smaller Gemma 3 variant — faster, lower cost.'
+  },
+  {
+    id: 'gemma-4-31b-it-google',
+    name: 'Gemma 4 31B (Google AI)',
+    provider: 'google',
+    apiModelId: 'gemma-4-31b-it',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'open',
+    description: 'Google-hosted Gemma 4 31B instruction model via the Gemini OpenAI endpoint.'
+  },
+  {
+    id: 'gemma-4-26b-a4b-it-google',
+    name: 'Gemma 4 26B A4B (Google AI)',
+    provider: 'google',
+    apiModelId: 'gemma-4-26b-a4b-it',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'open',
+    description: 'Google-hosted Gemma 4 26B A4B instruction model via the Gemini API.'
   },
   // Gemma 4 via OpenRouter — verified live on openrouter.ai/api/v1/models.
   // Free variants are rate-limited; the non-free entries bill via OpenRouter
@@ -586,6 +774,42 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     description: 'xAI code model — 256K context.'
   },
 
+  {
+    id: 'grok-4.20-reasoning',
+    name: 'Grok 4.20 Reasoning',
+    provider: 'xai',
+    apiModelId: 'grok-4.20-reasoning',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    isReasoner: true,
+    tier: 'reasoner',
+    description: 'Grok 4.20 reasoning alias with 1M context, tools, and vision.'
+  },
+  {
+    id: 'grok-4.20-non-reasoning',
+    name: 'Grok 4.20 Non-Reasoning',
+    provider: 'xai',
+    apiModelId: 'grok-4.20-non-reasoning',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'pro',
+    description: 'Lower-latency Grok 4.20 alias without a reasoning phase.'
+  },
+  {
+    id: 'grok-4.20-multi-agent',
+    name: 'Grok 4.20 Multi-Agent',
+    provider: 'xai',
+    apiModelId: 'grok-4.20-multi-agent',
+    contextWindow: 1_000_000,
+    supportsTools: true,
+    supportsVision: true,
+    isReasoner: true,
+    tier: 'reasoner',
+    description: 'xAI server-side multi-agent research model with 1M context.'
+  },
+
   // ── Mistral ── rolling `-latest` aliases (Mistral's documented convention;
   // they track the newest release of each line). Resolve live via
   // Settings → Models → "Verify against providers".
@@ -634,9 +858,45 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     description: 'Mistral coding model — rolling latest release.'
   },
 
-  // ── Moonshot AI (Kimi) ── k2.6 pinned from platform docs; k2.5 and
-  // k2-thinking inferred from OpenRouter's live listing of the same models —
-  // confirm via Settings → Models → "Verify against providers" with a key.
+  // ── Moonshot AI (Kimi) ── Current public Kimi API roster from
+  // platform.kimi.ai/docs/models. Moonshot V1 is omitted because it is closed
+  // to new accounts and scheduled for full platform sunset on 2026-08-31.
+  {
+    id: 'kimi-k3',
+    name: 'Kimi K3',
+    provider: 'moonshot',
+    apiModelId: 'kimi-k3',
+    contextWindow: 1_048_576,
+    supportsTools: true,
+    supportsVision: true,
+    isReasoner: true,
+    tier: 'pro',
+    description: 'Moonshot flagship — 1M context, native vision, and always-on reasoning.'
+  },
+  {
+    id: 'kimi-k2.7-code',
+    name: 'Kimi K2.7 Code',
+    provider: 'moonshot',
+    apiModelId: 'kimi-k2.7-code',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    isReasoner: true,
+    tier: 'coder',
+    description: 'Moonshot coding model — 256K context with always-on reasoning.'
+  },
+  {
+    id: 'kimi-k2.7-code-highspeed',
+    name: 'Kimi K2.7 Code HighSpeed',
+    provider: 'moonshot',
+    apiModelId: 'kimi-k2.7-code-highspeed',
+    contextWindow: 262_144,
+    supportsTools: true,
+    supportsVision: true,
+    isReasoner: true,
+    tier: 'coder',
+    description: 'High-speed Kimi K2.7 Code — identical capabilities with faster output.'
+  },
   {
     id: 'kimi-k2.6',
     name: 'Kimi K2.6',
@@ -645,8 +905,9 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     contextWindow: 262_144,
     supportsTools: true,
     supportsVision: true,
+    isReasoner: true,
     tier: 'pro',
-    description: 'Moonshot flagship — open-weights Kimi K2.6, 256K context.'
+    description: 'Kimi K2.6 — 256K context, native vision, and thinking mode.'
   },
   {
     id: 'kimi-k2.5',
@@ -656,22 +917,9 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     contextWindow: 262_144,
     supportsTools: true,
     supportsVision: true,
-    tier: 'pro',
-    description: 'Kimi K2.5 — 256K context.'
-  },
-  {
-    id: 'kimi-k2-thinking',
-    name: 'Kimi K2 Thinking',
-    provider: 'moonshot',
-    apiModelId: 'kimi-k2-thinking',
-    contextWindow: 262_144,
-    supportsTools: true,
-    supportsVision: false,
     isReasoner: true,
-    defaultMaxTokens: 16_384,
-    reasoningCapOnToolUse: true,
-    tier: 'reasoner',
-    description: 'Kimi thinking model — reasoning-guarded like the DeepSeek reasoners.'
+    tier: 'pro',
+    description: 'Legacy Kimi K2.5 — 256K context; platform sunset scheduled for 2026-08-31.'
   },
 
   // ── Groq ── production ids from console.groq.com/docs/models.
@@ -856,6 +1104,167 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     description: 'Zhipu GLM 5.2 via Hugging Face Inference Providers.'
   },
 
+  // Smaller first-party labs. Stable documented chat rosters are pinned;
+  // volatile inference-host catalogs remain live-import only.
+  {
+    id: 'cohere-command-a-plus',
+    name: 'Command A Plus',
+    provider: 'cohere',
+    apiModelId: 'command-a-plus-05-2026',
+    contextWindow: 256_000,
+    supportsTools: true,
+    supportsVision: true,
+    isReasoner: true,
+    tier: 'pro',
+    description: 'Cohere flagship through the OpenAI compatibility API.'
+  },
+  {
+    id: 'cohere-command-a',
+    name: 'Command A',
+    provider: 'cohere',
+    apiModelId: 'command-a-03-2025',
+    contextWindow: 256_000,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'pro',
+    description: 'Cohere Command A with tool use and long context.'
+  },
+  ...[
+    ['minimax-m2.7', 'MiniMax M2.7', 'MiniMax-M2.7', 'pro'],
+    ['minimax-m2.7-highspeed', 'MiniMax M2.7 HighSpeed', 'MiniMax-M2.7-highspeed', 'flash'],
+    ['minimax-m2.5', 'MiniMax M2.5', 'MiniMax-M2.5', 'pro'],
+    ['minimax-m2.5-highspeed', 'MiniMax M2.5 HighSpeed', 'MiniMax-M2.5-highspeed', 'flash'],
+    ['minimax-m2.1', 'MiniMax M2.1', 'MiniMax-M2.1', 'pro'],
+    ['minimax-m2', 'MiniMax M2', 'MiniMax-M2', 'pro']
+  ].map(([id, name, apiModelId, tier]) => ({
+    id,
+    name,
+    provider: 'minimax',
+    apiModelId,
+    contextWindow: 204_800,
+    supportsTools: true,
+    supportsVision: false,
+    isReasoner: true,
+    tier: tier as ModelDescriptor['tier'],
+    description: 'MiniMax M2-series reasoning model through its OpenAI-compatible endpoint.'
+  })),
+  {
+    id: 'reka-flash',
+    name: 'Reka Flash',
+    provider: 'reka',
+    apiModelId: 'reka-flash',
+    contextWindow: 128_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'flash',
+    description: 'Fast multimodal Reka model with function calling.'
+  },
+  {
+    id: 'reka-edge',
+    name: 'Reka Edge',
+    provider: 'reka',
+    apiModelId: 'reka-edge',
+    contextWindow: 32_000,
+    supportsTools: true,
+    supportsVision: true,
+    tier: 'open',
+    description: 'Compact multimodal Reka model.'
+  },
+  {
+    id: 'reka-flash-research',
+    name: 'Reka Flash Research',
+    provider: 'reka',
+    apiModelId: 'reka-flash-research',
+    contextWindow: 128_000,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'reasoner',
+    description: 'Reka web-research model through the OpenAI-compatible chat endpoint.'
+  },
+  {
+    id: 'sealion-gemma-v4-27b',
+    name: 'Gemma SEA-LION v4 27B',
+    provider: 'sealion',
+    apiModelId: 'aisingapore/Gemma-SEA-LION-v4-27B-IT',
+    contextWindow: 131_072,
+    supportsTools: false,
+    supportsVision: false,
+    tier: 'open',
+    description: 'AI Singapore multilingual Gemma model for Southeast Asian languages.'
+  },
+  {
+    id: 'sealion-llama-v3.5-70b-r',
+    name: 'Llama SEA-LION v3.5 70B Reasoning',
+    provider: 'sealion',
+    apiModelId: 'aisingapore/Llama-SEA-LION-v3.5-70B-R',
+    contextWindow: 131_072,
+    supportsTools: false,
+    supportsVision: false,
+    isReasoner: true,
+    tier: 'reasoner',
+    description: 'AI Singapore regional reasoning model.'
+  },
+  {
+    id: 'sonar',
+    name: 'Perplexity Sonar',
+    provider: 'perplexity',
+    apiModelId: 'sonar',
+    contextWindow: 127_072,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'flash',
+    description: 'Web-grounded Perplexity Sonar model.'
+  },
+  {
+    id: 'sonar-pro',
+    name: 'Perplexity Sonar Pro',
+    provider: 'perplexity',
+    apiModelId: 'sonar-pro',
+    contextWindow: 200_000,
+    supportsTools: true,
+    supportsVision: false,
+    tier: 'pro',
+    description: 'Higher-quality web-grounded Perplexity Sonar model.'
+  },
+  {
+    id: 'sarvam-30b',
+    name: 'Sarvam 30B',
+    provider: 'sarvam',
+    apiModelId: 'sarvam-30b',
+    contextWindow: 65_536,
+    supportsTools: true,
+    supportsVision: false,
+    isReasoner: true,
+    tier: 'open',
+    description: 'Efficient Indic-language reasoning and coding model.'
+  },
+  {
+    id: 'sarvam-105b',
+    name: 'Sarvam 105B',
+    provider: 'sarvam',
+    apiModelId: 'sarvam-105b',
+    contextWindow: 131_072,
+    supportsTools: true,
+    supportsVision: false,
+    isReasoner: true,
+    tier: 'pro',
+    description: 'Sarvam flagship for complex Indic-language reasoning and coding.'
+  },
+  {
+    id: 'mercury-2',
+    name: 'Mercury 2',
+    provider: 'inception',
+    apiModelId: 'mercury-2',
+    contextWindow: 128_000,
+    supportsTools: true,
+    supportsVision: false,
+    isReasoner: true,
+    defaultMaxTokens: 8_192,
+    reasoningCapOnToolUse: true,
+    tier: 'pro',
+    description: 'Inception Labs diffusion language model with configurable reasoning effort.'
+  },
+
   // ── OpenRouter broadening ── frontier + open flagships through the one
   // OpenRouter key; every id below was present on openrouter.ai/api/v1/models
   // with tools support at catalog time.
@@ -1030,6 +1439,13 @@ function readBaseUrlOverride(providerId: string): string | null {
   }
 }
 
+/** Effective endpoint after applying a validated settings override. */
+export function getProviderBaseURL(providerId: string): string | null {
+  const descriptor = resolveProviderDescriptor(providerId)
+  if (!descriptor) return null
+  return readBaseUrlOverride(providerId) ?? descriptor.baseURL
+}
+
 // settings.json `customProviders`: user-defined OpenAI-compatible endpoints
 // promoted to first-class provider ids — accepted by the keychain, the
 // key-settings UI, Custom Models, and dispatch. Entry shape:
@@ -1114,15 +1530,83 @@ export function listAllProviders(): ProviderDescriptor[] {
 /** Live model ids from one provider's /v1/models — the import affordance in
  *  Settings → Models. Throws on unknown provider / missing key / endpoint
  *  errors; the caller surfaces the message verbatim. */
-export async function listLiveModelIds(provider: string): Promise<string[]> {
-  const client = getClientForProvider(provider)
-  const response = await client.models.list()
-  return (Array.isArray(response.data) ? response.data : [])
-    .map((m: unknown) =>
-      m && typeof (m as { id?: unknown }).id === 'string' ? (m as { id: string }).id : null
-    )
+export class ModelCatalogUnsupportedError extends Error {
+  constructor(provider: string) {
+    super(`${provider} does not expose a compatible chat model catalog.`)
+    this.name = 'ModelCatalogUnsupportedError'
+  }
+}
+
+function providerApiKey(desc: ProviderDescriptor): string {
+  const key = getKey(desc.keyEnv) ?? (desc.keyOptional ? 'local' : null)
+  if (!key) {
+    throw new Error(`${desc.label} API key not configured. Add one in Settings → API Keys.`)
+  }
+  return key
+}
+
+function httpCatalogError(response: Response): Error & { status: number } {
+  const error = new Error(
+    `Model catalog request failed (HTTP ${response.status} ${response.statusText}).`
+  ) as Error & { status: number }
+  error.status = response.status
+  return error
+}
+
+function normalizeCatalogPayload(
+  payload: unknown,
+  format: Extract<ModelCatalogStrategy, { kind: 'url' }>['format']
+): string[] {
+  let rows: unknown[] = []
+  if (format === 'openai') {
+    const data = (payload as { data?: unknown } | null)?.data
+    rows = Array.isArray(data) ? data : []
+  } else if (Array.isArray(payload)) {
+    rows = payload
+  }
+
+  const ids = rows
+    .filter((row) => {
+      if (format !== 'deepinfra') return true
+      const item = row as { type?: unknown; reported_type?: unknown; deprecated?: unknown }
+      return (
+        item.deprecated == null &&
+        (item.reported_type === 'text-generation' || item.type === 'text-generation')
+      )
+    })
+    .map((row) => {
+      if (!row || typeof row !== 'object') return null
+      const item = row as { id?: unknown; model_name?: unknown }
+      const candidate = format === 'deepinfra' ? item.model_name : item.id
+      return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null
+    })
     .filter((id): id is string => !!id)
-    .sort()
+
+  return [...new Set(ids)].sort()
+}
+
+export async function listLiveModelIds(provider: string): Promise<string[]> {
+  const desc = resolveProviderDescriptor(provider)
+  if (!desc) throw new Error(`Unknown provider: ${provider}`)
+  const strategy = desc.catalog ?? { kind: 'openai' as const }
+  if (strategy.kind === 'unsupported') throw new ModelCatalogUnsupportedError(desc.label)
+
+  if (strategy.kind === 'openai') {
+    const client = getClientForProvider(provider)
+    const response = await client.models.list()
+    return normalizeCatalogPayload(response, 'openai')
+  }
+
+  const key = providerApiKey(desc)
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  if (strategy.auth === 'bearer') headers.Authorization = `Bearer ${key}`
+  if (strategy.auth === 'x-api-key') headers['X-Api-Key'] = key
+  const response = await fetch(strategy.url, {
+    headers,
+    signal: AbortSignal.timeout(30_000)
+  })
+  if (!response.ok) throw httpCatalogError(response)
+  return normalizeCatalogPayload(await response.json(), strategy.format)
 }
 
 function getClientForProvider(provider: string): OpenAI {
@@ -1136,10 +1620,7 @@ function getClientForProvider(provider: string): OpenAI {
   const cacheKey = `${provider}::${baseURL}`
   const cached = clientCache.get(cacheKey)
   if (cached) return cached
-  const apiKey = getKey(desc.keyEnv) ?? (desc.keyOptional ? 'local' : null)
-  if (!apiKey) {
-    throw new Error(`${desc.label} API key not configured. Add one in Settings → API Keys.`)
-  }
+  const apiKey = providerApiKey(desc)
   const client = new OpenAI({ apiKey, baseURL })
   clientCache.set(cacheKey, client)
   return client
@@ -1149,7 +1630,8 @@ const RETIRED_MODEL_MAP: Record<string, string> = {
   'deepseek-chat': 'deepseek-v4-flash',
   'deepseek-reasoner': 'deepseek-v4-pro',
   'deepseek-v3': 'deepseek-v4-flash',
-  'deepseek-r1': 'deepseek-v4-pro'
+  'deepseek-r1': 'deepseek-v4-pro',
+  'kimi-k2-thinking': 'kimi-k3'
 }
 
 // JM-11 (CC-7) — user-defined Custom Models. `model:addCustom` persists id,
@@ -1257,9 +1739,8 @@ export async function validateProviderKeyDetailed(provider: string): Promise<Key
   // works on every OpenAI-compatible provider we route to. A 401/403 here
   // is the only thing that proves the key itself is bad.
   try {
-    const response = await client.models.list()
-    const count = Array.isArray(response.data) ? response.data.length : 0
-    return { ok: true, modelCount: count }
+    const ids = await listLiveModelIds(provider)
+    return { ok: true, modelCount: ids.length }
   } catch (err: any) {
     if (err?.status === 401 || err?.status === 403) {
       return { ok: false, reason: `Provider rejected the key (HTTP ${err.status}).` }
@@ -1354,17 +1835,8 @@ export async function verifyCatalog(): Promise<CatalogVerificationReport> {
 
   const providerReports = await Promise.all(
     providerIds.map(async (pid): Promise<ProviderCatalogReport> => {
-      let client: OpenAI
       try {
-        client = getClientForProvider(pid)
-      } catch (err: any) {
-        return { provider: pid, status: 'no-key', reason: err?.message || 'No API key stored.' }
-      }
-      try {
-        const response = await client.models.list()
-        const ids = (Array.isArray(response.data) ? response.data : [])
-          .map((m: any) => (typeof m?.id === 'string' ? m.id : null))
-          .filter((id): id is string => !!id)
+        const ids = await listLiveModelIds(pid)
         return {
           provider: pid,
           status: 'ok',
@@ -1372,6 +1844,12 @@ export async function verifyCatalog(): Promise<CatalogVerificationReport> {
           liveCount: ids.length
         }
       } catch (err: any) {
+        if (err instanceof ModelCatalogUnsupportedError) {
+          return { provider: pid, status: 'unsupported-endpoint', reason: err.message }
+        }
+        if (typeof err?.message === 'string' && err.message.includes('API key not configured')) {
+          return { provider: pid, status: 'no-key', reason: err.message }
+        }
         if (err?.status === 401 || err?.status === 403) {
           return {
             provider: pid,

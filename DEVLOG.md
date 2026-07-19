@@ -9583,3 +9583,28 @@ unchanged for tool-capable servers; resource-only servers can now connect withou
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt MR-2 MCP resource tools — 2026-07-18
+
+**Files changed:** `electron/services/mcp-resource-tool-pack.ts`,
+`electron/services/mcp-resource-tool-pack.test.ts`, `electron/services/tool-packs.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused MCP manager/tool/schema/lazy-surface cohort ✓ (4 files, 37 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Three strict lazy tools now list concrete MCP resources, list URI templates, and
+read one exact server/URI pair. Omitted list server queries each connected resource-capable
+server in stable order; an opaque cursor is accepted only with its originating server.
+Every list item carries server provenance. Reads reject mismatched response URIs and emit
+text, image, audio, and generic blob payloads as canonical content blocks. The handler
+returns the full JSON value so chat's existing spill valve preserves the full database/UI
+result while giving the model a bounded preview; no second spill authority was added.
+
+**Commit:** see git log (MR-2).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

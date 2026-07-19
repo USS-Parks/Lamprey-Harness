@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M6 STS ACTIVE AT MR-2; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
+**Status:** **M6 STS ACTIVE AT MR-4; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -635,7 +635,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **MR-3 — Add authenticated-session and elicitation lifecycle**
 
-- [ ] Support hosted-session auth status, reauthorization, user-consent elicitation, expiry,
+- [x] Support hosted-session auth status, reauthorization, user-consent elicitation, expiry,
       reconnect, and actionable errors. Credentials remain in keychain/safe storage and
       never enter prompts/events.
 - Verify: auth state machine, cancellation, secret-redaction, reconnect tests.

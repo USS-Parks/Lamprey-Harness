@@ -487,13 +487,28 @@ const api = {
   mcp: {
     list: () => ipcRenderer.invoke('mcp:list'),
     getStatus: (id: string) => ipcRenderer.invoke('mcp:getStatus', id),
+    getAuthStatus: (id: string) => ipcRenderer.invoke('mcp:getAuthStatus', id),
     reconnect: (id: string) => ipcRenderer.invoke('mcp:reconnect', id),
+    reauthorize: (id: string) => ipcRenderer.invoke('mcp:reauthorize', id),
     addServer: (config: unknown) => ipcRenderer.invoke('mcp:addServer', config),
     setupGoogleOAuth: () => ipcRenderer.invoke('mcp:setupGoogleOAuth'),
     approveToolCall: (callId: string, approved: boolean) =>
       ipcRenderer.invoke('mcp:approveToolCall', callId, approved),
-    onStatusChanged: (cb: (e: unknown) => void) =>
-      ipcRenderer.on('mcp:statusChanged', (_, e) => cb(e)),
+    onStatusChanged: (cb: (e: unknown) => void) => {
+      const handler = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
+      ipcRenderer.on('mcp:statusChanged', handler)
+      return () => ipcRenderer.removeListener('mcp:statusChanged', handler)
+    },
+    onAuthStatusChanged: (cb: (e: unknown) => void) => {
+      const handler = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
+      ipcRenderer.on('mcp:authStatusChanged', handler)
+      return () => ipcRenderer.removeListener('mcp:authStatusChanged', handler)
+    },
+    onElicitationChanged: (cb: (e: unknown) => void) => {
+      const handler = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
+      ipcRenderer.on('mcp:elicitationChanged', handler)
+      return () => ipcRenderer.removeListener('mcp:elicitationChanged', handler)
+    },
     onConfirmationRequired: (cb: (e: unknown) => void) =>
       ipcRenderer.on('mcp:confirmationRequired', (_, e) => cb(e))
   },

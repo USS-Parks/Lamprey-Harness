@@ -9608,3 +9608,33 @@ result while giving the model a bounded preview; no second spill authority was a
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt MR-3 Hosted MCP auth and elicitation — 2026-07-18
+
+**Files changed:** `electron/services/mcp-hosted-session.ts`,
+`electron/services/mcp-hosted-session.test.ts`, `electron/services/mcp-auth-wiring.test.ts`,
+`electron/services/mcp-manager.ts`, `electron/services/mcp-manager.test.ts`,
+`electron/ipc/mcp.ts`, `electron/preload.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused auth/elicitation/resource/OAuth/keychain/security cohort ✓ (7 files, 73 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Remote connectors may now use MCP Streamable HTTP plus the SDK's OAuth 2.1
+client. Per-server client registration, PKCE verifier, and token material live only behind
+the existing encrypted keychain authority. The manager reports signed-out, authorization-
+required, authorizing, connected, expired, and error states; reauthorization requires an
+exact-domain confirmation, loopback state validation, token exchange, and reconnect.
+Credential-shaped errors are redacted before IPC/events. Servers may request URL-mode
+elicitation only; the existing Ask User runtime obtains consent before HTTP(S) navigation
+and reports accepted/declined/cancelled/completed metadata without URLs or credentials.
+The legacy Google OAuth/SSE path remains intact. A real hosted-provider authorization pass
+is still `USER-VERIFICATION-NEEDED` and belongs to the MR-4 playbook gate.
+
+**Commit:** see git log (MR-3).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

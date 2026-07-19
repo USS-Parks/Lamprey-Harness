@@ -1,11 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+const authMocks = vi.hoisted(() => ({ auth: vi.fn() }))
+
 // Mock electron's app so the module loads under vitest's node environment.
 vi.mock('electron', () => ({
   app: {
     getPath: () => '/tmp/lamprey-test-userdata-nonexistent'
   },
-  BrowserWindow: class {}
+  BrowserWindow: { getAllWindows: () => [] }
+}))
+
+vi.mock('@modelcontextprotocol/sdk/client/auth.js', () => ({
+  auth: authMocks.auth,
+  UnauthorizedError: class UnauthorizedError extends Error {}
 }))
 
 // Stub the SDK transports so importing the manager doesn't try to open a
@@ -110,6 +117,7 @@ import {
   MCPRequestTimeoutError,
   MCPTimeoutError,
   MCP_RESOURCE_LIMITS,
+  redactMcpAuthError,
   __setMcpCallTimeoutForTesting
 } from './mcp-manager'
 import { Client as FakeClientCtor } from '@modelcontextprotocol/sdk/client/index.js'
@@ -151,6 +159,7 @@ beforeEach(() => {
   ;(FakeClientCtor as any).lastCursor = undefined
   ;(FakeClientCtor as any).lastUri = undefined
   ;(FakeClientCtor as any).notificationHandlers = []
+  authMocks.auth.mockReset()
 })
 
 describe('mcpManager.callTool — per-call timeout (T2)', () => {
@@ -370,5 +379,83 @@ describe('McpManager resource capability surface (MR-1)', () => {
       { serverId: 'resources', kind: 'list-changed' },
       { serverId: 'resources', kind: 'resource-updated', uri: 'test://server/readme' }
     ])
+  })
+})
+
+describe('McpManager hosted auth lifecycle (MR-3)', () => {
+  function seedHostedServer(mgr: McpManager) {
+    const provider = {
+      invalidateCredentials: vi.fn(),
+      takeAuthorizationRequest: vi.fn(() => ({
+        authorizationUrl: 'https://auth.example/authorize?state=expected',
+        state: 'expected'
+      })),
+      validateCallbackState: vi.fn(),
+      hasTokens: vi.fn(() => false),
+      tokensExpired: vi.fn(() => false)
+    }
+    const state = {
+      config: {
+        id: 'hosted',
+        name: 'Hosted',
+        transport: 'streamable-http',
+        url: 'https://mcp.example/mcp',
+        auth: 'oauth',
+        enabled: true
+      },
+      status: 'disconnected',
+      client: null,
+      transport: null,
+      tools: [],
+      restartCount: 0,
+      authProvider: provider
+    }
+    ;(mgr as any).servers.set('hosted', state)
+    return { provider, state }
+  }
+
+  it('moves signed-out sessions through explicit authorization-required state', async () => {
+    authMocks.auth.mockResolvedValueOnce('REDIRECT')
+    const mgr = new McpManager()
+    const { provider } = seedHostedServer(mgr)
+    const snapshots: unknown[] = []
+    mgr.onAuthStatusChange((snapshot) => snapshots.push(snapshot))
+
+    await expect(mgr.beginHostedAuthorization('hosted')).resolves.toEqual({
+      authorizationUrl: 'https://auth.example/authorize?state=expected',
+      state: 'expected'
+    })
+    expect(provider.invalidateCredentials).toHaveBeenCalledWith('tokens')
+    expect(snapshots).toEqual([
+      { serverId: 'hosted', status: 'authorizing' },
+      { serverId: 'hosted', status: 'authorization-required' }
+    ])
+  })
+
+  it('validates callback state, exchanges the code, and reconnects', async () => {
+    authMocks.auth.mockResolvedValueOnce('AUTHORIZED')
+    const mgr = new McpManager()
+    const { provider, state } = seedHostedServer(mgr)
+    vi.spyOn(mgr as any, 'connectServer').mockImplementation(async () => {
+      state.status = 'connected'
+    })
+
+    await mgr.completeHostedAuthorization('hosted', { code: 'code-1', state: 'expected' })
+    expect(provider.validateCallbackState).toHaveBeenCalledWith('expected')
+    expect(authMocks.auth).toHaveBeenCalledWith(
+      provider,
+      expect.objectContaining({ serverUrl: 'https://mcp.example/mcp', authorizationCode: 'code-1' })
+    )
+    expect(mgr.getAuthStatus('hosted')).toEqual({ serverId: 'hosted', status: 'connected' })
+  })
+
+  it('redacts credential-shaped auth errors before status events', () => {
+    expect(
+      redactMcpAuthError(
+        'Bearer secret-token https://auth.example/cb?code=abc&refresh_token=refresh&client_secret=shh'
+      )
+    ).toBe(
+      'Bearer [REDACTED] https://auth.example/cb?code=[REDACTED]&refresh_token=[REDACTED]&client_secret=[REDACTED]'
+    )
   })
 })

@@ -2,7 +2,11 @@ import { app, BrowserWindow } from 'electron'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import { auth, UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js'
 import {
+  ElicitRequestSchema,
+  ElicitationCompleteNotificationSchema,
   McpError,
   ErrorCode,
   ResourceListChangedNotificationSchema,
@@ -13,6 +17,10 @@ import { join } from 'path'
 import { randomUUID } from 'crypto'
 import * as keychain from './keychain'
 import { trace } from './debug-trace'
+import {
+  McpHostedOAuthProvider,
+  requestMcpUrlElicitationConsent
+} from './mcp-hosted-session'
 
 // T2 — Per-call MCP timeout. The SDK has built-in `RequestOptions.timeout`
 // support (it throws McpError with code RequestTimeout on expiry). We pass
@@ -142,6 +150,13 @@ function hasControlCharacters(value: string): boolean {
   return false
 }
 
+export function redactMcpAuthError(message: string): string {
+  return message
+    .replace(/\bBearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
+    .replace(/([?&](?:code|access_token|refresh_token|client_secret)=)[^&\s]+/gi, '$1[REDACTED]')
+    .slice(0, 1_000)
+}
+
 function validateResourceUri(uri: string): string {
   if (typeof uri !== 'string' || uri.length === 0) {
     throw new TypeError('MCP resource URI must be a non-empty string')
@@ -188,7 +203,7 @@ function assertBoundedPage(kind: string, items: unknown[]): void {
 export interface McpServerConfig {
   id: string
   name: string
-  transport: 'sse' | 'stdio'
+  transport: 'sse' | 'stdio' | 'streamable-http'
   url?: string
   command?: string
   args?: string[]
@@ -196,7 +211,7 @@ export interface McpServerConfig {
   // stdio server. Used by the bundled Node REPL default server to set
   // ELECTRON_RUN_AS_NODE=1; ignored for SSE transports.
   env?: Record<string, string>
-  auth: 'google-oauth' | 'none'
+  auth: 'google-oauth' | 'oauth' | 'none'
   enabled: boolean
   /** Customize C11: when registered transiently by the plugin runtime,
    *  the owning plugin id. Plugin-owned servers are NEVER persisted to
@@ -206,15 +221,39 @@ export interface McpServerConfig {
 }
 
 type ServerStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+export type McpAuthStatus =
+  | 'not-required'
+  | 'signed-out'
+  | 'authorization-required'
+  | 'authorizing'
+  | 'connected'
+  | 'expired'
+  | 'error'
+
+export interface McpAuthStatusSnapshot {
+  serverId: string
+  status: McpAuthStatus
+  error?: string
+}
+
+export interface McpElicitationEvent {
+  serverId: string
+  elicitationId: string
+  status: 'awaiting-consent' | 'accepted' | 'declined' | 'cancelled' | 'completed'
+  domain?: string
+}
 
 interface ServerState {
   config: McpServerConfig
   status: ServerStatus
   error?: string
   client: Client | null
-  transport: SSEClientTransport | StdioClientTransport | null
+  transport: SSEClientTransport | StdioClientTransport | StreamableHTTPClientTransport | null
   tools: McpTool[]
   restartCount: number
+  authProvider?: McpHostedOAuthProvider
+  authStatus?: McpAuthStatus
+  authError?: string
 }
 
 const MAX_RESTARTS = 3
@@ -278,6 +317,8 @@ export class McpManager {
   private servers = new Map<string, ServerState>()
   private statusCallbacks: ((serverId: string, status: ServerStatus, error?: string) => void)[] = []
   private resourceChangeCallbacks = new Set<(change: McpResourceChange) => void>()
+  private authStatusCallbacks = new Set<(snapshot: McpAuthStatusSnapshot) => void>()
+  private elicitationCallbacks = new Set<(event: McpElicitationEvent) => void>()
   private initialized = false
   // Customize C11: plugin-owned servers live in a separate Map keyed by
   // namespaced id (`<pluginId>:<connectorId>`). They're NEVER persisted
@@ -356,17 +397,27 @@ export class McpManager {
           if (!innerId) continue
           const namespacedId = `${pluginId}:${innerId}`
           const transport =
-            obj.transport === 'stdio' || obj.transport === 'sse' ? obj.transport : null
+            obj.transport === 'stdio' ||
+            obj.transport === 'sse' ||
+            obj.transport === 'streamable-http'
+              ? obj.transport
+              : null
           if (!transport) continue
           const cfg: McpServerConfig = {
             id: namespacedId,
             name: typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : namespacedId,
             transport,
-            auth: obj.auth === 'google-oauth' ? 'google-oauth' : 'none',
+            auth:
+              obj.auth === 'google-oauth' || obj.auth === 'oauth' ? obj.auth : 'none',
             enabled: true,
             pluginId
           }
-          if (transport === 'sse' && typeof obj.url === 'string') cfg.url = obj.url
+          if (
+            (transport === 'sse' || transport === 'streamable-http') &&
+            typeof obj.url === 'string'
+          ) {
+            cfg.url = obj.url
+          }
           if (transport === 'stdio' && typeof obj.command === 'string') {
             cfg.command = obj.command
             if (Array.isArray(obj.args)) {
@@ -431,13 +482,25 @@ export class McpManager {
     }
   }
 
-  getServers(): (McpServerConfig & { status: ServerStatus; error?: string })[] {
-    const result: (McpServerConfig & { status: ServerStatus; error?: string })[] = []
+  getServers(): (McpServerConfig & {
+    status: ServerStatus
+    error?: string
+    authStatus: McpAuthStatus
+    authError?: string
+  })[] {
+    const result: (McpServerConfig & {
+      status: ServerStatus
+      error?: string
+      authStatus: McpAuthStatus
+      authError?: string
+    })[] = []
     for (const state of this.servers.values()) {
       result.push({
         ...state.config,
         status: state.status,
-        error: state.error
+        error: state.error,
+        authStatus: this.resolveAuthStatus(state),
+        authError: state.authError
       })
     }
     // Customize C11: append plugin-owned servers. They carry pluginId so
@@ -447,7 +510,9 @@ export class McpManager {
       result.push({
         ...state.config,
         status: state.status,
-        error: state.error
+        error: state.error,
+        authStatus: this.resolveAuthStatus(state),
+        authError: state.authError
       })
     }
     return result
@@ -672,6 +737,75 @@ export class McpManager {
     return () => this.resourceChangeCallbacks.delete(cb)
   }
 
+  getAuthStatus(serverId: string): McpAuthStatusSnapshot {
+    const state = this.findServer(serverId)
+    if (!state) throw new Error(`MCP server '${serverId}' not found`)
+    return {
+      serverId,
+      status: this.resolveAuthStatus(state),
+      ...(state.authError ? { error: state.authError } : {})
+    }
+  }
+
+  async beginHostedAuthorization(
+    serverId: string
+  ): Promise<{ authorizationUrl: string; state: string }> {
+    const state = this.requireHostedOAuthState(serverId)
+    await this.cleanupServer(state)
+    state.status = 'disconnected'
+    state.authProvider!.invalidateCredentials('tokens')
+    this.setAuthStatus(state, 'authorizing')
+    try {
+      const result = await auth(state.authProvider!, { serverUrl: state.config.url! })
+      if (result !== 'REDIRECT') {
+        throw new Error(`MCP server '${serverId}' did not request user authorization`)
+      }
+      const request = state.authProvider!.takeAuthorizationRequest()
+      this.setAuthStatus(state, 'authorization-required')
+      return request
+    } catch (error) {
+      const message = redactMcpAuthError(error instanceof Error ? error.message : String(error))
+      this.setAuthStatus(state, 'error', message)
+      throw new Error(message, { cause: error })
+    }
+  }
+
+  async completeHostedAuthorization(
+    serverId: string,
+    input: { code: string; state: string | null }
+  ): Promise<void> {
+    const state = this.requireHostedOAuthState(serverId)
+    state.authProvider!.validateCallbackState(input.state)
+    this.setAuthStatus(state, 'authorizing')
+    try {
+      const result = await auth(state.authProvider!, {
+        serverUrl: state.config.url!,
+        authorizationCode: input.code
+      })
+      if (result !== 'AUTHORIZED') {
+        throw new Error(`MCP server '${serverId}' authorization did not complete`)
+      }
+      await this.connectServer(serverId)
+      if (state.status !== 'connected') {
+        throw new Error(state.error ?? `MCP server '${serverId}' did not reconnect after authorization`)
+      }
+    } catch (error) {
+      const message = redactMcpAuthError(error instanceof Error ? error.message : String(error))
+      this.setAuthStatus(state, 'error', message)
+      throw new Error(message, { cause: error })
+    }
+  }
+
+  onAuthStatusChange(cb: (snapshot: McpAuthStatusSnapshot) => void): () => void {
+    this.authStatusCallbacks.add(cb)
+    return () => this.authStatusCallbacks.delete(cb)
+  }
+
+  onElicitationChange(cb: (event: McpElicitationEvent) => void): () => void {
+    this.elicitationCallbacks.add(cb)
+    return () => this.elicitationCallbacks.delete(cb)
+  }
+
   async callTool(serverId: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
     const state = this.servers.get(serverId)
     if (!state || !state.client || state.status !== 'connected') {
@@ -757,10 +891,70 @@ export class McpManager {
     }
     this.servers.clear()
     this.resourceChangeCallbacks.clear()
+    this.authStatusCallbacks.clear()
+    this.elicitationCallbacks.clear()
   }
 
   private findServer(id: string): ServerState | undefined {
     return this.servers.get(id) ?? this.pluginServers.get(id)
+  }
+
+  private requireHostedOAuthState(serverId: string): ServerState {
+    const state = this.findServer(serverId)
+    if (!state) throw new Error(`MCP server '${serverId}' not found`)
+    if (state.config.auth !== 'oauth' || !state.config.url) {
+      throw new Error(`MCP server '${serverId}' is not configured for hosted OAuth`)
+    }
+    state.authProvider ??= new McpHostedOAuthProvider(serverId)
+    return state
+  }
+
+  private resolveAuthStatus(state: ServerState): McpAuthStatus {
+    if (state.config.auth === 'none') return 'not-required'
+    if (state.status === 'connected') return 'connected'
+    if (state.authStatus) return state.authStatus
+    if (state.config.auth === 'google-oauth') {
+      const token = keychain.getKey('google-access-token')
+      if (!token) return 'signed-out'
+      const expiry = Number(keychain.getKey('google-token-expiry'))
+      return Number.isFinite(expiry) && expiry <= Date.now() ? 'expired' : 'signed-out'
+    }
+    const provider = state.authProvider ?? new McpHostedOAuthProvider(state.config.id)
+    state.authProvider = provider
+    if (!provider.hasTokens()) return 'signed-out'
+    return provider.tokensExpired() ? 'expired' : 'signed-out'
+  }
+
+  private setAuthStatus(state: ServerState, status: McpAuthStatus, error?: string): void {
+    const safeError = error ? redactMcpAuthError(error) : undefined
+    state.authStatus = status
+    state.authError = safeError
+    const snapshot: McpAuthStatusSnapshot = {
+      serverId: state.config.id,
+      status,
+      ...(safeError ? { error: safeError } : {})
+    }
+    for (const callback of this.authStatusCallbacks) {
+      try {
+        callback(snapshot)
+      } catch {
+        // An observer cannot break the authentication state machine.
+      }
+    }
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    mainWindow?.webContents.send('mcp:authStatusChanged', snapshot)
+  }
+
+  private emitElicitation(event: McpElicitationEvent): void {
+    for (const callback of this.elicitationCallbacks) {
+      try {
+        callback(event)
+      } catch {
+        // An observer cannot break the elicitation request/response.
+      }
+    }
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    mainWindow?.webContents.send('mcp:elicitationChanged', event)
   }
 
   private async runResourceRequest<T>(
@@ -837,14 +1031,26 @@ export class McpManager {
     try {
       if (state.config.transport === 'sse') {
         await this.connectSSE(state)
+      } else if (state.config.transport === 'streamable-http') {
+        await this.connectStreamableHttp(state)
       } else {
         await this.connectStdio(state)
       }
     } catch (err: any) {
+      if (err instanceof UnauthorizedError) {
+        state.status = 'disconnected'
+        state.error = 'Authorization required — reconnect after approving the hosted session.'
+        this.setAuthStatus(state, 'authorization-required', state.error)
+        this.emitStatus(id, 'disconnected', state.error)
+        return
+      }
+      const message =
+        state.config.auth === 'oauth' ? redactMcpAuthError(err.message) : String(err.message)
       state.status = 'error'
-      state.error = err.message
-      this.emitStatus(id, 'error', err.message)
-      console.error(`[mcp] Connection error for ${id}:`, err.message)
+      state.error = message
+      if (state.config.auth === 'oauth') this.setAuthStatus(state, 'error', message)
+      this.emitStatus(id, 'error', message)
+      console.error(`[mcp] Connection error for ${id}:`, message)
     }
   }
 
@@ -885,7 +1091,7 @@ export class McpManager {
         }
       })
 
-      const client = new Client({ name: 'lamprey', version: '1.0.0' })
+      const client = this.createClient(state)
 
       transport.onerror = (err) => {
         console.error(`[mcp] SSE error for ${state.config.id}:`, err.message)
@@ -904,8 +1110,12 @@ export class McpManager {
       await this.connectWithRetry(state, client, transport)
     } else {
       const url = new URL(state.config.url!)
-      const transport = new SSEClientTransport(url)
-      const client = new Client({ name: 'lamprey', version: '1.0.0' })
+      const authProvider =
+        state.config.auth === 'oauth'
+          ? (state.authProvider ??= new McpHostedOAuthProvider(state.config.id))
+          : undefined
+      const transport = new SSEClientTransport(url, authProvider ? { authProvider } : undefined)
+      const client = this.createClient(state)
 
       transport.onerror = (err) => {
         console.error(`[mcp] SSE error for ${state.config.id}:`, err.message)
@@ -916,6 +1126,41 @@ export class McpManager {
 
       await this.connectWithRetry(state, client, transport)
     }
+  }
+
+  private async connectStreamableHttp(state: ServerState): Promise<void> {
+    const authProvider =
+      state.config.auth === 'oauth'
+        ? (state.authProvider ??= new McpHostedOAuthProvider(state.config.id))
+        : undefined
+    const transport = new StreamableHTTPClientTransport(new URL(state.config.url!), {
+      ...(authProvider ? { authProvider } : {}),
+      reconnectionOptions: {
+        initialReconnectionDelay: 1_000,
+        maxReconnectionDelay: 30_000,
+        reconnectionDelayGrowFactor: 1.5,
+        maxRetries: 2
+      }
+    })
+    const client = this.createClient(state)
+
+    transport.onerror = (error) => {
+      const safeMessage = redactMcpAuthError(error.message)
+      state.status = 'error'
+      state.error = safeMessage
+      if (state.config.auth === 'oauth' && /401|403|unauthor|forbidden/i.test(safeMessage)) {
+        this.setAuthStatus(state, 'expired', 'Hosted MCP session expired; reauthorization required.')
+      }
+      this.emitStatus(state.config.id, 'error', state.error)
+    }
+    transport.onclose = () => {
+      if (state.status === 'connected') {
+        state.status = 'disconnected'
+        this.emitStatus(state.config.id, 'disconnected')
+      }
+    }
+
+    await this.connectWithRetry(state, client, transport)
   }
 
   private async connectStdio(state: ServerState): Promise<void> {
@@ -930,7 +1175,7 @@ export class McpManager {
       stderr: 'pipe'
     })
 
-    const client = new Client({ name: 'lamprey', version: '1.0.0' })
+    const client = this.createClient(state)
 
     transport.onerror = (err) => {
       console.error(`[mcp] stdio error for ${state.config.id}:`, err.message)
@@ -963,10 +1208,54 @@ export class McpManager {
     await this.connectWithRetry(state, client, transport)
   }
 
+  private createClient(state: ServerState): Client {
+    const client = new Client(
+      { name: 'lamprey', version: '1.0.0' },
+      { capabilities: { elicitation: { url: {} } } }
+    )
+    client.setRequestHandler(ElicitRequestSchema, async (request) => {
+      if (request.params.mode !== 'url') return { action: 'decline' as const }
+      let domain: string | undefined
+      try {
+        domain = new URL(request.params.url).hostname
+      } catch {
+        domain = undefined
+      }
+      const elicitationId = request.params.elicitationId
+      this.emitElicitation({
+        serverId: state.config.id,
+        elicitationId,
+        status: 'awaiting-consent',
+        ...(domain ? { domain } : {})
+      })
+      const action = await requestMcpUrlElicitationConsent({
+        serverId: state.config.id,
+        url: request.params.url,
+        message: request.params.message
+      })
+      this.emitElicitation({
+        serverId: state.config.id,
+        elicitationId,
+        status:
+          action === 'accept' ? 'accepted' : action === 'decline' ? 'declined' : 'cancelled',
+        ...(domain ? { domain } : {})
+      })
+      return { action }
+    })
+    client.setNotificationHandler(ElicitationCompleteNotificationSchema, (notification) => {
+      this.emitElicitation({
+        serverId: state.config.id,
+        elicitationId: notification.params.elicitationId,
+        status: 'completed'
+      })
+    })
+    return client
+  }
+
   private async connectWithRetry(
     state: ServerState,
     client: Client,
-    transport: SSEClientTransport | StdioClientTransport
+    transport: SSEClientTransport | StdioClientTransport | StreamableHTTPClientTransport
   ): Promise<void> {
     let lastError: Error | null = null
 
@@ -993,12 +1282,14 @@ export class McpManager {
         state.status = 'connected'
         state.error = undefined
         state.restartCount = 0
+        if (state.config.auth !== 'none') this.setAuthStatus(state, 'connected')
         this.emitStatus(state.config.id, 'connected')
 
         console.log(`[mcp] Connected to ${state.config.id} — ${state.tools.length} tools available`)
         return
       } catch (err: any) {
         lastError = err
+        if (err instanceof UnauthorizedError) throw err
         console.warn(`[mcp] Connection attempt ${attempt + 1} for ${state.config.id} failed:`, err.message)
         if (attempt < RETRY_DELAYS.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]))

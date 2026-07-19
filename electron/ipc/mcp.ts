@@ -4,20 +4,25 @@ import { mcpManager } from '../services/mcp-manager'
 import type { McpServerConfig } from '../services/mcp-manager'
 import * as keychain from '../services/keychain'
 import { createOAuthSession, validateOAuthCallback } from '../services/oauth-state'
+import { MCP_OAUTH_CALLBACK_PORT } from '../services/mcp-hosted-session'
 
-function sanitizeAddServerInput(raw: unknown): McpServerConfig | string {
+export function sanitizeAddServerInput(raw: unknown): McpServerConfig | string {
   if (!raw || typeof raw !== 'object') return 'Connector config must be an object'
   const obj = raw as Record<string, unknown>
   const id = typeof obj.id === 'string' ? obj.id.trim() : ''
   if (!id) return 'Connector id is required (kebab-case)'
   if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return 'Connector id must be kebab-case (a-z, 0-9, -)'
   const name = typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim() : id
-  const transport = obj.transport === 'stdio' || obj.transport === 'sse' ? obj.transport : null
-  if (!transport) return 'transport must be "stdio" or "sse"'
-  const auth = obj.auth === 'google-oauth' ? 'google-oauth' : 'none'
+  const transport =
+    obj.transport === 'stdio' || obj.transport === 'sse' || obj.transport === 'streamable-http'
+      ? obj.transport
+      : null
+  if (!transport) return 'transport must be "stdio", "sse", or "streamable-http"'
+  const auth = obj.auth === 'google-oauth' || obj.auth === 'oauth' ? obj.auth : 'none'
+  if (transport === 'stdio' && auth !== 'none') return 'stdio transport does not support hosted OAuth'
   const enabled = obj.enabled === false ? false : true
   const cfg: McpServerConfig = { id, name, transport, auth, enabled }
-  if (transport === 'sse') {
+  if (transport === 'sse' || transport === 'streamable-http') {
     if (typeof obj.url !== 'string' || !obj.url.trim()) return 'sse transport requires a url'
     cfg.url = obj.url.trim()
   } else {
@@ -63,10 +68,93 @@ export function registerMcpHandlers(): void {
     }
   })
 
+  ipcMain.handle('mcp:getAuthStatus', async (_event, id: string) => {
+    try {
+      return { success: true, data: mcpManager.getAuthStatus(id) }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
   ipcMain.handle('mcp:reconnect', async (_event, id: string) => {
     try {
       await mcpManager.reconnect(id)
       return { success: true, data: null }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('mcp:reauthorize', async (_event, id: string) => {
+    try {
+      const request = await mcpManager.beginHostedAuthorization(id)
+      const authorizationUrl = new URL(request.authorizationUrl)
+      if (authorizationUrl.protocol !== 'https:' && authorizationUrl.protocol !== 'http:') {
+        return { success: false, error: 'Hosted MCP authorization URL must use HTTP(S)' }
+      }
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      const options = {
+        type: 'warning' as const,
+        buttons: ['Cancel', 'Continue'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Authorize hosted connector?',
+        message: `Open ${authorizationUrl.hostname} to authorize "${id}"?`,
+        detail:
+          'The connector controls the requested permissions. Lamprey stores resulting tokens in the encrypted keychain and never sends them to the model.'
+      }
+      const { response } = win
+        ? await dialog.showMessageBox(win, options)
+        : await dialog.showMessageBox(options)
+      if (response !== 1) {
+        return { success: false, error: 'Hosted MCP authorization cancelled by user.' }
+      }
+
+      const callback = new Promise<{ code: string; state: string | null }>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          server.close()
+          reject(new Error('Hosted MCP OAuth timeout — no callback received within 5 minutes'))
+        }, 5 * 60_000)
+        const server = createServer((req, res) => {
+          const url = new URL(req.url ?? '', `http://127.0.0.1:${MCP_OAUTH_CALLBACK_PORT}`)
+          if (url.pathname !== '/mcp/oauth/callback') {
+            res.writeHead(404).end()
+            return
+          }
+          const error = url.searchParams.get('error')
+          const code = url.searchParams.get('code')
+          const state = url.searchParams.get('state')
+          clearTimeout(timeout)
+          server.close()
+          if (error || !code) {
+            res.writeHead(400, { 'Content-Type': 'text/html' })
+            res.end('<html><body><h2>Authorization failed.</h2><p>Return to Lamprey for details.</p></body></html>')
+            reject(new Error(error ? `Hosted MCP OAuth denied: ${error}` : 'OAuth callback omitted code'))
+            return
+          }
+          res.writeHead(200, { 'Content-Type': 'text/html' })
+          res.end('<html><body><h2>Connector authorized.</h2><p>You can close this tab and return to Lamprey.</p></body></html>')
+          resolve({ code, state })
+        })
+        server.listen(MCP_OAUTH_CALLBACK_PORT, '127.0.0.1', () => {
+          void shell.openExternal(authorizationUrl.toString()).catch((error) => {
+            clearTimeout(timeout)
+            server.close()
+            reject(new Error(`Failed to open hosted MCP authorization page: ${error.message}`))
+          })
+        })
+        server.on('error', (error) => {
+          clearTimeout(timeout)
+          reject(new Error(`Failed to start hosted MCP OAuth callback: ${error.message}`, { cause: error }))
+        })
+      })
+
+      const result = await callback
+      if (result.state !== request.state) {
+        return { success: false, error: 'MCP OAuth callback state mismatch' }
+      }
+      await mcpManager.completeHostedAuthorization(id, result)
+      return { success: true, data: mcpManager.getAuthStatus(id) }
     } catch (err: any) {
       return { success: false, error: err.message }
     }

@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M7 STS IN PROGRESS AT BD-6; BD-1–BD-5 COMPLETE; M6 RELEASED AS v0.24.0; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
+**Status:** **M7 LOCALLY COMPLETE AS v0.25.0; OWNER LIVE SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -689,7 +689,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **BD-6 — Browser Developer Mode milestone wrap**
 
-- [ ] Architecture/security doc, README/current-state/DEVLOG/version update, full gate,
+- [x] Architecture/security doc, README/current-state/DEVLOG/version update, full gate,
       AFTER matrix. Keep OFF by default.
 - Verify: full milestone gate and owner browser-CDP smoke.
 
@@ -1044,6 +1044,22 @@ Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lampre
 This authorization supersedes M6's earlier M7-unapproved boundary only. It does not unpark
 Code Mode, authorize M8 or M9, or convert the future owner browser-CDP smoke into automated
 evidence.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### M7 local completion receipt — 2026-07-19
+
+BD-1 through BD-6 completed sequentially on `codex/steering-parity` with one focused commit
+per prompt. Package metadata is `0.25.0`; `browserDeveloperModeEnabled` remains false by
+default. Architecture, AFTER, owner-playbook, current-state, and prepared release-note records
+are present. The full local milestone gate passed before the BD-6 commit.
+
+The owner-visible browser/CDP procedure remains `USER-VERIFICATION-NEEDED`. M7 is therefore
+implementation-complete, not live-parity-complete. No push, tag, release, Bucket run, or
+artifact publication was authorized or performed. M4 remains parked indefinitely; M8 and M9
+remain unapproved.
 
 ---
 

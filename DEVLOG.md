@@ -9929,7 +9929,46 @@ current target's evidence record; detach leaves captured files intact until owne
 The panel polls only the bounded status snapshot once per second and never attaches its own
 debugger. Live UI/CDP parity remains explicitly unclaimed until the owner playbook receipt.
 
-**Commit:** pending (BD-5).
+**Commit:** `fabe199`.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt BD-6 Browser Developer Mode wrap — 2026-07-19
+
+**Files changed:** `package.json`, `package-lock.json`, `README.md`, `AGENTS.md`,
+`CLAUDE.md`, `ARCHITECTURE/BROWSER_DEVELOPER_MODE.md`, `PLANNING/README.md`,
+`PLANNING/CJ26_BROWSER_DEVELOPER_AFTER.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`RELEASE_NOTES/v0.25.0.md`, `DEVLOG.md`
+
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- full vitest ✓ (237 files passed / 15 skipped; 2,792 tests passed / 162 skipped / 0 failed)
+- production build, bundle smoke, renderer smoke ✓
+- `npm run verify:proof -- --require-smokes` exit 0 ✓
+- user-verification-needed: run `PLANNING/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md`
+  in a visible packaged app against an owner-controlled HTTP(S) fixture
+
+**Notes:** M7 / BD-1 through BD-6 is locally complete as v0.25.0. The architecture and AFTER
+records freeze the implementation bounds and distinguish deterministic evidence from the open
+owner GUI/CDP receipt. Browser Developer Mode remains OFF by default. README download links
+continue to target the actually published v0.24.0 artifacts; v0.25.0 release notes are prepared
+but explicitly marked unpublished. No push, tag, release, Bucket run, or artifact publication
+was authorized. M4 remains parked indefinitely; M8 and M9 remain unapproved.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2,792 passed / 162 skipped /
+0 failed · build OK · bundle+renderer smokes OK · verify:proof exit 0
+
+**Honest gaps:** The owner-visible Browser Developer playbook is still unrun. The proof gate
+reports 18 ABI-guarded native-DB files among the 162 explicit skips because the local binding
+is built for Electron rather than Node; M7 adds no database path, and every focused M7 cohort
+ran with zero skips. v0.25.0 remains local and unpublished.
+
+**Commit:** see git log (BD-6 local wrap).
 
 ---
 

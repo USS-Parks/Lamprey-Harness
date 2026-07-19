@@ -32,6 +32,15 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
+**Current development in v0.25.0 — Browser Developer Mode.** The existing Browser panel now
+has an explicit developer surface for bounded, redacted console/network observation,
+structured DOM/accessibility and performance inspection, fixed runtime probes, short traces,
+and annotated screenshot evidence. It is OFF by default, requires exact-origin Allow trust,
+and uses the existing approval path for response bodies, sensitive context, and mutation.
+Windows PowerShell shell requests are parsed as data before approval so destructive or
+uninspectable commands cannot use a persisted allow rule. The owner packaged-app playbook is
+still open; v0.25.0 is prepared locally and has not been published.
+
 **New in v0.24.0 — MCP resources and hosted sessions.** Connected MCP servers can expose paginated resources and URI templates to the model and to Customize → Connectors. Resource reads retain server provenance and use the existing large-result spill valve. Hosted Streamable HTTP connectors can use OAuth 2.1 with PKCE, encrypted keychain storage, explicit domain confirmation, reauthorization, expiry/reconnect state, and consent-gated URL elicitation. Preview renders text as text, allows only known raster image formats, and leaves SVG or other blobs as metadata. The local fixture and real hosted-provider playbooks remain open, so this release claims implementation completion without claiming live hosted-provider parity.
 
 **New in v0.23.0 — PR Chat and patch review.** Open a pull request in the existing panel and bring the exact review context into the conversation, down to one selected hunk. Lamprey can inspect files, checks, and comments; draft a review; or prepare an editable patch. Nothing posts or touches the workspace silently: GitHub writes show their exact target and wait for approval, while patch acceptance rechecks the head SHA and restores affected files if application fails. The disposable-repository GUI playbook is still open, so this release claims implementation completion rather than blanket current-Codex parity.
@@ -79,6 +88,9 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 - **Inline visualizations + artifact editing** &mdash; render safe Mermaid/chart/table/SVG previews in chat, isolate interactive artifacts, select exact source ranges, preview model or direct edits, accept/reject immutable revisions, annotate, open, and export.
 - **PR Chat + patch review** &mdash; bind an exact GitHub PR to chat, inspect bounded diffs/checks/comments, draft approval-gated reviews, and preview/edit/accept/reject SHA-pinned patches with rollback.
 - **Codex-style developer panes** &mdash; file tree (`Ctrl+P`), multi-tab browser (`Ctrl+T`), git diff review with "Fix this" per-hunk seeding (`Ctrl+Shift+G`), shell terminal (`` Ctrl+` ``), side-thread chat.
+- **Browser Developer Mode** &mdash; optional CDP console/network, structured page inspection,
+  short traces, and annotated screenshot evidence behind an exact-origin trust gate. It is
+  off by default and does not expose arbitrary page-world code execution.
 - **Deep Research** &mdash; research-shaped turns fan out across search providers, corroborate claims by independent domain, and kill the report if they detect fabricated citations. `/research <q>` forces it; coding turns are never escalated.
 - **Snip** &mdash; an in-process token filter (same idea as [rtk](https://github.com/rtk-ai/rtk)) that strips noisy shell output down to signal before it hits the model context. ~120 built-in YAML filters, hot-reloadable, extensible.
 - **Skills + MCP** &mdash; drop a `.md` in your skills directory and it's part of the system prompt. MCP servers use stdio, SSE, or Streamable HTTP; resource/template browsing and strict lazy resource tools are built in, with legacy Google OAuth plus generic hosted OAuth 2.1 session support.

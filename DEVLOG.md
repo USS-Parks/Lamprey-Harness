@@ -10154,3 +10154,27 @@ M9 is unapproved, and no push, tag, release, Bucket run, or publication occurred
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## v0.26.0 publication metadata — 2026-07-19
+
+**Files changed:** `README.md`, `AGENTS.md`, `CLAUDE.md`, `PLANNING/README.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`PLANNING/CJ26_AUTOMATIONS_GOALS_AFTER.md`,
+`ARCHITECTURE/AUTOMATIONS_AND_OPERATIONAL_GOALS.md`, `RELEASE_NOTES/v0.26.0.md`,
+`DEVLOG.md`
+**Verify gate:**
+- v0.26.0 package/release-note/download URL parity ✓
+- documentation path/source audit ✓
+- repository pre-commit hook: lint + tsc node/web ✓
+- full M8 gate remains `npm run verify:all` ✓ (2,834 passed, 165 skipped, 0 failed)
+
+**Notes:** The owner instructed “Push to main and bucket this one.” Public download URLs and
+current-state records now identify v0.26.0. This metadata commit is the release head for the
+authorized push, tag, Bucket build, GitHub release, R2 upload, cross-platform mirror, and CDN
+purge. The packaged-app background/restart playbook remains open and M9 remains unapproved.
+
+**Commit:** see git log (v0.26.0 publication metadata).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

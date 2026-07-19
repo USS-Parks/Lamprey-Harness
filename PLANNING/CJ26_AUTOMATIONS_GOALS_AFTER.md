@@ -53,3 +53,8 @@ claim requires the owner playbook receipt and separate publication authority.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+> **Publication update (2026-07-19):** The owner subsequently instructed “Push to main and
+> bucket this one,” authorizing v0.26.0 publication from the completed M8 state. The local
+> snapshot and honest-gap record above remain as captured; the background/restart playbook
+> is still open.

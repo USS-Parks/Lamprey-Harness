@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M8 LOCALLY COMPLETE AS v0.26.0; OWNER BACKGROUND/RESTART SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
+**Status:** **M8 RELEASED AS v0.26.0; OWNER BACKGROUND/RESTART SMOKE OPEN; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -1105,6 +1105,17 @@ new migration and restart cohorts use Node SQLite and ran without skips. M8 is t
 implementation-complete, not live background/restart parity-complete. No push, tag, release,
 Bucket run, or artifact publication was authorized or performed. M4 remains parked
 indefinitely; M9 remains unapproved.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### M8 publication authorization — 2026-07-19
+
+After the local GA-6 closeout, the owner instructed: “Push to main and bucket this one.”
+That instruction authorizes the v0.26.0 release metadata commit, push to `origin/main`,
+annotated tag, Bucket artifact publication, GitHub release, R2 mirroring, and CDN purge.
+It does not close the owner background/restart playbook or authorize M9.
 
 ---
 

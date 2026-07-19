@@ -17,8 +17,8 @@ milestones shipped together as v0.23.0.
 M4 / Code Mode is parked indefinitely and is not a dependency or blocker. The independently
 approved M6 MCP resources/authenticated-session lane was released as v0.24.0 on 2026-07-19.
 The independently approved M7 Browser Developer Mode lane is locally complete as v0.25.0.
-The independently approved M8 automations/operational-goals lane is locally complete as
-v0.26.0, OFF by default, and not published. M9 remains unapproved. The paired
+The independently approved M8 automations/operational-goals lane was released as v0.26.0
+on 2026-07-19 and remains OFF by default. M9 remains unapproved. The paired
 Steering replay, packaged task-control/artifact/PR Chat GUI playbooks, and M6 local-fixture/
 hosted-auth playbooks remain open evidence gates. M7's owner Browser Developer playbook is
 also open. M8's packaged background/restart playbook is open too; these milestones are

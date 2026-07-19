@@ -1,6 +1,6 @@
 # Automations and Operational Goals
 
-**Version:** v0.26.0 local milestone, not published
+**Version:** v0.26.0, released 2026-07-19
 
 **Autonomy default:** OFF through `loopsEnabled: false`
 

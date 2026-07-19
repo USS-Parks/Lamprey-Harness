@@ -13,7 +13,7 @@
 
 ---
 
-Lamprey is a local-first desktop coding harness for the model provider you already use. It combines a Codex-style workspace with streaming chat, reasoning traces, skills, MCP servers, research, durable queues, optional loops and sub-agent orchestration, a file tree, browser, git review, and terminal. Seventeen providers are built in, local Ollama and LM Studio work without keys, and custom OpenAI-compatible endpoints can be added from Settings.
+Lamprey is a local-first desktop coding harness for the model provider you already use. It combines a Codex-style workspace with streaming chat, reasoning traces, skills, MCP servers, research, durable queues, optional loops and sub-agent orchestration, a file tree, browser, git review, and terminal. Thirty-two providers are built in, local Ollama and LM Studio work without keys, and custom OpenAI-compatible endpoints can be added from Settings.
 
 Conversations and control state live in SQLite on your machine. API keys stay in the operating-system keychain. Lamprey sends requests only to the providers and connectors you configure.
 
@@ -23,16 +23,24 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.26.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.26.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.26.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.26.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.26.0 — Automations and Operational Goals.** Local reminders,
+**New in v0.27.0 — Provider Discovery Expansion v2.** Lamprey now accepts keys for
+32 built-in providers and ships 79 pinned chat models. The release adds AIHubMix,
+FreeLLMAPI, Cohere, MiniMax, NVIDIA NIM, GitHub Models, SambaNova, SiliconFlow, Reka,
+SEA-LION, DeepInfra, Hyperbolic, Perplexity, Sarvam, and Inception Labs; refreshes Kimi,
+Grok 4.20, and direct Gemma 4 models; adds filtered collision-safe bulk catalog import;
+and exposes an editable FreeLLMAPI address. Imported capabilities remain off until proven,
+and providers without a stored key remain pending-key rather than falsely verified.
+
+**Previously in v0.26.0 — Automations and Operational Goals.** Local reminders,
 schedules, events, and monitors now have model-callable management, durable trigger identity,
 bounded retries, and explicit next-run/blocked/completed UI. Goals persist lifecycle,
 provenance, budgets, elapsed time, blockers, and completion evidence; one goal may own a
@@ -75,7 +83,9 @@ gate. The owner packaged-app playbook remains open.
    ([platform.deepseek.com](https://platform.deepseek.com)) and OpenRouter's free
    Gemma tier ([openrouter.ai](https://openrouter.ai/google/gemma-4-31b-it:free#api))
    are the cheapest doors in; OpenAI, Anthropic, xAI, Mistral, Kimi, Groq,
-   Together, Fireworks, Cerebras, Hugging Face, Qwen, and GLM cards all live in
+   Together, Fireworks, Cerebras, Hugging Face, Qwen, GLM, AIHubMix, FreeLLMAPI,
+   Cohere, MiniMax, NVIDIA, GitHub Models, SambaNova, SiliconFlow, Reka, SEA-LION,
+   DeepInfra, Hyperbolic, Perplexity, Sarvam, and Inception Labs cards all live in
    Settings &rarr; API Keys with a "Get a key" link and format hint on each.
 3. **Or skip keys entirely** — a local [Ollama](https://ollama.com/download) or
    LM Studio is detected keylessly, and any other OpenAI-compatible endpoint can
@@ -87,7 +97,7 @@ gate. The owner packaged-app playbook remains open.
 
 ## What you get
 
-- **Multi-provider chat** &mdash; seventeen built-in providers (frontier labs, open-source hosts, keyless local runtimes) plus unlimited custom OpenAI-compatible endpoints. Pick a model per task: cheap for boilerplate, smart for hard bugs, local for air-gapped.
+- **Multi-provider chat** &mdash; thirty-two built-in providers (frontier labs, hosts and aggregators, regional specialists, and keyless local runtimes) plus unlimited custom OpenAI-compatible endpoints. Pick a model per task: cheap for boilerplate, smart for hard bugs, local for air-gapped.
 - **Steering + Queue** &mdash; redirect a running turn without restarting it, or line up the next turn. Follow-ups are durable, identity-guarded, and visible above the composer.
 - **Task controls** &mdash; inspect parent/child tasks and live turns, wait without polling, send Queue or exact-turn Steering, fork at a historical turn, and manage task lifecycle from Activity or model tools.
 - **Inline visualizations + artifact editing** &mdash; render safe Mermaid/chart/table/SVG previews in chat, isolate interactive artifacts, select exact source ranges, preview model or direct edits, accept/reject immutable revisions, annotate, open, and export.
@@ -133,7 +143,7 @@ Renderer (React 19 + Zustand)
        |  window.api (typed contextBridge)
        v
 Main process (Node.js)
-  Provider registry -> 17 built-ins + custom OpenAI-compatible endpoints
+  Provider registry -> 32 built-ins + custom OpenAI-compatible endpoints
   Turn runtime -> Steering inbox / durable Queue / interrupt settlement
   MCP manager (stdio + SSE + Streamable HTTP + resources + OAuth sessions)
   better-sqlite3 (WAL, foreign keys)

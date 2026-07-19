@@ -10,6 +10,11 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 ## Current Codex parity authority
 
+The independently approved Provider Discovery Expansion v2 roster at
+`LAMPREY_PROVIDER_DISCOVERY_EXPANSION_PLAN.md` is complete and released as v0.27.0.
+It is a provider-domain successor to the historical v0.17.0 expansion, not a change to the
+Codex parity roster below.
+
 `LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md` is the current canonical roster.
 Its Steering and Queue milestone shipped as v0.20.0, and its independently approved Task and
 Thread Control milestone shipped as v0.21.0. The visualization/artifact and PR Chat

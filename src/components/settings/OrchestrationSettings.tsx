@@ -201,7 +201,7 @@ export function OrchestrationSettings() {
           The smarter model a stuck sub-agent escalates one bounded question to (advisor pattern).
           Leave unset to disable the{' '}
           <code className="rounded bg-[var(--bg-tertiary)] px-1">agent_advisor</code> tool. Point it
-          at a frontier model even when your generators are local — that is the seventeen-connector
+          at a frontier model even when your generators are local — that is the provider
           substrate working for you.
         </p>
         <select

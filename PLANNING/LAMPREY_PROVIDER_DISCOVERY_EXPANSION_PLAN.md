@@ -5,7 +5,7 @@
 **Execution branch:** `codex/provider-expansion-v2`  
 **Source of truth:** This plan plus `PLANNING/PX2_BASELINE.md`  
 **Authorization:** User authorized STS execution, all focused commits, and push on 2026-07-19  
-**Status:** EXECUTING
+**Status:** COMPLETE — implementation and local release gate passed 2026-07-19; published as v0.27.0
 
 ## Governance and scope
 
@@ -123,3 +123,23 @@ Acceptance: every gate passes, the branch is pushed, and all user-authorized wor
 
 The phase is complete only when a user can save/test keys for every admitted provider, discover/import its compatible chat models, route those models to the correct endpoint, edit the FreeLLMAPI address, and run the full repository gate with no regression to existing providers.
 
+## Execution ledger
+
+| Prompt range | Commit | Result |
+|---|---|---|
+| PX2-0 | `6b18902` | Official-source baseline and authorized roster frozen |
+| PX2-1–PX2-6 | `77d16ad` | Registry, catalog strategies, current rosters, and provider packs |
+| PX2-7 | `0db6744` | Collision-safe bulk live-catalog import |
+| PX2-8 | `f3c2f46` | API-key grouping, FreeLLMAPI address, and MiniMax reasoning |
+| CI repair | `f6b55bc` | Cross-platform PowerShell AST policy tests |
+| PX2-9 | release commit and `v0.27.0` tag | Documentation, final gate, push, and Bucket publication |
+
+**Final local gate:** lint OK · tsc node+web OK · provider suites 94 passed / 0 failed ·
+vitest 2848 passed / 166 skipped / 0 failed · build OK · bundle smoke PASS · renderer
+smoke PASS · verify:proof exit 0.
+
+**Honest gaps:** keyed providers without credentials available to this release remain
+`pending-key`; no live authentication success is claimed for them. The 166 skipped tests
+include 18 native-database suites whose installed `better-sqlite3` ABI targets Electron rather
+than the release shell's Node ABI. The settings/model-import GUI still needs the owner's first
+packaged-app pass.

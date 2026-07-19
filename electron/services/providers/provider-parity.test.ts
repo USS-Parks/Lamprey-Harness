@@ -11,6 +11,11 @@ import { PROVIDERS, MODEL_CATALOG } from './registry'
 
 const repoRoot = join(__dirname, '..', '..', '..')
 
+const apiKeySettingsSource = readFileSync(
+  join(repoRoot, 'src/components/settings/ApiKeySettings.tsx'),
+  'utf-8'
+)
+
 function unionMembers(relPath: string): string[] {
   const source = readFileSync(join(repoRoot, relPath), 'utf-8')
   const decl = source.match(/export type ProviderId =([\s\S]*?)\n\s*\n/)
@@ -36,6 +41,11 @@ describe('ProviderId union parity (main ↔ renderer)', () => {
     expect(Object.keys(PROVIDERS).sort()).toEqual([...mainMembers].sort())
   })
 
+  it('locks the v0.27.0 public provider and pinned-model counts', () => {
+    expect(Object.keys(PROVIDERS)).toHaveLength(32)
+    expect(MODEL_CATALOG).toHaveLength(79)
+  })
+
   it('every catalog model points at a provider that exists in PROVIDERS', () => {
     for (const m of MODEL_CATALOG) {
       expect(
@@ -43,5 +53,28 @@ describe('ProviderId union parity (main ↔ renderer)', () => {
         `${m.id} references unknown provider '${m.provider}'`
       ).toBe(true)
     }
+  })
+
+  it('groups every built-in API-key card exactly once', () => {
+    const groups = apiKeySettingsSource.match(
+      /const PROVIDER_GROUPS:[\s\S]*?= \[([\s\S]*?)\n\]/
+    )?.[1]
+    expect(groups).toBeTruthy()
+    const ids = [...groups!.matchAll(/ids:\s*\[([\s\S]*?)\]/g)].flatMap((match) =>
+      [...match[1].matchAll(/'([a-z0-9-]+)'/g)].map((id) => id[1])
+    )
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids.sort()).toEqual(Object.keys(PROVIDERS).sort())
+  })
+
+  it('keeps configurable provider addresses and bulk import visibly wired', () => {
+    expect(apiKeySettingsSource).toContain('p.baseUrlConfigurable')
+    expect(apiKeySettingsSource).toContain('handleSaveBaseURL(p.id, p.label)')
+    expect(
+      readFileSync(join(repoRoot, 'src/components/settings/ModelSettings.tsx'), 'utf-8')
+    ).toContain('window.api.model.importLive(importProvider, ids)')
+    expect(readFileSync(join(repoRoot, 'electron/preload.ts'), 'utf-8')).toContain(
+      "ipcRenderer.invoke('model:importLive', { provider, ids })"
+    )
   })
 })

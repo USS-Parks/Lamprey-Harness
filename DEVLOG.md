@@ -10246,3 +10246,38 @@ outside host-Node execution.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+## Provider Discovery Expansion v2 — PX2-0–PX2-9 — 2026-07-19
+
+**Files changed:** `electron/services/providers/registry.ts`,
+`electron/services/providers/model-import.ts`, provider tests,
+`electron/ipc/model.ts`, `electron/ipc/settings.ts`, `electron/preload.ts`,
+`src/lib/types.ts`, `src/components/settings/ApiKeySettings.tsx`,
+`src/components/settings/ModelSettings.tsx`, release and planning documents
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- provider suites ✓ (94 tests)
+- vitest ✓ (2848 passed / 166 skipped / 0 failed)
+- production build ✓
+- bundle and renderer smokes ✓
+- `verify:proof -- --no-tests` ✓ (exit 0)
+
+**Notes:** Provider authority grows from 17 to 32 built-ins and the pinned chat catalog
+from 55 to 79 entries. AIHubMix, FreeLLMAPI, Cohere, MiniMax, NVIDIA, GitHub Models,
+SambaNova, SiliconFlow, Reka, SEA-LION, DeepInfra, Hyperbolic, Perplexity, Sarvam, and
+Inception Labs now use the existing keychain and dispatch seams. Current Kimi, Grok 4.20,
+and direct Gemma 4 rosters are pinned from first-party documentation. Descriptor-owned
+catalog strategies normalize standard OpenAI lists, bare arrays, GitHub's catalog, and
+DeepInfra's typed list; incompatible catalog endpoints stay explicitly unsupported. Bulk
+import filters and deduplicates IDs, namespaces local collisions without changing the wire
+ID, and defaults unproven capabilities off. FreeLLMAPI exposes an editable base URL and
+MiniMax `reasoning_details` feeds the existing reasoning audit channel. GitHub Actions run
+29696866226 failed because two real PowerShell AST parser assertions ran on Ubuntu; commit
+`f6b55bc` makes those assertions Windows-only and locks the production fail-closed result on
+non-Windows hosts. Providers whose keys were unavailable remain `pending-key`; the settings
+and model-import GUI needs the owner's first packaged-app pass. The 166 skips include 18
+native-database suites that require an Electron-matching `better-sqlite3` ABI.
+
+**Commits:** `6b18902`, `77d16ad`, `0db6744`, `f3c2f46`, `f6b55bc`; release commit and
+`v0.27.0` tag recorded by the Bucket receipt entry.

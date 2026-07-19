@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M7 LOCALLY COMPLETE AS v0.25.0; OWNER LIVE SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
+**Status:** **M8 STS IN PROGRESS AT GA-1; M7 LOCALLY COMPLETE AS v0.25.0; OWNER LIVE SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -697,7 +697,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **GA-1 — Wrap existing automation CRUD as tools**
 
-- [ ] Add `automation_list`, `automation_update`, `automation_delete`, and
+- [x] Add `automation_list`, `automation_update`, `automation_delete`, and
       `automation_run_now` over the existing store/runner. Mutations require appropriate
       approval; the tool cannot invent raw internal scheduler directives.
 - Verify: schema/risk/approval/CRUD/run-history tests and UI compatibility.
@@ -1060,6 +1060,28 @@ The owner-visible browser/CDP procedure remains `USER-VERIFICATION-NEEDED`. M7 i
 implementation-complete, not live-parity-complete. No push, tag, release, Bucket run, or
 artifact publication was authorized or performed. M4 remains parked indefinitely; M8 and M9
 remain unapproved.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### Owner M8 STS authorization — 2026-07-19
+
+```text
+APPROVED: 2026-07-19 (M8 automation and operational-goal tranche)
+Milestones: M8 / GA-1 through GA-6; execute sequentially with one focused gated commit per
+  prompt. Begin at GA-1 and continue through the local GA-6 wrap for this session.
+Decisions: preserve M4 as parked indefinitely; do not start M9. Preserve the untracked
+  .agents skill library outside commits.
+Publication: not authorized by this instruction; do not push, tag, release, run Bucket, or
+  publish artifacts without a separate owner instruction.
+STS instruction: "Commence STS of M8 GA-1–GA-6 with my full authorization for this entire session."
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+This authorization supersedes M7's earlier M8-unapproved boundary only. It does not unpark
+Code Mode, authorize M9, or convert future owner automation/goal background and restart
+smokes into automated evidence.
 
 ---
 

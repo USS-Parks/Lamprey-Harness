@@ -9973,3 +9973,29 @@ ran with zero skips. v0.25.0 remains local and unpublished.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt GA-1 automation tools — 2026-07-19
+
+**Files changed:** `electron/services/automation-tool-pack.ts`,
+`electron/services/automation-tool-pack.test.ts`, `electron/services/tool-packs.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused automation/tool-registry cohort ✓ (3 files, 39 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Four strict lazy tools now wrap the existing automation store and runner.
+`automation_list` is an approval-free read. Create/update, permanent delete, and immediate
+run are plan-mode mutations requiring approval; delete is destructive and run-now carries
+network risk. `automation_update` creates only from label, five-field cron, and prompt when
+no id is supplied, otherwise patches one existing id. Strict schemas and handler validation
+exclude raw scheduler directives and unknown fields. The renderer's existing typed
+`automations:*` IPC and cron UI remain unchanged. M8 STS is authorized through GA-6 for this
+session; publication is not authorized.
+
+**Commit:** see git log (GA-1).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from '@/stores/toast-store'
 import type { ConversationPlanGoalState, Goal, PlanStep, PlanStepStatus } from '@/lib/types'
+import { goalDisplayState } from '@/lib/automation-goal-ui-state'
 
 // Inspect / clear the persisted plan + goal state the `update_plan` and
 // create_goal / update_goal tools write per conversation (see
@@ -17,10 +18,17 @@ interface PlanApi {
     data?: ConversationPlanGoalState[]
     error?: string
   }>
-  clearConversationState: (
-    conversationId: string
-  ) => Promise<{ success: boolean; error?: string }>
+  clearConversationState: (conversationId: string) => Promise<{ success: boolean; error?: string }>
   clearAllState: () => Promise<{ success: boolean; error?: string }>
+  goalTransition: (
+    conversationId: string,
+    input: {
+      goalId: string
+      action: 'start' | 'pause' | 'resume' | 'complete' | 'abort'
+      reason?: string
+      completion?: string
+    }
+  ) => Promise<{ success: boolean; data?: Goal | null; error?: string }>
 }
 
 function getApi(): PlanApi | null {
@@ -62,18 +70,120 @@ function PlanStepRow({ step, index }: { step: PlanStep; index: number }) {
   )
 }
 
-function GoalRow({ goal }: { goal: Goal }) {
+function formatBudget(used: number, budget: number | null, unit: string): string {
+  return budget === null
+    ? `${used.toLocaleString()} ${unit}`
+    : `${used.toLocaleString()} / ${budget.toLocaleString()} ${unit}`
+}
+
+function GoalRow({
+  goal,
+  busy,
+  onTransition
+}: {
+  goal: Goal
+  busy: boolean
+  onTransition: (action: 'start' | 'pause' | 'resume' | 'complete' | 'abort') => void
+}) {
+  const display = goalDisplayState(goal)
+  const terminal = goal.lifecycleStatus === 'completed' || goal.lifecycleStatus === 'aborted'
   return (
-    <li className="flex items-start justify-between gap-2 text-xs">
-      <span className="min-w-0 flex-1 break-words text-[var(--text-secondary)]">
-        {goal.title}
-        {goal.dueDate && (
-          <span className="ml-1 text-[10px] text-[var(--text-muted)]">· due {goal.dueDate}</span>
-        )}
-      </span>
-      <span className="shrink-0 font-mono text-[10px] uppercase text-[var(--text-muted)]">
-        {goal.status}
-      </span>
+    <li className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-2 text-xs">
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 flex-1 break-words font-medium text-[var(--text-secondary)]">
+          {goal.title}
+          {goal.dueDate && (
+            <span className="ml-1 text-[10px] text-[var(--text-muted)]">· due {goal.dueDate}</span>
+          )}
+        </span>
+        <span className="shrink-0 font-mono text-[10px] uppercase text-[var(--text-muted)]">
+          {goal.lifecycleStatus}
+        </span>
+      </div>
+      {display.statusDetail && (
+        <p className="mt-1 text-[10px] text-[var(--text-muted)]">{display.statusDetail}</p>
+      )}
+      <div className="mt-1 grid gap-1 text-[10px] text-[var(--text-muted)] sm:grid-cols-2">
+        <span>Tokens: {formatBudget(goal.tokenUsed, goal.tokenBudget, 'tokens')}</span>
+        <span>
+          Time:{' '}
+          {formatBudget(
+            Math.round(display.elapsedMs / 1000),
+            goal.timeBudgetMs === null ? null : Math.round(goal.timeBudgetMs / 1000),
+            'sec'
+          )}
+        </span>
+      </div>
+      {(display.tokenPercent !== null || display.timePercent !== null) && (
+        <div className="mt-1 flex gap-1" aria-label="Goal budget progress">
+          {display.tokenPercent !== null && (
+            <span className="h-1 flex-1 rounded bg-[var(--bg-tertiary)]">
+              <span
+                className="block h-1 rounded bg-[var(--accent)]"
+                style={{ width: `${display.tokenPercent}%` }}
+              />
+            </span>
+          )}
+          {display.timePercent !== null && (
+            <span className="h-1 flex-1 rounded bg-[var(--bg-tertiary)]">
+              <span
+                className="block h-1 rounded bg-amber-400"
+                style={{ width: `${display.timePercent}%` }}
+              />
+            </span>
+          )}
+        </div>
+      )}
+      {goal.loopId && (
+        <p className="mt-1 font-mono text-[10px] text-[var(--accent)]">
+          Loop {goal.loopId.slice(0, 8)}… · max {goal.loopMaxIterations ?? '∞'} iterations
+        </p>
+      )}
+      {!terminal && (
+        <div className="mt-2 flex flex-wrap justify-end gap-1">
+          {goal.lifecycleStatus === 'open' && (
+            <button
+              disabled={busy}
+              onClick={() => onTransition('start')}
+              className="rounded px-2 py-0.5 hover:bg-[var(--bg-tertiary)]"
+            >
+              Start
+            </button>
+          )}
+          {goal.lifecycleStatus === 'active' && (
+            <button
+              disabled={busy}
+              onClick={() => onTransition('pause')}
+              className="rounded px-2 py-0.5 hover:bg-[var(--bg-tertiary)]"
+            >
+              Pause
+            </button>
+          )}
+          {(goal.lifecycleStatus === 'paused' || goal.lifecycleStatus === 'blocked') && (
+            <button
+              disabled={busy}
+              onClick={() => onTransition('resume')}
+              className="rounded px-2 py-0.5 hover:bg-[var(--bg-tertiary)]"
+            >
+              Resume
+            </button>
+          )}
+          <button
+            disabled={busy}
+            onClick={() => onTransition('complete')}
+            className="rounded px-2 py-0.5 text-emerald-300 hover:bg-[var(--bg-tertiary)]"
+          >
+            Complete
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => onTransition('abort')}
+            className="rounded px-2 py-0.5 text-[var(--error)] hover:bg-[var(--bg-tertiary)]"
+          >
+            Abort
+          </button>
+        </div>
+      )}
     </li>
   )
 }
@@ -164,6 +274,34 @@ export function PlanGoalSettings() {
     }
   }
 
+  const handleGoalTransition = async (
+    conversationId: string,
+    goal: Goal,
+    action: 'start' | 'pause' | 'resume' | 'complete' | 'abort'
+  ) => {
+    const api = getApi()
+    if (!api) return
+    if (action === 'abort' && !window.confirm(`Abort goal "${goal.title}"?`)) return
+    setBusy(`goal:${goal.id}`)
+    try {
+      const response = await api.goalTransition(conversationId, {
+        goalId: goal.id,
+        action,
+        reason: `${action} requested from Plans & goals settings`,
+        ...(action === 'complete'
+          ? { completion: 'Completed by user from Plans & goals settings' }
+          : {})
+      })
+      if (!response.success) {
+        toast.error(`Goal ${action} failed: ${response.error ?? 'unknown error'}`)
+        return
+      }
+      await refresh()
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="space-y-6 text-sm text-[var(--text-primary)]">
       <div className="flex items-start justify-between gap-3">
@@ -245,9 +383,16 @@ export function PlanGoalSettings() {
                   <div className="mb-1 font-mono text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
                     Goals
                   </div>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {state.goals.map((goal) => (
-                      <GoalRow key={goal.id} goal={goal} />
+                      <GoalRow
+                        key={goal.id}
+                        goal={goal}
+                        busy={busy === `goal:${goal.id}`}
+                        onTransition={(action) =>
+                          void handleGoalTransition(state.conversationId, goal, action)
+                        }
+                      />
                     ))}
                   </ul>
                 </div>

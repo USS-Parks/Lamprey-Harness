@@ -10090,3 +10090,35 @@ owner index and a Node-SQLite restart-safe integration test.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt GA-5 management UI — 2026-07-19
+
+**Files changed:** `src/components/automations/AutomationsPanel.tsx`,
+`src/components/settings/AutomationsSettings.tsx`,
+`src/components/settings/PlanGoalSettings.tsx`, `src/stores/automations-store.ts`,
+`src/lib/automation-goal-ui-state.ts`, focused tests,
+`PLANNING/GA_AUTOMATION_GOAL_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node + web ✓
+- fake-clock and UI/IPC/lifecycle wiring cohort ✓ (4 files, 38 tests, 0 skipped)
+- production build ✓
+- bundle smoke + renderer smoke ✓
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Settings and the right-panel Automations entry now share one manager instead of
+maintaining divergent cron-only forms. The editor supports one-shot reminders, cron
+schedules, named events, and monitor intervals. Rows expose deterministic next-run, retry,
+waiting, disabled, and one-shot-completed states, an exact next-eligible timestamp, and an
+explicit goal-wake label. Plans & goals now shows the operational lifecycle, honest
+blocked/completed detail, live token/time budget progress, owned-loop identity and ceiling,
+plus user-authorized start, pause, resume, complete, and abort controls over the typed IPC.
+`GA_AUTOMATION_GOAL_PLAYBOOK.md` records typed-trigger, lifecycle, bound-wake, background,
+and restart checks. The real packaged-app background/restart portion remains
+`USER-VERIFICATION-NEEDED`; no live result is claimed by the structural UI gate.
+
+**Commit:** see git log (GA-5).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

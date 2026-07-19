@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAutomationsStore } from '@/stores/automations-store'
 import type { Automation } from '@/stores/automations-store'
+import type { AutomationTrigger } from '@/stores/automations-store'
+import { automationDisplayState, triggerKindLabel } from '@/lib/automation-goal-ui-state'
 import { CronEditor } from './CronEditor'
 import { RunHistoryViewer } from './RunHistoryViewer'
 
@@ -17,6 +19,10 @@ interface DraftForm {
   prompt: string
   model: string
   enabled: boolean
+  triggerKind: AutomationTrigger['kind']
+  at: string
+  everySeconds: number
+  eventName: string
 }
 
 const emptyDraft = (): DraftForm => ({
@@ -24,7 +30,11 @@ const emptyDraft = (): DraftForm => ({
   cron: '*/5 * * * *',
   prompt: '',
   model: '',
-  enabled: true
+  enabled: true,
+  triggerKind: 'schedule',
+  at: new Date(Date.now() + 3_600_000).toISOString().slice(0, 16),
+  everySeconds: 300,
+  eventName: ''
 })
 
 export function AutomationsPanel() {
@@ -56,31 +66,69 @@ export function AutomationsPanel() {
       cron: a.cron,
       prompt: a.prompt,
       model: a.model ?? '',
-      enabled: a.enabled
+      enabled: a.enabled,
+      triggerKind: a.trigger.kind,
+      at: a.trigger.kind === 'one_shot' ? new Date(a.trigger.at).toISOString().slice(0, 16) : '',
+      everySeconds:
+        a.trigger.kind === 'monitor' || (a.trigger.kind === 'schedule' && a.trigger.everySeconds)
+          ? (a.trigger.everySeconds ?? 300)
+          : 300,
+      eventName: a.trigger.kind === 'event' ? a.trigger.eventName : ''
     })
-    setCronValid(true)
+    setCronValid(a.trigger.kind !== 'schedule' || Boolean(a.trigger.cron))
   }
 
   const closeDraft = () => setDraft(null)
 
   const handleSave = async () => {
     if (!draft) return
-    if (!draft.label.trim() || !draft.prompt.trim() || !cronValid) return
+    const oneShotAt = new Date(draft.at).getTime()
+    const trigger: AutomationTrigger =
+      draft.triggerKind === 'one_shot'
+        ? {
+            kind: 'one_shot',
+            at: oneShotAt,
+            maxAttempts: 3,
+            retryDelaySeconds: 60
+          }
+        : draft.triggerKind === 'schedule'
+          ? { kind: 'schedule', cron: draft.cron, maxAttempts: 3, retryDelaySeconds: 60 }
+          : draft.triggerKind === 'event'
+            ? {
+                kind: 'event',
+                eventName: draft.eventName.trim(),
+                maxAttempts: 3,
+                retryDelaySeconds: 60
+              }
+            : {
+                kind: 'monitor',
+                everySeconds: draft.everySeconds,
+                maxAttempts: 3,
+                retryDelaySeconds: 60
+              }
+    const triggerValid =
+      (draft.triggerKind === 'schedule' && cronValid) ||
+      (draft.triggerKind === 'one_shot' &&
+        Number.isFinite(oneShotAt) &&
+        oneShotAt > Date.now()) ||
+      (draft.triggerKind === 'event' && Boolean(draft.eventName.trim())) ||
+      (draft.triggerKind === 'monitor' && draft.everySeconds >= 30)
+    if (!draft.label.trim() || !draft.prompt.trim() || !triggerValid) return
     if (draft.id) {
       const ok = await update(draft.id, {
         label: draft.label.trim(),
-        cron: draft.cron,
         prompt: draft.prompt,
         model: draft.model.trim() || undefined,
-        enabled: draft.enabled
+        enabled: draft.enabled,
+        trigger
       })
       if (ok) closeDraft()
     } else {
       const created = await create({
         label: draft.label.trim(),
-        cron: draft.cron,
         prompt: draft.prompt,
-        model: draft.model.trim() || undefined
+        model: draft.model.trim() || undefined,
+        trigger
       })
       if (created) closeDraft()
     }
@@ -115,13 +163,72 @@ export function AutomationsPanel() {
               className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 text-[12px] text-[var(--text-primary)]"
             />
             <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
-              Cron
+              Trigger
             </label>
-            <CronEditor
-              value={draft.cron}
-              onChange={(cron) => setDraft({ ...draft, cron })}
-              onValidityChange={setCronValid}
-            />
+            <select
+              value={draft.triggerKind}
+              onChange={(e) =>
+                setDraft({ ...draft, triggerKind: e.target.value as AutomationTrigger['kind'] })
+              }
+              className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1"
+            >
+              <option value="schedule">Schedule</option>
+              <option value="one_shot">Reminder (one shot)</option>
+              <option value="event">Event</option>
+              <option value="monitor">Monitor interval</option>
+            </select>
+            {draft.triggerKind === 'schedule' && (
+              <>
+                <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                  Cron
+                </label>
+                <CronEditor
+                  value={draft.cron}
+                  onChange={(cron) => setDraft({ ...draft, cron })}
+                  onValidityChange={setCronValid}
+                />
+              </>
+            )}
+            {draft.triggerKind === 'one_shot' && (
+              <>
+                <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                  Remind at
+                </label>
+                <input
+                  type="datetime-local"
+                  value={draft.at}
+                  onChange={(e) => setDraft({ ...draft, at: e.target.value })}
+                  className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1"
+                />
+              </>
+            )}
+            {draft.triggerKind === 'event' && (
+              <>
+                <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                  Event name
+                </label>
+                <input
+                  value={draft.eventName}
+                  onChange={(e) => setDraft({ ...draft, eventName: e.target.value })}
+                  placeholder="for example: repository.push"
+                  className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1"
+                />
+              </>
+            )}
+            {draft.triggerKind === 'monitor' && (
+              <>
+                <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                  Every seconds
+                </label>
+                <input
+                  type="number"
+                  min={30}
+                  value={draft.everySeconds}
+                  onChange={(e) => setDraft({ ...draft, everySeconds: Number(e.target.value) })}
+                  className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1"
+                />
+              </>
+            )}
             <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
               Model
             </label>
@@ -164,7 +271,7 @@ export function AutomationsPanel() {
             <button
               type="button"
               onClick={handleSave}
-              disabled={!draft.label.trim() || !draft.prompt.trim() || !cronValid}
+              disabled={!draft.label.trim() || !draft.prompt.trim()}
               className="rounded bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-[var(--bg-primary)] disabled:opacity-50"
             >
               {draft.id ? 'Save' : 'Create'}
@@ -182,65 +289,79 @@ export function AutomationsPanel() {
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {automations.map((a) => (
-              <li
-                key={a.id}
-                className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)]"
-              >
-                <div className="flex items-center gap-2 px-2 py-1.5">
-                  <input
-                    type="checkbox"
-                    checked={a.enabled}
-                    onChange={(e) => update(a.id, { enabled: e.target.checked })}
-                    title={a.enabled ? 'Disable' : 'Enable'}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setExpanded((curr) => (curr === a.id ? null : a.id))}
-                    className="min-w-0 flex-1 text-left"
-                  >
-                    <span className="block truncate font-medium text-[var(--text-primary)]">
-                      {a.label}
-                    </span>
-                    <span className="block truncate font-mono text-[10px] text-[var(--text-muted)]">
-                      {a.cron} · {a.model || 'deepseek-v4-flash'}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => runNow(a.id)}
-                    className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--accent)]"
-                    title="Run now"
-                  >
-                    Run
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openEdit(a)}
-                    className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm(`Delete "${a.label}"?`)) void remove(a.id)
-                    }}
-                    className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--error)]"
-                  >
-                    Del
-                  </button>
-                </div>
+            {automations.map((a) => {
+              const state = automationDisplayState(a)
+              return (
+                <li
+                  key={a.id}
+                  className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)]"
+                >
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <input
+                      type="checkbox"
+                      checked={a.enabled}
+                      onChange={(e) => update(a.id, { enabled: e.target.checked })}
+                      title={a.enabled ? 'Disable' : 'Enable'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((curr) => (curr === a.id ? null : a.id))}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <span className="block truncate font-medium text-[var(--text-primary)]">
+                        {a.label}
+                      </span>
+                      <span className="block truncate font-mono text-[10px] text-[var(--text-muted)]">
+                        {triggerKindLabel(a.trigger.kind)} · {state.label} {state.detail} ·{' '}
+                        {a.model || 'deepseek-v4-flash'}
+                      </span>
+                      {a.goalId && (
+                        <span className="block truncate text-[10px] text-[var(--accent)]">
+                          Wakes goal {a.goalId.slice(0, 8)}…
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runNow(a.id)}
+                      className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--accent)]"
+                      title="Run now"
+                    >
+                      Run
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEdit(a)}
+                      className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Delete "${a.label}"?`)) void remove(a.id)
+                      }}
+                      className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--error)]"
+                    >
+                      Del
+                    </button>
+                  </div>
                 {expanded === a.id && (
                   <div className="border-t border-[var(--panel-border)] bg-[var(--bg-primary)]">
+                    <p className="px-2 pt-1.5 text-[10px] text-[var(--text-muted)]">
+                      {a.nextRunAt
+                        ? `Next eligible: ${new Date(a.nextRunAt).toLocaleString()}`
+                        : `${state.label}: ${state.detail}`}
+                    </p>
                     <pre className="px-2 py-1.5 text-[11px] text-[var(--text-secondary)] whitespace-pre-wrap">
-                      {a.prompt}
-                    </pre>
-                    <RunHistoryViewer lastRunAt={a.lastRunAt} lastResult={a.lastResult} />
-                  </div>
-                )}
-              </li>
-            ))}
+                        {a.prompt}
+                      </pre>
+                      <RunHistoryViewer lastRunAt={a.lastRunAt} lastResult={a.lastResult} />
+                    </div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

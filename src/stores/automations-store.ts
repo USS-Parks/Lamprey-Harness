@@ -3,6 +3,25 @@ import { toast } from '@/stores/toast-store'
 
 // Renderer-side store for the cron automations panel (G1).
 
+export type AutomationTrigger =
+  | { kind: 'one_shot'; at: number; maxAttempts: number; retryDelaySeconds: number }
+  | {
+      kind: 'schedule'
+      cron?: string
+      everySeconds?: number
+      startAt?: number
+      maxAttempts: number
+      retryDelaySeconds: number
+    }
+  | { kind: 'event'; eventName: string; maxAttempts: number; retryDelaySeconds: number }
+  | {
+      kind: 'monitor'
+      everySeconds: number
+      startAt?: number
+      maxAttempts: number
+      retryDelaySeconds: number
+    }
+
 export interface Automation {
   id: string
   label: string
@@ -13,6 +32,17 @@ export interface Automation {
   createdAt: number
   lastRunAt: number | null
   lastResult: string | null
+  trigger: AutomationTrigger
+  nextRunAt: number | null
+  lastTriggerKey: string | null
+  retryAttempt: number
+  retryAt: number | null
+  disabledReason: string | null
+  goalId: string | null
+  goalConversationId: string | null
+  loopMaxIterations: number | null
+  loopMaxWallclockMs: number | null
+  loopTokenBudget: number | null
 }
 
 export interface CronValidation {
@@ -28,13 +58,21 @@ interface AutomationsState {
   refresh: () => Promise<void>
   create: (input: {
     label: string
-    cron: string
+    cron?: string
     prompt: string
     model?: string
+    trigger?: AutomationTrigger
   }) => Promise<Automation | null>
   update: (
     id: string,
-    patch: Partial<{ label: string; cron: string; prompt: string; model: string; enabled: boolean }>
+    patch: Partial<{
+      label: string
+      cron: string
+      prompt: string
+      model: string
+      enabled: boolean
+      trigger: AutomationTrigger
+    }>
   ) => Promise<boolean>
   remove: (id: string) => Promise<boolean>
   runNow: (id: string) => Promise<boolean>

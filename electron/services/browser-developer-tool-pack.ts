@@ -5,6 +5,14 @@ import {
   type NetworkObservationArgs
 } from './browser-developer-observer'
 import { toolRegistry } from './tool-registry'
+import {
+  browserDeveloperInspection,
+  type DomSnapshotArgs,
+  type PerformanceInspectArgs,
+  type RuntimeInspectArgs,
+  type ScreenshotAnnotationArgs,
+  type TraceWindowArgs
+} from './browser-developer-inspection'
 
 toolRegistry.registerNative(
   {
@@ -37,6 +45,138 @@ toolRegistry.registerNative(
   },
   async (args, context) => JSON.stringify(
     await browserDeveloperObserver.observeConsole(args as unknown as ConsoleObservationArgs, context.signal)
+  )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'browser_dom_snapshot',
+    name: 'browser_dom_snapshot',
+    title: 'Browser Developer: DOM snapshot',
+    description: 'Capture a bounded structured DOM or accessibility snapshot through CDP. DOM nodes are decoded into names, values, attributes, bounds, and an allowlisted set of computed styles. No page-authored code is accepted.',
+    providerKind: 'native', providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tab_id: { type: 'string' },
+        kind: { type: 'string', enum: ['dom', 'accessibility'] },
+        max_nodes: { type: 'number', description: 'Maximum returned nodes. Default 200, hard maximum 500.' },
+        computed_styles: {
+          type: 'array',
+          items: { type: 'string', enum: ['display', 'visibility', 'position', 'width', 'height', 'color', 'background-color', 'font-family', 'font-size', 'font-weight', 'overflow', 'z-index'] },
+          description: 'DOM-only fixed computed-style allowlist.'
+        }
+      },
+      additionalProperties: false
+    },
+    risks: ['read'], requiresApproval: false, enabled: true, lazy: true,
+    parallelizable: true, mutates: false
+  },
+  async (args, context) => JSON.stringify(
+    await browserDeveloperInspection.captureDomSnapshot(args as unknown as DomSnapshotArgs, context.signal)
+  )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'browser_runtime_inspect',
+    name: 'browser_runtime_inspect',
+    title: 'Browser Developer: Runtime inspection',
+    description: 'Run one fixed, side-effect-checked runtime probe: document_state, viewport, or active_element. Arbitrary expressions and user-supplied JavaScript are not accepted.',
+    providerKind: 'native', providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tab_id: { type: 'string' },
+        kind: { type: 'string', enum: ['document_state', 'viewport', 'active_element'] }
+      },
+      required: ['kind'],
+      additionalProperties: false
+    },
+    risks: ['read'], requiresApproval: false, enabled: true, lazy: true,
+    parallelizable: true, mutates: false
+  },
+  async (args, context) => JSON.stringify(
+    await browserDeveloperInspection.inspectRuntime(args as unknown as RuntimeInspectArgs, context.signal)
+  )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'browser_performance_inspect',
+    name: 'browser_performance_inspect',
+    title: 'Browser Developer: Performance',
+    description: 'Read a fixed allowlist of CDP performance metrics and viewport/content layout measurements. Rejects mixed evidence when the page navigates during capture.',
+    providerKind: 'native', providerId: 'internal',
+    inputSchema: {
+      type: 'object', properties: { tab_id: { type: 'string' } }, additionalProperties: false
+    },
+    risks: ['read'], requiresApproval: false, enabled: true, lazy: true,
+    parallelizable: true, mutates: false
+  },
+  async (args, context) => JSON.stringify(
+    await browserDeveloperInspection.inspectPerformance(args as unknown as PerformanceInspectArgs, context.signal)
+  )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'browser_trace_window',
+    name: 'browser_trace_window',
+    title: 'Browser Developer: Trace window',
+    description: 'Capture a passive, bounded CDP trace window using fixed timeline/loading categories. Duration is capped at 10 seconds and output at 1,000 metadata-only events.',
+    providerKind: 'native', providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tab_id: { type: 'string' },
+        duration_ms: { type: 'number', description: '100-10000 ms. Default 1000.' },
+        max_events: { type: 'number', description: '1-1000 events. Default 300.' }
+      },
+      additionalProperties: false
+    },
+    risks: ['read'], requiresApproval: false, enabled: true, lazy: true,
+    parallelizable: false, mutates: false
+  },
+  async (args, context) => JSON.stringify(
+    await browserDeveloperInspection.captureTraceWindow(args as unknown as TraceWindowArgs, context.signal)
+  )
+)
+
+toolRegistry.registerNative(
+  {
+    id: 'browser_screenshot_annotate',
+    name: 'browser_screenshot_annotate',
+    title: 'Browser Developer: Screenshot evidence',
+    description: 'Capture the visible tab as a bounded PNG evidence artifact and return stable annotation references. Annotations are metadata; page content is not modified.',
+    providerKind: 'native', providerId: 'internal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tab_id: { type: 'string' },
+        annotations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' },
+              width: { type: 'number' }, height: { type: 'number' }, color: { type: 'string' }
+            },
+            required: ['label', 'x', 'y'],
+            additionalProperties: false
+          }
+        }
+      },
+      additionalProperties: false
+    },
+    risks: ['read'], requiresApproval: false, enabled: true, lazy: true,
+    parallelizable: false, mutates: false
+  },
+  async (args, context) => JSON.stringify(
+    await browserDeveloperInspection.captureAnnotatedScreenshot(
+      args as unknown as ScreenshotAnnotationArgs,
+      context.signal
+    )
   )
 )
 

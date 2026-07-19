@@ -9823,7 +9823,38 @@ are exact-request, MIME-aware, opt-in, and capped at 64 KiB; binary and unknown 
 are rejected. Disabled mode fails before CDP attachment, and metadata listing never captures
 a body. Existing browser tools and preview behavior remain unchanged.
 
-**Commit:** pending (BD-2).
+**Commit:** see git log (BD-2).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt BD-3 constrained browser inspection — 2026-07-19
+
+**Files changed:** `electron/services/browser-developer-inspection.ts`,
+`electron/services/browser-developer-inspection.test.ts`,
+`electron/services/browser-developer-observer.ts`,
+`electron/services/browser-developer-tool-pack.ts`,
+`electron/services/browser-developer-tool-pack.test.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused inspection/observer/tool/schema/lazy-surface cohort ✓ (5 files, 33 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Five additional strict lazy tools now return decoded bounded DOM or accessibility
+nodes, three fixed side-effect-checked runtime probes, allowlisted performance/layout metrics,
+a passive fixed-category trace window, and PNG evidence with stable annotation references.
+The model cannot submit page-world source code. Snapshot nodes cap at 500, trace duration at
+10 seconds, trace events at 1,000, structured output at 200 KB, screenshots at 15 MiB, and
+annotations at 50. Snapshot, runtime, performance, and screenshot results are discarded if
+the top-frame URL changes during capture; trace results report a navigation change explicitly.
+Cancellation closes active tracing best-effort, and untrusted page strings are bounded and
+credential-redacted before they reach model context.
+
+**Commit:** pending (BD-3).
 
 ---
 

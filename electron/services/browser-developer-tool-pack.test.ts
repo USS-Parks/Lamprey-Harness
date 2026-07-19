@@ -12,7 +12,8 @@ vi.mock('electron', () => ({
 }))
 vi.mock('@electron-toolkit/utils', () => ({ is: { dev: true } }))
 vi.mock('./browser-developer-observer', () => ({
-  browserDeveloperObserver: mocks
+  browserDeveloperObserver: mocks,
+  browserDeveloperCdpAdapter: {}
 }))
 
 import './browser-developer-tool-pack'
@@ -58,7 +59,28 @@ describe('BD-2 browser developer tool pack', () => {
     const names = toolRegistry.resolveToolSearch('browser developer console network response body')
       .map((item) => item.name)
     expect(names).toEqual(expect.arrayContaining([
-      'browser_console_observe', 'browser_network_observe', 'browser_network_body'
+      'browser_console_observe', 'browser_network_observe', 'browser_network_body',
+      'browser_dom_snapshot', 'browser_runtime_inspect', 'browser_performance_inspect',
+      'browser_trace_window'
     ]))
+    expect(toolRegistry.resolveToolSearch('browser screenshot annotation evidence').map((item) => item.name))
+      .toContain('browser_screenshot_annotate')
+  })
+
+  it('registers strict bounded inspection schemas without arbitrary expressions', () => {
+    const names = [
+      'browser_dom_snapshot', 'browser_runtime_inspect', 'browser_performance_inspect',
+      'browser_trace_window', 'browser_screenshot_annotate'
+    ]
+    for (const name of names) {
+      const descriptor = toolRegistry.getById(name)!
+      expect(descriptor.lazy, name).toBe(true)
+      expect(descriptor.risks, name).toEqual(['read'])
+      expect(descriptor.requiresApproval, name).toBe(false)
+      expect((descriptor.inputSchema as { additionalProperties: boolean }).additionalProperties).toBe(false)
+    }
+    const runtime = toolRegistry.getById('browser_runtime_inspect')!
+    expect(JSON.stringify(runtime.inputSchema)).not.toContain('expression')
+    expect(validateToolArguments(runtime.id, { kind: 'document_state', expression: 'alert(1)' }, runtime.inputSchema).valid).toBe(false)
   })
 })

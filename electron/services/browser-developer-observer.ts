@@ -29,7 +29,7 @@ export interface BrowserDeveloperCdpAdapter {
   ): Promise<unknown>
 }
 
-const productionAdapter: BrowserDeveloperCdpAdapter = {
+export const browserDeveloperCdpAdapter: BrowserDeveloperCdpAdapter = {
   attach: (tabId, signal) => attachBrowserDeveloperSession(tabId, signal),
   subscribe: (targetId, listener) => browserCdpSessions.subscribe(targetId, listener),
   sendCommand: (targetId, method, params, options) =>
@@ -220,7 +220,7 @@ export class BrowserDeveloperObserver {
   private readonly targets = new Map<string, TargetState>()
 
   constructor(
-    private readonly adapter: BrowserDeveloperCdpAdapter = productionAdapter,
+    private readonly adapter: BrowserDeveloperCdpAdapter = browserDeveloperCdpAdapter,
     private readonly isEnabled = developerModeEnabled,
     private readonly now = () => Date.now()
   ) {}

@@ -121,6 +121,11 @@ These are enforced mechanically by `scripts/hooks/commit-msg` and
    "rest of the file unchanged"), assistant voice in comments, `TODO: implement`
    stubs, placeholder secrets. Bypassing (`ALLOW_AI_ARTIFACTS=1`, `--no-verify`)
    is a deliberate human decision and should be rare enough to remember.
+5. **No AI slop or smelly code.** Prefer the smallest correct change. Do not
+   merge generated filler, duplicate authorities, speculative abstractions, dead
+   flags, wrapper-on-wrapper indirection, placeholder comments, or formatting
+   churn. New abstractions need present-day call sites; public claims need
+   evidence from a gate that actually ran.
 
 ---
 

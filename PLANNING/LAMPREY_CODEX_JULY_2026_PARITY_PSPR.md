@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M5 LOCALLY COMPLETE AS v0.23.0; NOT PUBLISHED; OWNER LIVE GITHUB EVIDENCE OPEN**
+**Status:** **M5 SOURCE-PUBLISHED TO MAIN AS v0.23.0; BINARIES REMAIN v0.21.0; OWNER LIVE GITHUB EVIDENCE OPEN**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -825,6 +825,18 @@ Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lampre
 ```
 
 ```text
+APPROVED: 2026-07-18 (M3 + M5 source publication and governance closeout)
+Milestones: publish the complete VA-1 through VA-6 and PR-1 through PR-6 commit chains.
+Decisions: commit governance/public-page copy and push the full branch directly to origin/main;
+  update the GitHub repository About description; enforce the no-AI-slop/no-smelly-code rule;
+  include plain-language public notes and the canonical owner footer.
+Release boundary: source publication only. No tag, Bucket run, CDN update, binary upload, or
+  v0.23.0 GitHub release is authorized; packaged downloads remain the verified v0.21.0 set.
+Instruction: "Commit and push all to main, update governance docs and github repo page accordingly."
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+```text
 APPROVED: 2026-07-18 (M2 task-control tranche)
 Milestones: M2 / TC-1 through TC-7; stop before M3.
 Decisions: release v0.21.0; update all governance documents; commit and push the
@@ -895,3 +907,7 @@ STS instruction: "No, what I want is ALL of these done. STS" followed by the
   complete §1 Normative Steering and Queue contract reproduced in this plan.
 Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
 ```
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

@@ -2,10 +2,12 @@ import {
   createAutomation,
   deleteAutomation,
   getAutomation,
+  listAutomationRuns,
   listAutomations,
   updateAutomation
 } from './automations-store'
 import { parseCron, runAutomation } from './automations-runner'
+import { parseAutomationTrigger, type AutomationTrigger } from './automation-trigger'
 import { toolRegistry } from './tool-registry'
 
 function asRequiredText(value: unknown, field: string): string {
@@ -34,6 +36,40 @@ const AUTOMATION_ID_SCHEMA = {
   }
 } as const
 
+const TRIGGER_SCHEMA = {
+  type: 'object',
+  description: 'Typed trigger configuration. Only fields relevant to the selected kind are used.',
+  properties: {
+    kind: { type: 'string', enum: ['one_shot', 'schedule', 'event', 'monitor'] },
+    at: { type: 'number', description: 'one_shot: epoch milliseconds for the one run.' },
+    cron: { type: 'string', description: 'schedule: five-field cron expression.' },
+    every_seconds: { type: 'number', description: 'schedule/monitor: fixed interval, minimum 30.' },
+    event_name: { type: 'string', description: 'event: exact named event to match.' },
+    start_at: { type: 'number', description: 'schedule/monitor: optional epoch-ms anchor.' },
+    max_attempts: { type: 'number', description: 'Bounded attempts per trigger occurrence.' },
+    retry_delay_seconds: { type: 'number', description: 'Base retry delay in seconds.' }
+  },
+  required: ['kind'],
+  additionalProperties: false
+} as const
+
+function parseToolTrigger(value: unknown): AutomationTrigger {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('automation_update: "trigger" must be an object.')
+  }
+  const input = value as Record<string, unknown>
+  return parseAutomationTrigger({
+    kind: input.kind,
+    at: input.at,
+    cron: input.cron,
+    everySeconds: input.every_seconds,
+    eventName: input.event_name,
+    startAt: input.start_at,
+    maxAttempts: input.max_attempts,
+    retryDelaySeconds: input.retry_delay_seconds
+  })
+}
+
 toolRegistry.registerNative(
   {
     id: 'automation_list',
@@ -61,7 +97,12 @@ toolRegistry.registerNative(
     if (typeof automationId !== 'string' || automationId.trim() === '') {
       throw new Error('automation_list: "automation_id" must be a non-empty string.')
     }
-    return JSON.stringify(getAutomation(automationId.trim()), null, 2)
+    const id = automationId.trim()
+    return JSON.stringify(
+      { automation: getAutomation(id), runs: listAutomationRuns(id) },
+      null,
+      2
+    )
   }
 )
 
@@ -89,6 +130,8 @@ toolRegistry.registerNative(
           description: 'Optional saved model id. Null restores the default automation model.'
         },
         enabled: { type: 'boolean', description: 'Whether scheduled execution is enabled.' }
+        ,
+        trigger: TRIGGER_SCHEMA
       },
       additionalProperties: false
     },
@@ -102,10 +145,11 @@ toolRegistry.registerNative(
     const automationId = args.automation_id
     if (automationId === undefined) {
       const label = asRequiredText(args.label, 'label')
-      const cron = validateCron(asRequiredText(args.cron, 'cron'))
       const prompt = asRequiredText(args.prompt, 'prompt')
       const model = args.model === null ? null : typeof args.model === 'string' ? args.model.trim() || null : undefined
-      return JSON.stringify(createAutomation({ label, cron, prompt, model }), null, 2)
+      const trigger = args.trigger === undefined ? undefined : parseToolTrigger(args.trigger)
+      const cron = trigger ? undefined : validateCron(asRequiredText(args.cron, 'cron'))
+      return JSON.stringify(createAutomation({ label, cron, prompt, model, trigger }), null, 2)
     }
 
     if (typeof automationId !== 'string' || automationId.trim() === '') {
@@ -130,6 +174,7 @@ toolRegistry.registerNative(
       }
       patch.enabled = args.enabled
     }
+    if (args.trigger !== undefined) patch.trigger = parseToolTrigger(args.trigger)
     if (Object.keys(patch).length === 0) {
       throw new Error('automation_update: supply at least one field to update.')
     }
@@ -190,7 +235,11 @@ toolRegistry.registerNative(
   async (args) => {
     const id = asRequiredText(args.automation_id, 'automation_id')
     if (!getAutomation(id)) throw new Error(`automation_run_now: no automation with id "${id}".`)
-    await runAutomation(id)
-    return JSON.stringify(getAutomation(id), null, 2)
+    const outcome = await runAutomation(id)
+    return JSON.stringify(
+      { outcome, automation: getAutomation(id), runs: listAutomationRuns(id) },
+      null,
+      2
+    )
   }
 )

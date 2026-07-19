@@ -9999,3 +9999,33 @@ session; publication is not authorized.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt GA-2 typed automation triggers — 2026-07-19
+
+**Files changed:** `electron/services/automation-schema.ts`,
+`electron/services/automation-trigger.ts`, `electron/services/automations-store.ts`,
+`electron/services/automations-runner.ts`, `electron/services/db-migrations.ts`,
+`electron/services/automation-tool-pack.ts`, `electron/ipc/automations.ts`,
+`electron/preload.ts`, focused tests, `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused migration/trigger/runner/tool/event/headless cohort ✓ (7 files, 43 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Additive migration v30 preserves the legacy cron column, backfills existing rows
+as typed `schedule` triggers, and adds a durable per-attempt run ledger with a uniqueness key
+for restart deduplication. One-shot, cron/fixed-interval schedule, named event, and monitor
+triggers now share deterministic next-run rules. Missed timed occurrences coalesce to one
+eligible run, event IDs form stable dedup keys, disabled rows claim no work, and failures
+retry the same trigger key with bounded exponential backoff. Interrupted runs settle on
+restart and retry without duplicating the prior attempt. The Node-SQLite migration/restart
+tests execute without the native `better-sqlite3` ABI guard. The existing cron IPC and UI
+remain compatible while typed trigger fields are available to tools and preload callers.
+
+**Commit:** see git log (GA-2).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

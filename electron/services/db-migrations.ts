@@ -11,6 +11,7 @@ import { applyArtifactSchema } from './artifact-schema'
 import { ARTIFACT_EDIT_SCHEMA_SQL } from './artifact-edit-schema'
 import { applyPrReviewSchema } from './pr-review-schema'
 import { applyPrPatchSchema } from './pr-patch-schema'
+import { applyAutomationTriggerSchema } from './automation-schema'
 
 // Persistence Phase / PS1 — migration ledger gated by PRAGMA user_version.
 //
@@ -365,6 +366,14 @@ export const MIGRATIONS: Migration[] = [
     description: 'Codex July parity PR-4 - editable PR patch proposals',
     up(db) {
       applyPrPatchSchema(db)
+    }
+  },
+  {
+    version: 30,
+    description:
+      'Codex July parity GA-2 — typed automation triggers and durable run deduplication',
+    up(db) {
+      applyAutomationTriggerSchema(db)
     }
   }
 ]

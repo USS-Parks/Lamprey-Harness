@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M8 STS IN PROGRESS AT GA-1; M7 LOCALLY COMPLETE AS v0.25.0; OWNER LIVE SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
+**Status:** **M8 STS IN PROGRESS AT GA-2; M7 LOCALLY COMPLETE AS v0.25.0; OWNER LIVE SMOKE OPEN; NOT PUBLISHED; M4 PARKED INDEFINITELY; M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -704,7 +704,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **GA-2 — Add one-shot, schedule, event, and monitor trigger types**
 
-- [ ] Version the automation schema beyond cron while preserving existing rows. Define
+- [x] Version the automation schema beyond cron while preserving existing rows. Define
       deterministic next-run, deduplication, retry, missed-run, and disabled semantics for
       each trigger kind.
 - Verify: node:sqlite migration tests, fake-clock trigger matrix, restart/dedup tests.

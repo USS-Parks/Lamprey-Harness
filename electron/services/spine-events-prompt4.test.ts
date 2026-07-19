@@ -57,20 +57,35 @@ vi.mock('./providers/registry', async () => {
   }
 })
 
-// Mock automations-store list/recordRun so the runner doesn't need a real DB.
+// Mock the automation store so the runner doesn't need a real DB.
 const automationsListMock = vi.fn<() => Array<{
   id: string
   label: string
   cron: string
   prompt: string
   model: string | null
-  enabled: number
+  enabled: boolean
   createdAt: number
+  trigger: {
+    kind: 'schedule'
+    cron: string
+    maxAttempts: number
+    retryDelaySeconds: number
+  }
+  nextRunAt: number | null
+  lastTriggerKey: string | null
+  retryAttempt: number
+  retryAt: number | null
+  disabledReason: string | null
 }>>()
-const recordRunMock = vi.fn<(id: string, result: string) => void>()
+const settleAutomationRunMock = vi.fn()
 vi.mock('./automations-store', () => ({
   listAutomations: () => automationsListMock(),
-  recordRun: (id: string, result: string) => recordRunMock(id, result)
+  getAutomation: (id: string) => automationsListMock().find((row) => row.id === id) ?? null,
+  beginAutomationRun: () => 'run-1',
+  settleAutomationRun: (input: unknown) => settleAutomationRunMock(input),
+  recoverInterruptedAutomationRuns: () => 0,
+  initializeAutomationNextRuns: () => 0
 }))
 
 import {
@@ -94,7 +109,7 @@ beforeEach(() => {
   runGitMock.mockReset()
   chatOnceMock.mockReset()
   automationsListMock.mockReset()
-  recordRunMock.mockReset()
+  settleAutomationRunMock.mockReset()
   // Clear the persisted workspace file between tests so each test sees a
   // clean transition rather than carrying over the previous run's setting.
   const statePath = join(userDataDir, 'active-workspace.txt')
@@ -244,8 +259,16 @@ describe('automation runner emits automation.* events with a per-run correlation
         cron: '0 9 * * *',
         prompt: 'Brief me',
         model: 'deepseek-v4-pro',
-        enabled: 1,
-        createdAt: 0
+        enabled: true,
+        createdAt: 0,
+        trigger: {
+          kind: 'schedule', cron: '0 9 * * *', maxAttempts: 3, retryDelaySeconds: 60
+        },
+        nextRunAt: null,
+        lastTriggerKey: null,
+        retryAttempt: 0,
+        retryAt: null,
+        disabledReason: null
       }
     ])
     // R2: chatOnce now returns {content, reasoning?} — automation runner
@@ -276,9 +299,9 @@ describe('automation runner emits automation.* events with a per-run correlation
     expect(typeof completedPayload.durationMs).toBe('number')
     expect(completedPayload.replyPreview).toContain('the briefing')
     expect(completedPayload.model).toBe('deepseek-v4-pro')
-    // recordRun is still called — the existing last_run_at / last_result
-    // is preserved alongside the event row.
-    expect(recordRunMock).toHaveBeenCalledWith('auto-1', 'the briefing')
+    expect(settleAutomationRunMock).toHaveBeenCalledWith(expect.objectContaining({
+      automationId: 'auto-1', status: 'completed', result: 'the briefing'
+    }))
   })
 
   it('failed run emits started + failed with severity error and errorPreview', async () => {
@@ -289,8 +312,16 @@ describe('automation runner emits automation.* events with a per-run correlation
         cron: '*/5 * * * *',
         prompt: 'flake',
         model: null,
-        enabled: 1,
-        createdAt: 0
+        enabled: true,
+        createdAt: 0,
+        trigger: {
+          kind: 'schedule', cron: '*/5 * * * *', maxAttempts: 3, retryDelaySeconds: 60
+        },
+        nextRunAt: null,
+        lastTriggerKey: null,
+        retryAttempt: 0,
+        retryAt: null,
+        disabledReason: null
       }
     ])
     chatOnceMock.mockRejectedValueOnce(new Error('upstream provider 500'))
@@ -308,8 +339,9 @@ describe('automation runner emits automation.* events with a per-run correlation
     expect(events[1].severity).toBe('error')
     expect(failedPayload.errorPreview).toContain('upstream provider 500')
     expect(typeof failedPayload.durationMs).toBe('number')
-    // recordRun stamps an [error] marker in the legacy last_result slot too.
-    expect(recordRunMock).toHaveBeenCalledWith('auto-2', '[error] upstream provider 500')
+    expect(settleAutomationRunMock).toHaveBeenCalledWith(expect.objectContaining({
+      automationId: 'auto-2', status: 'failed', error: 'upstream provider 500'
+    }))
   })
 
   it('unknown automation id → no events, no chatOnce call', async () => {

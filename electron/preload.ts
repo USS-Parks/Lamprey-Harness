@@ -832,7 +832,22 @@ const api = {
 
   automations: {
     list: () => ipcRenderer.invoke('automations:list'),
-    create: (input: { label: string; cron: string; prompt: string; model?: string }) =>
+    create: (input: {
+      label: string
+      cron?: string
+      prompt: string
+      model?: string
+      trigger?: {
+        kind: 'one_shot' | 'schedule' | 'event' | 'monitor'
+        at?: number
+        cron?: string
+        everySeconds?: number
+        eventName?: string
+        startAt?: number
+        maxAttempts?: number
+        retryDelaySeconds?: number
+      }
+    }) =>
       ipcRenderer.invoke('automations:create', input),
     update: (
       id: string,
@@ -842,6 +857,16 @@ const api = {
         prompt: string
         model: string
         enabled: boolean
+        trigger: {
+          kind: 'one_shot' | 'schedule' | 'event' | 'monitor'
+          at?: number
+          cron?: string
+          everySeconds?: number
+          eventName?: string
+          startAt?: number
+          maxAttempts?: number
+          retryDelaySeconds?: number
+        }
       }>
     ) => ipcRenderer.invoke('automations:update', id, patch),
     delete: (id: string) => ipcRenderer.invoke('automations:delete', id),

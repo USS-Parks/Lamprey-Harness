@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import * as store from '../services/automations-store'
 import { describeCron, nextFireAfter, parseCron, runAutomation } from '../services/automations-runner'
+import { parseAutomationTrigger } from '../services/automation-trigger'
 
 export function registerAutomationsHandlers(): void {
   ipcMain.handle('automations:list', async () => {
@@ -15,18 +16,23 @@ export function registerAutomationsHandlers(): void {
     'automations:create',
     async (
       _e,
-      input: { label: string; cron: string; prompt: string; model?: string | null }
+      input: { label: string; cron?: string; prompt: string; model?: string | null; trigger?: unknown }
     ) => {
       try {
-        if (!input?.label || !input?.cron || !input?.prompt) {
-          return { success: false, error: 'label, cron, prompt required' }
+        if (!input?.label || !input?.prompt || (!input.cron && !input.trigger)) {
+          return { success: false, error: 'label, prompt, and cron or trigger required' }
         }
-        try {
-          parseCron(input.cron)
-        } catch (err: any) {
-          return { success: false, error: `invalid cron: ${err?.message ?? 'parse error'}` }
+        let trigger
+        if (input.trigger !== undefined) {
+          trigger = parseAutomationTrigger(input.trigger)
+        } else {
+          try {
+            parseCron(input.cron!)
+          } catch (err: any) {
+            return { success: false, error: `invalid cron: ${err?.message ?? 'parse error'}` }
+          }
         }
-        return { success: true, data: store.createAutomation(input) }
+        return { success: true, data: store.createAutomation({ ...input, trigger }) }
       } catch (err: any) {
         return { success: false, error: err?.message ?? 'create failed' }
       }
@@ -44,6 +50,7 @@ export function registerAutomationsHandlers(): void {
         prompt: string
         model: string | null
         enabled: boolean
+        trigger: unknown
       }>
     ) => {
       try {
@@ -54,8 +61,14 @@ export function registerAutomationsHandlers(): void {
             return { success: false, error: `invalid cron: ${err?.message}` }
           }
         }
-        store.updateAutomation(id, patch)
-        return { success: true, data: true }
+        const { trigger: rawTrigger, ...rest } = patch
+        const normalizedPatch: Parameters<typeof store.updateAutomation>[1] = { ...rest }
+        if (rawTrigger !== undefined) {
+          normalizedPatch.trigger = parseAutomationTrigger(rawTrigger)
+        }
+        const updated = store.updateAutomation(id, normalizedPatch)
+        if (!updated) return { success: false, error: `no automation with id "${id}"` }
+        return { success: true, data: updated }
       } catch (err: any) {
         return { success: false, error: err?.message ?? 'update failed' }
       }
@@ -73,8 +86,11 @@ export function registerAutomationsHandlers(): void {
 
   ipcMain.handle('automations:runNow', async (_e, id: string) => {
     try {
-      await runAutomation(id)
-      return { success: true, data: true }
+      const outcome = await runAutomation(id)
+      if (outcome.status === 'not-found') {
+        return { success: false, error: `no automation with id "${id}"` }
+      }
+      return { success: true, data: outcome }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'run failed' }
     }

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => {
     },
     listAutomations: vi.fn(() => [...rows.values()]),
     getAutomation: vi.fn((id: string) => rows.get(id) ?? null),
+    listAutomationRuns: vi.fn(() => []),
     createAutomation: vi.fn((input: Record<string, unknown>) => {
       const id = `automation-${nextId++}`
       const row = {
@@ -48,6 +49,7 @@ vi.mock('@electron-toolkit/utils', () => ({ is: { dev: true } }))
 vi.mock('./automations-store', () => ({
   listAutomations: mocks.listAutomations,
   getAutomation: mocks.getAutomation,
+  listAutomationRuns: mocks.listAutomationRuns,
   createAutomation: mocks.createAutomation,
   updateAutomation: mocks.updateAutomation,
   deleteAutomation: mocks.deleteAutomation
@@ -120,7 +122,8 @@ describe('GA-1 automation tool pack', () => {
     const ran = JSON.parse(String(await toolRegistry.executeNative('automation_run_now', {
       automation_id: 'automation-1'
     }, {})))
-    expect(ran).toMatchObject({ lastRunAt: 200, lastResult: 'completed' })
+    expect(ran.automation).toMatchObject({ lastRunAt: 200, lastResult: 'completed' })
+    expect(ran.runs).toEqual([])
     expect(mocks.runAutomation).toHaveBeenCalledWith('automation-1')
 
     const deleted = JSON.parse(String(await toolRegistry.executeNative('automation_delete', {
@@ -134,7 +137,7 @@ describe('GA-1 automation tool pack', () => {
     mocks.reset()
     await expect(toolRegistry.executeNative(
       'automation_update', { label: 'missing fields' }, {}
-    )).rejects.toThrow(/cron.*required/i)
+    )).rejects.toThrow(/prompt.*required/i)
     await expect(toolRegistry.executeNative('automation_update', {
       label: 'bad', cron: '* * * * *', prompt: 'bad'
     }, {})).rejects.toThrow(/invalid cron/i)

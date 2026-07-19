@@ -1,197 +1,79 @@
-// Minimal 5-field cron parser + 60-second tick scheduler. Supports `*`,
-// exact numbers, `a,b,c` lists, `a-b` ranges, and `*/N` step. Does NOT
-// support names (mon, tue), `?`, or 6-field/7-field cron — keep it simple.
-
 import { randomUUID } from 'crypto'
-import { listAutomations, recordRun } from './automations-store'
+import {
+  beginAutomationRun,
+  getAutomation,
+  initializeAutomationNextRuns,
+  listAutomations,
+  recoverInterruptedAutomationRuns,
+  settleAutomationRun,
+  type Automation
+} from './automations-store'
 import { chatOnce } from './providers/registry'
 import { boundedJsonPreview, recordEvent } from './event-log'
 import { readLoopConfig } from './loop-config'
+import {
+  describeCron,
+  nextFireAfter,
+  nextRunAfterSettlement,
+  parseCron,
+  retryAt,
+  triggerKey,
+  type AutomationTriggerKind
+} from './automation-trigger'
 
-type FieldSet = Set<number>
+export { describeCron, nextFireAfter, parseCron } from './automation-trigger'
 
-interface CronExpr {
-  minutes: FieldSet
-  hours: FieldSet
-  dayOfMonth: FieldSet
-  month: FieldSet
-  dayOfWeek: FieldSet
+interface AutomationInvocation {
+  triggerKind: AutomationTriggerKind | 'manual'
+  triggerKey: string
+  scheduledAt: number | null
+  attempt: number
+  startedAt?: number
 }
 
-function parseField(raw: string, min: number, max: number): FieldSet {
-  const set = new Set<number>()
-  for (const piece of raw.split(',')) {
-    if (piece === '*') {
-      for (let i = min; i <= max; i++) set.add(i)
-      continue
-    }
-    const stepMatch = piece.match(/^(\*|\d+(-\d+)?)\/(\d+)$/)
-    if (stepMatch) {
-      const range = stepMatch[1]
-      const step = parseInt(stepMatch[3], 10)
-      if (step <= 0) throw new Error(`bad step ${step}`)
-      let lo = min,
-        hi = max
-      if (range !== '*') {
-        const m = range.match(/^(\d+)(?:-(\d+))?$/)!
-        lo = parseInt(m[1], 10)
-        hi = m[2] ? parseInt(m[2], 10) : max
-      }
-      for (let i = lo; i <= hi; i += step) set.add(i)
-      continue
-    }
-    const rangeMatch = piece.match(/^(\d+)-(\d+)$/)
-    if (rangeMatch) {
-      const lo = parseInt(rangeMatch[1], 10)
-      const hi = parseInt(rangeMatch[2], 10)
-      for (let i = lo; i <= hi; i++) set.add(i)
-      continue
-    }
-    const n = parseInt(piece, 10)
-    if (!Number.isFinite(n) || n < min || n > max) {
-      throw new Error(`bad field value: ${piece}`)
-    }
-    set.add(n)
-  }
-  return set
-}
-
-export function parseCron(expr: string): CronExpr {
-  const parts = expr.trim().split(/\s+/)
-  if (parts.length !== 5) {
-    throw new Error(
-      `Cron needs 5 fields (min hour dom month dow), got ${parts.length}: "${expr}"`
-    )
-  }
-  return {
-    minutes: parseField(parts[0], 0, 59),
-    hours: parseField(parts[1], 0, 23),
-    dayOfMonth: parseField(parts[2], 1, 31),
-    month: parseField(parts[3], 1, 12),
-    dayOfWeek: parseField(parts[4], 0, 6)
-  }
-}
-
-// Cron matching uses LOCAL wall-time at minute granularity, and the tick only
-// tests the current minute — missed minutes are skipped, not replayed. Two
-// documented consequences (JM-6 / LP-23): a daily job scheduled inside the
-// spring-forward DST gap (e.g. 02:30) does not fire that day, and a job whose
-// minute coincides exactly with app boot is missed (the first tick aligns to
-// the NEXT minute boundary). Loops use epoch-ms scheduling and are immune.
-function matches(expr: CronExpr, d: Date): boolean {
-  return (
-    expr.minutes.has(d.getMinutes()) &&
-    expr.hours.has(d.getHours()) &&
-    expr.dayOfMonth.has(d.getDate()) &&
-    expr.month.has(d.getMonth() + 1) &&
-    expr.dayOfWeek.has(d.getDay())
-  )
-}
-
-let timer: NodeJS.Timeout | null = null
-const lastFiredMinute = new Map<string, string>()
-
-// JM-3 (LP-16) — one run of an automation at a time. An every-minute
-// automation whose chatOnce takes >60s otherwise stacks unbounded
-// concurrent runs of itself.
-const runningAutomations = new Set<string>()
-
-async function runOne(autoId: string): Promise<void> {
-  if (runningAutomations.has(autoId)) return
-  runningAutomations.add(autoId)
-  try {
-    await runOneInner(autoId)
-  } finally {
-    runningAutomations.delete(autoId)
-  }
-}
-
-async function runOneInner(autoId: string): Promise<void> {
-  const list = listAutomations()
-  const a = list.find((x) => x.id === autoId)
-  if (!a) return
-  const model = a.model || 'deepseek-v4-flash'
-  // Per-run correlation id so the model.request.* events emitted from within
-  // chatOnce join the automation.started/completed event-log row group. Each
-  // run is its own logical "turn" — they do NOT share an id across cron firings.
-  const correlationId = randomUUID()
-  const startedAt = Date.now()
-  emitAutomationEvent('automation.started', {
-    automationId: a.id,
-    label: a.label,
-    cron: a.cron,
-    model,
-    correlationId,
-    startedAt
-  })
-  try {
-    const replyResult = await chatOnce(
-      [{ role: 'user', content: a.prompt }] as any,
-      model,
-      undefined,
-      // chatOnce will emit model.request.started/completed/failed tagged with
-      // this correlationId, so an automation run reconstructs as
-      // automation.started → model.request.* → automation.completed.
-      { correlationId, purpose: 'other', role: 'automation' }
-    )
-    const reply = replyResult.content
-    recordRun(a.id, reply.slice(0, 4000))
-    emitAutomationEvent('automation.completed', {
-      automationId: a.id,
-      label: a.label,
-      cron: a.cron,
-      model,
-      correlationId,
-      startedAt,
-      durationMs: Date.now() - startedAt,
-      replyPreview: reply
-    })
-  } catch (err: any) {
-    recordRun(a.id, `[error] ${err?.message ?? 'unknown'}`)
-    emitAutomationEvent('automation.failed', {
-      automationId: a.id,
-      label: a.label,
-      cron: a.cron,
-      model,
-      correlationId,
-      startedAt,
-      durationMs: Date.now() - startedAt,
-      error: err?.message ?? 'unknown',
-      errorClass: err?.name
-    })
-  }
-}
-
-interface AutomationEventDetail {
+export interface AutomationRunOutcome {
+  started: boolean
+  status: 'completed' | 'failed' | 'deduplicated' | 'already-running' | 'not-found'
   automationId: string
-  label?: string
-  cron?: string
-  model: string
-  correlationId: string
-  startedAt: number
-  durationMs?: number
-  replyPreview?: string
-  error?: string
-  errorClass?: string
+  triggerKey: string
+  attempt: number
 }
+
+const runningAutomations = new Set<string>()
+let timer: NodeJS.Timeout | null = null
+const TICK_INTERVAL_MS = 5_000
 
 function emitAutomationEvent(
   type: 'automation.started' | 'automation.completed' | 'automation.failed',
-  detail: AutomationEventDetail
+  detail: {
+    automation: Automation
+    triggerKey: string
+    triggerKind: AutomationTriggerKind | 'manual'
+    attempt: number
+    model: string
+    correlationId: string
+    startedAt: number
+    durationMs?: number
+    replyPreview?: string
+    error?: string
+    errorClass?: string
+  }
 ): void {
   try {
     recordEvent({
       type,
       actorKind: 'system',
       severity: type === 'automation.failed' ? 'error' : 'info',
-      automationId: detail.automationId,
+      automationId: detail.automation.id,
       correlationId: detail.correlationId,
       entityKind: 'automation',
-      entityId: detail.automationId,
+      entityId: detail.automation.id,
       payload: {
-        automationId: detail.automationId,
-        label: detail.label,
-        cron: detail.cron,
+        automationId: detail.automation.id,
+        label: detail.automation.label,
+        triggerKind: detail.triggerKind,
+        triggerKey: detail.triggerKey,
+        attempt: detail.attempt,
         model: detail.model,
         startedAt: detail.startedAt,
         durationMs: detail.durationMs,
@@ -200,146 +82,244 @@ function emitAutomationEvent(
         errorClass: detail.errorClass
       }
     })
-  } catch (err) {
-    console.error(`[automations] ${type} event failed:`, err)
+  } catch (error) {
+    console.error(`[automations] ${type} event failed:`, error)
   }
 }
 
-export async function runAutomation(id: string): Promise<void> {
-  await runOne(id)
-}
+async function runOne(
+  automationId: string,
+  invocation: AutomationInvocation
+): Promise<AutomationRunOutcome> {
+  if (runningAutomations.has(automationId)) {
+    return {
+      started: false,
+      status: 'already-running',
+      automationId,
+      triggerKey: invocation.triggerKey,
+      attempt: invocation.attempt
+    }
+  }
+  const automation = getAutomation(automationId)
+  if (!automation) throw new Error(`automation runner: no automation with id "${automationId}".`)
 
-function tick(): void {
-  // JM-5 (LP-14) — cron automations run background model turns, so they ride
-  // the same master toggle as loops. This pre-Loop layer had NO gate at all:
-  // "loops are off by default" was not true while an enabled automation row
-  // existed. Manual runs via runAutomation() stay available regardless.
-  if (!readLoopConfig().enabled) return
-  let autos
+  const startedAt = invocation.startedAt ?? Date.now()
+  const runId = beginAutomationRun({
+    automationId,
+    triggerKey: invocation.triggerKey,
+    triggerKind: invocation.triggerKind,
+    scheduledAt: invocation.scheduledAt,
+    attempt: invocation.attempt,
+    startedAt
+  })
+  if (!runId) {
+    return {
+      started: false,
+      status: 'deduplicated',
+      automationId,
+      triggerKey: invocation.triggerKey,
+      attempt: invocation.attempt
+    }
+  }
+
+  runningAutomations.add(automationId)
+  const model = automation.model || 'deepseek-v4-flash'
+  const correlationId = randomUUID()
+  emitAutomationEvent('automation.started', {
+    automation,
+    triggerKey: invocation.triggerKey,
+    triggerKind: invocation.triggerKind,
+    attempt: invocation.attempt,
+    model,
+    correlationId,
+    startedAt
+  })
+
   try {
-    autos = listAutomations()
-  } catch (err) {
-    console.error('[automations] list failed:', err)
-    return
+    const replyResult = await chatOnce(
+      [{ role: 'user', content: automation.prompt }] as any,
+      model,
+      undefined,
+      { correlationId, purpose: 'other', role: 'automation' }
+    )
+    const finishedAt = Date.now()
+    const reply = replyResult.content
+    const isManual = invocation.triggerKind === 'manual'
+    const oneShotComplete = !isManual && automation.trigger.kind === 'one_shot'
+    settleAutomationRun({
+      runId,
+      automationId,
+      triggerKey: invocation.triggerKey,
+      status: 'completed',
+      finishedAt,
+      result: reply.slice(0, 4000),
+      nextRunAt: isManual
+        ? automation.nextRunAt
+        : nextRunAfterSettlement(automation.trigger, finishedAt),
+      retryAttempt: isManual ? automation.retryAttempt : 0,
+      retryAt: isManual ? automation.retryAt : null,
+      enabled: oneShotComplete ? false : automation.enabled,
+      disabledReason: oneShotComplete ? 'one-shot-completed' : automation.disabledReason
+    })
+    emitAutomationEvent('automation.completed', {
+      automation,
+      triggerKey: invocation.triggerKey,
+      triggerKind: invocation.triggerKind,
+      attempt: invocation.attempt,
+      model,
+      correlationId,
+      startedAt,
+      durationMs: finishedAt - startedAt,
+      replyPreview: reply
+    })
+    return {
+      started: true,
+      status: 'completed',
+      automationId,
+      triggerKey: invocation.triggerKey,
+      attempt: invocation.attempt
+    }
+  } catch (error) {
+    const finishedAt = Date.now()
+    const message = error instanceof Error ? error.message : 'unknown'
+    const isManual = invocation.triggerKind === 'manual'
+    const nextRetryAt = isManual ? null : retryAt(automation.trigger, invocation.attempt, finishedAt)
+    const exhaustedOneShot =
+      !isManual && automation.trigger.kind === 'one_shot' && nextRetryAt === null
+    settleAutomationRun({
+      runId,
+      automationId,
+      triggerKey: invocation.triggerKey,
+      status: 'failed',
+      finishedAt,
+      error: message,
+      nextRunAt: isManual
+        ? automation.nextRunAt
+        : nextRetryAt === null
+          ? nextRunAfterSettlement(automation.trigger, finishedAt)
+          : automation.nextRunAt,
+      retryAttempt: isManual ? automation.retryAttempt : invocation.attempt,
+      retryAt: isManual ? automation.retryAt : nextRetryAt,
+      enabled: exhaustedOneShot ? false : automation.enabled,
+      disabledReason: exhaustedOneShot ? 'one-shot-failed' : automation.disabledReason
+    })
+    emitAutomationEvent('automation.failed', {
+      automation,
+      triggerKey: invocation.triggerKey,
+      triggerKind: invocation.triggerKind,
+      attempt: invocation.attempt,
+      model,
+      correlationId,
+      startedAt,
+      durationMs: finishedAt - startedAt,
+      error: message,
+      errorClass: error instanceof Error ? error.name : undefined
+    })
+    return {
+      started: true,
+      status: 'failed',
+      automationId,
+      triggerKey: invocation.triggerKey,
+      attempt: invocation.attempt
+    }
+  } finally {
+    runningAutomations.delete(automationId)
   }
-  const now = new Date()
-  // JM-6 (LP-7) — the dedup key MUST be date-qualified. The old key was
-  // Number(`${hours}${minutes}`), which never changes across days for a daily
-  // cron (fired once per app session) and collides across times (1:23 and
-  // 12:03 both → 123).
-  const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`
-  for (const a of autos) {
-    if (!a.enabled) continue
-    let expr: CronExpr
-    try {
-      expr = parseCron(a.cron)
-    } catch {
+}
+
+export async function runAutomation(id: string): Promise<AutomationRunOutcome> {
+  if (!getAutomation(id)) {
+    return {
+      started: false,
+      status: 'not-found',
+      automationId: id,
+      triggerKey: '',
+      attempt: 0
+    }
+  }
+  return runOne(id, {
+    triggerKind: 'manual',
+    triggerKey: `manual:${randomUUID()}`,
+    scheduledAt: null,
+    attempt: 1
+  })
+}
+
+export async function tickAutomationsOnce(now = Date.now()): Promise<number> {
+  if (!readLoopConfig().enabled) return 0
+  let started = 0
+  for (const automation of listAutomations()) {
+    if (!automation.enabled) continue
+
+    if (automation.retryAt !== null) {
+      if (automation.retryAt > now || !automation.lastTriggerKey) continue
+      const attempt = automation.retryAttempt + 1
+      if (attempt > automation.trigger.maxAttempts) continue
+      const outcome = await runOne(automation.id, {
+        triggerKind: automation.trigger.kind,
+        triggerKey: automation.lastTriggerKey,
+        scheduledAt: automation.nextRunAt,
+        attempt,
+        startedAt: now
+      })
+      if (outcome.started) started++
       continue
     }
-    if (!matches(expr, now)) continue
-    // Guard against double-firing within the same minute (timer may drift).
-    if (lastFiredMinute.get(a.id) === minuteKey) continue
-    lastFiredMinute.set(a.id, minuteKey)
-    // Trim the dedup map occasionally so it doesn't grow unbounded.
-    if (lastFiredMinute.size > 256) lastFiredMinute.clear()
-    void runOne(a.id)
+
+    if (automation.nextRunAt === null || automation.nextRunAt > now) continue
+    const outcome = await runOne(automation.id, {
+      triggerKind: automation.trigger.kind,
+      triggerKey: triggerKey(automation.trigger, automation.nextRunAt),
+      scheduledAt: automation.nextRunAt,
+      attempt: 1,
+      startedAt: now
+    })
+    if (outcome.started) started++
   }
+  return started
+}
+
+export async function dispatchAutomationEvent(
+  eventName: string,
+  eventId: string
+): Promise<{ matched: number; started: number }> {
+  if (!readLoopConfig().enabled) return { matched: 0, started: 0 }
+  if (!eventName.trim() || !eventId.trim()) {
+    throw new Error('automation event requires non-empty eventName and eventId.')
+  }
+  const matches = listAutomations().filter(
+    (automation) =>
+      automation.enabled &&
+      automation.trigger.kind === 'event' &&
+      automation.trigger.eventName === eventName
+  )
+  let started = 0
+  for (const automation of matches) {
+    const outcome = await runOne(automation.id, {
+      triggerKind: 'event',
+      triggerKey: triggerKey(automation.trigger, 0, eventId),
+      scheduledAt: null,
+      attempt: 1
+    })
+    if (outcome.started) started++
+  }
+  return { matched: matches.length, started }
 }
 
 export function startAutomations(): void {
   if (timer) return
-  // Align first tick to the next ~minute boundary, then every 60s.
-  const msUntilNextMinute = (60 - new Date().getSeconds()) * 1000
-  timer = setTimeout(function tickLoop() {
-    tick()
-    timer = setTimeout(tickLoop, 60_000)
-  }, msUntilNextMinute)
+  recoverInterruptedAutomationRuns()
+  initializeAutomationNextRuns()
+  timer = setInterval(() => {
+    void tickAutomationsOnce().catch((error) => {
+      console.error('[automations] tick failed:', error)
+    })
+  }, TICK_INTERVAL_MS)
+  timer.unref?.()
 }
 
 export function stopAutomations(): void {
-  if (timer) {
-    clearTimeout(timer)
-    timer = null
-  }
-}
-
-// ─── G1 — cron preview + next-fire helpers ──────────────────────────
-
-const COMMON_PRESETS: Record<string, string> = {
-  '* * * * *': 'Every minute',
-  '*/5 * * * *': 'Every 5 minutes',
-  '*/10 * * * *': 'Every 10 minutes',
-  '*/15 * * * *': 'Every 15 minutes',
-  '*/30 * * * *': 'Every 30 minutes',
-  '0 * * * *': 'Every hour, on the hour',
-  '0 */2 * * *': 'Every 2 hours',
-  '0 9 * * *': 'Daily at 09:00',
-  '0 9 * * 1-5': 'Weekdays at 09:00',
-  '0 0 * * *': 'Daily at midnight',
-  '0 0 * * 0': 'Weekly at midnight Sunday',
-  '0 0 1 * *': 'Monthly on the 1st'
-}
-
-function describeFieldSet(set: FieldSet, min: number, max: number, label: string): string {
-  const all = max - min + 1
-  if (set.size === all) return `every ${label}`
-  const sorted = [...set].sort((a, b) => a - b)
-  if (sorted.length === 1) return `at ${label} ${sorted[0]}`
-  // Detect step pattern: equally spaced from min.
-  if (sorted.length >= 3) {
-    const step = sorted[1] - sorted[0]
-    let stepOk = step > 1
-    for (let i = 2; i < sorted.length; i++) {
-      if (sorted[i] - sorted[i - 1] !== step) {
-        stepOk = false
-        break
-      }
-    }
-    if (stepOk) return `every ${step} ${label}${label.endsWith('s') ? '' : 's'}`
-  }
-  return `${label}s ${sorted.join(',')}`
-}
-
-/**
- * Render a friendly description of a cron expression. Returns null if
- * the expression doesn't parse. Falls back to a field-by-field summary
- * for unrecognized patterns.
- */
-export function describeCron(expr: string): string | null {
-  const trimmed = expr.trim().replace(/\s+/g, ' ')
-  if (COMMON_PRESETS[trimmed]) return COMMON_PRESETS[trimmed]
-  let parsed: CronExpr
-  try {
-    parsed = parseCron(trimmed)
-  } catch {
-    return null
-  }
-  const minutes = describeFieldSet(parsed.minutes, 0, 59, 'minute')
-  const hours = describeFieldSet(parsed.hours, 0, 23, 'hour')
-  return `${minutes}, ${hours}`
-}
-
-/**
- * Find the next firing time on or after `from`. Returns null when no
- * match within the next 366 days (handles bad expressions defensively).
- * Tests the minute granularity the tick scheduler uses, so the result
- * is always at second 0.
- */
-export function nextFireAfter(expr: string, from: Date = new Date()): Date | null {
-  let parsed: CronExpr
-  try {
-    parsed = parseCron(expr)
-  } catch {
-    return null
-  }
-  // Start at the next minute boundary.
-  const candidate = new Date(from)
-  candidate.setSeconds(0, 0)
-  candidate.setMinutes(candidate.getMinutes() + 1)
-  const horizonMinutes = 366 * 24 * 60
-  for (let i = 0; i < horizonMinutes; i++) {
-    if (matches(parsed, candidate)) return new Date(candidate)
-    candidate.setMinutes(candidate.getMinutes() + 1)
-  }
-  return null
+  if (!timer) return
+  clearInterval(timer)
+  timer = null
 }

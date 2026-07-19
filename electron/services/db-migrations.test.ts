@@ -37,6 +37,17 @@ function makeBaselineDb(): Database {
     CREATE TABLE events (id TEXT PRIMARY KEY);
     CREATE TABLE projects (id TEXT PRIMARY KEY);
     CREATE TABLE agent_runs (id TEXT PRIMARY KEY);
+    CREATE TABLE automations (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      cron TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      model TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      last_run_at INTEGER,
+      last_result TEXT
+    );
   `)
   return db
 }
@@ -192,7 +203,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
 
   it('ST-2 — migration v21 creates the turn and follow-up ledgers', () => {
     const result = runMigrations(db)
-    expect(result.endVersion).toBe(29)
+    expect(result.endVersion).toBe(LATEST_VERSION)
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all() as Array<{ name: string }>
@@ -289,6 +300,23 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'pr_patch_proposals'"
     ).get()
     expect(table).toBeDefined()
+  })
+
+  it('GA-2 - migration v30 adds typed triggers and durable automation runs', () => {
+    db.prepare(
+      `INSERT INTO automations (id,label,cron,prompt,enabled,created_at)
+       VALUES ('legacy','Daily','0 9 * * *','Check',1,100)`
+    ).run()
+    runMigrations(db)
+    const row = db.prepare('SELECT trigger_kind, trigger_config_json FROM automations').get() as {
+      trigger_kind: string
+      trigger_config_json: string
+    }
+    expect(row.trigger_kind).toBe('schedule')
+    expect(JSON.parse(row.trigger_config_json)).toMatchObject({ kind: 'schedule', cron: '0 9 * * *' })
+    expect(db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='automation_runs'"
+    ).get()).toBeDefined()
   })
 
   it('stops applying after a failure and reports the partial result via thrown error', () => {

@@ -3,6 +3,11 @@
 // rest are detached. Renderer drives lifecycle and bounds via IPC.
 
 import { BrowserWindow, WebContentsView } from 'electron'
+import {
+  browserCdpSessions,
+  type BrowserCdpSessionSnapshot,
+  type CdpDebuggerLike
+} from './browser-cdp-session'
 
 interface Tab {
   id: string
@@ -18,6 +23,7 @@ interface Tab {
   // attach lazily on the first preview_network call so tabs that never
   // need it don't pay the debugger overhead.
   networkAttached: boolean
+  networkUnsubscribe?: () => void
 }
 
 export interface ConsoleEntry {
@@ -166,16 +172,19 @@ export function ensureNetworkCapture(tabId: string): boolean {
   const tab = tabs.get(tabId)
   if (!tab) return false
   if (tab.networkAttached) return true
-  const dbg = tab.view.webContents.debugger
+  const dbg = tab.view.webContents.debugger as unknown as CdpDebuggerLike
   try {
-    if (!dbg.isAttached()) dbg.attach('1.3')
-    void dbg.sendCommand('Network.enable')
+    browserCdpSessions.attach(
+      { id: tab.id, debugger: dbg },
+      { requireDeveloperMode: false }
+    )
+    void browserCdpSessions.sendCommand(tab.id, 'Network.enable')
   } catch (err) {
     console.warn('[browser-manager] debugger attach failed:', (err as Error).message)
     return false
   }
 
-  dbg.on('message', (_event, method, params) => {
+  tab.networkUnsubscribe = browserCdpSessions.subscribe(tab.id, (_event, method, params) => {
     if (method === 'Network.requestWillBeSent') {
       const p = params as any
       tab.networkEvents.push({
@@ -356,6 +365,8 @@ export async function newTab(rawUrl?: string): Promise<Tab> {
 export function closeTab(id: string): void {
   const t = tabs.get(id)
   if (!t) return
+  t.networkUnsubscribe?.()
+  browserCdpSessions.detach(id)
   const win = getMainWindow()
   if (win && !win.isDestroyed()) {
     try {
@@ -467,8 +478,40 @@ export function getActiveTab(): BrowserTabHandle | null {
   return getTab(activeTabId)
 }
 
+export function attachBrowserDeveloperSession(
+  tabId = activeTabId,
+  signal?: AbortSignal
+): BrowserCdpSessionSnapshot {
+  if (!tabId) throw new Error('No active browser tab')
+  const tab = tabs.get(tabId)
+  if (!tab) throw new Error(`Unknown browser tab ${tabId}`)
+  return browserCdpSessions.attach(
+    {
+      id: tab.id,
+      debugger: tab.view.webContents.debugger as unknown as CdpDebuggerLike
+    },
+    { signal }
+  )
+}
+
+export function detachBrowserDeveloperSession(tabId = activeTabId): boolean {
+  if (!tabId) return false
+  const tab = tabs.get(tabId)
+  tab?.networkUnsubscribe?.()
+  if (tab) {
+    tab.networkUnsubscribe = undefined
+    tab.networkAttached = false
+  }
+  return browserCdpSessions.detach(tabId)
+}
+
+export function getBrowserDeveloperSession(tabId = activeTabId): BrowserCdpSessionSnapshot | null {
+  return tabId ? browserCdpSessions.get(tabId) : null
+}
+
 export function destroyAll(): void {
   const win = getMainWindow()
+  browserCdpSessions.detachAll()
   for (const t of tabs.values()) {
     if (win && !win.isDestroyed()) {
       try {

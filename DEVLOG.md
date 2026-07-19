@@ -9769,3 +9769,33 @@ remains parked indefinitely and M7–M9 remain unapproved.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt BD-1 explicit CDP session service — 2026-07-19
+
+**Files changed:** `electron/services/browser-cdp-session.ts`,
+`electron/services/browser-cdp-session.test.ts`, `electron/services/browser-manager.ts`,
+`electron/services/default-app-settings.ts`,
+`electron/services/default-app-settings.test.ts`, `src/stores/settings-store.ts`,
+`src/lib/types.ts`, `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused CDP/browser/default-settings cohort ✓ (3 files, 24 tests, 0 skipped)
+- production build, bundle smoke, and renderer smoke ✓
+- Windows package build + packaged headless executable smoke ✓
+
+**Notes:** The owner authorized M7 / BD-1 through BD-6 STS for this session; publication is
+not authorized. One explicit session service now owns Electron's supported debugger seam per
+browser target, negotiates protocol 1.3 with an Electron-selected latest fallback, rejects
+competing owners, propagates cancellation, and cleans up on detach/target close. The existing
+preview-network observer shares that owner without changing its established availability.
+Developer attachment itself is gated by the new parity-locked
+`browserDeveloperModeEnabled: false` setting. M4 remains parked; M8 and M9 remain
+unauthorized.
+
+**Commit:** pending (BD-1).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

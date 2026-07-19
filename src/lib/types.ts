@@ -528,6 +528,8 @@ export interface AppSettings {
    * represented by a compact attached-document marker instead of filling
    * the first user turn. */
   safeSeedLength?: number
+  /** CDP-backed browser inspection. Privileged and OFF by default. */
+  browserDeveloperModeEnabled?: boolean
   // Loop Phase LP-7 — autonomous loops. OFF by default (deliberate past-era
   // extension; see PLANNING/LAMPREY_LOOP_PLAN.md). When enabled, these bound
   // every loop: max iterations, wall-clock, token budget, concurrent loops,

@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M6 RELEASED AS v0.24.0; OWNER PLAYBOOKS OPEN; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
+**Status:** **M7 STS IN PROGRESS AT BD-1; M6 RELEASED AS v0.24.0; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -655,7 +655,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **BD-1 — Add an explicit CDP session service**
 
-- [ ] Attach/detach through Electron's supported debugger/CDP seam with one owner per browser
+- [x] Attach/detach through Electron's supported debugger/CDP seam with one owner per browser
       target, protocol-version handling, cancellation, and cleanup. Gate behind
       `browserDeveloperModeEnabled: false`.
 - Verify: lifecycle/reattach/target-close/version tests; packaged Electron smoke.
@@ -1022,6 +1022,28 @@ Independent verification then matched local size and SHA-256 for all six GitHub 
 confirmed the four R2 object lengths, and received CDN HTTP 200 with matching content length
 for the installer, ZIP, DMG, and AppImage. The local-fixture and hosted-provider playbooks
 remain `USER-VERIFICATION-NEEDED`; M4 remains parked and M7–M9 remain unapproved.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### Owner M7 STS authorization — 2026-07-19
+
+```text
+APPROVED: 2026-07-19 (M7 Browser Developer Mode tranche)
+Milestones: M7 / BD-1 through BD-6; execute sequentially with one focused gated commit per
+  prompt. Begin at BD-1 and continue through the local BD-6 wrap for this session.
+Decisions: keep Browser Developer Mode OFF by default; preserve M4 as parked indefinitely;
+  do not start M8 or M9. Preserve the untracked .agents skill library outside commits.
+Publication: not authorized by this instruction; do not push, tag, release, run Bucket, or
+  publish artifacts without a separate owner instruction.
+STS instruction: "Commence M7 STS Authorized for entire session"
+Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lamprey Harness
+```
+
+This authorization supersedes M6's earlier M7-unapproved boundary only. It does not unpark
+Code Mode, authorize M8 or M9, or convert the future owner browser-CDP smoke into automated
+evidence.
 
 ---
 

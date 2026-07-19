@@ -49,6 +49,9 @@ export interface DefaultAppSettings {
   snipVerbose: boolean
   safeSeedLength: number
   includePastReasoningInContext: boolean
+  // July 2026 parity M7 — CDP-backed browser inspection is privileged and
+  // remains inert until the owner enables it explicitly.
+  browserDeveloperModeEnabled: boolean
   // Loop Phase LP-7 — autonomous loops, OFF by default (deliberate past-era
   // extension; power machinery is opt-in, never default).
   loopsEnabled: boolean
@@ -91,6 +94,7 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   snipVerbose: false,
   safeSeedLength: 8192,
   includePastReasoningInContext: true,
+  browserDeveloperModeEnabled: false,
   loopsEnabled: false,
   loopMaxIterations: 25,
   loopMaxWallclockMs: 1800000,

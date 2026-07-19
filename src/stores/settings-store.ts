@@ -38,6 +38,8 @@ const defaultSettings: AppSettings = {
   // Audit panel; flipping off is a power-user opt-out to save context
   // tokens on long conversations.
   includePastReasoningInContext: true,
+  // July 2026 parity M7 — privileged CDP inspection, OFF by default.
+  browserDeveloperModeEnabled: false,
   // Loop Phase LP-7 — autonomous loops, OFF by default (deliberate past-era
   // extension). Mirror of DEFAULT_APP_SETTINGS; parity test locks the two.
   loopsEnabled: false,

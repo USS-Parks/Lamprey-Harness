@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M6 STS ACTIVE AT MR-5; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
+**Status:** **M6 LOCALLY IMPLEMENTATION-COMPLETE; OWNER PLAYBOOKS OPEN; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -648,7 +648,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **MR-5 — MCP milestone wrap**
 
-- [ ] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
+- [x] Architecture doc, README/current-state/DEVLOG/version update, full gate, AFTER matrix.
 - Verify: full milestone gate; owner hosted-auth evidence if available.
 
 ### M7 — Browser Developer Mode

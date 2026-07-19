@@ -9677,3 +9677,39 @@ third-party authorization evidence.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt MR-5 MCP milestone wrap — 2026-07-18
+
+**Files changed:** `ARCHITECTURE/MCP_RESOURCES_AND_SESSIONS.md`, `README.md`,
+`AGENTS.md`, `CLAUDE.md`, `PLANNING/README.md`, `PLANNING/CJ26_MCP_AFTER.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`RELEASE_NOTES/v0.24.0.md`, `package.json`, `package-lock.json`, `DEVLOG.md`
+**Verify gate:**
+- `npm run verify:all` ✓
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- Vitest ✓ (230 files passed / 15 skipped; 2752 tests passed / 162 skipped / 0 failed)
+- production build ✓
+- bundle smoke ✓
+- renderer smoke ✓
+- `verify:proof` ✓
+- `git diff --check` ✓
+
+**Notes:** M6 / MR-1 through MR-5 is locally implementation-complete as v0.24.0.
+Architecture, README, maintainer state, AFTER matrix, release notes, PSPR, and DEVLOG now
+describe one manager authority, three strict lazy resource tools, Streamable HTTP OAuth
+sessions, safe connector/plugin UI, and the exact evidence boundary. The proof gate loudly
+reports that 18 native-database files skip their DB suites under Node because the installed
+`better-sqlite3` binding targets Electron's ABI. M6 adds no migration, and its focused
+manager/auth/tool/UI cohorts do not use that skip, so the full pass is not misrepresented as
+native-DB coverage. Owner local-fixture and real hosted-provider OAuth receipts were not
+available and remain `USER-VERIFICATION-NEEDED`. Public downloads remain v0.23.0. No push,
+tag, release, Bucket run, CDN update, or artifact publication was performed. M4 remains
+parked indefinitely; M7–M9 remain unapproved.
+
+**Commit:** see git log (MR-5).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

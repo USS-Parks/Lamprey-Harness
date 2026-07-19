@@ -32,6 +32,8 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
+**In local v0.24.0 source — MCP resources and hosted sessions.** Connected MCP servers can expose paginated resources and URI templates to the model and to Customize → Connectors. Resource reads retain server provenance and use the existing large-result spill valve. Hosted Streamable HTTP connectors can use OAuth 2.1 with PKCE, encrypted keychain storage, explicit domain confirmation, reauthorization, expiry/reconnect state, and consent-gated URL elicitation. Preview renders text as text, allows only known raster image formats, and leaves SVG or other blobs as metadata. The local fixture and real hosted-provider playbooks remain open, so v0.24.0 is locally implementation-complete without claiming live hosted-provider parity. The public download links above remain v0.23.0 until a separate release is authorized.
+
 **New in v0.23.0 — PR Chat and patch review.** Open a pull request in the existing panel and bring the exact review context into the conversation, down to one selected hunk. Lamprey can inspect files, checks, and comments; draft a review; or prepare an editable patch. Nothing posts or touches the workspace silently: GitHub writes show their exact target and wait for approval, while patch acceptance rechecks the head SHA and restores affected files if application fails. The disposable-repository GUI playbook is still open, so this release claims implementation completion rather than blanket current-Codex parity.
 
 **Also in v0.23.0 — visualizations and direct artifact editing.** Mermaid, chart, table, and validated SVG artifacts render as first-class inline cards with visible text alternatives; interactive HTML/JSX/React opens only in Lamprey's isolated artifact sandbox. Artifact identity and immutable revisions survive transcript cleanup. Select exact Markdown, code, or artifact ranges, ask Lamprey for a non-destructive proposal, preview the replacement, accept or reject it, and attach durable actor-attributed annotations. Activity reports visualization, edit, and open outcomes without false-success states. The packaged owner GUI playbook remains open.
@@ -79,7 +81,7 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 - **Codex-style developer panes** &mdash; file tree (`Ctrl+P`), multi-tab browser (`Ctrl+T`), git diff review with "Fix this" per-hunk seeding (`Ctrl+Shift+G`), shell terminal (`` Ctrl+` ``), side-thread chat.
 - **Deep Research** &mdash; research-shaped turns fan out across search providers, corroborate claims by independent domain, and kill the report if they detect fabricated citations. `/research <q>` forces it; coding turns are never escalated.
 - **Snip** &mdash; an in-process token filter (same idea as [rtk](https://github.com/rtk-ai/rtk)) that strips noisy shell output down to signal before it hits the model context. ~120 built-in YAML filters, hot-reloadable, extensible.
-- **Skills + MCP** &mdash; drop a `.md` in your skills directory and it's part of the system prompt. MCP servers via SSE + stdio with Google OAuth support out of the box.
+- **Skills + MCP** &mdash; drop a `.md` in your skills directory and it's part of the system prompt. MCP servers use stdio, SSE, or Streamable HTTP; resource/template browsing and strict lazy resource tools are built in, with legacy Google OAuth plus generic hosted OAuth 2.1 session support.
 - **Loops** &mdash; set a task on a fixed interval (`/loop 5m <task>`), let the model pace itself (`/loop <task>`), or hand it a mission and a backlog (`/loop --auto <mission>`) and walk away. The model enqueues work, records outcomes, and self-terminates when the mission is complete. Hard ceilings on iterations, wall-clock, and token budget keep it from running away. Off by default &mdash; flip one toggle in Settings to unlock.
 - **Sub-agents** &mdash; the model can fan out parallel sub-agents via `multi_agent_run` when the task calls for it. You don't configure this; the model decides when to orchestrate and when to stay single-threaded.
 - **Plan mode** &mdash; `Shift+Tab` blocks mutating tools while read-only tools keep working. Approve, reject, or edit the plan in-place.
@@ -112,7 +114,7 @@ Renderer (React 19 + Zustand)
 Main process (Node.js)
   Provider registry -> 17 built-ins + custom OpenAI-compatible endpoints
   Turn runtime -> Steering inbox / durable Queue / interrupt settlement
-  MCP manager (SSE + stdio + OAuth)
+  MCP manager (stdio + SSE + Streamable HTTP + resources + OAuth sessions)
   better-sqlite3 (WAL, foreign keys)
   Browser manager (WebContentsView per tab)
   Git runner + review/worktree IPC

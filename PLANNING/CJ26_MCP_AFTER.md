@@ -37,3 +37,15 @@ remain `USER-VERIFICATION-NEEDED`, and M4 plus M7–M9 remain outside this relea
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Production receipt — 2026-07-19
+
+v0.24.0 was published from `f7cc742f45f4982d96c5a49caa0c7db71fb70f09`. Tag workflow
+`29679259907` succeeded. GitHub exposes six uploaded assets; the four Windows assets match
+the local size and SHA-256 after a targeted clobber repaired Bucket's known upload race.
+R2 object lengths and CDN HTTP 200/content lengths match the installer, ZIP, DMG, and
+AppImage. Publication changes no playbook result in the matrix above.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

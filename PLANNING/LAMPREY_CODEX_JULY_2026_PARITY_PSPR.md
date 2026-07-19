@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M6 v0.24.0 PRODUCTION RELEASE AUTHORIZED; BUCKET PENDING; OWNER PLAYBOOKS OPEN; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
+**Status:** **M6 RELEASED AS v0.24.0; OWNER PLAYBOOKS OPEN; M4 PARKED INDEFINITELY; M7–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -1002,6 +1002,26 @@ Branch/worktree: codex/steering-parity at C:\Users\17076\Documents\Claude\Lampre
 This instruction supersedes only M6's earlier no-publication boundary. It does not unpark
 Code Mode or authorize M7 through M9. The local-fixture and real hosted-provider playbooks
 remain evidence gaps and are not converted into parity claims by publication.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+### M6 v0.24.0 production publication receipt — 2026-07-19
+
+Release commit, `origin/main`, and annotated tag `v0.24.0` aligned at
+`f7cc742f45f4982d96c5a49caa0c7db71fb70f09` before publication. The pre-push and tag-push
+proof gates each passed 2,752 tests with zero failures and 162 explicit skips. Tag workflow
+`29679259907` completed successfully on that exact SHA.
+
+Bucket built the Windows installer, ZIP, blockmap, and updater manifest; uploaded Windows,
+macOS, and Linux artifacts to R2; and purged Cloudflare. Its GitHub upload encountered the
+known workflow race and correctly reported a partial ship because all four Windows assets
+were mismatched. The failed step was repaired with one clobber upload, not a Bucket rerun.
+Independent verification then matched local size and SHA-256 for all six GitHub assets,
+confirmed the four R2 object lengths, and received CDN HTTP 200 with matching content length
+for the installer, ZIP, DMG, and AppImage. The local-fixture and hosted-provider playbooks
+remain `USER-VERIFICATION-NEEDED`; M4 remains parked and M7–M9 remain unapproved.
 
 ---
 

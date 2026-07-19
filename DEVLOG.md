@@ -9737,3 +9737,35 @@ evidence. The untracked `.agents/` skill library remains outside the public comm
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## v0.24.0 production publication receipt — 2026-07-19
+
+**Files changed:** `AGENTS.md`, `CLAUDE.md`,
+`ARCHITECTURE/MCP_RESOURCES_AND_SESSIONS.md`, `PLANNING/README.md`,
+`PLANNING/CJ26_MCP_AFTER.md`, `PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`,
+`DEVLOG.md`
+
+**Production evidence:**
+- release commit, `origin/main`, and annotated tag `v0.24.0`:
+  `f7cc742f45f4982d96c5a49caa0c7db71fb70f09`
+- pre-push and tag-push proof gates: 2,752 passed / 162 skipped / 0 failed
+- tag workflow `29679259907`: success on `f7cc742`
+- GitHub release: published, not draft or prerelease, with six uploaded assets
+- GitHub Windows assets: local size and SHA-256 match for installer, ZIP, blockmap, and manifest
+- R2 object HEAD: exact byte lengths for installer, ZIP, DMG, and AppImage
+- CDN HTTP HEAD: 200 with matching content lengths for all four public downloads
+- `dist/latest.yml`: version 0.24.0 and matching installer size/hash metadata
+
+**Notes:** Bucket completed R2, cross-platform mirroring, and Cloudflare purge but reported
+a partial ship after the known GitHub workflow race returned 404 and left all four Windows
+assets mismatched. The failed GitHub step was repaired with a targeted clobber upload; Bucket
+was not rerun. Independent verification confirmed exact GitHub digests, R2 sizes, and CDN
+delivery. The local-fixture and real hosted-provider OAuth playbooks remain
+`USER-VERIFICATION-NEEDED`; publication does not convert them into parity evidence. M4
+remains parked indefinitely and M7–M9 remain unapproved.
+
+**Commit:** see git log (v0.24.0 publication receipt).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

@@ -15,8 +15,8 @@ Its Steering and Queue milestone shipped as v0.20.0, and its independently appro
 Thread Control milestone shipped as v0.21.0. The visualization/artifact and PR Chat
 milestones shipped together as v0.23.0.
 M4 / Code Mode is parked indefinitely and is not a dependency or blocker. The independently
-approved M6 MCP resources/authenticated-session lane is implementation-complete as v0.24.0,
-with its production release authorized on 2026-07-19. M7, M8, and M9 remain unapproved. The paired
+approved M6 MCP resources/authenticated-session lane was released as v0.24.0 on 2026-07-19.
+M7, M8, and M9 remain unapproved. The paired
 Steering replay, packaged task-control/artifact/PR Chat GUI playbooks, and M6 local-fixture/
 hosted-auth playbooks remain open evidence gates; these milestones are implementation-
 complete, not parity-complete.

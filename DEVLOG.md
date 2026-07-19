@@ -9421,3 +9421,32 @@ owner playbook uses a disposable draft PR and ends by verifying that no unintend
 review was posted.
 
 **Commit:** see git log (PR-5).
+
+## Codex July 2026 Parity — Prompt PR-6 PR Chat milestone wrap — 2026-07-18
+
+**Files changed:** `ARCHITECTURE/PR_CHAT.md`, `PLANNING/CJ26_PR_CHAT_AFTER.md`,
+`RELEASE_NOTES/v0.23.0.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`,
+`PLANNING/README.md`, `package.json`, `package-lock.json`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- `npm run verify:all` ✓
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- vitest ✓ (225 files passed / 15 skipped; 2717 tests passed / 162 skipped / 0 failed)
+- production build ✓
+- bundle smoke ✓
+- renderer smoke ✓
+- `verify:proof` ✓
+- Electron-native M5 database/migration cohort ✓ (5 files, 29 tests, 0 skipped)
+- `git diff --check` ✓
+
+**Notes:** M5 is locally complete as v0.23.0. The architecture record maps immutable PR
+identity, bounded inspection, approval-gated review writes, idempotency, patch proposal
+rollback, existing-panel integration, and the verification boundary to production call sites.
+The AFTER matrix records every automated contract row as PASS. The disposable live-GitHub
+playbook remains `USER-VERIFICATION-NEEDED`; no external review was posted during this STS
+run. No push, tag, Bucket run, CDN update, or public release was authorized or performed.
+M4 and M6–M9 remain unapproved.
+
+**Commit:** see git log (PR-6).

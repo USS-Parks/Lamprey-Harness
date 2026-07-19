@@ -289,18 +289,48 @@ export interface BrokenMemoryLink {
 export interface McpServerConfig {
   id: string
   name: string
-  transport: 'sse' | 'stdio'
+  transport: 'sse' | 'stdio' | 'streamable-http'
   url?: string
   command?: string
   args?: string[]
-  auth: 'google-oauth' | 'none'
+  auth: 'google-oauth' | 'oauth' | 'none'
   enabled: boolean
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
+  authStatus:
+    | 'not-required'
+    | 'signed-out'
+    | 'authorization-required'
+    | 'authorizing'
+    | 'connected'
+    | 'expired'
+    | 'error'
+  authError?: string
   /** Customize C11: when set, this connector is registered transiently
    *  by an enabled plugin. Removing/disabling the plugin removes the
    *  entry; the user can't edit or persist it directly. */
   pluginId?: string
 }
+
+export interface McpResource {
+  uri: string
+  name: string
+  title?: string
+  description?: string
+  mimeType?: string
+  size?: number
+}
+
+export interface McpResourceTemplate {
+  uriTemplate: string
+  name: string
+  title?: string
+  description?: string
+  mimeType?: string
+}
+
+export type McpResourceContent =
+  | { uri: string; mimeType?: string; text: string }
+  | { uri: string; mimeType?: string; blob: string }
 
 export type ProviderId =
   | 'deepseek'
@@ -795,6 +825,19 @@ export interface McpStatusEvent {
   serverId: string
   status: McpServerConfig['status']
   error?: string
+}
+
+export interface McpAuthStatusEvent {
+  serverId: string
+  status: McpServerConfig['authStatus']
+  error?: string
+}
+
+export interface McpElicitationEvent {
+  serverId: string
+  elicitationId: string
+  status: 'awaiting-consent' | 'accepted' | 'declined' | 'cancelled' | 'completed'
+  domain?: string
 }
 
 export interface McpConfirmationEvent {

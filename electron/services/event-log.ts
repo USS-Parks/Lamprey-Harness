@@ -96,6 +96,11 @@ export const EVENT_TYPES = [
   // Settings (Prompt 4): key-change metadata only, never raw values.
   'settings.updated',
 
+  // Codex July parity MR-4: metadata-only hosted MCP progress.
+  'mcp.session.status',
+  'mcp.elicitation',
+  'mcp.resource.changed',
+
   // Projects (Prompt 4): created/archived/pinned/deleted are discrete user
   // actions with single-flag semantics. Rename + touch are noisy
   // bookkeeping and intentionally stay off the event spine.

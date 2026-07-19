@@ -9638,3 +9638,42 @@ is still `USER-VERIFICATION-NEEDED` and belongs to the MR-4 playbook gate.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt MR-4 Resource and auth UI — 2026-07-18
+
+**Files changed:** `electron/ipc/mcp.ts`, `electron/preload.ts`,
+`electron/services/event-log.ts`, `electron/services/mcp-manager.ts`,
+`electron/services/mcp-resource-ui-wiring.test.ts`,
+`src/components/customize/AddConnectorFlow.tsx`,
+`src/components/customize/ConnectorsColumn.tsx`, `src/data/connectors-catalog.ts`,
+`src/hooks/useMcp.ts`, `src/lib/mcp-resource-preview.ts`,
+`src/lib/mcp-resource-preview.test.ts`, `src/lib/types.ts`, `src/stores/mcp-store.ts`,
+`PLANNING/CJ26_MCP_PLAYBOOK.md`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused MCP manager/auth/UI/preview cohort ✓ (4 files, 27 tests, 0 skipped)
+- lint ✓
+- production build ✓
+- bundle smoke ✓
+- renderer smoke ✓
+- `git diff --check` ✓
+
+**Notes:** Customize → Connectors now shows hosted auth state and errors, a confirmed
+reauthorization action, consent progress, paginated resources and URI templates, safe
+resource preview, and confirmed external open. Plugin-owned connectors use the same surface
+and retain their source badge. Text is rendered as escaped React text; only a fixed raster
+MIME allowlist becomes an image data URL; SVG and other blobs are metadata-only. External
+open is limited to credential-free HTTP(S) URLs and requires a main-process confirmation.
+Session, elicitation, and resource-change activity events carry metadata only; already-open
+inventories refresh on resource notifications. The local fixture and real hosted OAuth
+procedures are frozen in `PLANNING/CJ26_MCP_PLAYBOOK.md`. Both observable playbook receipts
+remain `USER-VERIFICATION-NEEDED`; automated wiring/build smokes are not claimed as live
+third-party authorization evidence.
+
+**Commit:** see git log (MR-4).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

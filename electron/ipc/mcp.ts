@@ -76,6 +76,64 @@ export function registerMcpHandlers(): void {
     }
   })
 
+  ipcMain.handle('mcp:listResources', async (_event, id: string, cursor?: string) => {
+    try {
+      return { success: true, data: await mcpManager.listResources(id, cursor) }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('mcp:listResourceTemplates', async (_event, id: string, cursor?: string) => {
+    try {
+      return { success: true, data: await mcpManager.listResourceTemplates(id, cursor) }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('mcp:readResource', async (_event, id: string, uri: string) => {
+    try {
+      const contents = await mcpManager.readResource(id, uri)
+      if (contents.some((content) => content.uri !== uri)) {
+        return { success: false, error: `MCP server '${id}' returned mismatched resource content` }
+      }
+      return { success: true, data: contents }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('mcp:openResource', async (_event, id: string, uri: string) => {
+    try {
+      const url = new URL(uri)
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+        return { success: false, error: 'Only HTTP(S) MCP resource links can open externally' }
+      }
+      if (url.username || url.password) {
+        return { success: false, error: 'MCP resource links containing credentials are refused' }
+      }
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      const options = {
+        type: 'question' as const,
+        buttons: ['Cancel', 'Open'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Open MCP resource?',
+        message: `Open ${url.hostname} outside Lamprey?`,
+        detail: `Connector: ${id}\n${url.toString()}`
+      }
+      const { response } = win
+        ? await dialog.showMessageBox(win, options)
+        : await dialog.showMessageBox(options)
+      if (response !== 1) return { success: false, error: 'Open cancelled by user.' }
+      await shell.openExternal(url.toString())
+      return { success: true, data: null }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
   ipcMain.handle('mcp:reconnect', async (_event, id: string) => {
     try {
       await mcpManager.reconnect(id)

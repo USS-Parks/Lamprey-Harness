@@ -488,6 +488,12 @@ const api = {
     list: () => ipcRenderer.invoke('mcp:list'),
     getStatus: (id: string) => ipcRenderer.invoke('mcp:getStatus', id),
     getAuthStatus: (id: string) => ipcRenderer.invoke('mcp:getAuthStatus', id),
+    listResources: (id: string, cursor?: string) =>
+      ipcRenderer.invoke('mcp:listResources', id, cursor),
+    listResourceTemplates: (id: string, cursor?: string) =>
+      ipcRenderer.invoke('mcp:listResourceTemplates', id, cursor),
+    readResource: (id: string, uri: string) => ipcRenderer.invoke('mcp:readResource', id, uri),
+    openResource: (id: string, uri: string) => ipcRenderer.invoke('mcp:openResource', id, uri),
     reconnect: (id: string) => ipcRenderer.invoke('mcp:reconnect', id),
     reauthorize: (id: string) => ipcRenderer.invoke('mcp:reauthorize', id),
     addServer: (config: unknown) => ipcRenderer.invoke('mcp:addServer', config),
@@ -508,6 +514,11 @@ const api = {
       const handler = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
       ipcRenderer.on('mcp:elicitationChanged', handler)
       return () => ipcRenderer.removeListener('mcp:elicitationChanged', handler)
+    },
+    onResourceChanged: (cb: (e: unknown) => void) => {
+      const handler = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
+      ipcRenderer.on('mcp:resourceChanged', handler)
+      return () => ipcRenderer.removeListener('mcp:resourceChanged', handler)
     },
     onConfirmationRequired: (cb: (e: unknown) => void) =>
       ipcRenderer.on('mcp:confirmationRequired', (_, e) => cb(e))

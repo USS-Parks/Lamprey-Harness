@@ -5,7 +5,7 @@
 // without a rebuild.
 import type { McpServerConfig } from '@/lib/types'
 
-export interface CatalogEntry extends Omit<McpServerConfig, 'status'> {
+export interface CatalogEntry extends Omit<McpServerConfig, 'status' | 'authStatus' | 'authError'> {
   env?: Record<string, string>
   description: string
   category: string

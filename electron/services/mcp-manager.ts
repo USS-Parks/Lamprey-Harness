@@ -17,6 +17,7 @@ import { join } from 'path'
 import { randomUUID } from 'crypto'
 import * as keychain from './keychain'
 import { trace } from './debug-trace'
+import { recordEvent } from './event-log'
 import {
   McpHostedOAuthProvider,
   requestMcpUrlElicitationConsent
@@ -943,6 +944,17 @@ export class McpManager {
     }
     const mainWindow = BrowserWindow.getAllWindows()[0]
     mainWindow?.webContents.send('mcp:authStatusChanged', snapshot)
+    try {
+      recordEvent({
+        type: 'mcp.session.status',
+        actorKind: 'system',
+        entityKind: 'mcp-server',
+        entityId: state.config.id,
+        payload: { serverId: state.config.id, status }
+      })
+    } catch (error) {
+      console.error('[mcp] session activity event failed:', error)
+    }
   }
 
   private emitElicitation(event: McpElicitationEvent): void {
@@ -955,6 +967,22 @@ export class McpManager {
     }
     const mainWindow = BrowserWindow.getAllWindows()[0]
     mainWindow?.webContents.send('mcp:elicitationChanged', event)
+    try {
+      recordEvent({
+        type: 'mcp.elicitation',
+        actorKind: 'system',
+        entityKind: 'mcp-server',
+        entityId: event.serverId,
+        payload: {
+          serverId: event.serverId,
+          elicitationId: event.elicitationId,
+          status: event.status,
+          domain: event.domain
+        }
+      })
+    } catch (error) {
+      console.error('[mcp] elicitation activity event failed:', error)
+    }
   }
 
   private async runResourceRequest<T>(
@@ -999,6 +1027,19 @@ export class McpManager {
       } catch {
         // A subscriber cannot break MCP notification processing.
       }
+    }
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    mainWindow?.webContents.send('mcp:resourceChanged', change)
+    try {
+      recordEvent({
+        type: 'mcp.resource.changed',
+        actorKind: 'system',
+        entityKind: 'mcp-server',
+        entityId: change.serverId,
+        payload: { serverId: change.serverId, kind: change.kind }
+      })
+    } catch (error) {
+      console.error('[mcp] resource activity event failed:', error)
     }
   }
 

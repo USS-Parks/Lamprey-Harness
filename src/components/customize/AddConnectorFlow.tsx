@@ -10,12 +10,11 @@ interface AddConnectorFlowProps {
 type Tab = 'catalog' | 'json'
 
 const PLACEHOLDER_JSON = `{
-  "id": "my-mcp-server",
-  "name": "My MCP Server",
-  "transport": "stdio",
-  "command": "npx",
-  "args": ["-y", "@scope/my-mcp-server"],
-  "auth": "none",
+  "id": "hosted-mcp",
+  "name": "Hosted MCP",
+  "transport": "streamable-http",
+  "url": "https://mcp.example.com/mcp",
+  "auth": "oauth",
   "enabled": true
 }`
 
@@ -211,7 +210,10 @@ export function AddConnectorFlow({ onClose }: AddConnectorFlowProps) {
                 Paste either a single connector object or the standard
                 <code className="mx-1 rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[10px]">.mcp.json</code>
                 <code className="rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[10px]">mcpServers</code>
-                wrapper with one entry.
+                wrapper with one entry. Hosted connectors use
+                <code className="mx-1 rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[10px]">streamable-http</code>
+                with an HTTPS URL and optional
+                <code className="ml-1 rounded bg-[var(--bg-tertiary)] px-1 py-0 font-mono text-[10px]">oauth</code>.
               </p>
               <textarea
                 value={jsonText}

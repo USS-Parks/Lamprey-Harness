@@ -4,7 +4,7 @@
 **Roster:** CJP-0, ST-1–ST-12, TC-1–TC-7, VA-1–VA-6, CM-1–CM-6,
 PR-1–PR-6, MR-1–MR-5, BD-1–BD-6, GA-1–GA-6, CJP-WRAP
 **Drafted:** 2026-07-17
-**Status:** **M7 STS IN PROGRESS AT BD-1; M6 RELEASED AS v0.24.0; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
+**Status:** **M7 STS IN PROGRESS AT BD-3; BD-1–BD-2 COMPLETE; M6 RELEASED AS v0.24.0; M4 PARKED INDEFINITELY; M8–M9 UNAPPROVED**
 
 > The user's direction is the era-lock exception: Lamprey needs Steering identical in
 > behavior and functionality to current Codex, and its six-week-old Codex parity baseline
@@ -662,7 +662,7 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **BD-2 — Add console and network observation tools**
 
-- [ ] Register bounded tools for console events/errors and network request/response metadata,
+- [x] Register bounded tools for console events/errors and network request/response metadata,
       filters, cursors, and clear operations. Bodies are opt-in, size-capped, MIME-aware,
       and redacted for auth/cookies/secrets.
 - Verify: redaction, cap, pagination, target navigation, and disabled-mode tests.

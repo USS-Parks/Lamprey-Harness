@@ -9794,7 +9794,36 @@ Developer attachment itself is gated by the new parity-locked
 `browserDeveloperModeEnabled: false` setting. M4 remains parked; M8 and M9 remain
 unauthorized.
 
-**Commit:** pending (BD-1).
+**Commit:** see git log (BD-1).
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+## Codex July 2026 Parity — Prompt BD-2 console and network observation tools — 2026-07-19
+
+**Files changed:** `electron/services/browser-developer-observer.ts`,
+`electron/services/browser-developer-observer.test.ts`,
+`electron/services/browser-developer-tool-pack.ts`,
+`electron/services/browser-developer-tool-pack.test.ts`, `electron/services/tool-packs.ts`,
+`PLANNING/LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md`, `DEVLOG.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- focused observer/tool/schema/lazy-surface cohort ✓ (5 files, 32 tests, 0 skipped)
+- focused ESLint and `git diff --check` ✓
+
+**Notes:** Three strict lazy tools now expose bounded console/exception/log observations,
+redacted request/response metadata, and one separately approval-gated response-body read.
+Console and network buffers cap at 500 entries, use target-bound cursors, retain top-frame
+navigation generations, and support clear plus focused filters. URLs, headers, errors,
+console text, and text-safe response bodies redact credential-shaped material. Body reads
+are exact-request, MIME-aware, opt-in, and capped at 64 KiB; binary and unknown MIME types
+are rejected. Disabled mode fails before CDP attachment, and metadata listing never captures
+a body. Existing browser tools and preview behavior remain unchanged.
+
+**Commit:** pending (BD-2).
 
 ---
 

@@ -52,6 +52,20 @@ payload `disposition: 'interrupted'`. Event name not renamed.
 **Notes:** `cancelled` drains documents and artifacts and does not dispatch
 the queue, same as `failed`. `completed` still queues.
 
+**Commit:** 7ae9b2b
+
+## [Operability Debt — Prompt OD-4] Honest gaps with teeth  —  2026-08-23
+
+**Files changed:** `electron/services/operability-debt-safety.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓ (3 tests)
+
+**Notes:** Locks unsigned `signAndEditExecutable: false`, the K1 event/status
+pair, and Current State still naming R1–R4 / supportsTools / OpenWiki /
+unsigned / turn.interrupted. OD-7 will flip the wording to parked/non-goal.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

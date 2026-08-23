@@ -13,7 +13,7 @@
 
 ---
 
-Lamprey is a local-first desktop coding harness for the model provider you already use. It combines a Codex-style workspace with streaming chat, reasoning traces, skills, MCP servers, research, durable queues, optional loops and sub-agent orchestration, a file tree, browser, git review, and terminal. Thirty-two providers are built in, local Ollama and LM Studio work without keys, and custom OpenAI-compatible endpoints can be added from Settings.
+Lamprey is a local-first desktop coding harness for the model provider you already use. It combines a Codex-style workspace with streaming chat, reasoning traces, skills, MCP servers, research, durable queues, optional loops and sub-agent orchestration, a file tree, browser, git review, and terminal. Thirty-three providers are built in, local Ollama and LM Studio work without keys, and custom OpenAI-compatible endpoints can be added from Settings.
 
 Conversations and control state live in SQLite on your machine. API keys stay in the operating-system keychain. Lamprey sends requests only to the providers and connectors you configure.
 
@@ -23,16 +23,23 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.27.1/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.28.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.28.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.28.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.28.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.27.1 — direct-provider routing hotfix.** The 70 pinned models now route
+**New in v0.28.0 — August 2026 catalog and Meta Muse.** The pinned catalog is 82
+models across 33 built-in providers. New first-party rows: DeepSeek V4 Flash Vision
+(exp), Gemini 3.7 / 3.6 Flash and 3.5 Flash-Lite, Qwen3.8 Max, GLM 5.3, Claude Opus 5,
+Claude Fable 5, Grok 4.6, MiniMax M3, and Muse Spark 1.2 / 1.1. Meta Model API is a
+new Settings key card (`LLM|…` at `api.meta.ai`). Live calls still need the owner's
+keys; invite-only or unverified ids stay unpinned.
+
+**Previously in v0.27.1 — direct-provider routing hotfix.** The 70 pinned models now route
 exclusively through their named providers and independently stored keys; no pinned model
 uses OpenRouter as a broker. OpenRouter remains available only as an explicit opt-in live
 catalog. Saving a key in Settings immediately updates the chat model menu, so a Moonshot
@@ -105,7 +112,7 @@ gate. The owner packaged-app playbook remains open.
 
 ## What you get
 
-- **Multi-provider chat** &mdash; thirty-two built-in providers (frontier labs, hosts and aggregators, regional specialists, and keyless local runtimes) plus unlimited custom OpenAI-compatible endpoints. Pick a model per task: cheap for boilerplate, smart for hard bugs, local for air-gapped.
+- **Multi-provider chat** &mdash; thirty-three built-in providers (frontier labs, hosts and aggregators, regional specialists, and keyless local runtimes) plus unlimited custom OpenAI-compatible endpoints. Pick a model per task: cheap for boilerplate, smart for hard bugs, local for air-gapped.
 - **Steering + Queue** &mdash; redirect a running turn without restarting it, or line up the next turn. Follow-ups are durable, identity-guarded, and visible above the composer.
 - **Task controls** &mdash; inspect parent/child tasks and live turns, wait without polling, send Queue or exact-turn Steering, fork at a historical turn, and manage task lifecycle from Activity or model tools.
 - **Inline visualizations + artifact editing** &mdash; render safe Mermaid/chart/table/SVG previews in chat, isolate interactive artifacts, select exact source ranges, preview model or direct edits, accept/reject immutable revisions, annotate, open, and export.
@@ -151,7 +158,7 @@ Renderer (React 19 + Zustand)
        |  window.api (typed contextBridge)
        v
 Main process (Node.js)
-  Provider registry -> 32 built-ins + custom OpenAI-compatible endpoints
+  Provider registry -> 33 built-ins + custom OpenAI-compatible endpoints
   Turn runtime -> Steering inbox / durable Queue / interrupt settlement
   MCP manager (stdio + SSE + Streamable HTTP + resources + OAuth sessions)
   better-sqlite3 (WAL, foreign keys)

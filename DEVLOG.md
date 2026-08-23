@@ -10369,3 +10369,36 @@ state remains. The user-owned untracked `.agents/` directory remained untouched.
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## August 2026 catalog and Meta Muse — v0.28.0 — 2026-08-22
+
+**Files changed:** `electron/services/providers/catalog-august-2026.ts`,
+`electron/services/providers/catalog-august-2026.test.ts`,
+`electron/services/providers/registry.ts`,
+`electron/services/providers/registry.test.ts`,
+`electron/services/providers/provider-parity.test.ts`,
+`src/lib/types.ts`, `src/components/settings/ApiKeySettings.tsx`,
+`package.json`, `package-lock.json`, `README.md`, `CLAUDE.md`, `AGENTS.md`,
+`RELEASE_NOTES/v0.28.0.md`, `DEVLOG.md`
+
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- provider suite ✓ (99 tests)
+- pre-push `verify:proof` on `fca7331` ✓ (2856 passed / 166 skipped, both smokes)
+
+**Notes:** Twelve documented first-party ids after the mid-July roster, plus a
+`meta` provider for Muse Spark. The sidecar registers at the end of
+`MODEL_CATALOG` so `resolveModel` and the model menu see the new rows. Catalog
+length lock is 82; provider count lock is 33. Live key tests were not run.
+
+**Honest gaps:** Owner-held keys still required for every new row. Muse Spark
+contributor tier, Mythos 5, Gemini 3.5 Flash Cyber, `grok-4.6-fast`, and
+`qwen3.8-27b` stay unpinned. Packaged-GUI pass of the new Meta card and model
+menu is `user-verification-needed`.
+
+**Commit:** `fca7331` (catalog); this release-metadata commit follows.
+
+---
+
+Authored and reviewed by Basho Parks, copyright 2026

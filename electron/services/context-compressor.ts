@@ -60,6 +60,8 @@ interface CompressorRow {
   content: string
   created_at: number
   compressed_into: string | null
+  tool_calls: string | null
+  reasoning: string | null
 }
 
 export interface CompressionResult {
@@ -75,17 +77,36 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN_ESTIMATE)
 }
 
-export function estimateTokensForMessages(messages: { content: string }[]): number {
+export function estimateTokensForMessages(
+  messages: { content?: string; toolCalls?: unknown; tool_calls?: unknown; reasoning?: string }[]
+): number {
   let total = 0
-  for (const m of messages) total += estimateTokens(m.content ?? '')
+  for (const m of messages) {
+    total += estimateTokens(m.content ?? '')
+    const calls = m.tool_calls ?? m.toolCalls
+    if (calls) total += estimateTokens(typeof calls === 'string' ? calls : JSON.stringify(calls))
+    if (m.reasoning) total += estimateTokens(m.reasoning)
+  }
   return total
+}
+
+export function estimateRowTokens(row: {
+  content?: string
+  tool_calls?: string | null
+  reasoning?: string | null
+}): number {
+  return (
+    estimateTokens(row.content ?? '') +
+    estimateTokens(row.tool_calls ?? '') +
+    estimateTokens(row.reasoning ?? '')
+  )
 }
 
 function loadRawMessages(conversationId: string): CompressorRow[] {
   const db = getDb()
   return db
     .prepare(
-      `SELECT id, conversation_id, role, content, created_at, compressed_into
+      `SELECT id, conversation_id, role, content, created_at, compressed_into, tool_calls, reasoning
          FROM messages
         WHERE conversation_id = ?
         ORDER BY created_at ASC`
@@ -101,7 +122,7 @@ function loadRawMessages(conversationId: string): CompressorRow[] {
 export function projectedTokens(conversationId: string): number {
   const rows = loadRawMessages(conversationId).filter((r) => r.compressed_into === null)
   let total = 0
-  for (const r of rows) total += estimateTokens(r.content)
+  for (const r of rows) total += estimateRowTokens(r)
   return total
 }
 
@@ -114,10 +135,14 @@ export function projectedTokens(conversationId: string): number {
 export function shouldCompress(
   conversationId: string,
   contextWindow: number,
-  thresholdPct = DEFAULT_COMPRESS_THRESHOLD_PCT
+  thresholdPct = DEFAULT_COMPRESS_THRESHOLD_PCT,
+  inMemoryTokens?: number
 ): boolean {
   if (!Number.isFinite(contextWindow) || contextWindow <= 0) return false
   const budget = Math.floor(contextWindow * thresholdPct)
+  if (typeof inMemoryTokens === 'number' && Number.isFinite(inMemoryTokens) && inMemoryTokens <= budget) {
+    return false
+  }
   return projectedTokens(conversationId) > budget
 }
 
@@ -141,7 +166,7 @@ export function selectMessagesToCompress(
   const out: CompressorRow[] = []
   for (const r of rows) {
     out.push(r)
-    cumulative += estimateTokens(r.content)
+    cumulative += estimateRowTokens(r)
     if (cumulative >= targetTokens) break
   }
   // Avoid orphaning a tail-end tool/assistant pair: when the last
@@ -187,18 +212,23 @@ function buildSummaryText(rows: CompressorRow[]): string {
 export function compressOldestMessages(
   conversationId: string,
   contextWindow: number,
-  opts?: { thresholdPct?: number; targetPct?: number; minReductionPct?: number }
+  opts?: {
+    thresholdPct?: number
+    targetPct?: number
+    minReductionPct?: number
+    inMemoryTokens?: number
+  }
 ): CompressionResult | null {
   const thresholdPct = opts?.thresholdPct ?? DEFAULT_COMPRESS_THRESHOLD_PCT
   const targetPct = opts?.targetPct ?? DEFAULT_COMPRESS_TARGET_PCT
   const minReductionPct = opts?.minReductionPct ?? 0.05
 
-  if (!shouldCompress(conversationId, contextWindow, thresholdPct)) return null
+  if (!shouldCompress(conversationId, contextWindow, thresholdPct, opts?.inMemoryTokens)) return null
 
   const selection = selectMessagesToCompress(conversationId, contextWindow, targetPct)
   if (selection.length === 0) return null
 
-  const originalTokens = selection.reduce((s, r) => s + estimateTokens(r.content), 0)
+  const originalTokens = selection.reduce((s, r) => s + estimateRowTokens(r), 0)
   if (originalTokens === 0) return null
 
   const summaryText = buildSummaryText(selection)

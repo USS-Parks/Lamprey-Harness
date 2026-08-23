@@ -90,9 +90,10 @@ describe('AO-1 orchestration safety — defaults + config', () => {
 
   it('AO-6: chat dispatch strips orchestration tools via the toggle', () => {
     const src = read('electron/ipc/chat.ts')
-    // Both dispatch build paths wrap the tool array in the strip.
-    const matches = src.match(/filterOrchestrationTools\(/g) ?? []
-    expect(matches.length).toBeGreaterThanOrEqual(3)
+    // Both dispatch build paths wrap the tool array in applyGatedPackFilters,
+    // which calls filterOrchestrationTools (AC-13).
+    expect(src.match(/applyGatedPackFilters\(/g)?.length ?? 0).toBeGreaterThanOrEqual(3)
+    expect(src).toMatch(/filterOrchestrationTools\(/)
   })
 
   it('AO-6: agent_fanout handler refuses when orchestration is off', () => {

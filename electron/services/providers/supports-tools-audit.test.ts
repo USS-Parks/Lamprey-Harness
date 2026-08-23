@@ -52,8 +52,8 @@ describe('FC-2 — supportsTools flag audit', () => {
     expect(g426b.supportsTools).toBe(true)
   })
 
-  it('resolveModel for unknown model falls back to supportsTools=true', () => {
+  it('resolveModel for unknown model falls back to supportsTools=false', () => {
     const custom = resolveModel('custom-unknown-model')
-    expect(custom.supportsTools).toBe(true)
+    expect(custom.supportsTools).toBe(false)
   })
 })

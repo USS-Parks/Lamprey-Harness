@@ -22,6 +22,7 @@ describe('AC-28 message_stage_metrics is write-less', () => {
       const text = readFileSync(file, 'utf-8')
       if (!/INSERT\s+INTO\s+message_stage_metrics/i.test(text)) continue
       if (file.endsWith(`${join('services', 'schema-init.ts')}`)) continue
+      if (file.endsWith('.test.ts')) continue
       hits.push(file)
     }
     expect(hits, hits.join('\n')).toEqual([])

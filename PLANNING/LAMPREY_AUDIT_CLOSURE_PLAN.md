@@ -442,7 +442,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; that suite
 
 ### **AC-6 — T6: Honest orphan turn state**
-- [ ] `getState` (`turn-control.ts:360–392`) returns `activeTurn: null` unless the DB row is `running` **and** the process has a matching runtime. After a crash, Activity/UI therefore says nothing is running while `conversation_turns` still says `running`. `recoverOrphans` remains the sweeper; this prompt only makes the read honest.
+- [x] `getState` (`turn-control.ts:360–392`) returns `activeTurn: null` unless the DB row is `running` **and** the process has a matching runtime. After a crash, Activity/UI therefore says nothing is running while `conversation_turns` still says `running`. `recoverOrphans` remains the sweeper; this prompt only makes the read honest.
 
   Surface `orphaned: true` (or an equivalent field on the envelope) when the store has `running` and `lookupActive` is empty. Do not auto-settle in this prompt. Types and the renderer must not crash if they ignore the new field; Activity may show the orphan when it already renders turn state.
 - **Closes:** T6, IMP-6
@@ -452,19 +452,19 @@ review text (Hygiene / Sweet Spot density).
 ### Track B — chat.ts scar and compressor
 
 ### **AC-7 — T7/T8: Delete dead turn flags and comments**
-- [ ] Remove `suppressDoneEvent` from `runChatRound` / `runHeadlessTurn` and every recursive pass-through (`chat.ts:541–548`, `:582`, `:731`, `:860`, and the three emit gates). Delete the Prompt 11 agent-pipeline comment block (`:537–548`). Delete `void FabricatedCitationError` and `void DeepResearchCancelledError` (`:395–396`). The classes stay — research still throws them (`:389–392`, `research/synthesizer.ts:49`). Delete leftover per-stage / pipeline comments in `chat.ts` that describe excised behavior. A source-lock forbids the identifier `suppressDoneEvent` under `electron/`.
+- [x] Remove `suppressDoneEvent` from `runChatRound` / `runHeadlessTurn` and every recursive pass-through (`chat.ts:541–548`, `:582`, `:731`, `:860`, and the three emit gates). Delete the Prompt 11 agent-pipeline comment block (`:537–548`). Delete `void FabricatedCitationError` and `void DeepResearchCancelledError` (`:395–396`). The classes stay — research still throws them (`:389–392`, `research/synthesizer.ts:49`). Delete leftover per-stage / pipeline comments in `chat.ts` that describe excised behavior. A source-lock forbids the identifier `suppressDoneEvent` under `electron/`.
 - **Closes:** T7, T8, DEL-1, DEL-2, DEL-3
 - **Files:** `electron/ipc/chat.ts`, any test that passed the flag
 - **Verify:** tsc ×2; `npm run verify:proof -- --no-tests`; grep lock in a small test
 
 ### **AC-8 — T9: Extract tool dispatch from chat.ts**
-- [ ] Move `resolveSingleToolCall` (`chat.ts:1437–1915`) and the tool-window loop that calls it (`:1217`, `:1231`) into `electron/services/chat-tool-dispatch.ts`. `chat.ts` keeps IPC, `runHeadlessTurn`, `runChatRound` orchestration. Behavior byte-compatible: same approval, fallback ids, MCP `__` split, `tool_search` unlock handler (`:1503–1522` may move with it or stay as a named function the dispatch module calls). Target: `chat.ts` loses the 479-line function. Do not “clean up” adjacent comments while moving. `steering-boundary-wiring.test.ts:43` source-locks the name `resolveSingleToolCall(` — update that lock to the new module or keep a thin re-export.
+- [x] Move `resolveSingleToolCall` (`chat.ts:1437–1915`) and the tool-window loop that calls it (`:1217`, `:1231`) into `electron/services/chat-tool-dispatch.ts`. `chat.ts` keeps IPC, `runHeadlessTurn`, `runChatRound` orchestration. Behavior byte-compatible: same approval, fallback ids, MCP `__` split, `tool_search` unlock handler (`:1503–1522` may move with it or stay as a named function the dispatch module calls). Target: `chat.ts` loses the 479-line function. Do not “clean up” adjacent comments while moving. `steering-boundary-wiring.test.ts:43` source-locks the name `resolveSingleToolCall(` — update that lock to the new module or keep a thin re-export.
 - **Closes:** T9, IMP-7, ADD-8
 - **Files:** new dispatch module, `chat.ts`, existing tool/chat/steering wiring tests
 - **Verify:** tsc ×2; tool + chat tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-9 — T10: Compressor counts the stack it actually sends**
-- [ ] `projectedTokens` (`context-compressor.ts:101–105`) sums `content` only and `loadRawMessages` (`:84–93`) hits SQLite on every call. `shouldCompress` (`:114–121`) therefore undercounts turns that are mostly `tool_calls` + `reasoning`, then pays a DB round-trip to learn it was under threshold.
+- [x] `projectedTokens` (`context-compressor.ts:101–105`) sums `content` only and `loadRawMessages` (`:84–93`) hits SQLite on every call. `shouldCompress` (`:114–121`) therefore undercounts turns that are mostly `tool_calls` + `reasoning`, then pays a DB round-trip to learn it was under threshold.
 
   `projectedTokens` / the compress threshold must include `tool_calls` and `reasoning` (same fields `charCounter` already counts in `runChatRound`). If a cheap in-memory estimate from the stack already in hand is under the compress threshold, do not `loadRawMessages`. Test: under-threshold path does not call the loader (inject or source-lock the guard). Do not change the compressor’s summary algorithm in this prompt.
 - **Closes:** T10, IMP-8
@@ -472,7 +472,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; compressor tests; `npm run verify:proof -- --no-tests` if `chat.ts` is touched
 
 ### **AC-10 — T11/T12: Single drain; retire the phantom watchdog**
-- [ ] After AC-3, pending document/artifact **turn-close** drain happens only in `finalizeTurn`. Remove the extra close-drains in `chat:send` success/error and the research success path (`chat.ts:347–348`, `:413–414`, `:440–441`). Keep mid-round drains (`:1104–1105`, `:1332–1333`).
+- [x] After AC-3, pending document/artifact **turn-close** drain happens only in `finalizeTurn`. Remove the extra close-drains in `chat:send` success/error and the research success path (`chat.ts:347–348`, `:413–414`, `:440–441`). Keep mid-round drains (`:1104–1105`, `:1332–1333`).
 
   `onActivity` has zero `electron/` matches. Add a one-line comment at the old watchdog mention in docs only if one still claims it is live (CLAUDE/AGENTS historical entries stay historical). No new timer. Do not rewire a stage inactivity watchdog.
 - **Closes:** T11, T12, DEL-5, DEL-6, IMP-9
@@ -482,7 +482,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track C — Tool surface
 
 ### **AC-11 — TL1: Name both CORE lists in one module**
-- [ ] Today both lists are named `CORE_TOOL_NAMES` and they disagree. Lazy always-on (`model-tool-surface.ts:24–39`): `shell_command`, `apply_patch`, `workspace_context`, `view_image`, `web_search`, `ask_user_question`, `update_plan`, `enter_plan_mode`, `exit_plan_mode`, `get_goal`, `read_tool_result`, `skill_open`. Fail-fast normalize (`schema-normalizer.ts:78–88`): `workspace_context`, `view_image`, `shell_command`, `apply_patch`, `verify_workspace`, `shell_list`, `shell_monitor`, `shell_stop`, `shell_output`.
+- [x] Today both lists are named `CORE_TOOL_NAMES` and they disagree. Lazy always-on (`model-tool-surface.ts:24–39`): `shell_command`, `apply_patch`, `workspace_context`, `view_image`, `web_search`, `ask_user_question`, `update_plan`, `enter_plan_mode`, `exit_plan_mode`, `get_goal`, `read_tool_result`, `skill_open`. Fail-fast normalize (`schema-normalizer.ts:78–88`): `workspace_context`, `view_image`, `shell_command`, `apply_patch`, `verify_workspace`, `shell_list`, `shell_monitor`, `shell_stop`, `shell_output`.
 
   Move them to `electron/services/core-tool-names.ts` as `CORE_SURFACE_NAMES` and `CORE_NORMALIZE_NAMES`. Both call sites import from there. Source-lock lists both arrays verbatim. Per K2: do not add `web_search` to the normalizer fail-fast set; do not drop `verify_workspace` from it; do not silently union them.
 - **Closes:** TL1, IMP-10, ADD-9
@@ -490,7 +490,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; model-tool-surface + schema-normalizer tests
 
 ### **AC-12 — TL2/TL14: Fallback parser sees the same tools as the contract**
-- [ ] `parseFallbackToolCalls` is fed `toolRegistry.getDescriptors()` (`chat.ts:1014–1015`) — the full catalog — while the fallback contract and the native `tools` array are the dispatch subset (lazy CORE + unlocks, or full). A fallback model can therefore “call” a name the contract never listed.
+- [x] `parseFallbackToolCalls` is fed `toolRegistry.getDescriptors()` (`chat.ts:1014–1015`) — the full catalog — while the fallback contract and the native `tools` array are the dispatch subset (lazy CORE + unlocks, or full). A fallback model can therefore “call” a name the contract never listed.
 
   Validation uses the dispatch `tools` list for that round, not `getDescriptors()`. Mid-conversation FC-10 downgrade (`chat.ts:900`) still injects the contract for the tools that round will accept. Test: a name absent from the contract cannot dispatch via fallback. Pair with AC-19’s unlock leak test (TL14).
 - **Closes:** TL2, part of TL14, IMP-11
@@ -498,7 +498,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; fallback + chat tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-13 — TL3: Strip gated packs at dispatch**
-- [ ] `filterOrchestrationTools` (`orchestration-tools.ts:23–30`) already strips `agent_fanout` / `agent_critique` / `agent_advisor` when orchestration is off. The file’s own comment (`:8–10`) says loop tools “stay in the surface and refuse at the handler.” `buildDispatchTools` (`chat.ts:800–819`) only applies the orch filter.
+- [x] `filterOrchestrationTools` (`orchestration-tools.ts:23–30`) already strips `agent_fanout` / `agent_critique` / `agent_advisor` when orchestration is off. The file’s own comment (`:8–10`) says loop tools “stay in the surface and refuse at the handler.” `buildDispatchTools` (`chat.ts:800–819`) only applies the orch filter.
 
   When `loopsEnabled` is false, loop tools are absent from the model surface (same pattern, same helper shape). When `browserDeveloperModeEnabled` is false, browser-dev tools are absent. Handlers remain fail-closed as a second belt. Source-lock: `buildDispatchTools` (or successor) contains both filters. Do not change defaults (`loopsEnabled: false`, `browserDeveloperModeEnabled: false`).
 - **Closes:** TL3, IMP-12
@@ -506,31 +506,31 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; loop-safety + browser + chat tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-14 — TL4: Kill or alias `getOpenAITools()`**
-- [ ] Delete the unused function (`tool-registry.ts:440`) **or** make it a one-line wrapper over `getNormalizedToolsForProvider`. Fix stale comments in `tool-registry.ts:267`, `:329`, `:488`; `tool-search.ts:11`; `electron/ipc/tools.ts:7`. Production call sites stay `getNormalizedToolsForRole` / `getModelToolSurface`. Architecture doc rewrite waits for AC-34; this prompt only stops the code comments from lying.
+- [x] Delete the unused function (`tool-registry.ts:440`) **or** make it a one-line wrapper over `getNormalizedToolsForProvider`. Fix stale comments in `tool-registry.ts:267`, `:329`, `:488`; `tool-search.ts:11`; `electron/ipc/tools.ts:7`. Production call sites stay `getNormalizedToolsForRole` / `getModelToolSurface`. Architecture doc rewrite waits for AC-34; this prompt only stops the code comments from lying.
 - **Closes:** TL4, DEL-12
 - **Files:** those four plus any test that named the old function
 - **Verify:** tsc ×2; tool-registry tests
 
 ### **AC-15 — TL5: Drop the dead role filter on the hot path**
-- [ ] Chat dispatch always passes `'coder'` (`chat.ts:819`, `:844`). Grep production callers of `filterToolsForRole` / `getNormalizedToolsForRole`. If the only production caller is that `'coder'` hot path, delete the role filter and the planner/reviewer allowlists (`role-tool-access.ts:84`) and call `getNormalizedToolsForProvider` (or equivalent) directly. If `multi_agent_run` still needs planner/reviewer subsets, keep the helper and stop pretending chat uses it — chat calls the provider path. Tests become absence locks or the remaining subset tests. WC-2’s “wired into tool prep” comments get corrected.
+- [x] Chat dispatch always passes `'coder'` (`chat.ts:819`, `:844`). Grep production callers of `filterToolsForRole` / `getNormalizedToolsForRole`. If the only production caller is that `'coder'` hot path, delete the role filter and the planner/reviewer allowlists (`role-tool-access.ts:84`) and call `getNormalizedToolsForProvider` (or equivalent) directly. If `multi_agent_run` still needs planner/reviewer subsets, keep the helper and stop pretending chat uses it — chat calls the provider path. Tests become absence locks or the remaining subset tests. WC-2’s “wired into tool prep” comments get corrected.
 - **Closes:** TL5, DEL-13
 - **Files:** `tool-registry.ts`, `role-tool-access.ts`, `chat.ts`
 - **Verify:** tsc ×2; tool-registry tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-16 — TL6: Registry owns native handlers that chat currently inlines**
-- [ ] `memory_add` (`chat.ts:1700`), `enter_plan_mode` (`:1730`), `exit_plan_mode` (adjacent), `ask_user_question` (`:1783`), and `create_document` if it is still inlined, dispatch through registry/pack handlers like the other natives. `tool_search` may stay a chat-adjacent handler (it unlocks conversation state) but it must be a named function in the dispatch module, not a buried branch. Same approval and result shapes. No new tools.
+- [x] `memory_add` (`chat.ts:1700`), `enter_plan_mode` (`:1730`), `exit_plan_mode` (adjacent), `ask_user_question` (`:1783`), and `create_document` if it is still inlined, dispatch through registry/pack handlers like the other natives. `tool_search` may stay a chat-adjacent handler (it unlocks conversation state) but it must be a named function in the dispatch module, not a buried branch. Same approval and result shapes. No new tools.
 - **Closes:** TL6, IMP-13
 - **Files:** packs under `electron/services/`, `chat-tool-dispatch.ts`, tests
 - **Verify:** tsc ×2; the moved tools’ tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-17 — TL7: Unknown model ids do not get native tools**
-- [ ] Synthetic `resolveModel` fallback (`registry.ts:1621–1632`) currently sets `supportsTools: true`. The audit test `supports-tools-audit.test.ts:55–57` **locks that default**. Flip the fallback to `supportsTools: false` (K4) and flip the test. A nonsense id does not produce `supportsTools: true`. Retired-map hits (`:1611–1615`) still return the mapped catalog row unchanged. Custom models still win over the fallback (`:1617–1619`).
+- [x] Synthetic `resolveModel` fallback (`registry.ts:1621–1632`) currently sets `supportsTools: true`. The audit test `supports-tools-audit.test.ts:55–57` **locks that default**. Flip the fallback to `supportsTools: false` (K4) and flip the test. A nonsense id does not produce `supportsTools: true`. Retired-map hits (`:1611–1615`) still return the mapped catalog row unchanged. Custom models still win over the fallback (`:1617–1619`).
 - **Closes:** TL7, IMP-14
 - **Files:** `electron/services/providers/registry.ts`, `supports-tools-audit.test.ts`, catalog-invariants if they mention the fallback
 - **Verify:** tsc ×2; those tests
 
 ### **AC-18 — TL8: Custom models default tools off until proven**
-- [ ] `readCustomModelDescriptors` uses `m.supportsTools !== false` (`registry.ts:1594`) — omitted means true. Live import already defaults false (`model-import.ts:55`). Typed `settings.json` custom models match the import path: `supportsTools` defaults false unless explicitly true (K5). Existing users who set true keep it. `ModelSettings.tsx` draft default (`:53` and `:185`) must not silently re-check the box for new customs. Test the default.
+- [x] `readCustomModelDescriptors` uses `m.supportsTools !== false` (`registry.ts:1594`) — omitted means true. Live import already defaults false (`model-import.ts:55`). Typed `settings.json` custom models match the import path: `supportsTools` defaults false unless explicitly true (K5). Existing users who set true keep it. `ModelSettings.tsx` draft default (`:53` and `:185`) must not silently re-check the box for new customs. Test the default.
 - **Closes:** TL8, IMP-15
 - **Files:** `registry.ts`, `ModelSettings.tsx` if its draft default disagrees, model-import if needed, tests
 - **Verify:** tsc ×2; resolve/import tests; tsc web if the settings draft changes
@@ -618,7 +618,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track F — Measurement, comments, generated docs
 
 ### **AC-31 — ADD-15: After snapshot → `PLANNING/AC_AFTER.md`**
-- [ ] Re-run the AC-0 measurements with the same method: line counts for the four files, the ABI-guarded list from `verify:proof --list-native-skips`, HEAD SHA, `package.json` version (still 0.28.0 until AC-42). Walk every §1 and §2 row and mark landed / not-yet (AC-32–AC-42 remain). Record surprises (for example AC-25 dropping `pipeline-orphans.test.ts` from the skip list). No product code.
+- [x] Re-run the AC-0 measurements with the same method: line counts for the four files, the ABI-guarded list from `verify:proof --list-native-skips`, HEAD SHA, `package.json` version (still 0.28.0 until AC-42). Walk every §1 and §2 row and mark landed / not-yet (AC-32–AC-42 remain). Record surprises (for example AC-25 dropping `pipeline-orphans.test.ts` from the skip list). No product code.
 - **Closes:** ADD-15
 - **Files:** `PLANNING/AC_AFTER.md`
 - **Verify:** file exists; method matches AC-0
@@ -630,13 +630,13 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; era-chrome / settings tests if they lock copy
 
 ### **AC-33 — D12: OpenWiki refresh**
-- [ ] After the code prompts above, run the repo OpenWiki update (`openwiki --update -p` or MCP lifecycle) so `openwiki/tools/skills-and-plugins.md:177` no longer calls plugins “future scaffolding” and function-calling pages no longer claim `getOpenAITools` as the hot path. Do not hand-edit generated claims sidecars. If the CLI/MCP is unavailable, record `user-verification-needed` and still correct `ARCHITECTURE/FUNCTION_CALLING.md` in AC-34.
+- [x] After the code prompts above, run the repo OpenWiki update (`openwiki --update -p` or MCP lifecycle) so `openwiki/tools/skills-and-plugins.md:177` no longer calls plugins “future scaffolding” and function-calling pages no longer claim `getOpenAITools` as the hot path. Do not hand-edit generated claims sidecars. If the CLI/MCP is unavailable, record `user-verification-needed` and still correct `ARCHITECTURE/FUNCTION_CALLING.md` in AC-34.
 - **Closes:** D12, DEL-18
 - **Files:** OpenWiki-owned pages via the official update path
 - **Verify:** the two pages on disk match the code; no new invented pages
 
 ### **AC-34 — DEL-19: ARCHITECTURE/FUNCTION_CALLING.md**
-- [ ] Cite real `Invoked from: <file>:<line>` sites for the normalized path (`getNormalizedToolsForProvider` / `getModelToolSurface` / `buildDispatchTools`). Remove or footnote `getOpenAITools` (`ARCHITECTURE/FUNCTION_CALLING.md:27`, `:224`). WC-9 standard. Do not claim live `supportsTools` probes this phase did not run.
+- [x] Cite real `Invoked from: <file>:<line>` sites for the normalized path (`getNormalizedToolsForProvider` / `getModelToolSurface` / `buildDispatchTools`). Remove or footnote `getOpenAITools` (`ARCHITECTURE/FUNCTION_CALLING.md:27`, `:224`). WC-9 standard. Do not claim live `supportsTools` probes this phase did not run.
 - **Closes:** DEL-19
 - **Files:** `ARCHITECTURE/FUNCTION_CALLING.md`
 - **Verify:** file review; no tsc
@@ -644,7 +644,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track G — Gates
 
 ### **AC-35 — G1: Honest pre-push**
-- [ ] Implement K8 in `scripts/hooks/pre-push`: full `verify:proof` when the pushed commit range touches product paths; skip (print why) on ref-delete-only and on docs/PLANNING/DEVLOG-only ranges. Product paths mean anything outside `PLANNING/`, `DEVLOG.md`, `README.md`, `RELEASE_NOTES/`, `openwiki/`, `*.md` at repo root, and similar doc-only trees — be explicit in the hook. Add a small node test or a documented dry-run example in the hook comment. Do not weaken pre-commit. Do not skip on mixed ranges that include `electron/` or `src/`.
+- [x] Implement K8 in `scripts/hooks/pre-push`: full `verify:proof` when the pushed commit range touches product paths; skip (print why) on ref-delete-only and on docs/PLANNING/DEVLOG-only ranges. Product paths mean anything outside `PLANNING/`, `DEVLOG.md`, `README.md`, `RELEASE_NOTES/`, `openwiki/`, `*.md` at repo root, and similar doc-only trees — be explicit in the hook. Add a small node test or a documented dry-run example in the hook comment. Do not weaken pre-commit. Do not skip on mixed ranges that include `electron/` or `src/`.
 - **Closes:** G1, IMP-19
 - **Files:** `scripts/hooks/pre-push`, maybe a `scripts/` helper
 - **Verify:** the helper’s unit test if extracted; manual dry-run notes in DEVLOG
@@ -656,7 +656,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** workflow file present; script listed in `package.json`
 
 ### **AC-37 — G3: Source-lock the new invariants**
-- [ ] One test file (or additions to existing safety tests) that locks: cap path is not `completed`; CORE lists live in one module and are not silently equal; gated packs stripped in dispatch; unknown model `supportsTools === false`; `suppressDoneEvent` absent; `pipeline-orphans` not imported from production `electron/`. This is the phase’s absence-lock file, same job `era-chrome.test.ts` and `loop-safety.test.ts` do for their phases.
+- [x] One test file (or additions to existing safety tests) that locks: cap path is not `completed`; CORE lists live in one module and are not silently equal; gated packs stripped in dispatch; unknown model `supportsTools === false`; `suppressDoneEvent` absent; `pipeline-orphans` not imported from production `electron/`. This is the phase’s absence-lock file, same job `era-chrome.test.ts` and `loop-safety.test.ts` do for their phases.
 - **Closes:** G3, IMP-23, ADD-12
 - **Files:** e.g. `electron/services/audit-closure-safety.test.ts`
 - **Verify:** tsc ×2; that file
@@ -664,13 +664,13 @@ review text (Hygiene / Sweet Spot density).
 ### Track H — Provider / MCP (narrow)
 
 ### **AC-38 — TL10: MCP approval from risk metadata**
-- [ ] Replace `CHROME_DESTRUCTIVE` (`tool-registry.ts:274`) and the `serverId === 'chrome' && CHROME_DESTRUCTIVE.has(tool.name)` special case (`:343`) with the same risk flags other tools use (K11). Chrome destructive tools must still require approval. Test the Chrome set still gates; a non-Chrome MCP tool without write/destructive risk does not newly start requiring approval.
+- [x] Replace `CHROME_DESTRUCTIVE` (`tool-registry.ts:274`) and the `serverId === 'chrome' && CHROME_DESTRUCTIVE.has(tool.name)` special case (`:343`) with the same risk flags other tools use (K11). Chrome destructive tools must still require approval. Test the Chrome set still gates; a non-Chrome MCP tool without write/destructive risk does not newly start requiring approval.
 - **Closes:** TL10, IMP-20
 - **Files:** `tool-registry.ts`, permissions tests
 - **Verify:** tsc ×2; those tests
 
 ### **AC-39 — TL11: Documented `_provider` wire deltas only**
-- [ ] Schema normalizer reads `_provider` (`schema-normalizer.ts:161–167` currently unused) and applies only the already-written Anthropic / Google / MiniMax notes in `registry.ts` / `ARCHITECTURE/FUNCTION_CALLING.md` (K12). Test one documented delta. No new provider behavior. If the documented deltas are comments-only and have no concrete transform, implement the documented ones or record in DEVLOG that the notes were comments and this prompt is a no-op plus a test that unused `_provider` is now read. Do not invent a third provider quirk to look busy.
+- [x] Schema normalizer reads `_provider` (`schema-normalizer.ts:161–167` currently unused) and applies only the already-written Anthropic / Google / MiniMax notes in `registry.ts` / `ARCHITECTURE/FUNCTION_CALLING.md` (K12). Test one documented delta. No new provider behavior. If the documented deltas are comments-only and have no concrete transform, implement the documented ones or record in DEVLOG that the notes were comments and this prompt is a no-op plus a test that unused `_provider` is now read. Do not invent a third provider quirk to look busy.
 - **Closes:** TL11, IMP-21
 - **Files:** `schema-normalizer.ts`, tests
 - **Verify:** tsc ×2; normalizer tests
@@ -686,7 +686,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track I — Catalog extract
 
 ### **AC-41 — P1: `MODEL_CATALOG` leaves registry.ts**
-- [ ] Mechanical move of the catalog array starting at `registry.ts:452` (and `RETIRED_MODEL_MAP` at `:1545` if it is only used there) to `electron/services/providers/catalog.ts`. `registry.ts` keeps `resolveModel` (`:1607`), `chatStream`, `chatOnce`, descriptors. `catalog-august-2026.ts` stays a pin overlay — do not fold it in or edit rows. `catalog-invariants.test.ts`, `supports-tools-audit.test.ts`, and August catalog tests keep passing. No catalog row edits in this prompt.
+- [x] Mechanical move of the catalog array starting at `registry.ts:452` (and `RETIRED_MODEL_MAP` at `:1545` if it is only used there) to `electron/services/providers/catalog.ts`. `registry.ts` keeps `resolveModel` (`:1607`), `chatStream`, `chatOnce`, descriptors. `catalog-august-2026.ts` stays a pin overlay — do not fold it in or edit rows. `catalog-invariants.test.ts`, `supports-tools-audit.test.ts`, and August catalog tests keep passing. No catalog row edits in this prompt.
 - **Closes:** P1, IMP-22, ADD-10
 - **Files:** new catalog module, `registry.ts`, tests
 - **Verify:** tsc ×2; catalog-invariants + provider-parity + August catalog tests
@@ -694,7 +694,7 @@ review text (Hygiene / Sweet Spot density).
 ### Wrap
 
 ### **AC-42 — Phase wrap**
-- [ ] Full gate: lint, tsc ×2, full vitest, build, `verify:proof`. Bump `package.json` to **0.29.0**. Update CLAUDE.md + AGENTS.md Current State (this phase; honest gaps: R1–R4, live `supportsTools`, unsigned builds, `turn.interrupted` event-name leftover). README “New in v0.29.0”. DEVLOG phase-complete entry with the house tail (`Final gate:` + `Honest gaps:`). Append any last-row checkmarks that AC-31 marked not-yet. **Bucket** (`pwsh scripts\bucket.ps1`) from this wrap branch. The three work tracks must already be merged.
+- [x] Full gate: lint, tsc ×2, full vitest, build, `verify:proof`. Bump `package.json` to **0.29.0**. Update CLAUDE.md + AGENTS.md Current State (this phase; honest gaps: R1–R4, live `supportsTools`, unsigned builds, `turn.interrupted` event-name leftover). README “New in v0.29.0”. DEVLOG phase-complete entry with the house tail (`Final gate:` + `Honest gaps:`). Append any last-row checkmarks that AC-31 marked not-yet. **Bucket** (`pwsh scripts\bucket.ps1`) from this wrap branch. The three work tracks must already be merged.
 - **Closes:** K14, completion criteria 2–5
 - **Files:** `package.json`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `DEVLOG.md`, this plan
 - **Verify:** §0 item 5

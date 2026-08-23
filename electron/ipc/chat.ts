@@ -3,7 +3,10 @@ import { randomUUID } from 'crypto'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { filterOrchestrationTools } from '../services/orchestration-tools'
-import { readOrchestrationConfig } from '../services/orchestration-config'
+import {
+  filterBrowserDeveloperTools,
+  filterLoopTools
+} from '../services/gated-tool-filters'
 import {
   chatOnce,
   chatStream,
@@ -14,15 +17,18 @@ import {
 import { boundedJsonPreview, recordEvent } from '../services/event-log'
 import { validateChatSendRequest } from './chat-validation'
 import * as convStore from '../services/conversation-store'
-import {
-  isPlanModeActive,
-  setPlanModeActive,
-  type StoredDocument
-} from '../services/conversation-store'
-import { drainPendingDocuments, pushPendingDocument } from '../services/pending-turn-documents'
+import { isPlanModeActive } from '../services/conversation-store'
+import { drainPendingDocuments } from '../services/pending-turn-documents'
 import { drainPendingArtifacts } from '../services/pending-turn-artifacts'
 import { interruptTurn } from '../services/turn-interrupt'
 import { finalizeTurn } from '../services/finalize-turn'
+import {
+  resolveSingleToolCall,
+  resolveToolCallWindows,
+  type ResolvedToolCall
+} from '../services/chat-tool-dispatch'
+
+export { resolveSingleToolCall }
 import { emitTurnStarted } from '../services/turn-lifecycle-events'
 import {
   createQueuedFollowUpDispatchDependencies,
@@ -31,8 +37,12 @@ import {
   type QueuedFollowUpRunInput
 } from '../services/queued-follow-up-dispatch'
 import * as memStore from '../services/memory-store'
-import { buildChaptersBlock, createChapter } from '../services/chapters-store'
-import { compressOldestMessages, getEffectiveMessages } from '../services/context-compressor'
+import { buildChaptersBlock } from '../services/chapters-store'
+import {
+  compressOldestMessages,
+  estimateTokensForMessages,
+  getEffectiveMessages
+} from '../services/context-compressor'
 import {
   buildTaskNotificationsBlock,
   drainAsyncEventsForPrompt
@@ -173,16 +183,11 @@ export function mergeAgenticSkillIds(base: string[], extra: string[]): string[] 
   return out
 }
 
-const CREATE_DOCUMENT_MAX_BYTES = 256 * 1024
-
 // Tool definitions (memory_add + MCP tools) come from toolRegistry.
 // Approval gating is owned by permissionsService — both live in services/.
 
-// Per-stage tool-call iteration ceiling. Each runChatRound recursive call
-// increments `round`; we hard-stop when the counter exceeds this. The cap
-// is PER-STAGE (multi-agent pipelines reset the counter at each Planner
-// / Coder / Reviewer hand-off), not per-turn — so the effective ceiling
-// across a pipeline run is ~3× this number.
+// Per-turn tool-call iteration ceiling. Each runChatRound recursive call
+// increments `round`; we hard-stop when the counter exceeds this.
 //
 // Was 10 in 0.2.x — that tripped on routine codebase exploration where
 // the planner needed 12-20 sequential reads to map a new repo. Codex
@@ -379,8 +384,6 @@ export function registerChatHandlers(): void {
             throw researchErr
           }
         }
-        void FabricatedCitationError
-        void DeepResearchCancelledError
       }
 
       // LP-1 (Loop Phase) — the normal-dispatch body (prompt assembly + tools
@@ -396,17 +399,8 @@ export function registerChatHandlers(): void {
         promptBody: content,
         runtime: turnRuntime
       })
-
-      finalizeTurn({
-        runtime: turnRuntime,
-        status: 'completed',
-        conversationId,
-        model,
-        activeSkillIds,
-        correlationId,
-        dispatchQueue: dispatchQueuedFollowUpAfterCompletedTurn
-      })
       // JM-8 (CC-20) — same success payload shape as the research path.
+      // AC-10: headless `finally` already ran finalizeTurn.
       return {
         success: true,
         data: { conversationId, correlationId, turnId: turnRuntime.turnId }
@@ -498,18 +492,6 @@ export function registerChatHandlers(): void {
   )
 }
 
-// Prompt 11: agent-pipeline mode needs to capture the Coder's final
-// assistant message AND defer the chat:done emit until after the Reviewer
-// stage has been queued (so the renderer doesn't clear the pipeline-banner
-// in the gap between Coder-done and Reviewer-running). When
-// `suppressDoneEvent` is true:
-//   * runChatRound persists the assistant message as usual,
-//   * BUT it does NOT emit `chat:phase = done` or `chat:done`,
-//   * AND it resolves with the persisted message so the caller can emit
-//     those events itself at the right moment.
-// Single-mode callers pass `false` (the default) and ignore the return
-// value; the byte-for-byte behaviour of the pre-Prompt-11 path is
-// preserved.
 export type RunChatRoundResult = { message: unknown } | null
 
 /**
@@ -543,7 +525,6 @@ export async function runHeadlessTurn(input: {
   promptBody?: string
   /** External cancel signal (e.g. a loop's controller) — aborts the turn. */
   signal?: AbortSignal
-  suppressDoneEvent?: boolean
   /** Existing runtime used by interactive research fallback. */
   runtime?: TurnRuntime
   /** Loops and wake-ups default to regular; reserved kinds reject Steering. */
@@ -576,10 +557,13 @@ export async function runHeadlessTurn(input: {
 
     // Track 2 / E5 — auto context compression. Run BEFORE pulling
     // history so the next turn's prompt sees the compressed view.
+    let promptHistory
     try {
       const modelInfo = resolveModel(model)
       const ctxWindow = modelInfo.contextWindow ?? 128_000
-      const r = compressOldestMessages(conversationId, ctxWindow)
+      const preview = getEffectiveMessages(conversationId)
+      const inMemoryTokens = estimateTokensForMessages(preview)
+      const r = compressOldestMessages(conversationId, ctxWindow, { inMemoryTokens })
       if (r) {
         emitChatEvent('chat:compressed', {
           conversationId,
@@ -588,15 +572,15 @@ export async function runHeadlessTurn(input: {
           reductionPct: r.reductionPct
         })
       }
+      promptHistory = (r ? getEffectiveMessages(conversationId) : preview).filter(
+        (message) => message.id !== input.injectedUserMessage?.messageId
+      )
     } catch (err) {
       console.error('[chat] context compression failed:', err)
+      promptHistory = getEffectiveMessages(conversationId).filter(
+        (message) => message.id !== input.injectedUserMessage?.messageId
+      )
     }
-
-    // The dispatcher uses the effective view (compressed messages hidden,
-    // summary inserted in their place) for the OpenAI API.
-    const promptHistory = getEffectiveMessages(conversationId).filter(
-      (message) => message.id !== input.injectedUserMessage?.messageId
-    )
     const memoryBlock = memStore.buildMemoryBlock()
     const memoryIndexBlock = memStore.buildMemoryIndexBlock()
     const taskNotificationsBlock = buildTaskNotificationsBlock(
@@ -692,7 +676,6 @@ export async function runHeadlessTurn(input: {
       runtime.signal,
       0,
       modelParams,
-      input.suppressDoneEvent ?? false,
       correlationId,
       [],
       Date.now(),
@@ -759,19 +742,35 @@ function buildDispatchTools(
 ): ChatCompletionTool[] {
   // AO-6 — strip the orchestration tools unless the master toggle is on, so
   // ZERO orchestration tool-schema bytes reach the model by default.
-  const orchOn =
-    (settingsRaw as { orchestrationEnabled?: boolean } | undefined)?.orchestrationEnabled === true
   const mode = (settingsRaw as { toolSurface?: string } | undefined)?.toolSurface ?? 'full'
   if (mode === 'lazy' && !isSurfaceDowngraded(conversationId)) {
     activateLazySurface(conversationId)
-    return filterOrchestrationTools(
+    return applyGatedPackFilters(
       toolRegistry.getModelToolSurface(provider, {
         unlockedNames: getUnlockedTools(conversationId)
       }),
-      orchOn
+      settingsRaw
     )
   }
-  return filterOrchestrationTools(toolRegistry.getNormalizedToolsForRole('coder', provider), orchOn)
+  return applyGatedPackFilters(toolRegistry.getNormalizedToolsForProvider(provider), settingsRaw)
+}
+
+function applyGatedPackFilters(
+  tools: ChatCompletionTool[],
+  settingsRaw: unknown
+): ChatCompletionTool[] {
+  const s = (settingsRaw ?? {}) as {
+    orchestrationEnabled?: boolean
+    loopsEnabled?: boolean
+    browserDeveloperModeEnabled?: boolean
+  }
+  return filterBrowserDeveloperTools(
+    filterLoopTools(
+      filterOrchestrationTools(tools, s.orchestrationEnabled === true),
+      s.loopsEnabled === true
+    ),
+    s.browserDeveloperModeEnabled === true
+  )
 }
 
 /**
@@ -785,19 +784,19 @@ function rebuildToolsForNextRound(
   model: string,
   currentTools: ChatCompletionTool[] | undefined
 ): ChatCompletionTool[] | undefined {
-  const orchOn = readOrchestrationConfig().enabled
+  const settingsRaw = readSettingsJson()
   if (isLazyActive(conversationId)) {
-    return filterOrchestrationTools(
+    return applyGatedPackFilters(
       toolRegistry.getModelToolSurface(getProviderForModel(model), {
         unlockedNames: getUnlockedTools(conversationId)
       }),
-      orchOn
+      settingsRaw
     )
   }
   if (isSurfaceDowngraded(conversationId)) {
-    return filterOrchestrationTools(
-      toolRegistry.getNormalizedToolsForRole('coder', getProviderForModel(model)),
-      orchOn
+    return applyGatedPackFilters(
+      toolRegistry.getNormalizedToolsForProvider(getProviderForModel(model)),
+      settingsRaw
     )
   }
   return currentTools
@@ -812,7 +811,6 @@ export async function runChatRound(
   signal: AbortSignal,
   round: number,
   params?: ModelParams,
-  suppressDoneEvent: boolean = false,
   correlationId?: string,
   /** Reasoning Audit Phase R6 — cumulative reasoning trail. Pre-existing
    *  rounds' chain-of-thought; this round appends its own onDone.
@@ -966,8 +964,15 @@ export async function runChatRound(
             const needsFallbackParsing =
               !descriptor.supportsTools || isDowngraded(conversationId, model)
             if ((!effectiveToolCalls || effectiveToolCalls.length === 0) && needsFallbackParsing) {
-              const descriptors = toolRegistry.getDescriptors()
-              const fallbackResult = parseFallbackToolCalls(fullContent, descriptors)
+              const fallbackTools = (tools ?? []).map((t) => {
+                const fn = (t as { function?: { name?: string; parameters?: unknown; description?: string } }).function
+                return {
+                  name: fn?.name ?? '',
+                  inputSchema: fn?.parameters ?? {},
+                  description: fn?.description
+                }
+              }).filter((t) => t.name)
+              const fallbackResult = parseFallbackToolCalls(fullContent, fallbackTools)
               if (
                 fallbackResult &&
                 !fallbackResult.isFinalAnswer &&
@@ -1038,7 +1043,6 @@ export async function runChatRound(
                   signal,
                   round + 1,
                   params,
-                  suppressDoneEvent,
                   correlationId,
                   correctiveReasonings,
                   turnStartedAt,
@@ -1087,13 +1091,11 @@ export async function runChatRound(
                       reasoning_content: fullReasoning
                     })
                 } as ChatCompletionMessageParam)
-                if (!suppressDoneEvent) {
-                  emitChatEvent('chat:round-complete', {
-                    conversationId,
-                    turnId: runtime.turnId,
-                    message: assistantMsg
-                  })
-                }
+                emitChatEvent('chat:round-complete', {
+                  conversationId,
+                  turnId: runtime.turnId,
+                  message: assistantMsg
+                })
                 const delivered = await consumeRootSteersAtBoundary(runtime, messages, model)
                 if (delivered.delivered > 0) {
                   const continuationReasonings =
@@ -1109,7 +1111,6 @@ export async function runChatRound(
                     signal,
                     round + 1,
                     params,
-                    suppressDoneEvent,
                     correlationId,
                     continuationReasonings,
                     turnStartedAt,
@@ -1120,11 +1121,9 @@ export async function runChatRound(
                   return
                 }
               }
-              if (!suppressDoneEvent) {
-                emitPhase(conversationId, 'done')
-                emitChatEvent('chat:done', { conversationId, message: assistantMsg })
-                void fireHooks('agentStop', { conversationId })
-              }
+              emitPhase(conversationId, 'done')
+              emitChatEvent('chat:done', { conversationId, message: assistantMsg })
+              void fireHooks('agentStop', { conversationId })
               resolve({ message: assistantMsg })
               return
             }
@@ -1161,38 +1160,14 @@ export async function runChatRound(
             // calls run one at a time. The final tool-role messages are pushed
             // in tool_call array order regardless of completion order so the
             // next API round sees a consistent sequence.
-            const resolved: ResolvedToolCall[] = new Array(effectiveToolCalls.length)
-            const windows = partitionToolCallWindows(effectiveToolCalls, (id) =>
-              toolRegistry.getById(id)
+            const resolved: ResolvedToolCall[] = await resolveToolCallWindows(
+              effectiveToolCalls,
+              conversationId,
+              model,
+              workspacePath,
+              signal,
+              correlationId
             )
-            for (const win of windows) {
-              if (win.kind === 'parallel') {
-                const settled = await Promise.all(
-                  win.indices.map((idx) =>
-                    resolveSingleToolCall(
-                      effectiveToolCalls[idx],
-                      conversationId,
-                      model,
-                      workspacePath,
-                      signal,
-                      correlationId
-                    )
-                  )
-                )
-                for (let i = 0; i < win.indices.length; i++) {
-                  resolved[win.indices[i]] = settled[i]
-                }
-              } else {
-                resolved[win.index] = await resolveSingleToolCall(
-                  effectiveToolCalls[win.index],
-                  conversationId,
-                  model,
-                  workspacePath,
-                  signal,
-                  correlationId
-                )
-              }
-            }
 
             // HY3 — spill threshold (chars). Default DEFAULT_SPILL_THRESHOLD;
             // `toolResultSpill: false` or `toolResultSpillBytes: 0` disables it.
@@ -1247,7 +1222,6 @@ export async function runChatRound(
               signal,
               round + 1,
               params,
-              suppressDoneEvent,
               correlationId,
               nextRoundReasonings,
               turnStartedAt,
@@ -1297,12 +1271,10 @@ export async function runChatRound(
                   documents,
                   artifacts
                 })
-                if (!suppressDoneEvent) {
-                  emitChatEvent('chat:done', {
-                    conversationId,
-                    message: assistantMsg
-                  })
-                }
+                emitChatEvent('chat:done', {
+                  conversationId,
+                  message: assistantMsg
+                })
               } catch (e) {
                 console.error('[chat] failed to persist partial on stream error:', e)
               }
@@ -1382,489 +1354,4 @@ function ensureFallbackContract(
   if (!sys || sys.role !== 'system' || typeof sys.content !== 'string') return
   if (sys.content.includes(FALLBACK_CONTRACT_MARKER)) return
   sys.content = `${sys.content}\n\n${renderFallbackToolBlock(tools)}`
-}
-
-interface ResolvedToolCall {
-  callId: string
-  result: string
-}
-
-async function resolveSingleToolCall(
-  tc: ProviderToolCall,
-  conversationId: string,
-  model: string,
-  workspacePath: string,
-  signal: AbortSignal,
-  correlationId?: string
-): Promise<ResolvedToolCall> {
-  const toolName = tc.function.name
-  let args: Record<string, unknown> = {}
-  const rawArgs = tc.function.arguments
-  try {
-    args = JSON.parse(rawArgs)
-  } catch {
-    // JM-10 (CC-6) — malformed argument JSON used to coerce silently to {},
-    // letting tools with no required fields execute with defaults instead of
-    // the model learning its call was broken (and, pre-JM-9, letting a
-    // mutating tool run with dropped parameters). Short-circuit with a
-    // corrective result mirroring the FC-5 validation envelope.
-    trace('resolveToolCall.argument-parse-failed', {
-      callId: tc.id,
-      conversationId,
-      toolName,
-      rawArgsPreview: (rawArgs || '').slice(0, 200)
-    })
-    return {
-      callId: tc.id,
-      result: JSON.stringify({
-        error: 'argument_parse_failed',
-        tool: toolName,
-        message:
-          'The arguments for this tool call were not valid JSON. Re-issue the call with corrected arguments.',
-        raw_arguments: (rawArgs || '').slice(0, 2000)
-      })
-    }
-  }
-
-  // Fix C — detect empty-parameter tool calls caused by reasoning token
-  // exhaustion. Pure detection in empty-params-guard.ts; see that module
-  // for the full rationale.
-  {
-    const schemaReq = (
-      toolRegistry.getById(toolName)?.inputSchema as { required?: string[] } | undefined
-    )?.required
-    const detection = detectEmptyParams(toolName, rawArgs, schemaReq)
-    if (detection.isEmpty) {
-      trace('resolveToolCall.empty-params-detected', {
-        callId: tc.id,
-        conversationId,
-        toolName,
-        rawArgs: (rawArgs || '').trim(),
-        requiredFields: detection.requiredFields
-      })
-      return {
-        callId: tc.id,
-        result: JSON.stringify({
-          error: 'empty_tool_parameters',
-          tool: detection.toolName,
-          required_fields: detection.requiredFields,
-          diagnosis: detection.diagnostic,
-          hint: 'Do not re-plan. Emit the tool call immediately with minimal reasoning.'
-        })
-      }
-    }
-  }
-
-  // HY2 — `tool_search` meta-tool. Synthetic surface-only tool (no registry
-  // descriptor), handled before the dispatch path: resolve matches, unlock
-  // them for this conversation so the next round can call them natively, and
-  // return the match list. A malformed (empty-query) call counts toward the
-  // surface downgrade so a model that can't drive the round-trip falls back
-  // to the full catalog.
-  if (toolName === TOOL_SEARCH_TOOL_NAME) {
-    const query = typeof args.query === 'string' ? args.query.trim() : ''
-    if (!query) {
-      const n = recordMalformedSearch(conversationId)
-      return {
-        callId: tc.id,
-        result: JSON.stringify({
-          error: 'tool_search requires a non-empty "query" string.',
-          malformedCount: n
-        })
-      }
-    }
-    const matches = toolRegistry.resolveToolSearch(query)
-    unlockTools(
-      conversationId,
-      matches.map((m) => m.name)
-    )
-    return {
-      callId: tc.id,
-      result: JSON.stringify({
-        query,
-        unlocked: matches.map((m) => m.name),
-        tools: matches,
-        note: matches.length
-          ? 'These tools are now available — call them directly on your next turn.'
-          : 'No matching tools found. Try a different capability description.'
-      })
-    }
-  }
-
-  // FC-5 — Validate arguments against the tool's inputSchema before
-  // dispatching. If the model produced invalid arguments (wrong types,
-  // missing required fields, extra properties), return a corrective
-  // tool-result message instead of executing. This lets the model
-  // correct its call on the next turn rather than getting a cryptic
-  // handler error or worse, silent wrong behavior.
-  const descriptor = toolRegistry.getById(toolName)
-  if (descriptor?.inputSchema) {
-    const validation = validateToolArguments(toolName, args, descriptor.inputSchema)
-    if (!validation.valid) {
-      const errorDetail = validation.errors.join('; ')
-      trace('resolveToolCall.validation-failed', {
-        callId: tc.id,
-        conversationId,
-        toolName,
-        errors: validation.errors
-      })
-      return {
-        callId: tc.id,
-        result: JSON.stringify({
-          error: 'argument_validation_failed',
-          details: validation.errors,
-          hint: 'Check the tool schema and retry with corrected arguments.'
-        })
-      }
-    }
-    // Use the parsed (and potentially normalized) args from the validator
-    args = validation.parsed
-  }
-
-  const startTime = Date.now()
-  trace('resolveToolCall.enter', {
-    callId: tc.id,
-    conversationId,
-    toolName,
-    parentSignalAborted: signal.aborted
-  })
-
-  const earlyDescriptor = toolRegistry.getById(toolName)
-  emitChatEvent('chat:tool-call', {
-    callId: tc.id,
-    conversationId,
-    serverId: toolName.includes('__') ? toolName.split('__')[0] : 'internal',
-    toolName: toolName.includes('__') ? toolName.split('__').slice(1).join('__') : toolName,
-    title: earlyDescriptor?.title ?? toolName,
-    risks: earlyDescriptor?.risks ?? [],
-    providerKind: earlyDescriptor?.providerKind ?? 'native',
-    startedAt: startTime,
-    args,
-    transcriptHidden: earlyDescriptor?.transcriptHidden
-  })
-
-  toolRegistry.recordCallStart(
-    {
-      id: tc.id,
-      toolId: toolName,
-      name: toolName,
-      conversationId,
-      args,
-      startedAt: startTime,
-      status: 'running'
-    },
-    correlationId
-  )
-
-  let result: string
-  let explicitStatus: 'done' | 'error' | 'denied' | undefined
-
-  if (descriptor) {
-    emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
-  }
-
-  // UB-4 (Unburdening Phase, 2026-06-10) — the WC-3 implicit change-contract
-  // synthesis + CR-5 mutation-attempt tracking that ran here fed the M5
-  // proof gate; all excised with it. Mutating calls go straight to the
-  // plan-mode gate + approval flow below, exactly like the era product.
-
-  // Track 2 / C3 — plan-mode gate. Block mutating tools without asking
-  // for approval first: there is no point routing through the modal when
-  // the mode already says no, and a global 'deny destructive' policy
-  // shouldn't get to silently allow what plan-mode forbids. The
-  // enter/exit tools opt out of the gate via `mutates: false` on the
-  // descriptor, so the model can always flip the mode back off.
-  const planModeActive = isPlanModeActive(conversationId)
-  const blockedByPlanMode = planModeActive && isMutatingDescriptor(descriptor)
-
-  const shellInspection = toolName === 'shell_command'
-    ? inspectShellCommand(
-        typeof args?.command === 'string' ? args.command : '',
-        args?.shell === 'bash' || args?.shell === 'powershell' ? args.shell : 'auto'
-      )
-    : null
-  const isDangerousShellCommand = shellInspection?.verdict !== undefined && shellInspection.verdict !== 'safe'
-  const needsApproval =
-    !blockedByPlanMode && (descriptorNeedsApproval(descriptor) || isDangerousShellCommand)
-  // S7 / S12 — shell_command + `dangerously_disable_sandbox: true` escalates
-  // the approval flow: per-call risks gain `'sandboxBypass'`, any persisted
-  // "always allow" is skipped, and the modal re-pops for every call. Other
-  // tools do not honour the flag.
-  const isDangerousShellBypass =
-    toolName === 'shell_command' && args?.dangerously_disable_sandbox === true
-  // FC-9 — fallback-provenance calls (from text parsing, not native
-  // tool_calls) carry degraded trust. Mutating fallback calls skip any
-  // persisted "always allow" policy and always re-prompt the user.
-  const isFallbackProvenance = tc.id.startsWith('fb_')
-  const isFallbackMutating = isFallbackProvenance && isMutatingDescriptor(descriptor)
-  const callRisks = descriptor
-    ? [
-        ...descriptor.risks,
-        ...(isDangerousShellBypass && !descriptor.risks.includes('sandboxBypass')
-          ? ['sandboxBypass' as const]
-          : []),
-        ...(isDangerousShellCommand && !descriptor.risks.includes('destructive')
-          ? ['destructive' as const]
-          : [])
-      ]
-    : undefined
-  const approvalOutcome =
-    needsApproval && descriptor
-      ? await permissionsService.requestApprovalDetailed({
-          callId: tc.id,
-          toolId: descriptor.id,
-          name: descriptor.name,
-          serverId: descriptor.providerId,
-          providerKind: descriptor.providerKind,
-          risks: callRisks ?? descriptor.risks,
-          args,
-          conversationId,
-          correlationId,
-          dangerous:
-            isDangerousShellBypass || isDangerousShellCommand || isFallbackMutating
-              ? true
-              : undefined
-        })
-      : { decision: 'allow' as const, source: 'none' }
-  const approvalDecision = approvalOutcome.decision
-  const approvalSource = blockedByPlanMode ? 'plan-mode' : approvalOutcome.source
-
-  if (blockedByPlanMode) {
-    result =
-      'Blocked: plan mode is active for this conversation. Read-only tools are still available; call `exit_plan_mode` (or have the user click "Exit plan mode" in the banner) to allow mutating tools.'
-    explicitStatus = 'denied'
-  } else if (approvalDecision === 'deny') {
-    result = 'Action denied by user.'
-    explicitStatus = 'denied'
-  } else {
-    // Track 2 / C2 — preToolUse hooks run after approval but before dispatch.
-    // A throwing preToolUse hook BLOCKS the call: its message reaches the
-    // model as the synthetic tool result and the audit row records 'denied'
-    // with approvalSource left at the approval gate's value (the hook is
-    // its own provenance). Hook errors are also surfaced as logs for the
-    // UI's recent-runs view.
-    const preHook = await fireHooks('preToolUse', {
-      conversationId,
-      toolName,
-      args,
-      cwd: workspacePath
-    })
-    if (preHook.blocked) {
-      result = `Blocked by hook: ${preHook.blockReason ?? 'preToolUse refused'}`
-      explicitStatus = 'denied'
-    } else if (toolName === 'memory_add' && typeof args.content === 'string') {
-      const entry = memStore.addMemory(args.content, conversationId)
-      emitChatEvent('memory:added', entry)
-      result = 'Saved to memory.'
-    } else if (toolName === 'create_document') {
-      const nameRaw = typeof args.name === 'string' ? args.name.trim() : ''
-      const mimeRaw = typeof args.mimeType === 'string' ? args.mimeType.trim() : ''
-      const contentRaw = typeof args.content === 'string' ? args.content : ''
-      if (!nameRaw || !mimeRaw || !contentRaw) {
-        result = 'Error: create_document requires non-empty `name`, `mimeType`, and `content`.'
-        explicitStatus = 'error'
-      } else {
-        const sizeBytes = Buffer.byteLength(contentRaw, 'utf8')
-        if (sizeBytes > CREATE_DOCUMENT_MAX_BYTES) {
-          result = `Error: create_document body exceeds ${CREATE_DOCUMENT_MAX_BYTES} bytes (got ${sizeBytes}). Split into multiple documents or shorten.`
-          explicitStatus = 'error'
-        } else {
-          const doc: StoredDocument = {
-            id: randomUUID(),
-            name: nameRaw.slice(0, 200),
-            mimeType: mimeRaw.slice(0, 120),
-            content: contentRaw,
-            sizeBytes,
-            createdAt: Date.now()
-          }
-          pushPendingDocument(correlationId, doc)
-          emitChatEvent('chat:document-created', { conversationId, document: doc })
-          result = `Document "${doc.name}" (${doc.sizeBytes} bytes, ${doc.mimeType}) attached to this turn. Do NOT paste the body into your visible reply — the user already sees the card.`
-        }
-      }
-    } else if (toolName === 'enter_plan_mode') {
-      // Track 2 / C3 — inline because the handler emits a renderer event.
-      // Persisted on the conversation row so it survives a restart.
-      setPlanModeActive(conversationId, true)
-      emitChatEvent('plan:mode-changed', { conversationId, active: true })
-      result =
-        'Plan mode is on. Mutating tools (apply_patch, shell_command, destructive MCP) are blocked until exit_plan_mode is called.'
-    } else if (toolName === 'exit_plan_mode') {
-      setPlanModeActive(conversationId, false)
-      emitChatEvent('plan:mode-changed', { conversationId, active: false })
-      result = 'Plan mode is off. Mutating tools are allowed again.'
-    } else if (toolName === 'mark_chapter') {
-      // Track 2 / E1 — anchor the chapter at the assistant turn that
-      // produced the call. The anchor message id is not yet persisted at
-      // this point in the dispatch loop (the post-tool assistant message
-      // gets persisted after this returns), so we anchor on the existing
-      // tool-call id — chat-history can map it back to its parent
-      // assistant turn. The renderer treats the anchor as the boundary
-      // marker; UI cosmetic, no behavioural dependency on exact mapping.
-      const titleRaw = typeof args.title === 'string' ? args.title.trim() : ''
-      const summaryRaw = typeof args.summary === 'string' ? args.summary.trim() : ''
-      if (!titleRaw) {
-        result = 'Error: mark_chapter requires a non-empty `title`.'
-        explicitStatus = 'error'
-      } else {
-        const chapter = createChapter({
-          conversationId,
-          title: titleRaw.slice(0, 80),
-          summary: summaryRaw ? summaryRaw.slice(0, 280) : null,
-          anchorMessageId: tc.id
-        })
-        emitChatEvent('chat:chapter-marked', { conversationId, chapter })
-        // Plan §2 invariant 10 — chapters also land on the event spine
-        // for the audit timeline.
-        try {
-          recordEvent({
-            type: 'chat.chapter.marked',
-            actorKind: 'model',
-            conversationId,
-            correlationId,
-            entityKind: 'chapter',
-            entityId: chapter.id,
-            payload: {
-              title: chapter.title,
-              summary: chapter.summary,
-              anchorMessageId: chapter.anchorMessageId
-            }
-          })
-        } catch (err) {
-          console.error('[chat] chat.chapter.marked spine event failed:', err)
-        }
-        result = `Chapter marked: "${chapter.title}"`
-      }
-    } else if (toolName === 'ask_user_question') {
-      // Integration / H6 — route through the singleton ask-user-runtime.
-      // The handler returns the chosen option label (multi-select returns a
-      // comma-separated list); a timeout returns the literal "(timed out)"
-      // so the model can detect non-interactive contexts and proceed.
-      const question = typeof args.question === 'string' ? args.question.trim() : ''
-      const header = typeof args.header === 'string' ? args.header.trim() : ''
-      const optionsRaw = Array.isArray(args.options) ? args.options : []
-      const options: Array<{ label: string; description?: string; preview?: string }> = []
-      for (const o of optionsRaw) {
-        if (!o || typeof o !== 'object') continue
-        const opt = o as Record<string, unknown>
-        const label = typeof opt.label === 'string' ? opt.label.trim() : ''
-        if (!label) continue
-        const entry: { label: string; description?: string; preview?: string } = { label }
-        if (typeof opt.description === 'string') entry.description = opt.description
-        if (typeof opt.preview === 'string') entry.preview = opt.preview
-        options.push(entry)
-      }
-      if (!question || !header || options.length < 2 || options.length > 4) {
-        result =
-          'Error: ask_user_question requires `question`, `header`, and 2-4 `options` with non-empty `label`s.'
-        explicitStatus = 'error'
-      } else {
-        try {
-          const runtime = getAskUserRuntime()
-          if (!runtime) {
-            throw new Error('ask-user runtime not initialised')
-          }
-          const answer = await runtime.ask({
-            question,
-            header,
-            options,
-            multiSelect: !!args.multiSelect,
-            timeoutMs:
-              typeof args.timeoutMs === 'number' && Number.isFinite(args.timeoutMs)
-                ? args.timeoutMs
-                : undefined
-          })
-          if (answer.kind === 'timeout') {
-            result = '(timed out — user did not respond)'
-          } else if (answer.kind === 'cancelled') {
-            result = '(cancelled by user)'
-          } else if (answer.kind === 'single') {
-            result = answer.notes ? `${answer.label} — ${answer.notes}` : answer.label
-          } else {
-            const joined = answer.labels.join(', ')
-            result = answer.notes ? `${joined} — ${answer.notes}` : joined
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          result = `Error: ${msg}`
-          explicitStatus = 'error'
-        }
-      }
-    } else if (toolRegistry.hasHandler(toolName)) {
-      const dispatched = await dispatchNativeTool(() =>
-        toolRegistry.executeNative(toolName, args, {
-          conversationId,
-          workspacePath,
-          model,
-          signal,
-          callId: tc.id,
-          correlationId
-        })
-      )
-      result = dispatched.result
-      explicitStatus = dispatched.status
-      if (toolName === 'update_plan' && dispatched.status === 'done') {
-        try {
-          const snapshot = JSON.parse(result)
-          emitChatEvent('plan:updated', { conversationId, snapshot })
-        } catch {
-          // Snapshot shape drifted — renderer refetches on the next
-          // conversation switch.
-        }
-      }
-    } else if (toolName.includes('__')) {
-      const [serverId, ...nameParts] = toolName.split('__')
-      const mcpToolName = nameParts.join('__')
-      try {
-        const mcpResult = await mcpManager.callTool(serverId, mcpToolName, args)
-        result = typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult)
-      } catch (err: any) {
-        result = `Error: ${err.message}`
-      }
-    } else {
-      result = `Unknown tool: ${toolName}`
-    }
-  }
-
-  // Track 2 / C2 — postToolUse fires after the handler completes (whether
-  // it succeeded, failed, or was denied by approval/hook). Hooks here can
-  // log every invocation but never block — we are past the dispatch point.
-  // Awaited so the synchronous JS sandbox completes before the next call
-  // in the same window starts.
-  if (result === undefined) result = ''
-  await fireHooks('postToolUse', {
-    conversationId,
-    toolName,
-    args,
-    result,
-    cwd: workspacePath
-  })
-
-  const duration = Date.now() - startTime
-  const finishedAt = startTime + duration
-  const auditStatus = explicitStatus ?? classifyToolResult(result)
-  toolRegistry.recordCallEnd(tc.id, {
-    status: auditStatus,
-    result: auditStatus === 'error' ? undefined : result,
-    error: auditStatus === 'error' ? result : undefined,
-    finishedAt,
-    approvalSource,
-    correlationId
-  })
-  emitChatEvent('chat:tool-call-result', {
-    callId: tc.id,
-    conversationId,
-    result,
-    duration,
-    status: auditStatus === 'done' ? 'success' : auditStatus
-  })
-  trace('resolveToolCall.return', {
-    callId: tc.id,
-    toolName,
-    duration,
-    status: auditStatus,
-    resultLen: result.length
-  })
-
-  return { callId: tc.id, result }
 }

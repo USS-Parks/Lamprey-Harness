@@ -14,29 +14,14 @@
 // `getModelToolSurface()` and the chat dispatch wiring (HY2) build on it.
 
 import type { ChatCompletionTool } from 'openai/resources/chat/completions'
+import { CORE_SURFACE_NAMES } from './core-tool-names'
 
 /**
  * Always-on core tools — the surface every coding turn needs without a
  * search. Kept deliberately small; everything else is one `tool_search` away.
- * Tuned in HY1; revisit if telemetry shows the model searching for the same
- * tool every turn (promote it) or never touching a core tool (demote it).
+ * Canonical list: `CORE_SURFACE_NAMES` in core-tool-names.ts (AC-11).
  */
-export const CORE_TOOL_NAMES: readonly string[] = [
-  'shell_command',
-  'apply_patch',
-  'workspace_context',
-  'view_image',
-  'web_search',
-  'ask_user_question',
-  'update_plan',
-  'enter_plan_mode',
-  'exit_plan_mode',
-  'get_goal',
-  // HY3 — always available so the model can page back into any spilled result.
-  'read_tool_result',
-  // HY4 — always available so the model can load a skill stub's full body.
-  'skill_open'
-]
+export const CORE_TOOL_NAMES: readonly string[] = CORE_SURFACE_NAMES
 
 export const TOOL_SEARCH_TOOL_NAME = 'tool_search'
 

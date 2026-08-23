@@ -180,6 +180,7 @@ export interface TurnFollowUpRecord {
 export interface TurnControlSnapshot {
   conversationId: string
   activeTurn: ActiveTurnSnapshot | null
+  orphaned?: boolean
   followUps: TurnFollowUpRecord[]
   observedAt: number
   revision: number

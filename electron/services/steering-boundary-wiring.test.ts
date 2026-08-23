@@ -40,11 +40,13 @@ describe('ST-5 same-turn Steering boundary wiring', () => {
       chat.indexOf('const resolved: ResolvedToolCall[]'),
       chat.indexOf('const nextRoundReasonings =')
     )
-    const dispatch = tools.lastIndexOf('resolveSingleToolCall(')
     const persistResult = tools.indexOf("role: 'tool'")
     const consume = tools.indexOf('await consumeRootSteersAtBoundary(')
-    expect(dispatch).toBeGreaterThan(-1)
-    expect(persistResult).toBeGreaterThan(dispatch)
+    expect(tools).toContain('resolveToolCallWindows(')
+    expect(read('electron/services/chat-tool-dispatch.ts')).toContain(
+      'export async function resolveSingleToolCall('
+    )
+    expect(persistResult).toBeGreaterThan(-1)
     expect(consume).toBeGreaterThan(persistResult)
   })
 

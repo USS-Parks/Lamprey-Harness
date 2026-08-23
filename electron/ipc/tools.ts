@@ -4,8 +4,8 @@ import { toolRegistry } from '../services/tool-registry'
 export function registerToolsHandlers(): void {
   // Track 2 / C1: `tools:list` now returns lightweight stubs (no inputSchema).
   // The renderer drives a lazy expand-on-demand UX via `tools:resolve` and
-  // `tools:search`; chat dispatch keeps using `getOpenAITools()` internally
-  // so the model still sees every tool's full schema.
+  // `tools:search`; chat dispatch uses getNormalizedToolsForProvider /
+  // getModelToolSurface so the model still sees full schemas.
   ipcMain.handle('tools:list', async () => {
     try {
       return { success: true, data: toolRegistry.getStubs() }

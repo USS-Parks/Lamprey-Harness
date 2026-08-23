@@ -58,7 +58,7 @@ describe('BD-4 Browser Developer site and action policy', () => {
 
   it('is wired before CDP attachment and reuses chat dangerous-call approval', () => {
     const manager = readFileSync(join(process.cwd(), 'electron/services/browser-manager.ts'), 'utf8')
-    const chat = readFileSync(join(process.cwd(), 'electron/ipc/chat.ts'), 'utf8')
+    const chat = readFileSync(join(process.cwd(), 'electron/services/chat-tool-dispatch.ts'), 'utf8')
     const pack = readFileSync(
       join(process.cwd(), 'electron/services/browser-developer-tool-pack.ts'),
       'utf8'
@@ -67,7 +67,7 @@ describe('BD-4 Browser Developer site and action policy', () => {
     const attachIndex = manager.indexOf('browserCdpSessions.attach(', policyIndex)
     expect(policyIndex).toBeGreaterThan(0)
     expect(attachIndex).toBeGreaterThan(policyIndex)
-    expect(chat).toContain("import { inspectShellCommand } from '../services/dangerous-command-policy'")
+    expect(chat).toContain("import { inspectShellCommand } from './dangerous-command-policy'")
     expect(chat).toContain('isDangerousShellCommand || isFallbackMutating')
     expect(pack).toMatch(/id: 'browser_network_body'[\s\S]*risks: \['read', 'network', 'secret'\][\s\S]*requiresApproval: true/)
   })

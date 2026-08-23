@@ -1,5 +1,78 @@
 ## 2026-08-22 — Audit Closure Phase
 
+## [Audit Closure — Prompt AC-42] Phase wrap  —  2026-08-22
+
+**Files changed:** `package.json`, `package-lock.json`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `DEVLOG.md`, `RELEASE_NOTES/v0.29.0.md`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `PLANNING/AC_AFTER.md`
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- full vitest ✓ (2897 passed / 157 skipped / 0 failed)
+- build ✓
+- smoke:bundle ✓
+- smoke:renderer ✓
+- verify:proof exit 0 (17 ABI-guarded native-DB files skip)
+
+**Notes:** Version 0.29.0. Honest gaps: R1–R4 live playbooks, live `supportsTools`
+probes, unsigned builds, `turn.interrupted` event-name leftover, OpenWiki
+refresh (`openwiki/` has no authored pages in this checkout) and native-DB CI
+first Actions run (`user-verification-needed`).
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2897 passed / 157 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:** listed above.
+
+**Commit:** wrap batch (Improve leftovers + wrap).
+
+## [Audit Closure — Prompts AC-8–AC-18, AC-35, AC-38, AC-39, AC-41] Improve leftovers  —  2026-08-22
+
+**Files changed:** `electron/ipc/chat.ts`, `electron/services/chat-tool-dispatch.ts`, `electron/services/context-compressor.ts`, `electron/services/core-tool-names.ts`, `electron/services/gated-tool-filters.ts`, `electron/services/session-tool-handlers.ts`, `electron/services/providers/catalog.ts`, `electron/services/providers/registry.ts`, `electron/services/tool-registry.ts`, `scripts/hooks/pre-push`, `scripts/pre-push-scope.cjs`, `src/components/settings/ModelSettings.tsx`, tests
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- targeted vitest (settlement, compressor, catalog, audit-closure-safety, tool-registry, supports-tools)
+
+**Notes:** Dispatch extracted. Compressor counts tool_calls + reasoning and skips
+the SQLite load when in-memory tokens are under budget. Send-success
+finalizeTurn removed. CORE lists named in one module and not unioned. Fallback
+uses the dispatch tools list. Loop + browser-dev packs stripped when off.
+getOpenAITools is a one-line alias. Chat uses getNormalizedToolsForProvider.
+Session tools have registry handlers. Unknown/custom supportsTools default false.
+Honest pre-push. MCP approval from risk flags. Provider name is read; no invented
+schema deltas. Catalog mechanical extract.
+
+**Commit:** wrap batch.
+
+## [Audit Closure — Prompt AC-7] Delete dead turn flags and comments  —  2026-08-22
+
+**Files changed:** `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest chat-turn-settlement + steering-boundary-wiring
+- verify:proof --no-tests
+
+**Notes:** `suppressDoneEvent` removed. Done/round-complete always emit.
+Prompt 11 comment and unused `void` error class lines gone. Cap comment
+is per-turn, not per pipeline stage.
+
+**Commit:** see git log (AC-7).
+
+## [Audit Closure — Prompt AC-6] Honest orphan turn state  —  2026-08-22
+
+**Files changed:** `electron/ipc/turn-control.ts`, `electron/ipc/turn-control.test.ts`,
+`src/lib/turn-control-types.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest turn-control + turn-control-wiring ✓ (20 tests)
+
+**Notes:** `getState` still hides a durable running row when no live runtime
+matches. Envelope now sets `orphaned: true` in that case. No auto-settle.
+Renderer snapshot field is optional; hydrate still keys off `activeTurn`.
+
+**Commit:** see git log (AC-6).
+
 ## [Audit Closure — Prompt AC-5] Queue register conflict is recovered  —  2026-08-22
 
 **Files changed:** `electron/services/queued-follow-up-dispatch.ts`, `electron/services/queued-follow-up-dispatch.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`

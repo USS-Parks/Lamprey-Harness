@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   estimateTokens,
   estimateTokensForMessages,
+  shouldCompress,
   DEFAULT_COMPRESS_THRESHOLD_PCT,
   DEFAULT_COMPRESS_TARGET_PCT
 } from './context-compressor'
@@ -50,6 +51,23 @@ describe('estimateTokensForMessages', () => {
   it('handles a missing content field gracefully', () => {
     const msgs = [{ content: undefined as unknown as string }, { content: 'ok' }]
     expect(estimateTokensForMessages(msgs)).toBe(1)
+  })
+
+  it('counts tool_calls and reasoning in addition to content', () => {
+    const msgs = [
+      {
+        content: 'xxxx',
+        tool_calls: 'xxxx',
+        reasoning: 'xxxx'
+      }
+    ]
+    expect(estimateTokensForMessages(msgs)).toBe(3)
+  })
+})
+
+describe('shouldCompress in-memory skip', () => {
+  it('returns false without loading SQLite when inMemoryTokens is under budget', () => {
+    expect(shouldCompress('does-not-hit-db', 1000, 0.75, 10)).toBe(false)
   })
 })
 

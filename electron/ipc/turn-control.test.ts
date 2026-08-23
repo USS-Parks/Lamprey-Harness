@@ -434,6 +434,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
       data: {
         conversationId: 'conversation-1',
         activeTurn: { turnId: 'turn-1', status: 'running', startedAt: 50 },
+        orphaned: false,
         followUps: [{ id: 'follow-up-1', status: 'queued', position: 0 }],
         observedAt: expect.any(Number)
       }
@@ -457,7 +458,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
     }
     expect(actions.getState('conversation-1')).toMatchObject({
       success: true,
-      data: { activeTurn: null }
+      data: { activeTurn: null, orphaned: true }
     })
   })
 

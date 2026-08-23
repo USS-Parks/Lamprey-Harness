@@ -57,10 +57,10 @@ describe('JM-10 fallback tool contract is live', () => {
   })
 
   it('malformed native tool args return a corrective result, never silent {} (CC-6)', () => {
-    expect(src).toMatch(/argument_parse_failed/)
-    const parse = src.slice(src.indexOf('const rawArgs = tc.function.arguments'))
-    const catchBlock = parse.slice(parse.indexOf('catch'), parse.indexOf('// Fix C'))
-    expect(catchBlock).toMatch(/return \{/)
+    const dispatch = readFileSync(join(__dirname, '../services/chat-tool-dispatch.ts'), 'utf-8')
+    expect(dispatch).toMatch(/argument_parse_failed/)
+    expect(dispatch).toMatch(/error: 'argument_parse_failed'/)
+    expect(dispatch).not.toMatch(/return \{\s*\}/)
   })
 
   it('fallback validation failures run a corrective round (CC-13)', () => {
@@ -105,8 +105,8 @@ describe('AC-4 ghost guard runs in runHeadlessTurn only', () => {
 })
 
 describe('AC-3 every closer goes through finalizeTurn', () => {
-  it('headless finally, research success, send success/error, and queue settle call finalizeTurn', () => {
-    expect(src.match(/finalizeTurn\(/g)?.length ?? 0).toBeGreaterThanOrEqual(5)
+  it('headless finally, research success, send error, and queue settle call finalizeTurn', () => {
+    expect(src.match(/finalizeTurn\(/g)?.length ?? 0).toBeGreaterThanOrEqual(4)
     expect(src).not.toMatch(/function settleTurnRuntimeSafely/)
     const finallyBlock = src.slice(
       src.indexOf('} finally {', src.indexOf('export async function runHeadlessTurn')),
@@ -114,6 +114,35 @@ describe('AC-3 every closer goes through finalizeTurn', () => {
     )
     expect(finallyBlock).toContain('finalizeTurn({')
     expect(finallyBlock).not.toContain('settleTurnRuntimeSafely')
+  })
+})
+
+describe('AC-10 send success does not double-finalize', () => {
+  it('runHeadlessTurn await is not followed by a success finalizeTurn', () => {
+    const after = src.slice(src.indexOf('await runHeadlessTurn({'))
+    const nextReturn = after.indexOf('return {')
+    expect(after.slice(0, nextReturn)).not.toMatch(/finalizeTurn\(/)
+  })
+})
+
+describe('AC-12 fallback parser uses the dispatch tools list', () => {
+  it('does not feed getDescriptors() into parseFallbackToolCalls', () => {
+    expect(src).toMatch(/parseFallbackToolCalls\(fullContent, fallbackTools\)/)
+    expect(src).not.toMatch(/parseFallbackToolCalls\([^,]+,\s*toolRegistry\.getDescriptors\(\)/)
+  })
+})
+
+describe('AC-13 gated packs stripped at dispatch', () => {
+  it('buildDispatchTools applies loop and browser-dev filters', () => {
+    expect(src).toMatch(/filterLoopTools/)
+    expect(src).toMatch(/filterBrowserDeveloperTools/)
+    expect(src).toMatch(/function buildDispatchTools/)
+  })
+})
+
+describe('AC-7 suppressDoneEvent is gone', () => {
+  it('forbids the identifier under electron/', () => {
+    expect(src).not.toMatch(/suppressDoneEvent/)
   })
 })
 

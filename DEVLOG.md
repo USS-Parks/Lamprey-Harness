@@ -1,3 +1,22 @@
+## 2026-08-22 — Audit Closure Phase
+
+## [Audit Closure — Prompt AC-25] Delete pipeline-orphans  —  2026-08-22
+
+**Files changed:** `electron/services/pipeline-orphans.ts` (deleted),
+`electron/services/pipeline-orphans.test.ts` (deleted),
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest n/a (deleted skip-guarded suite; no remaining importer)
+- grep lock: no `pipeline-orphans` under production `electron/` ✓
+
+**Notes:** Production `electron/` had no importer. One ABI-guarded skip
+drops from the verify:proof native list; AFTER (AC-31) should show 17.
+Graft cards under `graft/` were not touched (graph is not this track).
+
+**Commit:** see git log (AC-25).
+
 ## Codex July 2026 Parity — Prompt ST-8 Renderer turn reconciliation — 2026-07-17
 
 **Files changed:** `src/lib/follow-up-state.ts`,

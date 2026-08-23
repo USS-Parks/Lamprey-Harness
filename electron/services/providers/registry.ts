@@ -7,7 +7,6 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { getKey } from '../keychain'
-import { AUGUST_2026_MODELS } from './catalog-august-2026'
 import { MODEL_CATALOG, RETIRED_MODEL_MAP } from './catalog'
 import { boundedJsonPreview, recordEvent } from '../event-log'
 import { trace } from '../debug-trace'
@@ -446,13 +445,7 @@ export interface ModelDescriptor {
   description: string
 }
 
-// MODEL_CATALOG lives in ./catalog.ts (AC-41).
-
-for (const model of AUGUST_2026_MODELS) {
-  if (!MODEL_CATALOG.some((row) => row.id === model.id)) {
-    MODEL_CATALOG.push(model)
-  }
-}
+// MODEL_CATALOG lives in ./catalog.ts (AC-41 / OD-9).
 
 export interface ChatStreamParams {
   temperature?: number

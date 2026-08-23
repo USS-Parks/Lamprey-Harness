@@ -1109,3 +1109,82 @@ describe('custom endpoint providers (settings.json customProviders)', () => {
     }
   })
 })
+
+describe('TL-B2 OpenRouter fallback extras', () => {
+  const okCompletion = {
+    choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }]
+  }
+
+  async function withSettings(
+    settings: Record<string, unknown>,
+    run: () => Promise<void>
+  ): Promise<void> {
+    const { mkdtempSync, writeFileSync: wf } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const dir = mkdtempSync(j(tmpdir(), 'lamprey-or-fallback-'))
+    wf(j(dir, 'settings.json'), JSON.stringify(settings))
+    setUserDataPathProvider(() => dir)
+    try {
+      await run()
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  }
+
+  const orCustom = {
+    customModels: [
+      {
+        id: 'or-primary',
+        name: 'OR Primary',
+        provider: 'openrouter',
+        apiModelId: 'anthropic/claude-sonnet-4',
+        contextWindow: 200_000,
+        supportsTools: true
+      }
+    ]
+  }
+
+  it('attaches models on OpenRouter chatOnce when fallbacks are set', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      {
+        ...orCustom,
+        openrouterFallbacks: ['openai/gpt-4o-mini', 'google/gemini-flash-1.5']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'or-primary')
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: 'anthropic/claude-sonnet-4',
+            models: ['openai/gpt-4o-mini', 'google/gemini-flash-1.5']
+          }),
+          undefined
+        )
+      }
+    )
+  })
+
+  it('does not attach models on OpenRouter when the fallback list is empty', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(orCustom, async () => {
+      await chatOnce([{ role: 'user', content: 'q' }], 'or-primary')
+      const body = mockCreate.mock.calls[0][0]
+      expect(body.model).toBe('anthropic/claude-sonnet-4')
+      expect(body.models).toBeUndefined()
+    })
+  })
+
+  it('does not attach models on DeepSeek even when fallbacks are set (K4)', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      { openrouterFallbacks: ['openai/gpt-4o-mini'] },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
+        const body = mockCreate.mock.calls[0][0]
+        expect(body.models).toBeUndefined()
+      }
+    )
+  })
+})

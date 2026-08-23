@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-C6] No training UI in core  —  2026-08-23
+
+**Files changed:** `electron/services/providers/no-training-ui.lock.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest no-training-ui.lock
+
+**Notes:** Grep lock on `src/` + `electron/` product TS. No LoRA/RL trainer UI. Train-elsewhere docs stay in OpenWiki.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-C5] Train elsewhere, serve, Lamprey  —  2026-08-23
 
 **Files changed:** `openwiki/domains/chat/local-endpoints.md`, `openwiki/domains/chat/index.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

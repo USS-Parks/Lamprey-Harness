@@ -1184,6 +1184,44 @@ describe('TL-B2 OpenRouter fallback extras', () => {
         await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
         const body = mockCreate.mock.calls[0][0]
         expect(body.models).toBeUndefined()
+        expect(body.provider).toBeUndefined()
+      }
+    )
+  })
+
+  it('attaches provider prefs on OpenRouter chatOnce (TL-B3)', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      {
+        ...orCustom,
+        openrouterProviderSort: 'price',
+        openrouterProviderOrder: ['Anthropic'],
+        openrouterProviderIgnore: ['Azure']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'or-primary')
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: 'anthropic/claude-sonnet-4',
+            provider: { sort: 'price', order: ['Anthropic'], ignore: ['Azure'] }
+          }),
+          undefined
+        )
+      }
+    )
+  })
+
+  it('does not attach provider prefs on DeepSeek (K4)', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      {
+        openrouterProviderSort: 'throughput',
+        openrouterProviderOrder: ['OpenAI']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
+        const body = mockCreate.mock.calls[0][0]
+        expect(body.provider).toBeUndefined()
       }
     )
   })

@@ -207,7 +207,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** typecheck; unit tests for request body shaping
 
 ### **TL-B3 — Provider preferences object**
-- [ ] Support OpenRouter provider prefs: sort in {price, latency, throughput} and optional order/ignore if low-cost. Same seam as TL-B2.
+- [x] Support OpenRouter provider prefs: sort in {price, latency, throughput} and optional order/ignore if low-cost. Same seam as TL-B2.
 - **Verify:** tests for prefs serialization
 
 ### **TL-B4 — Settings UI: OpenRouter routing panel**

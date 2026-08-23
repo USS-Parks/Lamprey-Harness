@@ -81,6 +81,10 @@ export interface DefaultAppSettings {
    * means no fallbacks are sent (K4: default OpenRouter body unchanged).
    */
   openrouterFallbacks: string[]
+  /** TL-B3 — OpenRouter provider sort. `default` omits the provider object. */
+  openrouterProviderSort: 'default' | 'price' | 'latency' | 'throughput'
+  openrouterProviderOrder: string[]
+  openrouterProviderIgnore: string[]
 }
 
 export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
@@ -122,5 +126,8 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   orchMaxCandidates: 4,
   orchMaxDepth: 2,
   orchAdvisorModel: '',
-  openrouterFallbacks: []
+  openrouterFallbacks: [],
+  openrouterProviderSort: 'default',
+  openrouterProviderOrder: [],
+  openrouterProviderIgnore: []
 }

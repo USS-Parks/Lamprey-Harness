@@ -23,23 +23,31 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.29.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.29.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.29.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.29.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.29.0 — Audit Closure.** Turns settle honestly (cap is `failed`, cancel
+**New in v0.30.0 — Operability Debt.** Settlement has behavioral tests (cap is
+`failed`, cancel is `cancelled`, the closer queues only on `completed`).
+`turn.interrupted` stays the audit event name. R1–R4 playbooks, live
+`supportsTools` probes, and OpenWiki are parked; unsigned builds are a
+permanent non-goal. Unlock persist rethrows unexpected SQLite errors. The
+August 2026 first-party rows live in `catalog.ts` with no overlay. Spent
+P-SPRs moved to `PLANNING/archive/`.
+
+**Previously in v0.29.0 — Audit Closure.** Turns settle honestly (cap is `failed`, cancel
 is `cancelled`, orphans report `orphaned: true`). Tool dispatch lives in
 `chat-tool-dispatch.ts`; the compressor counts `tool_calls` and `reasoning`;
 loop and Browser Developer packs stay off the model surface until their
 toggles are on; unknown and omitted custom models default `supportsTools` to
 false. `MODEL_CATALOG` moved to `electron/services/providers/catalog.ts`.
-Pre-push skips docs-only ranges. Native-DB CI script is present; first Actions
-run is still the owner's check.
+Pre-push skips docs-only ranges. Native-DB CI first Actions run closed on
+`3e0fde9`.
 
 **Previously in v0.28.0 — August 2026 catalog and Meta Muse.** The pinned catalog is 82
 models across 33 built-in providers. New first-party rows: DeepSeek V4 Flash Vision

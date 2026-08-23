@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-C5] Train elsewhere, serve, Lamprey  —  2026-08-23
+
+**Files changed:** `openwiki/domains/chat/local-endpoints.md`, `openwiki/domains/chat/index.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- doc exists
+
+**Notes:** Four-step path: train outside, serve `/v1`, apply a local preset, import models with tools/vision off. No trainer UI.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-C4] Local capability defaults stay off  —  2026-08-23
 
 **Files changed:** `electron/services/providers/local-endpoint-capabilities.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

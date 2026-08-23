@@ -172,7 +172,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** file exists; every row has a status
 
 ### **TL-A3 — Scoreboard and delta pick list**
-- [ ] Score missing/stale rows: ROI (H/M/L) times risk/effort (H/M/L). Select at most 5 High-ROI and Low/Med-risk candidates into TL-A4.. list, or declare empty under K12 with wont table.
+- [x] Score missing/stale rows: ROI (H/M/L) times risk/effort (H/M/L). Select at most 5 High-ROI and Low/Med-risk candidates into TL-A4.. list, or declare empty under K12 with wont table.
 - **Closes:** S1 (decide)
 - **Verify:** pick list or explicit empty + wont table
 

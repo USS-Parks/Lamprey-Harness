@@ -39,6 +39,19 @@ rule, then calls `finalizeTurn` on a real `TurnRuntimeRegistry`. Status is
 **Notes:** K1 lock: result status `cancelled`, event type `turn.interrupted`,
 payload `disposition: 'interrupted'`. Event name not renamed.
 
+**Commit:** 6483047
+
+## [Operability Debt — Prompt OD-3] Closer queues only on completed  —  2026-08-23
+
+**Files changed:** `electron/services/finalize-turn.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest finalize-turn + headless-turn-settlement ✓ (5 tests)
+
+**Notes:** `cancelled` drains documents and artifacts and does not dispatch
+the queue, same as `failed`. `completed` still queues.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

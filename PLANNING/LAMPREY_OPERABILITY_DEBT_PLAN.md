@@ -170,7 +170,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/turn-interrupt.test.ts electron/ipc/turn-interrupt-wiring.test.ts`
 
 ### **OD-3 — Closer queues only on `completed`**
-- [ ] Extend `finalize-turn.test.ts`: `cancelled` drains and withholds the
+- [x] Extend `finalize-turn.test.ts`: `cancelled` drains and withholds the
   queue (same as `failed`). `completed` still queues. Thin WC-8 in
   `chat-turn-settlement.test.ts` stays; do not add more source reads.
 - Verify: tsc ×2; `npx vitest run electron/services/finalize-turn.test.ts electron/services/headless-turn-settlement.test.ts`

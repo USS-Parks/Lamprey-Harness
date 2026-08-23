@@ -288,12 +288,17 @@ describe('queued follow-up production seam', () => {
     const dispatcher = normalizeNewlines(
       readFileSync(join(process.cwd(), 'electron/services/queued-follow-up-dispatch.ts'), 'utf8')
     )
+    const closer = normalizeNewlines(
+      readFileSync(join(process.cwd(), 'electron/services/finalize-turn.ts'), 'utf8')
+    )
 
     expect(chat).toContain('runTurn: (queued: QueuedFollowUpRunInput) =>\n      runHeadlessTurn({')
     expect(chat).toContain('message.id !== input.injectedUserMessage?.messageId')
     expect(chat).toContain('apiMessages.push(input.injectedUserMessage.apiMessage)')
-    expect(chat).toContain("settled && settlementStatus === 'completed'")
-    expect(chat).toContain('dispatchQueuedFollowUpAfterCompletedTurn({ conversationId, model')
+    expect(chat).toContain('finalizeTurn({')
+    expect(chat).toContain('dispatchQueue: dispatchQueuedFollowUpAfterCompletedTurn')
+    expect(closer).toContain("settled && input.status === 'completed'")
+    expect(closer).toContain('input.dispatchQueue')
     expect(dispatcher).toContain("transitionFollowUp(followUp.id, 'accepted'")
     expect(dispatcher).toContain("transitionFollowUp(followUp.id, 'delivered'")
     expect(dispatcher).toContain("role: 'user'")

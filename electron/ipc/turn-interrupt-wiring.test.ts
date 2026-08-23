@@ -37,7 +37,7 @@ describe('ST-7 interrupt and recovery wiring contract', () => {
       expect(interrupt).not.toContain(forbidden)
     }
     expect(interrupt).toContain("runtime.abort('user-interrupt')")
-    expect(interrupt).toContain("settle(runtime, 'cancelled'")
+    expect(interrupt).toContain('finalizeTurn(')
     expect(interrupt).toContain("status: 'cancelled'")
     expect(interrupt).toContain("type: 'turn.interrupted'")
     expect(read('electron/ipc/terminal.ts')).toContain("ipcMain.handle('terminal:kill'")
@@ -64,8 +64,10 @@ describe('ST-7 interrupt and recovery wiring contract', () => {
     )
     const interrupt = read('electron/services/turn-interrupt.ts')
     expect(steering).not.toMatch(/\.abort\(|interruptTurn/)
-    expect(interrupt.indexOf('recoverPendingSteers(')).toBeLessThan(
-      interrupt.indexOf("runtime.abort('user-interrupt')")
+    expect(interrupt.indexOf("runtime.abort('user-interrupt')")).toBeLessThan(
+      interrupt.indexOf('finalizeTurn(')
     )
+    const closer = read('electron/services/finalize-turn.ts')
+    expect(closer.indexOf('recoverPendingSteers(')).toBeLessThan(closer.indexOf('deps.settle('))
   })
 })

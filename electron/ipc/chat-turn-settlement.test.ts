@@ -83,12 +83,25 @@ describe('AC-1 tool-round cap settles failed, not completed', () => {
     expect(fn).toMatch(
       /settlementStatus = runtime\.signal\.aborted \|\| isUserAbortError\(errObj\) \? 'cancelled' : 'failed'/
     )
-    expect(fn).toMatch(/settled && settlementStatus === 'completed'/)
+    expect(fn).toMatch(/finalizeTurn\(/)
     expect(fn).toMatch(/turnEndedGhosted\(rows\)/)
   })
 
   it('chat:send returns the thrown error as an IPC failure', () => {
     expect(src).toMatch(/return \{ success: false, error: errMsg \}/)
+  })
+})
+
+describe('AC-3 every closer goes through finalizeTurn', () => {
+  it('headless finally, research success, send success/error, and queue settle call finalizeTurn', () => {
+    expect(src.match(/finalizeTurn\(/g)?.length ?? 0).toBeGreaterThanOrEqual(5)
+    expect(src).not.toMatch(/function settleTurnRuntimeSafely/)
+    const finallyBlock = src.slice(
+      src.indexOf('} finally {', src.indexOf('export async function runHeadlessTurn')),
+      src.indexOf('/**\n * HY2', src.indexOf('export async function runHeadlessTurn'))
+    )
+    expect(finallyBlock).toContain('finalizeTurn({')
+    expect(finallyBlock).not.toContain('settleTurnRuntimeSafely')
   })
 })
 

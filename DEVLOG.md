@@ -80,6 +80,19 @@ unsigned / turn.interrupted. OD-7 will flip the wording to parked/non-goal.
 **Notes:** Comments on both persist-path drains. Calls not moved into
 finalizeTurn.
 
+**Commit:** cedf9a3
+
+## [Operability Debt — Prompt OD-6] Unlock persist fails loud  —  2026-08-23
+
+**Files changed:** `electron/services/tool-unlock-persist.ts`, `electron/services/tool-unlock-state.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest tool-unlock-state ✓ (12 tests)
+
+**Notes:** Missing-table still no-ops. Any other SQLite error rethrows.
+`unlockTools` does not catch persist failures.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

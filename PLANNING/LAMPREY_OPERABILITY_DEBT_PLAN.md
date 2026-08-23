@@ -210,7 +210,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/ipc/chat-turn-settlement.test.ts`; `npm run verify:proof -- --no-tests`
 
 ### **OD-6 — Unlock persist fails loud**
-- [ ] `createSqliteToolUnlockPersist().save` / `.clear` must not swallow
+- [x] `createSqliteToolUnlockPersist().save` / `.clear` must not swallow
   unexpected SQLite errors. Missing-table during tests may still no-op
   *only when* the error message names a missing table; every other throw
   rethrows. `unlockTools` must not catch persist failures. Add a test:

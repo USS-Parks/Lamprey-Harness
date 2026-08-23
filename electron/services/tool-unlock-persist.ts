@@ -2,6 +2,11 @@ import { getDb } from './database'
 import type { ToolUnlockPersist } from './tool-unlock-state'
 
 /** SQLite persist for AC-19. Table is created by migration v33. */
+function isMissingUnlockTable(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error ?? '')
+  return /no such table/i.test(msg)
+}
+
 export function createSqliteToolUnlockPersist(): ToolUnlockPersist {
   return {
     load(conversationId: string): string[] {
@@ -12,8 +17,9 @@ export function createSqliteToolUnlockPersist(): ToolUnlockPersist {
           )
           .all(conversationId) as Array<{ tool_name: string }>
         return rows.map((r) => r.tool_name)
-      } catch {
-        return []
+      } catch (error) {
+        if (isMissingUnlockTable(error)) return []
+        throw error
       }
     },
     save(conversationId: string, names: string[]): void {
@@ -26,8 +32,9 @@ export function createSqliteToolUnlockPersist(): ToolUnlockPersist {
           for (const n of names) ins.run(conversationId, n)
         })
         tx()
-      } catch {
-        // table missing / tests without a live DB
+      } catch (error) {
+        if (isMissingUnlockTable(error)) return
+        throw error
       }
     },
     clear(conversationId: string): void {
@@ -35,8 +42,9 @@ export function createSqliteToolUnlockPersist(): ToolUnlockPersist {
         getDb()
           .prepare('DELETE FROM conversation_tool_unlocks WHERE conversation_id = ?')
           .run(conversationId)
-      } catch {
-        // table missing / tests without a live DB
+      } catch (error) {
+        if (isMissingUnlockTable(error)) return
+        throw error
       }
     }
   }

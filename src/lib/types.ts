@@ -363,6 +363,7 @@ export type ProviderId =
   | 'perplexity'
   | 'sarvam'
   | 'inception'
+  | 'meta'
   | 'ollama'
   | 'lmstudio'
 

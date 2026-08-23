@@ -7,6 +7,7 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { getKey } from '../keychain'
+import { AUGUST_2026_MODELS } from './catalog-august-2026'
 import { boundedJsonPreview, recordEvent } from '../event-log'
 import { trace } from '../debug-trace'
 
@@ -88,6 +89,7 @@ export type ProviderId =
   | 'perplexity'
   | 'sarvam'
   | 'inception'
+  | 'meta'
   | 'ollama'
   | 'lmstudio'
 
@@ -385,6 +387,16 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     baseURL: 'https://api.inceptionlabs.ai/v1',
     keyEnv: 'inception',
     docsUrl: 'https://platform.inceptionlabs.ai/'
+  },
+  // Meta Model API — OpenAI-compatible Chat Completions at /v1. Hosted Muse
+  // Spark ids from https://ai.developer.meta.com/docs/models/ (2026-08-22).
+  meta: {
+    id: 'meta',
+    label: 'Meta (Muse)',
+    baseURL: 'https://api.meta.ai/v1',
+    keyEnv: 'meta',
+    docsUrl: 'https://dev.meta.ai/',
+    keyHint: 'LLM|...'
   },
   // Local runtimes. Keyless — the running server IS the credential. Their
   // built-in catalogs are empty by design (models are machine-specific);
@@ -1217,6 +1229,12 @@ export const MODEL_CATALOG: ModelDescriptor[] = [
     description: 'Inception Labs diffusion language model with configurable reasoning effort.'
   },
 ]
+
+for (const model of AUGUST_2026_MODELS) {
+  if (!MODEL_CATALOG.some((row) => row.id === model.id)) {
+    MODEL_CATALOG.push(model)
+  }
+}
 
 export interface ChatStreamParams {
   temperature?: number

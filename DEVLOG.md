@@ -1,3 +1,17 @@
+## 2026-08-23 — Triple Lane Phase
+
+## [Triple Lane — Prompt TL-0] Lock Triple Lane baseline  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_BASELINE.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- file exists: `PLANNING/TL_BASELINE.md`
+
+**Notes:** Tip `8364ba3`, package `0.30.1`. OpenRouter extras seam is `providerChatExtras`. Ollama/LM Studio already built-in; Unsloth absent. Bucket deferred (TL-W4 not this STS).
+
+**Commit:** (pending)
+
 ## 2026-08-23 — Tools + MCP Roster Phase
 
 ## [Tools + MCP Roster — Prompt TR-10] Phase wrap v0.30.1  —  2026-08-23

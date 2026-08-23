@@ -492,8 +492,10 @@ export function registerChatHandlers(): void {
 
   ipcMain.handle('chat:cancel', async (_event, conversationId) => {
     const run = turnRuntimeRegistry.lookupActive(conversationId)
-    if (run) interruptTurn({ conversationId, expectedTurnId: run.turnId })
-    return { success: true, data: null }
+    if (!run) {
+      return { success: true, data: null }
+    }
+    return await interruptTurn({ conversationId, expectedTurnId: run.turnId })
   })
 
   ipcMain.handle('chat:generateTitle', async (_event, content: string) => {

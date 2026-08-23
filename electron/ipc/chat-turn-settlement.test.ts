@@ -91,3 +91,13 @@ describe('AC-1 tool-round cap settles failed, not completed', () => {
     expect(src).toMatch(/return \{ success: false, error: errMsg \}/)
   })
 })
+
+describe('AC-2 cancel awaits interrupt and does not fake a settle', () => {
+  it('chat:cancel awaits interruptTurn and only hardcodes empty success when nothing is running', () => {
+    const cancelStart = src.indexOf("ipcMain.handle('chat:cancel'")
+    const cancel = src.slice(cancelStart, src.indexOf("ipcMain.handle('chat:generateTitle'", cancelStart))
+    expect(cancel).toContain('return await interruptTurn({ conversationId, expectedTurnId: run.turnId })')
+    expect(cancel).toMatch(/if \(!run\) \{\s*\n\s*return \{ success: true, data: null \}/)
+    expect(cancel).not.toMatch(/if \(run\) interruptTurn/)
+  })
+})

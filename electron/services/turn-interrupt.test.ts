@@ -54,21 +54,21 @@ describe('ST-7 turn-aware interrupt', () => {
       success: true,
       data: {
         turnId: 'turn-1',
-        status: 'interrupted',
+        status: 'cancelled',
         recoveredFollowUps: 1,
         persisted: true
       }
     })
     expect(runtime.signal.aborted).toBe(true)
     expect(runtime.signal.reason).toBe('user-interrupt')
-    expect(runtime.status).toBe('interrupted')
+    expect(runtime.status).toBe('cancelled')
     expect(h.runtimes.lookupActive('conversation-1')).toBeNull()
     expect(h.recoverPendingSteers).toHaveBeenCalledTimes(1)
     expect(runtime.pendingSteers).toEqual([])
     expect(h.drained).toEqual(['correlation-1'])
-    expect(h.settled).toEqual([{ id: 'turn-1', status: 'interrupted', completedAt: 250 }])
+    expect(h.settled).toEqual([{ id: 'turn-1', status: 'cancelled', completedAt: 250 }])
     expect(h.events).toHaveLength(1)
-    expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'interrupted', persisted: true }])
+    expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'cancelled', persisted: true }])
     expect(h.events[0]).toMatchObject({
       type: 'turn.interrupted',
       entityKind: 'turn',
@@ -141,13 +141,13 @@ describe('ST-7 turn-aware interrupt', () => {
 
     expect(h.action({ conversationId: 'conversation-1', expectedTurnId: 'turn-1' })).toMatchObject({
       success: true,
-      data: { status: 'interrupted', persisted: false }
+      data: { status: 'cancelled', persisted: false }
     })
-    expect(runtime.status).toBe('interrupted')
+    expect(runtime.status).toBe('cancelled')
     expect(h.runtimes.lookupActive('conversation-1')).toBeNull()
     expect(h.errors).toHaveLength(1)
     expect(h.events).toHaveLength(1)
     expect(h.events[0].payload).toMatchObject({ persisted: false })
-    expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'interrupted', persisted: false }])
+    expect(h.lifecycle).toEqual([{ turnId: 'turn-1', status: 'cancelled', persisted: false }])
   })
 })

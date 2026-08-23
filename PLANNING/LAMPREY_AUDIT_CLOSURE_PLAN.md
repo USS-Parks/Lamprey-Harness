@@ -400,7 +400,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; targeted vitest; `npm run verify:proof -- --no-tests`
 
 ### **AC-2 — T2: One cancel path, one settlement status**
-- [ ] `chat:cancel` (`chat.ts:488–492`) looks up the runtime, fire-and-forgets `interruptTurn`, and returns `{ success: true, data: null }` even when there is no run. `interruptTurn` settles and returns `status: 'interrupted'` (`turn-interrupt.ts:173`; result type `turn-control-types.ts:151`). The headless abort path settles `'cancelled'` (`chat.ts:745`). Two terminals for one user action.
+- [x] `chat:cancel` (`chat.ts:488–492`) looks up the runtime, fire-and-forgets `interruptTurn`, and returns `{ success: true, data: null }` even when there is no run. `interruptTurn` settles and returns `status: 'interrupted'` (`turn-interrupt.ts:173`; result type `turn-control-types.ts:151`). The headless abort path settles `'cancelled'` (`chat.ts:745`). Two terminals for one user action.
 
   Per K3:
   1. `chat:cancel` `await`s `interruptTurn` and returns that envelope. If there is no active run, return an honest “nothing to cancel” success or the interrupt envelope’s empty case — do not invent a fake settle.

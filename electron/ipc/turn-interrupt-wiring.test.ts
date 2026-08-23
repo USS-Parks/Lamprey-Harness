@@ -19,7 +19,9 @@ describe('ST-7 interrupt and recovery wiring contract', () => {
 
     expect(control).toContain("ipcMain.handle('turn:interrupt'")
     expect(preload).toContain("ipcRenderer.invoke('turn:interrupt', request)")
-    expect(cancel).toContain('interruptTurn({ conversationId, expectedTurnId: run.turnId })')
+    expect(cancel).toContain('return await interruptTurn({ conversationId, expectedTurnId: run.turnId })')
+    expect(cancel).toMatch(/if \(!run\) \{\s*\n\s*return \{ success: true, data: null \}/)
+    expect(cancel).not.toMatch(/if \(run\) interruptTurn/)
     expect(cancel).not.toMatch(/\.abort\(|recordEvent\(|drainPendingDocuments\(/)
   })
 
@@ -35,6 +37,9 @@ describe('ST-7 interrupt and recovery wiring contract', () => {
       expect(interrupt).not.toContain(forbidden)
     }
     expect(interrupt).toContain("runtime.abort('user-interrupt')")
+    expect(interrupt).toContain("settle(runtime, 'cancelled'")
+    expect(interrupt).toContain("status: 'cancelled'")
+    expect(interrupt).toContain("type: 'turn.interrupted'")
     expect(read('electron/ipc/terminal.ts')).toContain("ipcMain.handle('terminal:kill'")
   })
 

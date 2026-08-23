@@ -42,8 +42,8 @@ describe('ProviderId union parity (main ↔ renderer)', () => {
   })
 
   it('locks the v0.27.1 direct-provider and pinned-model counts', () => {
-    expect(Object.keys(PROVIDERS)).toHaveLength(32)
-    expect(MODEL_CATALOG).toHaveLength(70)
+    expect(Object.keys(PROVIDERS)).toHaveLength(33)
+    expect(MODEL_CATALOG).toHaveLength(82)
   })
 
   it('does not broker any pinned model through OpenRouter', () => {

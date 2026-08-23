@@ -38,7 +38,8 @@ const PROVIDER_GROUPS: Array<{ title: string; ids: string[] }> = [
       'google',
       'dashscope',
       'cohere',
-      'minimax'
+      'minimax',
+      'meta'
     ]
   },
   {

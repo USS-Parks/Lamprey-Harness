@@ -757,7 +757,8 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
       'MiniMax-M2.5-highspeed',
       'MiniMax-M2.1',
       'MiniMax-M2.1-highspeed',
-      'MiniMax-M2'
+      'MiniMax-M2',
+      'MiniMax-M3'
     ])
   })
 

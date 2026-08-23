@@ -1,3 +1,19 @@
+## 2026-08-22 — Audit Closure Phase
+
+## [Audit Closure — Prompt AC-1] Settle the tool-round cap as failure  —  2026-08-22
+
+**Files changed:** `electron/services/tool-round-cap-error.ts`, `electron/services/tool-round-cap-error.test.ts`, `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest tool-round-cap-error + chat-turn-settlement + ghost-reply-guard + loop-turn-wiring + queued-follow-up-dispatch ✓ (47 tests)
+- verify:proof --no-tests ✓
+- user-verification-needed: live send that hits 50 tool rounds, confirm IPC failure + system notice + no queued follow-up + transcript keeps partial tool rows
+
+**Notes:** Cap used to `return null`. `runHeadlessTurn` treated that as a clean end and the finally settled `completed`. It now throws `ToolRoundCapError`. Headless catch maps non-abort throws to `failed`, the existing ghost-reply persist runs (tool-only rows still count as ghosted), and `chat:send` already returns `{ success: false, error }`. Queue dispatch stays gated on `completed`. Ceiling still 50. Duplicate ghost block in `chat:send` catch is AC-4.
+
+**Commit:** pending this prompt
+
 ## Codex July 2026 Parity — Prompt ST-8 Renderer turn reconciliation — 2026-07-17
 
 **Files changed:** `src/lib/follow-up-state.ts`,

@@ -65,6 +65,11 @@ import {
   isUserAbortError,
   buildGhostReplyNotice
 } from '../services/ghost-reply-guard'
+import {
+  MAX_TOOL_ROUNDS,
+  TOOL_ROUND_CAP_MESSAGE,
+  ToolRoundCapError
+} from '../services/tool-round-cap-error'
 import { permissionsService, descriptorNeedsApproval } from '../services/permissions-store'
 import { inferPhaseFromDescriptor, type AgentRunPhase } from '../services/agent-run-phase'
 import { getActiveWorkspace } from '../services/workspace-state'
@@ -183,7 +188,7 @@ const CREATE_DOCUMENT_MAX_BYTES = 256 * 1024
 // the planner needed 12-20 sequential reads to map a new repo. Codex
 // and Claude Code allow 100+ rounds per agent loop; 50 is a generous
 // midpoint that lets real work finish without going unbounded.
-const MAX_TOOL_ROUNDS = 50
+// Ceiling lives on ToolRoundCapError so a cap throw is instanceof-testable.
 
 function emitPhase(conversationId: string, phase: AgentRunPhase): void {
   emitChatEvent('chat:phase', { conversationId, phase })
@@ -888,9 +893,9 @@ export async function runChatRound(
       // Tool calls completed in rounds 0..MAX_TOOL_ROUNDS-1 ARE persisted —
       // re-prompting with "continue" picks up where the model left off
       // because the history reflects the partial work.
-      error: `Tool-call cap reached (${MAX_TOOL_ROUNDS} rounds this stage). Re-prompt with "continue" to keep going — the partial work is saved.`
+      error: TOOL_ROUND_CAP_MESSAGE
     })
-    return null
+    throw new ToolRoundCapError()
   }
 
   const descriptor = resolveModel(model)

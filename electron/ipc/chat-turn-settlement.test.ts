@@ -68,3 +68,26 @@ describe('JM-10 fallback tool contract is live', () => {
     expect(src).toMatch(/failed validation/)
   })
 })
+
+describe('AC-1 tool-round cap settles failed, not completed', () => {
+  it('the cap throws ToolRoundCapError instead of returning a clean null', () => {
+    const cap = src.slice(src.indexOf('if (round >= MAX_TOOL_ROUNDS)'))
+    const block = cap.slice(0, cap.indexOf('const descriptor'))
+    expect(block).toMatch(/throw new ToolRoundCapError\(/)
+    expect(block).not.toMatch(/return null/)
+    expect(block).toMatch(/TOOL_ROUND_CAP_MESSAGE/)
+  })
+
+  it('runHeadlessTurn maps a non-abort throw to failed and withholds the queue', () => {
+    const fn = src.slice(src.indexOf('export async function runHeadlessTurn'))
+    expect(fn).toMatch(
+      /settlementStatus = runtime\.signal\.aborted \|\| isUserAbortError\(errObj\) \? 'cancelled' : 'failed'/
+    )
+    expect(fn).toMatch(/settled && settlementStatus === 'completed'/)
+    expect(fn).toMatch(/turnEndedGhosted\(rows\)/)
+  })
+
+  it('chat:send returns the thrown error as an IPC failure', () => {
+    expect(src).toMatch(/return \{ success: false, error: errMsg \}/)
+  })
+})

@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-C1] Audit custom endpoint path  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_BASELINE.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- written notes in TL_BASELINE §8
+
+**Notes:** `ollama` / `lmstudio` are built-ins (cannot shadow via `customProviders`). Unsloth absent. Probe exists but connection-refused copy is thin. Capability flags already default false on custom/import.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-B6] Tests + OpenWiki routing note  —  2026-08-23
 
 **Files changed:** `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.test.ts`, `openwiki/domains/chat/openrouter-routing.md`, `openwiki/domains/chat/index.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-6] Native inventory lock  —  2026-08-23
+
+**Files changed:** `electron/services/native-inventory-lock.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest native-inventory-lock ✓ (2 tests)
+
+**Notes:** After `tool-packs` import, every CORE name is registered. All 24 pack import paths exist and each file has at least one `registerNative(`. No full-name golden list.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-5] Align skill-wizard hints to CORE  —  2026-08-23
 
 **Files changed:** `src/data/core-surface-names.ts`, `src/components/customize/NewSkillWizard.tsx`, `electron/services/core-surface-hints.test.ts`, `tsconfig.node.json`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

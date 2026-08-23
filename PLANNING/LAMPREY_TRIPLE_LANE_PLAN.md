@@ -270,7 +270,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** greppable; OD lock tests
 
 ### **TL-W3 — Phase wrap to v0.31.0**
-- [ ] package.json to 0.31.0; RELEASE_NOTES/v0.31.0.md; README New-in; DEVLOG phase-complete. Full gate: vitest + build + verify-proof.
+- [x] package.json to 0.31.0; RELEASE_NOTES/v0.31.0.md; README New-in; DEVLOG phase-complete. Full gate: vitest + build + verify-proof.
 - **Verify:** final gate minus Bucket
 
 ### **TL-W4 — Bucket v0.31.0**

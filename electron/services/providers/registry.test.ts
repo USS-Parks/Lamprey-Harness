@@ -469,7 +469,8 @@ import {
   listAllProviders,
   listLiveModelIds,
   validateProviderKeyDetailed,
-  PROVIDERS
+  PROVIDERS,
+  OPENROUTER_AUTO_ID
 } from './registry'
 
 describe('provider descriptor resolution + key handling', () => {
@@ -518,6 +519,18 @@ describe('provider descriptor resolution + key handling', () => {
       modelCount: 3
     })
     expect(mockCtorOpts.at(-1)?.baseURL).toBe('https://api.moonshot.ai/v1')
+  })
+
+  it('TL-C3 connection refused on Ollama is a loud listen-failure', async () => {
+    const err = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:11434'), {
+      code: 'ECONNREFUSED'
+    })
+    mockModelsList.mockRejectedValueOnce(err)
+    const result = await validateProviderKeyDetailed('ollama')
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/connection refused/i)
+    expect(result.reason).toMatch(/nothing is listening/i)
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 
   it('normalizes Reka bare-array catalogs with X-Api-Key auth', async () => {
@@ -821,6 +834,14 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     }
   })
 
+  it('resolveModel maps openrouter/auto without pinning a catalog row (TL-B5)', () => {
+    const desc = resolveModel(OPENROUTER_AUTO_ID)
+    expect(desc.provider).toBe('openrouter')
+    expect(desc.apiModelId).toBe('openrouter/auto')
+    expect(MODEL_CATALOG.some((m) => m.id === OPENROUTER_AUTO_ID)).toBe(false)
+    expect(MODEL_CATALOG.filter((m) => m.provider === 'openrouter')).toEqual([])
+  })
+
   it('custom models omit supportsTools default to false', async () => {
     const { mkdtempSync, writeFileSync: wf } = await import('fs')
     const { tmpdir } = await import('os')
@@ -1107,5 +1128,147 @@ describe('custom endpoint providers (settings.json customProviders)', () => {
     } finally {
       setUserDataPathProvider(null)
     }
+  })
+})
+
+describe('TL-B2 OpenRouter fallback extras', () => {
+  const okCompletion = {
+    choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }]
+  }
+
+  async function withSettings(
+    settings: Record<string, unknown>,
+    run: () => Promise<void>
+  ): Promise<void> {
+    const { mkdtempSync, writeFileSync: wf } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const dir = mkdtempSync(j(tmpdir(), 'lamprey-or-fallback-'))
+    wf(j(dir, 'settings.json'), JSON.stringify(settings))
+    setUserDataPathProvider(() => dir)
+    try {
+      await run()
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  }
+
+  const orCustom = {
+    customModels: [
+      {
+        id: 'or-primary',
+        name: 'OR Primary',
+        provider: 'openrouter',
+        apiModelId: 'anthropic/claude-sonnet-4',
+        contextWindow: 200_000,
+        supportsTools: true
+      }
+    ]
+  }
+
+  it('attaches models on OpenRouter chatOnce when fallbacks are set', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      {
+        ...orCustom,
+        openrouterFallbacks: ['openai/gpt-4o-mini', 'google/gemini-flash-1.5']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'or-primary')
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: 'anthropic/claude-sonnet-4',
+            models: ['openai/gpt-4o-mini', 'google/gemini-flash-1.5']
+          }),
+          undefined
+        )
+      }
+    )
+  })
+
+  it('does not attach models on OpenRouter when the fallback list is empty', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(orCustom, async () => {
+      await chatOnce([{ role: 'user', content: 'q' }], 'or-primary')
+      const body = mockCreate.mock.calls[0][0]
+      expect(body.model).toBe('anthropic/claude-sonnet-4')
+      expect(body.models).toBeUndefined()
+    })
+  })
+
+  it('does not attach models on DeepSeek even when fallbacks are set (K4)', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      { openrouterFallbacks: ['openai/gpt-4o-mini'] },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
+        const body = mockCreate.mock.calls[0][0]
+        expect(body.models).toBeUndefined()
+        expect(body.provider).toBeUndefined()
+      }
+    )
+  })
+
+  it('attaches provider prefs on OpenRouter chatOnce (TL-B3)', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      {
+        ...orCustom,
+        openrouterProviderSort: 'price',
+        openrouterProviderOrder: ['Anthropic'],
+        openrouterProviderIgnore: ['Azure']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'or-primary')
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: 'anthropic/claude-sonnet-4',
+            provider: { sort: 'price', order: ['Anthropic'], ignore: ['Azure'] }
+          }),
+          undefined
+        )
+      }
+    )
+  })
+
+  it('does not attach provider prefs on DeepSeek (K4)', async () => {
+    mockCreate.mockResolvedValueOnce(okCompletion)
+    await withSettings(
+      {
+        openrouterProviderSort: 'throughput',
+        openrouterProviderOrder: ['OpenAI']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'deepseek-v4-pro')
+        const body = mockCreate.mock.calls[0][0]
+        expect(body.provider).toBeUndefined()
+      }
+    )
+  })
+
+  it('MiniMax still only gets reasoning_split when OpenRouter routing is set (K4)', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          message: { content: 'ok', reasoning_details: [] },
+          finish_reason: 'stop'
+        }
+      ]
+    })
+    await withSettings(
+      {
+        openrouterFallbacks: ['openai/gpt-4o-mini'],
+        openrouterProviderSort: 'price',
+        openrouterProviderOrder: ['Anthropic']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'minimax-m2.7')
+        const body = mockCreate.mock.calls[0][0]
+        expect(body.reasoning_split).toBe(true)
+        expect(body.models).toBeUndefined()
+        expect(body.provider).toBeUndefined()
+      }
+    )
   })
 })

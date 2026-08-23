@@ -152,7 +152,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Shared baseline
 
 ### **TL-0 — Lock Triple Lane baseline**
-- [ ] Write PLANNING/TL_BASELINE.md with only: tip SHA; package version; lane goals A/B/C; code touchpoint map for OpenRouter and customProviders; cite CJ26 Claude Code refresh row; soft inventory S1-S8; pointer to this P-SPR. No product code.
+- [x] Write PLANNING/TL_BASELINE.md with only: tip SHA; package version; lane goals A/B/C; code touchpoint map for OpenRouter and customProviders; cite CJ26 Claude Code refresh row; soft inventory S1-S8; pointer to this P-SPR. No product code.
 - **Closes:** S6
 - **Files:** PLANNING/TL_BASELINE.md
 - **Verify:** file exists
@@ -162,65 +162,65 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Lane A — Claude Code Refresh
 
 ### **TL-A1 — Pin Claude Code evidence**
-- [ ] Record Claude Code version/build, evidence date, and sources in inventory preamble (or TL_BASELINE amend). No product deltas until this pin exists (K2).
+- [x] Record Claude Code version/build, evidence date, and sources in inventory preamble (or TL_BASELINE amend). No product deltas until this pin exists (K2).
 - **Files:** PLANNING/TL_CLAUDE_CODE_INVENTORY.md (create) and/or TL_BASELINE
 - **Verify:** greppable version + date
 
 ### **TL-A2 — Write Claude vs Lamprey inventory**
-- [ ] Author PLANNING/TL_CLAUDE_CODE_INVENTORY.md matrix (tools, MCP/connectors, skills, projects, permissions, UX micro-interactions, status line, plan mode, etc.). Mark each retained / narrowed / stale / missing vs Lamprey tip. No product code.
+- [x] Author PLANNING/TL_CLAUDE_CODE_INVENTORY.md matrix (tools, MCP/connectors, skills, projects, permissions, UX micro-interactions, status line, plan mode, etc.). Mark each retained / narrowed / stale / missing vs Lamprey tip. No product code.
 - **Closes:** S1 (measure)
 - **Verify:** file exists; every row has a status
 
 ### **TL-A3 — Scoreboard and delta pick list**
-- [ ] Score missing/stale rows: ROI (H/M/L) times risk/effort (H/M/L). Select at most 5 High-ROI and Low/Med-risk candidates into TL-A4.. list, or declare empty under K12 with wont table.
+- [x] Score missing/stale rows: ROI (H/M/L) times risk/effort (H/M/L). Select at most 5 High-ROI and Low/Med-risk candidates into TL-A4.. list, or declare empty under K12 with wont table.
 - **Closes:** S1 (decide)
 - **Verify:** pick list or explicit empty + wont table
 
 ### **TL-A4 — Delta 1 (optional)**
-- [ ] If A3 listed item 1: implement that single delta with tests. If empty: DEVLOG note TL-A4 N/A (K12) and skip code.
+- [x] If A3 listed item 1: implement that single delta with tests. If empty: DEVLOG note TL-A4 N/A (K12) and skip code.
 - **Verify:** typecheck + touched tests, or DEVLOG N/A
 
 ### **TL-A5 — Delta 2 (optional)**
-- [ ] Same pattern as TL-A4 for A3 item 2 / N/A.
+- [x] Same pattern as TL-A4 for A3 item 2 / N/A.
 
 ### **TL-A6 — Delta 3 (optional)**
-- [ ] Same pattern for item 3 / N/A.
+- [x] Same pattern for item 3 / N/A.
 
 ### **TL-A7 — Delta 4 (optional)**
-- [ ] Same pattern for item 4 / N/A.
+- [x] Same pattern for item 4 / N/A.
 
 ### **TL-A8 — Delta 5 (optional)**
-- [ ] Same pattern for item 5 / N/A.
+- [x] Same pattern for item 5 / N/A.
 
 ---
 
 ### Lane B — OpenRouter Routing Depth
 
 ### **TL-B1 — Map OpenRouter code paths**
-- [ ] Document in DEVLOG or PLANNING/TL_OPENROUTER_MAP.md: OpenRouter keys, chatStream body, catalog import, model ids. Identify the single request-build seam for fallbacks/prefs. No behavior change required.
+- [x] Document in DEVLOG or PLANNING/TL_OPENROUTER_MAP.md: OpenRouter keys, chatStream body, catalog import, model ids. Identify the single request-build seam for fallbacks/prefs. No behavior change required.
 - **Closes:** S2 (orient)
 - **Verify:** map exists
 
 ### **TL-B2 — Fallback model list on OpenRouter requests**
-- [ ] When settings supply an ordered fallback list, send OpenRouter fallback fields on OpenRouter-provider calls only (K4/K5). Leave non-OpenRouter providers untouched.
+- [x] When settings supply an ordered fallback list, send OpenRouter fallback fields on OpenRouter-provider calls only (K4/K5). Leave non-OpenRouter providers untouched.
 - **Files:** providers helpers/registry, settings types, tests
 - **Verify:** typecheck; unit tests for request body shaping
 
 ### **TL-B3 — Provider preferences object**
-- [ ] Support OpenRouter provider prefs: sort in {price, latency, throughput} and optional order/ignore if low-cost. Same seam as TL-B2.
+- [x] Support OpenRouter provider prefs: sort in {price, latency, throughput} and optional order/ignore if low-cost. Same seam as TL-B2.
 - **Verify:** tests for prefs serialization
 
 ### **TL-B4 — Settings UI: OpenRouter routing panel**
-- [ ] Settings surface to edit fallback model ids + sort preference; persist settings.json. Clearly opt-in (hide or disable unless OpenRouter key present is OK).
+- [x] Settings surface to edit fallback model ids + sort preference; persist settings.json. Clearly opt-in (hide or disable unless OpenRouter key present is OK).
 - **Files:** settings UI + store/IPC as needed
 - **Verify:** web typecheck; thin test or source-lock
 
 ### **TL-B5 — Optional openrouter/auto**
-- [ ] Allow selecting openrouter/auto (or current official auto id) when OpenRouter is configured. Document session stickiness / cache caveat in UI help or OpenWiki (K5). If upstream id differs at implement time, use official id and note in DEVLOG.
+- [x] Allow selecting openrouter/auto (or current official auto id) when OpenRouter is configured. Document session stickiness / cache caveat in UI help or OpenWiki (K5). If upstream id differs at implement time, use official id and note in DEVLOG.
 - **Verify:** model resolve/menu accepts id; test
 
 ### **TL-B6 — Tests + short architecture/OpenWiki note**
-- [ ] Harden tests for K4 (non-OpenRouter unchanged). Add short openwiki or ARCHITECTURE note on OpenRouter routing depth (K11).
+- [x] Harden tests for K4 (non-OpenRouter unchanged). Add short openwiki or ARCHITECTURE note on OpenRouter routing depth (K11).
 - **Closes:** S2, S5
 - **Verify:** touched vitest; doc exists
 
@@ -229,30 +229,30 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Lane C — Local Endpoint Polish
 
 ### **TL-C1 — Audit custom endpoint path**
-- [ ] Baseline how customProviders / custom OpenAI-compatible endpoints appear in keychain, validateProviderKey, model menu, and tool surface. Record gaps in TL_BASELINE or DEVLOG.
+- [x] Baseline how customProviders / custom OpenAI-compatible endpoints appear in keychain, validateProviderKey, model menu, and tool surface. Record gaps in TL_BASELINE or DEVLOG.
 - **Closes:** S3 (orient)
 - **Verify:** written notes
 
 ### **TL-C2 — Connection presets**
-- [ ] Ship editable presets (K7): Ollama http://127.0.0.1:11434/v1, LM Studio common port, Unsloth Studio API base placeholders. One-click add/merge into custom providers without stomping user edits (idempotent).
+- [x] Ship editable presets (K7): Ollama http://127.0.0.1:11434/v1, LM Studio common port, Unsloth Studio API base placeholders. One-click add/merge into custom providers without stomping user edits (idempotent).
 - **Files:** UI + defaults module + tests
 - **Verify:** web typecheck; tests
 
 ### **TL-C3 — Health check / models list probe**
-- [ ] Test-connection (or equivalent) probes base URL and lists models when endpoint supports models listing. Loud failure on connection refused.
+- [x] Test-connection (or equivalent) probes base URL and lists models when endpoint supports models listing. Loud failure on connection refused.
 - **Verify:** unit tests with mocked HTTP
 
 ### **TL-C4 — Capability posture for local endpoints**
-- [ ] Align with PX2 import posture: tool calling / vision flags default off until probed or user explicitly enables. No silent supportsTools true.
+- [x] Align with PX2 import posture: tool calling / vision flags default off until probed or user explicitly enables. No silent supportsTools true.
 - **Verify:** tests for defaults
 
 ### **TL-C5 — Docs: Train elsewhere, serve, Lamprey**
-- [ ] Short OpenWiki or README section: fine-tune in Unsloth (or elsewhere), export/serve OpenAI-compatible, add preset in Lamprey (K6/K11). No training UI.
+- [x] Short OpenWiki or README section: fine-tune in Unsloth (or elsewhere), export/serve OpenAI-compatible, add preset in Lamprey (K6/K11). No training UI.
 - **Closes:** S3
 - **Verify:** doc exists
 
 ### **TL-C6 — Lock non-goal: no training UI**
-- [ ] DEVLOG + optional absence note that core does not ship LoRA/RL trainer UI. Satisfies S4 without code churn if already true.
+- [x] DEVLOG + optional absence note that core does not ship LoRA/RL trainer UI. Satisfies S4 without code churn if already true.
 - **Closes:** S4
 - **Verify:** greppable lock
 
@@ -261,16 +261,16 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Wrap
 
 ### **TL-W1 — Point PLANNING live canon at this P-SPR**
-- [ ] Update PLANNING/README.md: this plan is current working P-SPR; Tools+MCP Roster and OD remain shipped references (v0.30.1 / v0.30.0).
+- [x] Update PLANNING/README.md: this plan is current working P-SPR; Tools+MCP Roster and OD remain shipped references (v0.30.1 / v0.30.0).
 - **Verify:** greppable
 
 ### **TL-W2 — Current State + DEVLOG catch-up**
-- [ ] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG Triple Lane section complete. Keep OD honest-gap lock tests green if wording changes.
+- [x] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG Triple Lane section complete. Keep OD honest-gap lock tests green if wording changes.
 - **Closes:** S7
 - **Verify:** greppable; OD lock tests
 
 ### **TL-W3 — Phase wrap to v0.31.0**
-- [ ] package.json to 0.31.0; RELEASE_NOTES/v0.31.0.md; README New-in; DEVLOG phase-complete. Full gate: vitest + build + verify-proof.
+- [x] package.json to 0.31.0; RELEASE_NOTES/v0.31.0.md; README New-in; DEVLOG phase-complete. Full gate: vitest + build + verify-proof.
 - **Verify:** final gate minus Bucket
 
 ### **TL-W4 — Bucket v0.31.0**

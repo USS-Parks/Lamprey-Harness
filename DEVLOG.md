@@ -6,17 +6,19 @@
 **Verify gate:**
 - tsc node ✓
 - tsc web ✓
-- vitest (full) — see phase-complete
-- build — see phase-complete
-- verify:proof — see phase-complete
+- vitest (full) ✓ (2918 passed / 152 skipped / 0 failed)
+- build ✓
+- verify:proof ✓ (exit 0)
 
 **Notes:** Source wrap. No Bucket. Download table still points at v0.30.0 installers.
+
+**Commit:** 6b5002d
 
 ## [Tools + MCP Roster — phase complete] v0.30.1  —  2026-08-23
 
 Ten curated MCP templates (was seven). Native hygiene only. OpenWiki native inventory page.
 
-**Final gate:** (running after wrap commit)
+**Final gate:** lint OK · tsc node+web OK · vitest 2918 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
 **Honest gaps:**
 - Installer / Bucket artifacts still v0.30.0
 - Live auth of new MCP templates is owner work

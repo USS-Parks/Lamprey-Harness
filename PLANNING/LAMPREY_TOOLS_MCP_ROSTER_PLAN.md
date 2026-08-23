@@ -208,7 +208,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Track C — Docs wrap
 
 ### **TR-8 — Point PLANNING live canon at this P-SPR**
-- [ ] Update `PLANNING/README.md` live-canon table: this plan is current working P-SPR;
+- [x] Update `PLANNING/README.md` live-canon table: this plan is current working P-SPR;
   OD remains shipped reference (v0.30.0).
 - **Files:** `PLANNING/README.md`
 - **Verify:** greppable

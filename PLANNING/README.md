@@ -12,8 +12,10 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 | File | Role |
 |------|------|
-| `LAMPREY_OPERABILITY_DEBT_PLAN.md` | Operability Debt P-SPR — shipped as v0.30.0 |
-| `OD_BASELINE.md` / `OD_AFTER.md` | Before/after measurements for this phase |
+| `LAMPREY_TOOLS_MCP_ROSTER_PLAN.md` | Tools + MCP Roster P-SPR — current working plan (v0.30.1) |
+| `TR_BASELINE.md` | Roster baseline (packs, CORE lists, dual catalog, K8 table) |
+| `LAMPREY_OPERABILITY_DEBT_PLAN.md` | Operability Debt P-SPR — shipped reference (v0.30.0) |
+| `OD_BASELINE.md` / `OD_AFTER.md` | Operability Debt before/after measurements |
 | `LAMPREY_AUDIT_CLOSURE_PLAN.md` + `AC_AFTER.md` + `AC_BASELINE.md` + `AC_PARALLEL_HANDOFF.md` | Audit Closure authority (v0.29.0). Do not delete. |
 | `LAMPREY_CODEX_JULY_2026_PARITY_PSPR.md` + `CJ26_AFTER.md` + `CJ26_FOLLOW_ON_CANDIDATES.md` | Codex July 2026 parity ledger. Implementation-complete, not current-Codex parity. |
 | `PSPR_TEMPLATE.md` | Blank roster template |

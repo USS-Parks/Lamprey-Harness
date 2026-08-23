@@ -19,6 +19,8 @@ verified:
 
 # Model Catalog and Provider Routing
 
+This page is the **model** catalog (`MODEL_CATALOG` / providers). Native tools live on [native.md](native.md). MCP connectors live on [mcp.md](mcp.md).
+
 **Version:** v0.30.0  
 **Key release:** v0.27.1 (direct-provider routing, zero OpenRouter aliases)  
 **Expansion phase:** v0.17.0 (PX: 33 built-ins, custom endpoints)  

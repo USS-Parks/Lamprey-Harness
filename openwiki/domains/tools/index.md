@@ -1,4 +1,5 @@
 # Files
 
-- [Model Catalog and Provider Routing](catalog.md) - 82 pinned models across 33 built-in providers, custom endpoint support, and model discovery via /v1/models import (v0.17.0+).
-- [MCP Connectors and Resource Discovery](mcp.md) - Model Context Protocol manager, lazy resource reads, and OAuth 2.1 sessions for external integrations (v0.8.0+ resources v0.24.0+).
+- [Native Tool Roster](native.md) - CORE lazy surface and the 24 pack-bootstrap modules that register bundled native tools.
+- [Model Catalog and Provider Routing](catalog.md) - **Models**, not native tools. 82 pinned chat models across 33 built-in providers, custom endpoints, and `/v1/models` import.
+- [MCP Connectors and Resource Discovery](mcp.md) - Model Context Protocol manager, lazy resource reads, and OAuth 2.1 sessions for external integrations.

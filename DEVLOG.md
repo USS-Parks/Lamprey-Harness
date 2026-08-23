@@ -1,6 +1,5 @@
 ## 2026-08-22 — Audit Closure Phase
 
-<<<<<<< HEAD
 ## [Audit Closure — Prompt AC-5] Queue register conflict is recovered  —  2026-08-22
 
 **Files changed:** `electron/services/queued-follow-up-dispatch.ts`, `electron/services/queued-follow-up-dispatch.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
@@ -69,7 +68,7 @@
 **Notes:** Cap used to `return null`. `runHeadlessTurn` treated that as a clean end and the finally settled `completed`. It now throws `ToolRoundCapError`. Headless catch maps non-abort throws to `failed`, the existing ghost-reply persist runs (tool-only rows still count as ghosted), and `chat:send` already returns `{ success: false, error }`. Queue dispatch stays gated on `completed`. Ceiling still 50. Duplicate ghost block in `chat:send` catch is AC-4.
 
 **Commit:** pending this prompt
-=======
+
 ## [Audit Closure — Prompt AC-25] Delete pipeline-orphans  —  2026-08-22
 
 **Files changed:** `electron/services/pipeline-orphans.ts` (deleted),
@@ -178,7 +177,6 @@ Improve owns that file (AC-14). Branch taken: no file fight;
 not. No plugin-tool runtime built (K10).
 
 **Commit:** see git log (AC-40).
->>>>>>> feat/audit-closure-delete
 
 ## Codex July 2026 Parity — Prompt ST-8 Renderer turn reconciliation — 2026-07-17
 

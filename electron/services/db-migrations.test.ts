@@ -347,6 +347,16 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('db-migrations', () => {
     })
   })
 
+  it('AC-19 - migration v33 persists tool_search unlocks per conversation', () => {
+    runMigrations(db)
+    const columns = db.prepare('PRAGMA table_info(conversation_tool_unlocks)').all() as Array<{
+      name: string
+    }>
+    expect(columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining(['conversation_id', 'tool_name'])
+    )
+  })
+
   it('GA-4 - migration v32 adds persistent goal and automation loop bindings', () => {
     runMigrations(db)
     const goalColumns = db.prepare('PRAGMA table_info(goals)').all() as Array<{ name: string }>

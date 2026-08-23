@@ -122,3 +122,38 @@ export function formatElapsed(ms: number): string {
   const r = s % 60
   return `${m}m ${r}s`
 }
+
+export interface ToolSearchCardView {
+  query: string
+  names: string[]
+  error?: string
+}
+
+/** AC-23 — parse a tool_search result into name + match list for the card. */
+export function parseToolSearchMatches(result: string | undefined): ToolSearchCardView | null {
+  if (!result) return null
+  try {
+    const parsed = JSON.parse(result) as {
+      query?: unknown
+      unlocked?: unknown
+      tools?: unknown
+      error?: unknown
+    }
+    const query = typeof parsed.query === 'string' ? parsed.query : ''
+    const names: string[] = []
+    if (Array.isArray(parsed.unlocked)) {
+      for (const n of parsed.unlocked) if (typeof n === 'string' && n) names.push(n)
+    } else if (Array.isArray(parsed.tools)) {
+      for (const t of parsed.tools) {
+        if (t && typeof t === 'object' && typeof (t as { name?: unknown }).name === 'string') {
+          names.push((t as { name: string }).name)
+        }
+      }
+    }
+    const error = typeof parsed.error === 'string' ? parsed.error : undefined
+    if (!query && names.length === 0 && !error) return null
+    return { query, names, error }
+  } catch {
+    return null
+  }
+}

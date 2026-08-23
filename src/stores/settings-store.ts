@@ -27,6 +27,10 @@ const defaultSettings: AppSettings = {
   // machinery, and composer. `toolSurface: 'full'` is the era default;
   // 'lazy' stays as the MCP-heavy opt-in.
   toolSurface: 'full',
+  toolResultSpill: true,
+  toolResultSpillBytes: 8192,
+  streamInactivityMs: 60000,
+  mcpCallTimeoutMs: 120000,
   agenticCodingMode: false,
   agenticCodingSkills: ['plan', 'context', 'verify'],
   snipEnabled: true,

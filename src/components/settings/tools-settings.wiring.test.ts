@@ -1,0 +1,45 @@
+import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+const root = join(__dirname, '..', '..', '..')
+const read = (p: string): string => readFileSync(join(root, p), 'utf-8')
+
+describe('AC-20/AC-22/AC-23/AC-24 settings and tool-search wiring', () => {
+  it('SettingsDialog has a Tools tab next to Timeouts', () => {
+    const src = read('src/components/settings/SettingsDialog.tsx')
+    expect(src).toMatch(/import \{ ToolSettings \}/)
+    expect(src).toMatch(/id: 'tools', label: 'Tools'/)
+    expect(src).toMatch(/activeTab === 'tools' && <ToolSettings \/>/)
+  })
+
+  it('SettingsTabId includes every SettingsDialog tab', () => {
+    const ui = read('src/stores/ui-store.ts')
+    const dialog = read('src/components/settings/SettingsDialog.tsx')
+    const tabIds = [...dialog.matchAll(/id: '([a-zA-Z]+)'/g)].map((m) => m[1])
+    for (const id of tabIds) {
+      expect(ui, `SettingsTabId missing '${id}'`).toMatch(new RegExp(`\\|\\s*'${id}'`))
+    }
+  })
+
+  it('ToolSettings binds surface + spill and has no Browser Developer toggle', () => {
+    const src = read('src/components/settings/ToolSettings.tsx')
+    expect(src).toMatch(/toolSurface/)
+    expect(src).toMatch(/toolResultSpill/)
+    expect(src).toMatch(/toolResultSpillBytes/)
+    expect(src).toMatch(/Armed from the Browser panel/)
+    expect(src).not.toMatch(/browserDeveloperModeEnabled/)
+  })
+
+  it('LoopSettings names chars/4 and the multi-round undercount', () => {
+    const src = read('src/components/settings/LoopSettings.tsx')
+    expect(src).toMatch(/chars\/4/)
+    expect(src).toMatch(/under-?count/)
+  })
+
+  it('ToolUseCard renders tool_search matches', () => {
+    const src = read('src/components/chat/ToolUseCard.tsx')
+    expect(src).toMatch(/parseToolSearchMatches/)
+    expect(src).toMatch(/toolName === 'tool_search'/)
+  })
+})

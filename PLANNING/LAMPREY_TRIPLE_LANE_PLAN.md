@@ -239,7 +239,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** web typecheck; tests
 
 ### **TL-C3 — Health check / models list probe**
-- [ ] Test-connection (or equivalent) probes base URL and lists models when endpoint supports models listing. Loud failure on connection refused.
+- [x] Test-connection (or equivalent) probes base URL and lists models when endpoint supports models listing. Loud failure on connection refused.
 - **Verify:** unit tests with mocked HTTP
 
 ### **TL-C4 — Capability posture for local endpoints**

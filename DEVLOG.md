@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-C3] Loud connection-refused probe  —  2026-08-23
+
+**Files changed:** `electron/services/providers/connection-error.ts`, `electron/services/providers/connection-error.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest connection-error + registry C3 case
+
+**Notes:** Test button already listed `/v1/models`. ECONNREFUSED now short-circuits the chat fallback and returns a listen-failure sentence. Cloud 401/403 copy unchanged.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-C2] Local endpoint presets  —  2026-08-23
 
 **Files changed:** `src/lib/local-endpoint-presets.ts`, `src/lib/local-endpoint-presets.test.ts`, `src/components/settings/ApiKeySettings.tsx`, `src/components/settings/api-key-settings-presets.wiring.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

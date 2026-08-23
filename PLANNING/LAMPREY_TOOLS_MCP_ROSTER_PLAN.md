@@ -173,7 +173,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** that vitest file green
 
 ### **TR-4 — Customize Add-flow smoke for new entries**
-- [ ] Extend or add a thin test so catalog length and new ids appear in the module
+- [x] Extend or add a thin test so catalog length and new ids appear in the module
   AddConnectorFlow reads. No Playwright E2E required.
 - **Closes:** S1 remainder
 - **Files:** test near AddConnectorFlow / catalog import

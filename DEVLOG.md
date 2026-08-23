@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-3] Dual-catalog parity lock  —  2026-08-23
+
+**Files changed:** `src/data/connectors-catalog.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest src/data/connectors-catalog.test.ts ✓ (1 test)
+
+**Notes:** Locks ids + name/command/args/auth/category + env key sets. No shared helper.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-2] Expand curated MCP catalog  —  2026-08-23
 
 **Files changed:** `resources/connectors/catalog.json`, `src/data/connectors-catalog.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

@@ -166,7 +166,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** tsc web; JSON parse
 
 ### **TR-3 — K3: Dual-catalog parity lock test**
-- [ ] Add a vitest that imports TS catalog and reads `resources/connectors/catalog.json`,
+- [x] Add a vitest that imports TS catalog and reads `resources/connectors/catalog.json`,
   asserting same ids and matching `command`/`args`/`auth`/`category`/`name` (env key sets equal).
 - **Closes:** S2
 - **Files:** new test; maybe tiny shared normalize helper

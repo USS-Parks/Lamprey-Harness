@@ -272,7 +272,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2. Docs only.
 
 ### **OD-12 — Write `OD_AFTER.md`**
-- [ ] Same measurement method as OD-0. Record after line counts, that
+- [x] Same measurement method as OD-0. Record after line counts, that
   `catalog-august-2026.ts` is gone, PLANNING root markdown count, and
   each soft-inventory row as closed. No version bump.
 - Verify: tsc ×2.

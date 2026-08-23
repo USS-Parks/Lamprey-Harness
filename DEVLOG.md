@@ -1,3 +1,19 @@
+## 2026-08-23 — Operability Debt Phase
+
+## [Operability Debt — Prompt OD-0] Lock the baseline  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `PLANNING/OD_BASELINE.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest (none — docs only)
+
+**Notes:** P-SPR written on this branch (was missing from `main` @ `3e0fde9`).
+Status APPROVED 2026-08-23 — STS by Basho. K8 is v0.30.0. Soft inventory
+S1–S7 recorded open. Line counts match AC method.
+
+**Commit:** pending
+
 ## 2026-08-23 — Audit Closure Phase
 
 ## [Audit Closure — native-DB CI] First Actions run  —  2026-08-23

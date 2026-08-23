@@ -182,7 +182,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Track B — Native roster hygiene
 
 ### **TR-5 — K4: Align `NATIVE_TOOL_HINTS` to `CORE_SURFACE_NAMES`**
-- [ ] Stop maintaining a second list. Smallest correct path (ponytail): extract
+- [x] Stop maintaining a second list. Smallest correct path (ponytail): extract
   `CORE_SURFACE_NAMES` to a shared module both electron and web can import, **or**
   duplicate once with a test that electron CORE equals the shared export used by the wizard.
 - **Closes:** S3

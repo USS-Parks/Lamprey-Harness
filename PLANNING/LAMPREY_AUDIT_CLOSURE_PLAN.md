@@ -426,7 +426,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; targeted tests; `npm run verify:proof -- --no-tests` if `chat.ts` is touched
 
 ### **AC-4 — T4: Ghost guard once**
-- [ ] After AC-1 and AC-3, the guard must run in `runHeadlessTurn` only (`chat.ts:746–768`). Delete the duplicate block in `chat:send` catch (`:461–483`). `chat:send` catch still handles failures that never entered headless (pre-registration). Existing tests that hit either path still pass — `loop-turn-wiring.test.ts` already source-locks `turnEndedGhosted(rows)` in the headless path.
+- [x] After AC-1 and AC-3, the guard must run in `runHeadlessTurn` only (`chat.ts:746–768`). Delete the duplicate block in `chat:send` catch (`:461–483`). `chat:send` catch still handles failures that never entered headless (pre-registration). Existing tests that hit either path still pass — `loop-turn-wiring.test.ts` already source-locks `turnEndedGhosted(rows)` in the headless path.
 - **Closes:** T4, IMP-4, DEL-4
 - **Files:** `electron/ipc/chat.ts`
 - **Verify:** tsc ×2; ghost-reply + chat + loop-turn-wiring tests; `npm run verify:proof -- --no-tests`

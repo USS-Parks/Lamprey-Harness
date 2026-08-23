@@ -443,29 +443,6 @@ export function registerChatHandlers(): void {
       } catch (e) {
         console.error('[chat] chat.error event failed:', e)
       }
-      // SP-4 — ghost-reply guard (D5). If the failure landed BEFORE any
-      // visible reply row (pre-stream throw, instant stream failure with no
-      // partial, multi-agent bail with zero mutations), persist a
-      // `role:'system'` notice so the transcript never ends on an unanswered
-      // user message. User-initiated cancels are not ghosts — skip those.
-      try {
-        if (!turnRuntime?.signal.aborted && !isUserAbortError(err)) {
-          const rows = convStore.getMessages(conversationId)
-          if (turnEndedGhosted(rows)) {
-            const notice = convStore.saveMessage({
-              id: randomUUID(),
-              conversationId,
-              role: 'system',
-              content: buildGhostReplyNotice(errMsg),
-              model: 'lamprey-safety-net',
-              stage: 'system'
-            })
-            emitChatEvent('chat:done', { conversationId, message: notice })
-          }
-        }
-      } catch (guardErr) {
-        console.error('[chat] SP-4 ghost-reply guard failed:', guardErr)
-      }
       return { success: false, error: errMsg }
     }
   })

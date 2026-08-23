@@ -190,7 +190,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** tsc ×2; touched tests
 
 ### **TR-6 — Native inventory machine-readable lock**
-- [ ] Add/extend a test that: (1) after pack bootstrap, every `CORE_SURFACE_NAMES` entry is
+- [x] Add/extend a test that: (1) after pack bootstrap, every `CORE_SURFACE_NAMES` entry is
   registered; (2) every `tool-packs.ts` import path file exists; (3) fails if a pack
   registers zero tools. Prefer structural locks over a brittle full-name golden file.
 - **Closes:** part of S4

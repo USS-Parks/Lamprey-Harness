@@ -26,6 +26,19 @@ S1–S7 recorded open. Line counts match AC method.
 rule, then calls `finalizeTurn` on a real `TurnRuntimeRegistry`. Status is
 `failed`, queue withheld, both drains fire. No helper extracted from chat.ts.
 
+**Commit:** d3e2a3e
+
+## [Operability Debt — Prompt OD-2] Cancel settles cancelled  —  2026-08-23
+
+**Files changed:** `electron/services/turn-interrupt.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest turn-interrupt + turn-interrupt-wiring ✓ (9 tests)
+
+**Notes:** K1 lock: result status `cancelled`, event type `turn.interrupted`,
+payload `disposition: 'interrupted'`. Event name not renamed.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

@@ -160,7 +160,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/headless-turn-settlement.test.ts electron/services/finalize-turn.test.ts electron/services/tool-round-cap-error.test.ts`
 
 ### **OD-2 — Cancel settles `cancelled`; event stays `turn.interrupted`**
-- [ ] Lock K1 in `turn-interrupt.test.ts` (or a short addition to
+- [x] Lock K1 in `turn-interrupt.test.ts` (or a short addition to
   `operability-debt-safety.test.ts` if OD-4 already created it — prefer
   extending `turn-interrupt.test.ts` so the pair lives next to the
   action). Assert: result `status === 'cancelled'`; recorded event

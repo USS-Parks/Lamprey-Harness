@@ -580,37 +580,37 @@ review text (Hygiene / Sweet Spot density).
 ### Track E — Dead code
 
 ### **AC-25 — D1: Delete `pipeline-orphans`**
-- [ ] Remove `electron/services/pipeline-orphans.ts` and `pipeline-orphans.test.ts`. No production importer remains (already true). Absence lock: production `electron/` does not import that path. This also drops one of the 18 ABI-guarded files; AC-0’s list in AFTER (AC-31) will show 17 unless another file is added. That is correct, not a regression.
+- [x] Remove `electron/services/pipeline-orphans.ts` and `pipeline-orphans.test.ts`. No production importer remains (already true). Absence lock: production `electron/` does not import that path. This also drops one of the 18 ABI-guarded files; AC-0’s list in AFTER (AC-31) will show 17 unless another file is added. That is correct, not a regression.
 - **Closes:** D1, DEL-7
 - **Files:** the two pipeline-orphans files (deleted)
 - **Verify:** tsc ×2; grep lock
 
 ### **AC-26 — D2/D7/D8: Composer leftovers**
-- [ ] Delete `buildComposerSystemPrompt` (`system-prompt-builder.ts:128`) if still unused. If `COMPOSER_SYSTEM` exists only to prove the composer is gone, keep the smallest absence-lock test and drop the unused export. `PSEUDO_TAG_GUARD` (`:92`): keep the string if tests lock “not injected” (`system-prompt-builder.test.ts:552–567`); delete any comment that implies it is still appended to prompts (`:108`, `:340`).
+- [x] Delete `buildComposerSystemPrompt` (`system-prompt-builder.ts:128`) if still unused. If `COMPOSER_SYSTEM` exists only to prove the composer is gone, keep the smallest absence-lock test and drop the unused export. `PSEUDO_TAG_GUARD` (`:92`): keep the string if tests lock “not injected” (`system-prompt-builder.test.ts:552–567`); delete any comment that implies it is still appended to prompts (`:108`, `:340`).
 - **Closes:** D2, D7, D8, DEL-8, DEL-9
 - **Files:** `system-prompt-builder.ts` + tests
 - **Verify:** tsc ×2; system-prompt-builder tests
 
 ### **AC-27 — D3: Delete `setMessageProofStatus`**
-- [ ] Remove the unused store function (`conversation-store.ts:849–859`). Column `messages.proof_status` stays. Chat continues to omit writes on new rows. `contracts:waive` comments that name this setter get corrected if the IPC still exists for historical contracts (AC-29 decides the IPC).
+- [x] Remove the unused store function (`conversation-store.ts:849–859`). Column `messages.proof_status` stays. Chat continues to omit writes on new rows. `contracts:waive` comments that name this setter get corrected if the IPC still exists for historical contracts (AC-29 decides the IPC).
 - **Closes:** D3, D13 (setter only), DEL-10
 - **Files:** `conversation-store.ts` + any test that called the setter
 - **Verify:** tsc ×2; conversation-store tests (node:sqlite or skip-honest)
 
 ### **AC-28 — D4: Lock `message_stage_metrics` as write-less**
-- [ ] Keep the table (`schema-init.ts:649–667`, K1). Add a source-lock test: no `INSERT INTO message_stage_metrics` under `electron/` except schema. Comment on the DDL: historical RT2, no writer since Unburdening.
+- [x] Keep the table (`schema-init.ts:649–667`, K1). Add a source-lock test: no `INSERT INTO message_stage_metrics` under `electron/` except schema. Comment on the DDL: historical RT2, no writer since Unburdening.
 - **Closes:** D4
 - **Files:** `schema-init.ts`, a small source-lock test
 - **Verify:** tsc ×2; that test
 
 ### **AC-29 — D5: Drop unused contracts preload**
-- [ ] `src/` has zero `api.contracts` callers. Remove the preload `contracts` namespace (`preload.ts:602–611`). Keep main-process `contracts:*` IPC (`electron/ipc/contracts.ts`) if any model tool still uses it; if the IPC is also unused, delete the renderer-facing half and document the main IPC as tool-only, or delete both in this prompt after grep. Do not drop `change_contracts` tables. `proof.gate.waived` from `change-contract-store.ts:536` is AC-30’s problem, not this one’s.
+- [x] `src/` has zero `api.contracts` callers. Remove the preload `contracts` namespace (`preload.ts:602–611`). Keep main-process `contracts:*` IPC (`electron/ipc/contracts.ts`) if any model tool still uses it; if the IPC is also unused, delete the renderer-facing half and document the main IPC as tool-only, or delete both in this prompt after grep. Do not drop `change_contracts` tables. `proof.gate.waived` from `change-contract-store.ts:536` is AC-30’s problem, not this one’s.
 - **Closes:** D5, DEL-11
 - **Files:** `electron/preload.ts`, possibly `electron/ipc/contracts.ts`
 - **Verify:** tsc ×2; preload/contracts tests if any
 
 ### **AC-30 — D6: After-action stops scoring dead proof.gate events**
-- [ ] `after-action-report.ts:211–213` still counts `proof.gate.passed` / `failed` / `waived`. Passed and failed have no producers. `proof.gate.waived` is still emitted (`change-contract-store.ts:536`). Stop treating passed/failed as live signals. Historical rows may still be listed as legacy if present. Keep waived scoring only if that emit remains after AC-29’s grep; otherwise drop that score too and say so in DEVLOG.
+- [x] `after-action-report.ts:211–213` still counts `proof.gate.passed` / `failed` / `waived`. Passed and failed have no producers. `proof.gate.waived` is still emitted (`change-contract-store.ts:536`). Stop treating passed/failed as live signals. Historical rows may still be listed as legacy if present. Keep waived scoring only if that emit remains after AC-29’s grep; otherwise drop that score too and say so in DEVLOG.
 - **Closes:** D6, DEL-14
 - **Files:** `after-action-report.ts` + tests
 - **Verify:** tsc ×2; after-action tests
@@ -624,7 +624,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** file exists; method matches AC-0
 
 ### **AC-32 — D9/D10/D11: Stale UI and comment copy**
-- [ ] Fix `default-app-settings.ts:22` (no Settings → Agents; those modes were deleted in UB-7). Fix `failure-ledger.ts:239` (`proof-gate.ts` is gone). Fix `ReasoningAuditSettings.tsx:27–33` Planner/Reviewer / “Show pipeline trace” copy to match current single-agent + reasoning-trail behavior. Historical CLAUDE.md / AGENTS.md phase entries stay historical.
+- [x] Fix `default-app-settings.ts:22` (no Settings → Agents; those modes were deleted in UB-7). Fix `failure-ledger.ts:239` (`proof-gate.ts` is gone). Fix `ReasoningAuditSettings.tsx:27–33` Planner/Reviewer / “Show pipeline trace” copy to match current single-agent + reasoning-trail behavior. Historical CLAUDE.md / AGENTS.md phase entries stay historical.
 - **Closes:** D9, D10, D11, DEL-15, DEL-16, DEL-17
 - **Files:** those three
 - **Verify:** tsc ×2; era-chrome / settings tests if they lock copy
@@ -676,7 +676,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; normalizer tests
 
 ### **AC-40 — TL12: Plugin tools: tell the truth**
-- [ ] C11 already hooks plugin skills (`skill-loader.ts`), slash commands (`slash-commands.ts`), and plugin-owned MCP servers (`mcp-manager.ts` C11 comments). `tool-registry.ts:267` still says “plugin tools (not yet wired).” There is no `providerKind: 'plugin'` native-tool loader.
+- [x] C11 already hooks plugin skills (`skill-loader.ts`), slash commands (`slash-commands.ts`), and plugin-owned MCP servers (`mcp-manager.ts` C11 comments). `tool-registry.ts:267` still says “plugin tools (not yet wired).” There is no `providerKind: 'plugin'` native-tool loader.
 
   Grep for a dead plugin-tool registration hook. If one exists and is dead, delete it. If it never existed, correct ARCHITECTURE + OpenWiki (with AC-33) so “plugin tools” is not a load-bearing claim. Update the `tool-registry.ts:267` comment to name what C11 actually wired. Do not build a new plugin-tool runtime (K10). DEVLOG records which branch was taken.
 - **Closes:** TL12, DEL-20

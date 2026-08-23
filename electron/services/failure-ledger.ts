@@ -235,9 +235,8 @@ export function recordFailure(input: RecordFailureInput, db?: Database): Failure
 }
 
 /**
- * Convert a proof gate or receipt failure event into a ledger entry.
- * Callers in proof-receipts.ts and proof-gate.ts can invoke this after
- * recording their primary events.
+ * Convert a proof-receipt or historical proof-gate event into a ledger entry.
+ * proof-gate.ts is gone (Unburdening). Live caller is proof-receipts.ts.
  */
 export function handleProofEvent(event: {
   type: string

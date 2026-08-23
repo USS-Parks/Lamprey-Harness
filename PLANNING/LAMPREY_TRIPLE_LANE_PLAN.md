@@ -243,7 +243,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** unit tests with mocked HTTP
 
 ### **TL-C4 — Capability posture for local endpoints**
-- [ ] Align with PX2 import posture: tool calling / vision flags default off until probed or user explicitly enables. No silent supportsTools true.
+- [x] Align with PX2 import posture: tool calling / vision flags default off until probed or user explicitly enables. No silent supportsTools true.
 - **Verify:** tests for defaults
 
 ### **TL-C5 — Docs: Train elsewhere, serve, Lamprey**

@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-C4] Local capability defaults stay off  —  2026-08-23
+
+**Files changed:** `electron/services/providers/local-endpoint-capabilities.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest local-endpoint-capabilities
+
+**Notes:** Live import, custom-model reader, and the Models-tab draft already default tools/vision off. C4 locks that. No product change.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-C3] Loud connection-refused probe  —  2026-08-23
 
 **Files changed:** `electron/services/providers/connection-error.ts`, `electron/services/providers/connection-error.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

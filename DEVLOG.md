@@ -1,3 +1,211 @@
+## 2026-08-23 — Operability Debt Phase
+
+## [Operability Debt — Prompt OD-0] Lock the baseline  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `PLANNING/OD_BASELINE.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest (none — docs only)
+
+**Notes:** P-SPR written on this branch (was missing from `main` @ `3e0fde9`).
+Status APPROVED 2026-08-23 — STS by Basho. K8 is v0.30.0. Soft inventory
+S1–S7 recorded open. Line counts match AC method.
+
+**Commit:** 9c748d4
+
+## [Operability Debt — Prompt OD-1] Cap failure settles failed  —  2026-08-23
+
+**Files changed:** `electron/services/headless-turn-settlement.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest headless-turn-settlement + finalize-turn + tool-round-cap-error ✓ (7 tests)
+
+**Notes:** Throws `ToolRoundCapError`, applies the chat.ts abort/user-abort
+rule, then calls `finalizeTurn` on a real `TurnRuntimeRegistry`. Status is
+`failed`, queue withheld, both drains fire. No helper extracted from chat.ts.
+
+**Commit:** d3e2a3e
+
+## [Operability Debt — Prompt OD-2] Cancel settles cancelled  —  2026-08-23
+
+**Files changed:** `electron/services/turn-interrupt.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest turn-interrupt + turn-interrupt-wiring ✓ (9 tests)
+
+**Notes:** K1 lock: result status `cancelled`, event type `turn.interrupted`,
+payload `disposition: 'interrupted'`. Event name not renamed.
+
+**Commit:** 6483047
+
+## [Operability Debt — Prompt OD-3] Closer queues only on completed  —  2026-08-23
+
+**Files changed:** `electron/services/finalize-turn.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest finalize-turn + headless-turn-settlement ✓ (5 tests)
+
+**Notes:** `cancelled` drains documents and artifacts and does not dispatch
+the queue, same as `failed`. `completed` still queues.
+
+**Commit:** 7ae9b2b
+
+## [Operability Debt — Prompt OD-4] Honest gaps with teeth  —  2026-08-23
+
+**Files changed:** `electron/services/operability-debt-safety.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓ (3 tests)
+
+**Notes:** Locks unsigned `signAndEditExecutable: false`, the K1 event/status
+pair, and Current State still naming R1–R4 / supportsTools / OpenWiki /
+unsigned / turn.interrupted. OD-7 will flip the wording to parked/non-goal.
+
+**Commit:** 7db699a
+
+## [Operability Debt — Prompt OD-5] Mid-round drains are not the closer  —  2026-08-23
+
+**Files changed:** `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest chat-turn-settlement ✓ (19 tests)
+- verify:proof --no-tests ✓
+
+**Notes:** Comments on both persist-path drains. Calls not moved into
+finalizeTurn.
+
+**Commit:** cedf9a3
+
+## [Operability Debt — Prompt OD-6] Unlock persist fails loud  —  2026-08-23
+
+**Files changed:** `electron/services/tool-unlock-persist.ts`, `electron/services/tool-unlock-state.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest tool-unlock-state ✓ (12 tests)
+
+**Notes:** Missing-table still no-ops. Any other SQLite error rethrows.
+`unlockTools` does not catch persist failures.
+
+**Commit:** 9402827
+
+## [Operability Debt — Prompt OD-7] Sync Current State parked wording  —  2026-08-23
+
+**Files changed:** `CLAUDE.md`, `AGENTS.md`, `electron/services/operability-debt-safety.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓ (3 tests)
+
+**Notes:** R1–R4 / supportsTools / OpenWiki are parked. Unsigned builds are a
+permanent non-goal. `turn.interrupted` is a kept event name. Native-DB CI
+first-run clause dropped (`3e0fde9`). No v0.30.0 Current State entry yet.
+
+**Commit:** 9cb6bc0
+
+## [Operability Debt — Prompt OD-8] Fold August rows into catalog.ts  —  2026-08-23
+
+**Files changed:** `electron/services/providers/catalog.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest catalog-august-2026 + supports-tools-audit + registry ✓ (60 tests)
+
+**Notes:** Twelve August rows appended. Overlay file still present until OD-9;
+its push loop skips duplicate ids.
+
+**Commit:** 789d76c
+
+## [Operability Debt — Prompt OD-9] Thin registry; delete the overlay  —  2026-08-23
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/catalog-august-2026.ts` (deleted), `electron/services/providers/catalog-august-2026.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest catalog-august-2026 + supports-tools-audit + registry ✓ (61 tests)
+
+**Notes:** Registry re-exports catalog only. No `MODEL_CATALOG.push` loop.
+
+**Commit:** 8af6fb6
+
+## [Operability Debt — Prompt OD-10] Archive spent PLANNING trees  —  2026-08-23
+
+**Files changed:** 72 `PLANNING/*.md` moved to `PLANNING/archive/`, `PLANNING/archive/README.md`, `CONTRIBUTING.md`, live `CLAUDE.md`/`AGENTS.md`/`ARCHITECTURE/`/`RELEASE_NOTES/` pointers, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓ (3 tests)
+- `node scripts/pre-push-scope.test.cjs` ✓
+
+**Notes:** Keep list stayed at `PLANNING/` root (11 markdown files). AC
+authority files not deleted. DEVLOG historical paths left as written.
+
+**Commit:** 0201bf3
+
+## [Operability Debt — Prompt OD-11] PLANNING README pointer  —  2026-08-23
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+
+**Notes:** Live canon is Operability Debt + Audit Closure authority + the
+Codex July ledger. Spent trees point at `archive/`. No current-Codex
+parity claim.
+
+**Commit:** 7d4eff4
+
+## [Operability Debt — Prompt OD-12] Write OD_AFTER  —  2026-08-23
+
+**Files changed:** `PLANNING/OD_AFTER.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+
+**Notes:** Same line-count method as OD-0. Overlay file gone. S1–S7 closed.
+Version bump is OD-14.
+
+**Commit:** a569223
+
+## [Operability Debt — Prompt OD-13] Release notes for v0.30.0  —  2026-08-23
+
+**Files changed:** `RELEASE_NOTES/v0.30.0.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+
+**Notes:** Same plain voice as v0.29.0. No marketing verbs.
+
+**Commit:** e018a12
+
+## [Operability Debt — Prompt OD-14] Phase wrap  —  2026-08-23
+
+**Files changed:** `package.json`, `package-lock.json`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `DEVLOG.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `PLANNING/README.md`, `electron/services/browser-developer-ui-wiring.test.ts`
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- full vitest ✓ (2911 passed / 152 skipped / 0 failed)
+- build ✓
+- smoke:bundle ✓
+- smoke:renderer ✓
+- verify:proof exit 0 (17 ABI-guarded native-DB files skip)
+
+**Notes:** Version 0.30.0. Browser-developer playbook lock retargeted to
+`PLANNING/archive/` after OD-10. Bucket (`pwsh scripts\bucket.ps1`) stays on
+the Windows machine — this session cannot upload to R2.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2911 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:** R1–R4 live playbooks parked; live `supportsTools` probes parked; OpenWiki parked (empty checkout); unsigned builds permanent non-goal; `turn.interrupted` kept on purpose.
+
+**Commit:** pending
+
 ## 2026-08-23 — Audit Closure Phase
 
 ## [Audit Closure — native-DB CI] First Actions run  —  2026-08-23

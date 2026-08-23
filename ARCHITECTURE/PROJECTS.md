@@ -153,7 +153,7 @@ Define a template schema, add a `template_id` or `template` field to the `projec
 
 ## Regression Coverage
 
-The original PRJ defect was a bare `window.prompt('Project name')` handler in the sidebar (cited in `PLANNING/PROJECT_SECTION_AUDIT.md` §1). PRJ-5/6/7 replaced it with a styled `NewProjectModal`, but the PRJ-10 regression test only covered the validation helpers, not the wiring chain. **WC-8 (2026-06-09)** added `src/components/layout/Sidebar.project-flow.test.ts` — a source-reading wiring-contract test that asserts:
+The original PRJ defect was a bare `window.prompt('Project name')` handler in the sidebar (cited in `PLANNING/archive/PROJECT_SECTION_AUDIT.md` §1). PRJ-5/6/7 replaced it with a styled `NewProjectModal`, but the PRJ-10 regression test only covered the validation helpers, not the wiring chain. **WC-8 (2026-06-09)** added `src/components/layout/Sidebar.project-flow.test.ts` — a source-reading wiring-contract test that asserts:
 
 1. `Sidebar.tsx` does NOT call `window.prompt(` to collect a project name (locks the original defect).
 2. `NewProjectModal` is imported and rendered.

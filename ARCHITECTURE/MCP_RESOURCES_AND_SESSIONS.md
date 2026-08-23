@@ -65,7 +65,7 @@ The activity spine records only session state, elicitation id/status/domain, and
 
 Automated gates cover resource capability checks, bounds, cursor and URI binding, cancellation/timeouts, canonical content blocks, lazy discovery, spill integration, hosted auth state and redaction, IPC/preload/UI wiring, safe preview/open rules, build, bundle smoke, and renderer smoke.
 
-`PLANNING/CJ26_MCP_PLAYBOOK.md` freezes the observable local fixture and real hosted-provider workflows. Those receipts remain `USER-VERIFICATION-NEEDED`; local implementation completion is not evidence that a third-party hosted provider completed authorization successfully.
+`PLANNING/archive/CJ26_MCP_PLAYBOOK.md` freezes the observable local fixture and real hosted-provider workflows. Those receipts remain `USER-VERIFICATION-NEEDED`; local implementation completion is not evidence that a third-party hosted provider completed authorization successfully.
 
 ---
 

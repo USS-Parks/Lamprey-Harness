@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { MODEL_CATALOG, resolveModel } from './registry'
-import { AUGUST_2026_MODELS } from './catalog-august-2026'
 
 const EXPECTED_IDS = [
   'deepseek-v4-flash-vision-exp',
@@ -19,7 +20,6 @@ const EXPECTED_IDS = [
 
 describe('August 2026 catalog additions', () => {
   it('registers the documented first-party ids on MODEL_CATALOG', () => {
-    expect(AUGUST_2026_MODELS.map((model) => model.id)).toEqual([...EXPECTED_IDS])
     for (const id of EXPECTED_IDS) {
       expect(MODEL_CATALOG.some((row) => row.id === id), id).toBe(true)
       expect(resolveModel(id)?.id).toBe(id)
@@ -35,9 +35,18 @@ describe('August 2026 catalog additions', () => {
     }
   })
 
-  it('pairs defaultMaxTokens with reasoningCapOnToolUse', () => {
-    for (const row of AUGUST_2026_MODELS) {
-      expect(Boolean(row.defaultMaxTokens), row.id).toBe(Boolean(row.reasoningCapOnToolUse))
+  it('pairs defaultMaxTokens with reasoningCapOnToolUse on the August ids', () => {
+    for (const id of EXPECTED_IDS) {
+      const row = MODEL_CATALOG.find((model) => model.id === id)
+      expect(row, id).toBeTruthy()
+      expect(Boolean(row?.defaultMaxTokens), id).toBe(Boolean(row?.reasoningCapOnToolUse))
     }
+  })
+
+  it('OD-9: registry no longer overlays or imports AUGUST_2026_MODELS', () => {
+    const registry = readFileSync(join(__dirname, 'registry.ts'), 'utf-8')
+    expect(registry).not.toMatch(/AUGUST_2026_MODELS/)
+    expect(registry).not.toMatch(/catalog-august-2026/)
+    expect(registry).not.toMatch(/MODEL_CATALOG\.push/)
   })
 })

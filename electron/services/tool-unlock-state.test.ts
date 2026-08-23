@@ -115,6 +115,18 @@ describe('tool-unlock-state (HY2)', () => {
     expect(getUnlockedTools(C)).toEqual([])
   })
 
+  it('OD-6: persist save that throws fails unlockTools', () => {
+    setToolUnlockPersist({
+      load: () => [],
+      save: () => {
+        throw new Error('disk unavailable')
+      },
+      clear: () => undefined
+    })
+    expect(() => unlockTools(C, ['web_open'])).toThrow('disk unavailable')
+    expect(getUnlockedTools(C)).toEqual(['web_open'])
+  })
+
   it('TL14: downgraded getUnlockedTools returns [] so unlocks cannot leak', () => {
     setToolUnlockPersist(memoryPersist())
     unlockTools(C, ['browser_screenshot'])

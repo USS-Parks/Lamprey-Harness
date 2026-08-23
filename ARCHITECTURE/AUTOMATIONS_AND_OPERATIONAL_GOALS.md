@@ -61,7 +61,7 @@ and user lifecycle controls through typed IPC.
 
 Automated evidence covers strict tools, trigger state and fake clocks, migration/restart
 behavior, authority transitions, ceiling composition, loop safety, UI wiring, build, bundle
-smoke, and renderer smoke. `PLANNING/GA_AUTOMATION_GOAL_PLAYBOOK.md` is the owner-operated
+smoke, and renderer smoke. `PLANNING/archive/GA_AUTOMATION_GOAL_PLAYBOOK.md` is the owner-operated
 background/restart gate. Until that receipt exists, v0.26.0 is implementation-complete but
 not live background/restart parity-complete.
 

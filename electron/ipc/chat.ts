@@ -1060,6 +1060,9 @@ export async function runChatRound(
               // content the model streamed IS the reply, byte-for-byte. The
               // UB-4 note still applies: no proof gate, no trust notice, no
               // proof_status write.
+              // Mid-round drain (OD-5): attach pending docs/artifacts to this
+              // in-flight assistant row. Not a turn-closer — finalizeTurn owns
+              // the close-drain when the runtime settles.
               const documents = drainPendingDocuments(correlationId)
               const artifacts = drainPendingArtifacts(correlationId)
               // R6 (kept) — fold every round's chain-of-thought into the saved
@@ -1258,6 +1261,9 @@ export async function runChatRound(
             const hasPartial = !!(partial && (partial.content || partial.reasoning))
             if (hasPartial) {
               try {
+                // Mid-round drain (OD-5): attach pending docs/artifacts to the
+                // partial assistant row. Not a turn-closer — finalizeTurn owns
+                // the close-drain when the runtime settles.
                 const documents = drainPendingDocuments(correlationId)
                 const artifacts = drainPendingArtifacts(correlationId)
                 const errorMarker = `\n\n_[stream interrupted: ${error}]_`

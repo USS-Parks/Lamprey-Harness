@@ -148,7 +148,7 @@ export interface InterruptTurnRequest {
 
 export interface InterruptTurnResult {
   turnId: TurnId
-  status: 'interrupted'
+  status: 'cancelled'
   recoveredFollowUps: number
   persisted: boolean
 }

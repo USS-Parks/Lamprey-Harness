@@ -1,5 +1,19 @@
 ## 2026-08-22 — Audit Closure Phase
 
+## [Audit Closure — Prompt AC-2] One cancel path, one settlement status  —  2026-08-22
+
+**Files changed:** `electron/ipc/chat.ts`, `electron/services/turn-interrupt.ts`, `electron/services/turn-control-types.ts`, `src/lib/turn-control-types.ts`, `electron/services/turn-interrupt.test.ts`, `electron/ipc/turn-interrupt-wiring.test.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `electron/services/task-delivery.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest turn-interrupt + wiring + chat-turn-settlement + task-delivery + audit-wiring + turn-control-wiring + lifecycle ✓ (34 tests)
+- verify:proof --no-tests ✓
+- user-verification-needed: Stop a live turn; confirm settlement is cancelled (not interrupted) and Activity still shows the turn.interrupted event
+
+**Notes:** `chat:cancel` now awaits `interruptTurn` and returns that envelope. No active run still returns `{ success: true, data: null }` — no fake settle. User-stop settlement is `cancelled`. Audit event name `turn.interrupted` and payload `disposition: 'interrupted'` stay this phase (K3). Renderer toast copy may still say “interrupted.”
+
+**Commit:** pending this prompt
+
 ## [Audit Closure — Prompt AC-1] Settle the tool-round cap as failure  —  2026-08-22
 
 **Files changed:** `electron/services/tool-round-cap-error.ts`, `electron/services/tool-round-cap-error.test.ts`, `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`

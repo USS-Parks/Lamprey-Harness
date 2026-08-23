@@ -93,13 +93,13 @@ describe('shared task delivery', () => {
   it('routes interruption through the exact-turn action', () => {
     const interrupt = vi.fn(() => ({
       success: true as const,
-      data: { turnId: 't1', status: 'interrupted' as const, recoveredFollowUps: 0, persisted: true }
+      data: { turnId: 't1', status: 'cancelled' as const, recoveredFollowUps: 0, persisted: true }
     }))
     const service = createTaskDeliveryService({
       actions: { queue: vi.fn(), steer: vi.fn() },
       interrupt: interrupt as never
     })
-    expect(service.interrupt('target', 't1')).toMatchObject({ status: 'interrupted' })
+    expect(service.interrupt('target', 't1')).toMatchObject({ status: 'cancelled' })
     expect(interrupt).toHaveBeenCalledWith({ conversationId: 'target', expectedTurnId: 't1' })
   })
 })

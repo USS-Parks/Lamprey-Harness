@@ -27,7 +27,7 @@ export interface TurnInterruptDependencies {
   reportError: (message: string, error: unknown) => void
   emitSettled: (
     runtime: TurnRuntime,
-    status: 'interrupted',
+    status: 'cancelled',
     completedAt: number,
     persisted: boolean
   ) => void
@@ -134,14 +134,14 @@ export function createTurnInterruptAction(deps: TurnInterruptDependencies) {
 
     let persisted: boolean
     try {
-      persisted = deps.runtimes.settle(runtime, 'interrupted', interruptedAt)
+      persisted = deps.runtimes.settle(runtime, 'cancelled', interruptedAt)
     } catch (error) {
       // Registry settlement deliberately marks/removes the runtime before its
       // durable write. Startup orphan recovery repairs that write honestly.
       persisted = false
       deps.reportError('[turn-interrupt] settlement persistence failed', error)
     }
-    deps.emitSettled(runtime, 'interrupted', interruptedAt, persisted)
+    deps.emitSettled(runtime, 'cancelled', interruptedAt, persisted)
 
     try {
       deps.record({
@@ -170,7 +170,7 @@ export function createTurnInterruptAction(deps: TurnInterruptDependencies) {
       success: true,
       data: {
         turnId: runtime.turnId,
-        status: 'interrupted',
+        status: 'cancelled',
         recoveredFollowUps,
         persisted
       }

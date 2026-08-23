@@ -83,4 +83,18 @@ Lane A is that gate, scoped by this Triple Lane P-SPR (K2/K3/K12). No change to 
 | `electron/services/default-app-settings.ts` | 120 |
 | `src/stores/settings-store.ts` | 104 |
 
+## 8. Lane C audit (TL-C1, 2026-08-23)
+
+Recorded against `feat/triple-lane` after TL-B6 (`ff19a96`). Product code unchanged in this prompt.
+
+| Path | What exists | Gap for Lane C |
+|------|-------------|----------------|
+| Keychain | Custom endpoint ids are first-class (`readCustomProviderDescriptors`). `requiresKey !== true` ⇒ `keyOptional`; stored key still used if present. Built-in ids cannot be shadowed. | None for shadowing. |
+| Settings UI | `ApiKeySettings` Groups include Local runtimes (`ollama`, `lmstudio`) plus a Custom endpoints add form (`id` / `label` / `baseURL` / `requiresKey`). Base URL field on `baseUrlConfigurable` cards writes `providerBaseUrlOverrides`. | **No one-click presets.** Unsloth is absent. |
+| Built-ins | `ollama` `http://127.0.0.1:11434/v1`, `lmstudio` `http://127.0.0.1:1234/v1`, empty catalogs, keyless placeholder `'local'`. | Presets must set `providerBaseUrlOverrides` when unset — adding them as `customProviders` is rejected. |
+| `validateProviderKeyDetailed` | GET `/v1/models` via `listLiveModelIds`; 401/403 = bad key; else chat probe. UI Test button shows `reason`. | Connection-refused / fetch-failed is a raw SDK message, not a loud “nothing is listening” line (TL-C3). |
+| Model menu | Custom models from `settings.json` `customModels`. Live import `model:importLive` → `buildLiveModelImports`. | Import already defaults `supportsTools` / `supportsVision` **false** (PX2). Manual add draft starts false. Keep that lock (TL-C4). |
+| Tool surface | `usableTools` only when `desc.supportsTools`. Approval / snip / gated filters still wrap local tools (K10). | Do not add a plugin-tool runtime. |
+| Unsloth | Not a built-in. | Custom provider preset only (`unsloth`, editable OpenAI-compatible URL). No training UI (K6). |
+
 Authored and reviewed by Basho Parks, copyright 2026

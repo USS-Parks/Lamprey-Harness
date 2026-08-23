@@ -229,7 +229,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Lane C — Local Endpoint Polish
 
 ### **TL-C1 — Audit custom endpoint path**
-- [ ] Baseline how customProviders / custom OpenAI-compatible endpoints appear in keychain, validateProviderKey, model menu, and tool surface. Record gaps in TL_BASELINE or DEVLOG.
+- [x] Baseline how customProviders / custom OpenAI-compatible endpoints appear in keychain, validateProviderKey, model menu, and tool surface. Record gaps in TL_BASELINE or DEVLOG.
 - **Closes:** S3 (orient)
 - **Verify:** written notes
 

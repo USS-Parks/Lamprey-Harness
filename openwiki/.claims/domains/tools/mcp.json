@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:b8c150cbc95e6002f910c75372b8186fa20ec9a4c9f0bcaf2a42c0345874060e",
+  "claims": [
+    {
+      "id": "claim_c23d20b5869b40de95f7957bc99ad8f4",
+      "statement": "MCP (Model Context Protocol) resources are discovered, paginated, and read through strict lazy tools that list resources/templates and read exact server/URI pairs; capability-aware manager APIs expose resource schemas and prevent access to unsupported features.",
+      "evidence": [
+        {
+          "resource": "repo://ARCHITECTURE/MCP_RESOURCES_AND_SESSIONS.md#L1-L50",
+          "version": "repo-lines-v1:sha256:3de3fe4e67244677bb90865831ec7a474df47b05b18d61fc315551fc64d16c0c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5MTQ4ZjFmZWU4ZDEyODAyMTJkMmM3N2I0ODEzOWFjODNhNTMzZjJmYmJhZGY0YmQyNWQ4N2FhZWY0MTk1NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZjc2YTk0Mzc0YWVjZWQ5MDQyOWIyNDJmMzA2N2U4NTJjZjhhNDE5MmYzNmM3M2IyNTFjNGY0ZjVhYmI5NjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2NmM1NGE1OGVjY2YyZDNmNmFkYjQyOTU5Y2Y3OWViNWEwYzRlNjk3ZTM5OWU0MzY1ZDg2YWRmMWMzNmI4NDkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b6a6cea3b65941668e23c5cc645496fb",
+      "statement": "Streamable HTTP connectors support OAuth 2.1 with PKCE (v0.24.0), encrypted keychain storage, reauthorization, expiry/reconnect state, and consent-gated URL elicitation; resource reads use the existing large-result spill valve for payloads > 8KB.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L64-L64",
+          "version": "repo-lines-v1:sha256:b2bc23f87ae4828d893ed0c2f34045edee8b185d0a223895bfb1bb9de57b7764:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjJiYzIzZjg3YWU0ODI4ZDg5M2VkMGMyZjM0MDQ1ZWRlZThiMTg1ZDBhMjIzODk1YmZiMWJiOWRlNTdiNzc2NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjJiYzIzZjg3YWU0ODI4ZDg5M2VkMGMyZjM0MDQ1ZWRlZThiMTg1ZDBhMjIzODk1YmZiMWJiOWRlNTdiNzc2NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGYzMzA5ZTQwZDU2OTA0ZjgzMTdiNmFhZDhlNmE3ZDU1MjM3MDY0YmY4ZmRhYjZmNGQ3ZTNkZDg5ZGFlZGYzMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGYzZWFiNjU1ZTUxNTdjZTQzODMyY2I2MWVjN2RhN2Q5N2UyYTgyMGIzN2RjZmQ4ZThhODE5MTAxYzNmYWUxMCJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L64-L64",
+          "version": "repo-lines-v1:sha256:10eadab3594bc582f18b564334b6dd6b77246f76708964fd95a54a0a14206b22:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTBlYWRhYjM1OTRiYzU4MmYxOGI1NjQzMzRiNmRkNmI3NzI0NmY3NjcwODk2NGZkOTVhNTRhMGExNDIwNmIyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTBlYWRhYjM1OTRiYzU4MmYxOGI1NjQzMzRiNmRkNmI3NzI0NmY3NjcwODk2NGZkOTVhNTRhMGExNDIwNmIyMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmY3OTRiOWFkMWVhODgzNTNiZjUxMmUyZmJmMGVhOTRmNzQ2NGUxNjgwN2E0YzRjMDdiMjNlNjkwNDQ5ZWI3MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTdlYzhmOTBhZDJlZTQ0YzdlMGNiMzI5ODg5OWE1YjBiZTJjMDc2ZTA1YzI3N2FjMzM0MWMxM2E1YzhmMDkyZiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.3.3",
+    "at": "2026-08-23T18:40:37.531Z"
+  }
+}

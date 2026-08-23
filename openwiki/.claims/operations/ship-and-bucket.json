@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:71f980c1da1e3fd52a29f66d549fbffb50096e77f6a50e03de65a721cbb7b52e",
+  "claims": [
+    {
+      "id": "claim_fde974be15db4b28ac9d24f334d0d4f5",
+      "statement": "Bucket pipeline is the full ship sequence: npm run build:win (Windows only, produces dist/), git tag vX.Y.Z, git push origin vX.Y.Z, GitHub Actions build.yml triggers and builds Windows NSIS installer, Linux AppImage, and macOS DMG, gh release create vX.Y.Z uploads artifacts, and pwsh scripts/bucket.ps1 orchestrates the entire flow from version bump through CDN upload and DNS purge.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L85-L89",
+          "version": "repo-lines-v1:sha256:830caa351edea52fce1805c2644f1b7ff25bf1629a23bf03ab2f5b29c329fb7e:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmY5NzUzNzE0MDQ1ZDEyMWZlYjVhNmYzMTY5ZjM0NDk2OTMzNjFlZDZjMDQyNzU2ZDgyYWI1NTFlNDZmNDc2ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBlYWVjYjdjNjUwZjRiY2IxMzAyMjRjM2VhODZkM2NjMWZhNWFjMzdjZWY2NzI3ZmVlZDlkMDQ2Y2VhNGY3MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjA3OWYxNDA1MmRjZTVmOTk3NGEwZDE3YWUzMDBlZGU1OGI0MmI0M2FhNGZlZmIwZDEyMmIzYjM4NjNiZmExNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjU4MWNjNjJmODdjNWQ1MjQ1MmZhYjQ5ODI5NTJjYTA0ZGFiZjY0MGMwNmVlOWE2NWM3MGFmNTkxYWU0ODdiNiJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L85-L89",
+          "version": "repo-lines-v1:sha256:830caa351edea52fce1805c2644f1b7ff25bf1629a23bf03ab2f5b29c329fb7e:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmY5NzUzNzE0MDQ1ZDEyMWZlYjVhNmYzMTY5ZjM0NDk2OTMzNjFlZDZjMDQyNzU2ZDgyYWI1NTFlNDZmNDc2ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBlYWVjYjdjNjUwZjRiY2IxMzAyMjRjM2VhODZkM2NjMWZhNWFjMzdjZWY2NzI3ZmVlZDlkMDQ2Y2VhNGY3MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjA3OWYxNDA1MmRjZTVmOTk3NGEwZDE3YWUzMDBlZGU1OGI0MmI0M2FhNGZlZmIwZDEyMmIzYjM4NjNiZmExNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjU4MWNjNjJmODdjNWQ1MjQ1MmZhYjQ5ODI5NTJjYTA0ZGFiZjY0MGMwNmVlOWE2NWM3MGFmNTkxYWU0ODdiNiJ9"
+        },
+        {
+          "resource": "repo://README.md#L83-L89",
+          "version": "repo-lines-v1:sha256:c77e9c1cbbc7ba8056e0cb813d490472128324aaadf66db0ad5738ac90d4d5cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODFkNWEyODkyN2NlZjg4YTRmMWZhMDg5NmIyMGYwM2FkOTYyYjEzMGMzMmJkN2E5NmZhN2M0OGRmN2Y3NjgzYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTlmMzI1OGE2YzdkZTQ0OGE4MmJjYTE1MzE1ZjVkZDk3NDlkMGM2ZjQxZWVlN2VmODRhZjFjNWJiOGY5ZWRkMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjY5YTEyZDJiYWU5YzIwNjUyYzQ5OWI5M2NlOWZlOWI3NDYyNDU5NzFmZDA3MjE2MmVjOTczNTlmY2RkNTgyNSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_cec77d4339d54080b2b9bcc7956d112e",
+      "statement": "CI/CD (build.yml) runs on ubuntu, windows, and macos: installs dependencies, runs tsc + eslint + vitest, builds distributable artifacts (Windows NSIS .exe, Linux AppImage, macOS DMG), and on tag push attaches all four artifacts to the GitHub release.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/build.yml",
+          "version": "repo-file-v1:sha256:38091c9328c792cd9447cc073a83c1e0424faf09ab70efd908f3fbbf188552ab"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L85-L89",
+          "version": "repo-lines-v1:sha256:830caa351edea52fce1805c2644f1b7ff25bf1629a23bf03ab2f5b29c329fb7e:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmY5NzUzNzE0MDQ1ZDEyMWZlYjVhNmYzMTY5ZjM0NDk2OTMzNjFlZDZjMDQyNzU2ZDgyYWI1NTFlNDZmNDc2ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBlYWVjYjdjNjUwZjRiY2IxMzAyMjRjM2VhODZkM2NjMWZhNWFjMzdjZWY2NzI3ZmVlZDlkMDQ2Y2VhNGY3MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjA3OWYxNDA1MmRjZTVmOTk3NGEwZDE3YWUzMDBlZGU1OGI0MmI0M2FhNGZlZmIwZDEyMmIzYjM4NjNiZmExNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjU4MWNjNjJmODdjNWQ1MjQ1MmZhYjQ5ODI5NTJjYTA0ZGFiZjY0MGMwNmVlOWE2NWM3MGFmNTkxYWU0ODdiNiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_48a859982b5f4cd89b2cc7771be07378",
+      "statement": "Version schema: v0.30.0 format in package.json and RELEASE_NOTES/vX.Y.Z.md; RELEASE_NOTES.md contains release highlights read by bucket.ps1 when writing GitHub release body; dist/ is gitignored electron-builder output never committed.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L2-L2",
+          "version": "repo-lines-v1:sha256:31afb3cbd9b0d4ff8e0b0e1c950af6144a046283f09878feb3c13c817d58fc88:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzFhZmIzY2JkOWIwZDRmZjhlMGIwZTFjOTUwYWY2MTQ0YTA0NjI4M2YwOTg3OGZlYjNjMTNjODE3ZDU4ZmM4OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzFhZmIzY2JkOWIwZDRmZjhlMGIwZTFjOTUwYWY2MTQ0YTA0NjI4M2YwOTg3OGZlYjNjMTNjODE3ZDU4ZmM4OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjEsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmYjA4ZmRhMWFjYjk1N2I2MTE2YmQzNzgxMWExZmU0MWEwMTYxMWMwNjMxZWRiZjc4NmQ2ODg5YTI3YTU1YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzgwYWRiYzhhYzVkNTU1MzAwMzE0YTEwZmQ5ZjQ5YmE1YTEwYjdlOTRmODI3ZjE4OWIzNGExNTZiMGVmOWE3NyJ9"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L85-L89",
+          "version": "repo-lines-v1:sha256:830caa351edea52fce1805c2644f1b7ff25bf1629a23bf03ab2f5b29c329fb7e:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmY5NzUzNzE0MDQ1ZDEyMWZlYjVhNmYzMTY5ZjM0NDk2OTMzNjFlZDZjMDQyNzU2ZDgyYWI1NTFlNDZmNDc2ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBlYWVjYjdjNjUwZjRiY2IxMzAyMjRjM2VhODZkM2NjMWZhNWFjMzdjZWY2NzI3ZmVlZDlkMDQ2Y2VhNGY3MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjA3OWYxNDA1MmRjZTVmOTk3NGEwZDE3YWUzMDBlZGU1OGI0MmI0M2FhNGZlZmIwZDEyMmIzYjM4NjNiZmExNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjU4MWNjNjJmODdjNWQ1MjQ1MmZhYjQ5ODI5NTJjYTA0ZGFiZjY0MGMwNmVlOWE2NWM3MGFmNTkxYWU0ODdiNiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.3.3",
+    "at": "2026-08-23T18:40:37.531Z"
+  }
+}

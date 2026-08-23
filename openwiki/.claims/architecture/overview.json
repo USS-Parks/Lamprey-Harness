@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:eded1e230dd47ce20dfb148b206960cdef1befd325949537ce8e01117dc3f139",
+  "claims": [
+    {
+      "id": "claim_d05d10e7d1f84b0d8e21a1be81c07d9c",
+      "statement": "Lamprey runs as a single-agent harness by default after the Unburdening Phase (v0.14.0) deleted the multi-agent pipeline (Planner → Coder → Reviewer), the auto-router, and the runtime proof-gate machinery; the multi_agent_run tool survives for explicit multi-agent asks.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L49-L52",
+          "version": "repo-lines-v1:sha256:24578417d6dfab68d2d8244b4316320e47b1356e98bed155724afa4de34b784b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBiMmZhZTRiYjViMzA4MTU0OTliNGJmZWM5MDAyNmEyMWJlNjUwNDhjMzJhZDk2MGVhYjM3MjBlOTlhNGIzMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTQ1NjQ2NTU5NWI5N2ZiY2ZjMjBmNzk4ZTE2NjJlOWYxN2FiY2JjOTMyNzI3NDQ0ZWE2NWZhYjEzMDkzZDZmMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTEwNjlhN2FmMDkxNDU2NGU1ZTNmZjNmZjkwODA4OTQ3NTNlNWQ0YzBkZjRhZDI2ZTc3MjM0ODhlNjllN2E5YyJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L49-L52",
+          "version": "repo-lines-v1:sha256:0f4a2d6cf2e43643bbcbb0a510a62259255f475a176d9f924364ab7bce3f1584:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGUxZWQ0ZGNjMzAxODJhMDJmYWNhZWY1MjU4ZmIwNWJkYmJkM2RiMjM2YTBiYWFlODdmMGYxNzVkNjgwZjllOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDZmNzhjM2Q4MmI4NGNmZTcyNDljMGMxZDQ3NDU1OTk2ZmVjYjE4YmJmMGQ1ZmQxZWIxNDUyMDIyY2NhOGQ1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGNiMWU1ZWJlNjYyNWRhZWVjNGFhYzk4ZTk5ZjkxYzdjZTc3ZTRiODJhOGJkZDc3M2U1ZTdkMjVhZTg5ZWJiNyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0f3f36bb40834da489571f2599ef8b2e",
+      "statement": "33 built-in providers include frontier labs (DeepSeek, OpenAI, Anthropic, Google), regional specialists (DashScope/Alibaba, Moonshot, Zhipu), aggregators (OpenRouter), open-source routers (Hugging Face), and local runtimes (Ollama, LM Studio); all use OpenAI-compatible `/v1/chat/completions` protocol except Google which uses `v1beta/openai/`.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L14-L16",
+          "version": "repo-lines-v1:sha256:57501907cc0df66309fd0e6905d8ddaf95c3b99f87cb3bc680c198560015920d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzZmMzRkYmYyYTAwYzgyYjlkYmQzM2IyN2ZkOGI5MDFlOTI1MTgwMjQ0Yjg5ODg0MTU0ZTM2ODdjMWQ4YTE4NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODFjZDE3ZmIzY2M4OTc0ZDY3ZmQzZjQ5MTQxZDhjZGE0MGZhZTExNTI5MTk2NWEyNzM2OTVhODc1ZDc4M2YyNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjM2MzM0ZmE0ODEzOTcyMTk1YjhhYTlhZDIxNTg2NGNkZWMxZDQyYzdiZGVlOGNmYTZmMDljY2FjYjhiNmJmYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2RjN2M2NmEzMDlkZWZlNmExMDFlNmMyNTJjODQ5NzNhOTdhY2U5ZGRjNzllYTJkMjBkZDYwZmMzMTc5ZTQ2MCJ9"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L57-L57",
+          "version": "repo-lines-v1:sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGNiMWU1ZWJlNjYyNWRhZWVjNGFhYzk4ZTk5ZjkxYzdjZTc3ZTRiODJhOGJkZDc3M2U1ZTdkMjVhZTg5ZWJiNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODY0YzQ0YjhjNDNiMTI2MTI4MjBjNTAyYWIwYzViZjYyYWEyNmNkMWI2NDliYzI4NWMyZjA4NmYxMzNiYzA3YyJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L14-L16",
+          "version": "repo-lines-v1:sha256:3efbcdec0936e81f88d29ed84c3aa29629f4bf6139d84751548b02b93db176b5:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzZmMzRkYmYyYTAwYzgyYjlkYmQzM2IyN2ZkOGI5MDFlOTI1MTgwMjQ0Yjg5ODg0MTU0ZTM2ODdjMWQ4YTE4NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmQ3MGM2Nzk1NDkzNmQ0NDkwMDE4MjMxMzVhZDliNzNhZjhiODZjMGY4ODc5NWIzYTUxZDYzZTE4MTNiMjdmOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjM2MzM0ZmE0ODEzOTcyMTk1YjhhYTlhZDIxNTg2NGNkZWMxZDQyYzdiZGVlOGNmYTZmMDljY2FjYjhiNmJmYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODlmZTA5MDEwZGQ3ZTMyOWQ4NmQwODZkMThiOWY2MzZlM2FjOGE0ZTg5OTQ4YjA5NTQ3OTdjYTRkYjcyNzM0NCJ9"
+        },
+        {
+          "resource": "repo://ARCHITECTURE/FUNCTION_CALLING.md#L16-L16",
+          "version": "repo-lines-v1:sha256:7ff03fb92e79c95ab3e6b44484476169a093ad5f2579ff49982a164706288a51:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ZmMDNmYjkyZTc5Yzk1YWIzZTZiNDQ0ODQ0NzYxNjlhMDkzYWQ1ZjI1NzlmZjQ5OTgyYTE2NDcwNjI4OGE1MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ZmMDNmYjkyZTc5Yzk1YWIzZTZiNDQ0ODQ0NzYxNjlhMDkzYWQ1ZjI1NzlmZjQ5OTgyYTE2NDcwNjI4OGE1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWRmZTVlNGY0NGRiNGQwMWFlMzE0NGEyMzYzZmIzZjk1Yzg4YmI0ZjM0OGEyMTZkZjRkNDhkYzI0NjI5MGVhYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDAxZjJlYzE3NTkzYzEwNTRlYjQ2MzY3ZDg0NTNlZjI0YTE3M2NlOTZiNzExN2Q5MWY5YTY4ZDQ0ZmVmOGIwMSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3452713b49b9499ea74899f9596409eb",
+      "statement": "Main process owns provider dispatch (chatStream/chatOnce), turn runtime management (turn identity, interruption, settlement), SQLite persistence (conversations, turns, messages, artifacts, agent runs, loops), MCP management, and loop/automation controllers; the renderer issues IPC requests and receives streamed events.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L8-L8",
+          "version": "repo-lines-v1:sha256:4210405d8bd493e993a22c416a6fcbf43e4da4576a03c5871f24c408f7d841d5:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDIxMDQwNWQ4YmQ0OTNlOTkzYTIyYzQxNmE2ZmNiZjQzZTRkYTQ1NzZhMDNjNTg3MWYyNGM0MDhmN2Q4NDFkNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDIxMDQwNWQ4YmQ0OTNlOTkzYTIyYzQxNmE2ZmNiZjQzZTRkYTQ1NzZhMDNjNTg3MWYyNGM0MDhmN2Q4NDFkNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ5MWQ3MGI4NmZiNzAwMjNjNjRmZTMxYzkzMmQxMGM1MDMyNzk3NGM2YTA0YTZiZWNjMGZhOTdkYjY4Yjg1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWEyOWFlZTU5MWVhODcyODI5NDYyYTYyMWEzNmE1OWE0M2NhOGYwZDFhNzUwZGY5NDYwMThiMTEyYmM2NGYwMCJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L6-L11",
+          "version": "repo-lines-v1:sha256:0a83b9f24c42f8689c015b242686ad2b1b374972189c6960b91c21bfacb70615:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODJhZWFlNWQyMTQ2NjVjYjE1ZTRhNDE2NGJmMzA5ZDFmOTJlMGM1N2JlZWY3NmU5NGUzZGFhMTc2OWJkYWU1MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTBhOGYxNmIwNWQ3NmVlYTBmZmU0ZWRiZTQ4ZTI0N2E1ZTk4MDk2NTk0MzYxODM3ZWY5MWFiNGQ3NmEyMDZjZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWQxODU2ODcyMzYwODQ2YTM4ZDQ0ZGVjNjY1YTNjMzJlMjgxMmZjNWExNTNhNmRhMDE3ZjJkMDlkMTdmMWFhMyJ9"
+        },
+        {
+          "resource": "repo://ARCHITECTURE/TURN_CONTROL_AND_STEERING.md#L25-L37",
+          "version": "repo-lines-v1:sha256:455b98ee3e423f413e05b08a10a720ac1dae24232c31b67abac5218a6f8ef7b6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2NGQ1YmI3ZWRiOTMxNzcwMjJhN2FjMzcwMzc1MGRjMzAxZDY5ZDMzOTM3MjJjYTVkYmMwMzI2NDJmZWM2MzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwYWJmMWZmNTM3YzcyNmY4NGY5NTlkNzA2MmUxM2Y5YWUwNWYzZTc1NjdjOWNmYjk2OTkwMzYyZjA1NzRjYjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJhNzUzNjAzNmMwNDFhZDZmNjI3YmUzZTg3YzI4ZDgyY2EzODY3YzRhYTYyOWY2ZmE2YzJiNzUzY2ViODU1YTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNWY1ZmE1OTEwZDMyNjg0MjAxNzBkMTUzNmU1M2M4ZGRjZmYwYWJlMjc2MzkwMDIwOTRmNzc4MzM4NzBmMDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a8f086d53e754b5a9212fdbeb83d9b55",
+      "statement": "Chat turns are executed via runHeadlessTurn (entry point for regular chat, loops, and wake-ups) which invokes runChatRound (the core dispatch loop handling streaming, tool calls, and settlement); tool calls are dispatched after argument validation and either follow native pathway (supportsTools: true) or fallback parser pathway (text → JSON contract).",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L8-L8",
+          "version": "repo-lines-v1:sha256:4210405d8bd493e993a22c416a6fcbf43e4da4576a03c5871f24c408f7d841d5:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDIxMDQwNWQ4YmQ0OTNlOTkzYTIyYzQxNmE2ZmNiZjQzZTRkYTQ1NzZhMDNjNTg3MWYyNGM0MDhmN2Q4NDFkNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDIxMDQwNWQ4YmQ0OTNlOTkzYTIyYzQxNmE2ZmNiZjQzZTRkYTQ1NzZhMDNjNTg3MWYyNGM0MDhmN2Q4NDFkNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ5MWQ3MGI4NmZiNzAwMjNjNjRmZTMxYzkzMmQxMGM1MDMyNzk3NGM2YTA0YTZiZWNjMGZhOTdkYjY4Yjg1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWEyOWFlZTU5MWVhODcyODI5NDYyYTYyMWEzNmE1OWE0M2NhOGYwZDFhNzUwZGY5NDYwMThiMTEyYmM2NGYwMCJ9"
+        },
+        {
+          "resource": "repo://ARCHITECTURE/FUNCTION_CALLING.md#L139-L190",
+          "version": "repo-lines-v1:sha256:a36e2a862f957271bf3a0d1bea2f98545a7a637e19002a10329b28e8491636f9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwM2ZlYjg1ZWU5M2JjYmNmZTBlNDExNWQwZDU0ZTBhN2NmNzAyZWYyOTBiYjUyNzljODg0NDRjYmQ1MzRkMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwMWYyZWMxNzU5M2MxMDU0ZWI0NjM2N2Q4NDUzZWYyNGExNzNjZTk2YjcxMTdkOTFmOWE2OGQ0NGZlZjhiMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmMGU3MjY2ZmIzYTIxZGZmMzNkMWNiZjkxZjcxMWVlNjc2Njk5NmE2ODY4MWE4OGM1MDk1ODgwMTAzZDYzOTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2359b902124e43eda21aa6939d8a48c9",
+      "statement": "Turn settlement is exact-once via finalizeTurn function which recovers pending Steer follow-ups, settles the runtime to a durable status (completed/failed/cancelled/interrupted), emits settlement events, drains pending documents/artifacts, and dispatches the next queued follow-up if the turn completed successfully.",
+      "evidence": [
+        {
+          "resource": "repo://electron/services/finalize-turn.ts#L71-L112",
+          "version": "repo-lines-v1:sha256:b642b9c92307aa592e6872f5366db27b1c4fd9f008afa3a4a949976f337900fe:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0Mjg0Nzg3ZjM4ZGVlYjAyN2ViNDQ4ZjMxNDkyM2Y4MjQ1Y2VmMzM2NDkyZTMwYjA4YjRjYjE2MDZlNjAwZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwZmExNzA1NWZkZTJkZDY1YmQyYmM2NjJkNmNjZjY5MDQwYjMxMzQyOWFiNDQ4ZDUyZjlmOWNlNTNiOTk0NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://ARCHITECTURE/TURN_CONTROL_AND_STEERING.md#L39-L78",
+          "version": "repo-lines-v1:sha256:100345b9b24d36c9a073d8f103d1b0ff9744b68aefa4d951e512fd30dfafddfd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmYjIwNGVmMGYwYjMxZTI0MDM5NDhlMzYzM2Q4NDc4ZGM4OTk2MDYzMzA4OTFkMmRjYmU0ODYxOTE2YTdhZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3NzFmMzU0NGFlMWYxODg4MDg2NTA2MzlhZGYxNGFlNTdmOWY0MGEwNzE5YWQ5ZWZlMDAyMzUwYjdmMDRmNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwNTRjY2Q2MjJlYjQzZWQ4NGVkNzc4NGJlMmY3NmM1ZDBlN2E5MGM1OWY1NjM1MGI3ZmNhYWI0OTc1NWM0MjAifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.3.3",
+    "at": "2026-08-23T18:40:37.531Z"
+  }
+}

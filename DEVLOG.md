@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-B2] OpenRouter fallback models  —  2026-08-23
+
+**Files changed:** `electron/services/providers/openrouter-routing.ts`, `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/services/default-app-settings.ts`, `electron/services/default-app-settings.test.ts`, `src/lib/types.ts`, `src/stores/settings-store.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest openrouter-routing + registry + default-app-settings ✓ (69 tests)
+
+**Notes:** Empty `openrouterFallbacks` sends no `models` field. DeepSeek bodies stay unchanged (K4). UI for editing the list is TL-B4.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-B1] Map OpenRouter code paths  —  2026-08-23
 
 **Files changed:** `PLANNING/TL_OPENROUTER_MAP.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

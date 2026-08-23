@@ -202,7 +202,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** map exists
 
 ### **TL-B2 — Fallback model list on OpenRouter requests**
-- [ ] When settings supply an ordered fallback list, send OpenRouter fallback fields on OpenRouter-provider calls only (K4/K5). Leave non-OpenRouter providers untouched.
+- [x] When settings supply an ordered fallback list, send OpenRouter fallback fields on OpenRouter-provider calls only (K4/K5). Leave non-OpenRouter providers untouched.
 - **Files:** providers helpers/registry, settings types, tests
 - **Verify:** typecheck; unit tests for request body shaping
 

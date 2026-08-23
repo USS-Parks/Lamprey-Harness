@@ -60,7 +60,8 @@ const defaultSettings: AppSettings = {
   orchMaxWallclockMs: 1800000,
   orchMaxCandidates: 4,
   orchMaxDepth: 2,
-  orchAdvisorModel: ''
+  orchAdvisorModel: '',
+  openrouterFallbacks: []
 }
 
 interface SettingsState {

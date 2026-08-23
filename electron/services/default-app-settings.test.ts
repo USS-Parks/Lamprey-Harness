@@ -136,6 +136,11 @@ describe('SP-1 defaults parity — canonical vs renderer literal', () => {
     expectRendererDefault('orchAdvisorModel', `'${DEFAULT_APP_SETTINGS.orchAdvisorModel}'`)
   })
 
+  it('TL-B2: OpenRouter fallbacks default to empty (no extra body)', () => {
+    expect(DEFAULT_APP_SETTINGS.openrouterFallbacks).toEqual([])
+    expectRendererDefault('openrouterFallbacks', '[]')
+  })
+
   it('every canonical key appears in the renderer literal', () => {
     for (const key of Object.keys(DEFAULT_APP_SETTINGS)) {
       expect(rendererSource, `renderer defaults literal is missing key \`${key}\``).toMatch(

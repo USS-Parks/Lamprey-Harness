@@ -10,6 +10,7 @@ import { getKey } from '../keychain'
 import { MODEL_CATALOG, RETIRED_MODEL_MAP } from './catalog'
 import { boundedJsonPreview, recordEvent } from '../event-log'
 import { trace } from '../debug-trace'
+import { buildOpenRouterFallbackExtras, parseOpenRouterFallbacks } from './openrouter-routing'
 
 export { MODEL_CATALOG, RETIRED_MODEL_MAP }
 
@@ -1048,10 +1049,28 @@ export interface ChatOnceResult {
   reasoning?: string
 }
 
+function readOpenRouterFallbacks(): string[] {
+  if (!userDataPathProvider) return []
+  try {
+    const path = join(userDataPathProvider(), 'settings.json')
+    if (!existsSync(path)) return []
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as { openrouterFallbacks?: unknown }
+    return parseOpenRouterFallbacks(raw.openrouterFallbacks)
+  } catch {
+    return []
+  }
+}
+
 function providerChatExtras(desc: ModelDescriptor): Record<string, unknown> {
+  const extras: Record<string, unknown> = {}
   // MiniMax otherwise embeds <think> in visible content. Its documented
   // reasoning_split flag preserves the same trace in reasoning_details.
-  return desc.provider === 'minimax' ? { reasoning_split: true } : {}
+  if (desc.provider === 'minimax') extras.reasoning_split = true
+  // TL-B2 — OpenRouter `models` fallbacks. Empty settings → no extra fields (K4).
+  if (desc.provider === 'openrouter') {
+    Object.assign(extras, buildOpenRouterFallbackExtras(desc.apiModelId, readOpenRouterFallbacks()))
+  }
+  return extras
 }
 
 function reasoningDetailsText(value: unknown): string {

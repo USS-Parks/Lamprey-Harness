@@ -42,9 +42,9 @@ spines without reviving the deleted always-on agent pipeline.
   (2026-07-16), iOS `1.2026.188` (2026-07-13), and Desktop `26.707`
   (2026-07-09). Later releases do not silently expand an approved roster; they become a
   dated addendum or a new PSPR.
-- Historical-only references: `PLANNING/CODEX_TOOLSET_PARITY_RESEARCH.md`,
-  `PLANNING/CODEX_TOOLSET_PARITY_PLAN.md`, `PLANNING/CODEX_TOOLSET_PARITY_PROGRESS.md`,
-  and `PLANNING/LAMPREY_PARITY_PLAN.md`. They remain honest historical records but are not
+- Historical-only references: `PLANNING/archive/CODEX_TOOLSET_PARITY_RESEARCH.md`,
+  `PLANNING/archive/CODEX_TOOLSET_PARITY_PLAN.md`, `PLANNING/archive/CODEX_TOOLSET_PARITY_PROGRESS.md`,
+  and `PLANNING/archive/LAMPREY_PARITY_PLAN.md`. They remain honest historical records but are not
   authority for a current parity claim.
 
 ### Era-lock exception and architectural invariants
@@ -148,7 +148,7 @@ Every implementation prompt must pass before commit:
 5. Any migration prompt: exact DDL/query-shape tests under `node:sqlite`, plus native DB
    tests confirmed to RUN rather than skip
 6. Any prompt changing prompts, provider dispatch, or tool-round construction: relevant
-   prompt-byte guards plus `PLANNING/LL_SMOKE_PLAYBOOK.md` impact assessment
+   prompt-byte guards plus `PLANNING/archive/LL_SMOKE_PLAYBOOK.md` impact assessment
 7. Any renderer milestone: `npm run build`, `npm run smoke:renderer`, and the named GUI
    playbook steps; source-lock tests support wiring claims but do not replace GUI evidence
 8. Every milestone wrap: `npm run lint`, both TypeScript checks, full `npx vitest run`,
@@ -278,14 +278,14 @@ CDP observation service, and event/monitor automation triggers.
 
 #### **CJP-0 — Pin the July 2026 behavior and wiring baseline**
 
-- [x] Create `PLANNING/CJ26_BASELINE.md` with: dated official source/version ledger;
+- [x] Create `PLANNING/archive/CJ26_BASELINE.md` with: dated official source/version ledger;
       old-plan claim-vs-current-source matrix; current tool inventory; exact call sites;
       and Codex conformance traces for Steering during streaming, tool execution,
       subagent wait, completion race, stale target, non-steerable turn, attachments,
       queue reorder/edit/delete, restart, and interrupt/background-terminal behavior.
 - [x] Inventory every current Lamprey partial equivalent and mark `reuse`, `extend`,
       `replace`, `new`, or `parked`; record tool-schema and system-prompt byte baselines.
-- [x] Write `PLANNING/CJ26_SMOKE_PLAYBOOK.md` with configuration, expected signals,
+- [x] Write `PLANNING/archive/CJ26_SMOKE_PLAYBOOK.md` with configuration, expected signals,
       evidence capture, and explicit owner-run steps.
 - Files: planning documents only.
 - Verify: every behavior claim has an official URL or reproducible trace; every Lamprey
@@ -427,10 +427,10 @@ CDP observation service, and event/monitor automation triggers.
 #### **ST-11 — Run the complete Steering conformance gate**
 
 - [x] Complete automated contract coverage for all 20 §1 rows and record the exact receipt in
-      `PLANNING/CJ26_STEERING_AFTER.md`.
+      `PLANNING/archive/CJ26_STEERING_AFTER.md`.
 - [ ] Run `CJ26_SMOKE_PLAYBOOK.md` against both current Codex and the built Lamprey app using
       the pinned configuration. Record the paired traces/screenshots/results in
-      `PLANNING/CJ26_STEERING_AFTER.md`.
+      `PLANNING/archive/CJ26_STEERING_AFTER.md`.
 - [x] Any mismatch becomes a new ST prompt addendum; do not weaken the matrix to pass.
 - Verify: automated Steering suite green; full build and renderer smoke green. The owner's
   report that Steering works in Lamprey is recorded, but it does not replace the full paired

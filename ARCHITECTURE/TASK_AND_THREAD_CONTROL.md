@@ -92,7 +92,7 @@ Pure suites cover graph ownership/cycles/pagination, waits, races, shared delive
 historical boundaries, lifecycle recovery, destructive preview, UI presentation, and IPC
 wiring. Exact production DDL and the complete migration registry are also run through
 Electron's native SQLite ABI. The packaged GUI playbook is
-`PLANNING/CJ26_TASK_CONTROL_PLAYBOOK.md`; until its owner run is recorded, v0.21.0 claims
+`PLANNING/archive/CJ26_TASK_CONTROL_PLAYBOOK.md`; until its owner run is recorded, v0.21.0 claims
 implementation completion for M2, not blanket current-Codex task-control parity.
 
 ---

@@ -132,6 +132,27 @@ describe('ST-7 turn-aware interrupt', () => {
     expect(h.lifecycle).toHaveLength(1)
   })
 
+  it('OD-2/K1: settlement is cancelled; event stays turn.interrupted', () => {
+    const h = harness()
+    h.runtimes.register({
+      conversationId: 'conversation-1',
+      correlationId: 'correlation-1',
+      turnId: 'turn-1' as TurnId
+    })
+
+    const result = h.action({ conversationId: 'conversation-1', expectedTurnId: 'turn-1' })
+    expect(result).toMatchObject({
+      success: true,
+      data: { status: 'cancelled' }
+    })
+    expect(h.settled).toEqual([
+      expect.objectContaining({ id: 'turn-1', status: 'cancelled' })
+    ])
+    expect(h.events).toHaveLength(1)
+    expect(h.events[0]?.type).toBe('turn.interrupted')
+    expect(h.events[0]?.payload).toMatchObject({ disposition: 'interrupted' })
+  })
+
   it('reports an honest non-persisted success when durable settlement fails', () => {
     const h = harness({ settlementThrows: true })
     const runtime = h.runtimes.register({

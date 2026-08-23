@@ -32,7 +32,7 @@ describe('BD-5 Browser Developer UI wiring', () => {
   })
 
   it('keeps the owner smoke procedure in the project planning record', () => {
-    const playbook = source('PLANNING/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md')
+    const playbook = source('PLANNING/archive/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md')
     expect(playbook).toContain('USER-VERIFICATION-NEEDED')
     expect(playbook).toContain('Attach + record')
     expect(playbook).toContain('Clear evidence')

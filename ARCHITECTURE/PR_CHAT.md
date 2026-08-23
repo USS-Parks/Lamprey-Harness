@@ -69,7 +69,7 @@ The existing Pull Requests panel is extended, not replaced.
 Automated gates cover repository identity, stale SHA, pagination/budgets, redaction, strict
 schemas, spill behavior, approval metadata, line mapping, idempotency, schema execution,
 path confinement, rollback, renderer wiring, production build, and renderer smoke. The
-disposable GitHub repository workflow in `PLANNING/CJ26_PR_CHAT_PLAYBOOK.md` remains
+disposable GitHub repository workflow in `PLANNING/archive/CJ26_PR_CHAT_PLAYBOOK.md` remains
 `USER-VERIFICATION-NEEDED`; no blanket live-GitHub parity claim is made.
 
 ---

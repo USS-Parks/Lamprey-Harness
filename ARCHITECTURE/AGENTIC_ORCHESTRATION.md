@@ -120,7 +120,7 @@ Both additive (K2 rule — historical rows readable forever). Revoked identities
 
 ## Honest gaps (owner follow-ups)
 
-- Live keyed smoke (`PLANNING/AO_SMOKE_PLAYBOOK.md`) and a GUI pass of the Agents pill are the
+- Live keyed smoke (`PLANNING/archive/AO_SMOKE_PLAYBOOK.md`) and a GUI pass of the Agents pill are the
   owner's first-install checks.
 - The parsed `/outcome` budget is advisory guidance to the model; the HARD enforcement is the
   strategy tools' settings-derived ceilings. A per-run downward budget override threaded into

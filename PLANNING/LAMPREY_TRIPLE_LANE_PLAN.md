@@ -252,7 +252,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** doc exists
 
 ### **TL-C6 — Lock non-goal: no training UI**
-- [ ] DEVLOG + optional absence note that core does not ship LoRA/RL trainer UI. Satisfies S4 without code churn if already true.
+- [x] DEVLOG + optional absence note that core does not ship LoRA/RL trainer UI. Satisfies S4 without code churn if already true.
 - **Closes:** S4
 - **Verify:** greppable lock
 

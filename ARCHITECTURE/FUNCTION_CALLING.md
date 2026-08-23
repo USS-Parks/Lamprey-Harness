@@ -21,10 +21,10 @@ Every provider — seventeen built-ins (DeepSeek, Google, DashScope, OpenRouter,
 
 | File | Purpose |
 |------|---------|
-| `electron/services/providers/registry.ts` | `MODEL_CATALOG`, `chatStream()`, `chatOnce()`, provider baseURLs |
+| `electron/services/providers/registry.ts` | `chatStream()`, `chatOnce()`, `resolveModel()`, provider baseURLs. Re-exports `MODEL_CATALOG` / `RETIRED_MODEL_MAP` from `catalog.ts` |
 | `electron/services/providers/schema-normalizer.ts` | `normalizeToolsForProvider()` — strips unsupported keywords, fail-fast on core tools. **Invoked from:** `electron/services/tool-registry.ts:530` (WC-1) |
 | `electron/services/providers/capability-tracker.ts` | Detects `supportsTools` mismatches, temporarily downgrades models. **Invoked from:** `electron/ipc/chat.ts:769` |
-| `electron/services/tool-registry.ts` | `ToolRegistry` singleton, `getOpenAITools()`, `getNormalizedToolsForProvider()`, `getNormalizedToolsForRole()`, all native tool registrations |
+| `electron/services/tool-registry.ts` | `ToolRegistry` singleton, `getNormalizedToolsForProvider()`, `getModelToolSurface()`, `getNormalizedToolsForRole()` (role subsets / WC-2; chat no longer calls it). `getOpenAITools()` is a one-line alias of `getNormalizedToolsForProvider` (AC-14) |
 | `electron/services/tool-schema-validator.ts` | `validateToolArguments()` — shared validation gate. **Invoked from:** `electron/ipc/chat.ts:1169` |
 | `electron/services/transcript-model.ts` | `ToolCallRequest`, `ToolResult`, per-provider serializers |
 | `electron/services/fallback-tool-parser.ts` | `extractBalancedJson()`, `parseFallbackToolCalls()`, `FALLBACK_TOOL_INSTRUCTION`. **Invoked from:** `electron/ipc/chat.ts:803` |
@@ -213,7 +213,7 @@ The `FALLBACK_TOOL_INSTRUCTION` constant is appended to the system prompt for fa
 
 MCP tools follow the same role-based filtering when exposed to model tool lists.
 
-**Invocation (WC-2, 2026-06-09):** The role filter is reached through `toolRegistry.getNormalizedToolsForRole(role, provider)` at `electron/services/tool-registry.ts:541`. The chat dispatch at `electron/ipc/chat.ts:467` calls it with `role: 'coder'` because single-mode and the multi-mode Coder are the only stages currently receiving tools (Planner uses `chatOnce` without tools, Reviewer uses `subAgentRunner` without tools per FC_AUDIT §4). Planner and Reviewer subsets verifiably exclude `apply_patch` and `shell_command` — see `electron/services/tool-registry.test.ts` (`WC-2 role-aware tool filtering wiring` block).
+**Invocation (AC-15, 2026-08-22):** Chat dispatch no longer passes `'coder'` into the role filter. **Invoked from:** `toolRegistry.getNormalizedToolsForProvider(provider)` at `electron/services/tool-registry.ts:462`, `getModelToolSurface` at `:496`, and `buildDispatchTools` at `electron/ipc/chat.ts:738`. `getNormalizedToolsForRole` remains for `multi_agent_run` role subsets and WC-2 tests. Planner and Reviewer subsets still exclude `apply_patch` and `shell_command`.
 
 ---
 
@@ -221,7 +221,7 @@ MCP tools follow the same role-based filtering when exposed to model tool lists.
 
 MCP-originating tools are **in scope** for the function-calling pathway:
 - Their schemas come from MCP server tool definitions
-- They are included in `getOpenAITools()` output
+- They are included in `getNormalizedToolsForProvider()` / `getModelToolSurface()` output (`getOpenAITools()` is only an alias)
 - They pass through `normalizeToolsForProvider()` — non-normalizable MCP tools are excluded with warnings
 - They are validated by `validateToolArguments()` before dispatch
 - They follow the same provenance, transcript, and permission rules

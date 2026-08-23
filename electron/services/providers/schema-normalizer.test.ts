@@ -148,6 +148,20 @@ describe('normalizeToolsForProvider', () => {
     expect(result.warnings).toHaveLength(0)
   })
 
+  it('reads provider in fail-fast errors and applies no invented schema deltas', () => {
+    expect(() =>
+      normalizeToolsForProvider(
+        [{ name: 'shell_command', description: 'x', inputSchema: null }],
+        'anthropic'
+      )
+    ).toThrow(/provider "anthropic"/)
+    const a = normalizeToolsForProvider([simpleTool], 'anthropic')
+    const g = normalizeToolsForProvider([simpleTool], 'google')
+    const m = normalizeToolsForProvider([simpleTool], 'minimax')
+    expect(a.tools).toEqual(g.tools)
+    expect(g.tools).toEqual(m.tools)
+  })
+
   it('adds type:object when missing from inputSchema', () => {
     const result = normalizeToolsForProvider([{
       name: 'no_type_tool',

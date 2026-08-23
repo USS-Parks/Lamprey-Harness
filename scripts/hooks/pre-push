@@ -1,4 +1,52 @@
 #!/bin/sh
 set -eu
+# AC-35 / K8 — honest pre-push.
+# Full verify:proof when the pushed range touches product paths.
+# Skip (print why) on ref-delete-only and on docs/PLANNING/DEVLOG-only ranges.
+# Mixed ranges that include electron/ or src/ always run the gate.
+#
+# Docs-only trees: PLANNING/ RELEASE_NOTES/ openwiki/ ARCHITECTURE/ graft/
+# plus DEVLOG.md README.md and any *.md at the repository root.
+# Dry-run: node scripts/pre-push-scope.cjs PLANNING/foo.md DEVLOG.md
+#          → docs-only
+#          node scripts/pre-push-scope.cjs electron/ipc/chat.ts PLANNING/foo.md
+#          → product
+
+zero=0000000000000000000000000000000000000000
+product=0
+saw_update=0
+
+while read local_ref local_sha remote_ref remote_sha
+do
+  saw_update=1
+  if [ "$local_sha" = "$zero" ]; then
+    echo "pre-push: skipping verify:proof (ref-delete $remote_ref)"
+    continue
+  fi
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  paths=$(git diff --name-only "$range" 2>/dev/null || true)
+  if [ -z "$paths" ]; then
+    continue
+  fi
+  class=$(printf '%s\n' "$paths" | tr '\n' ' ' | xargs node scripts/pre-push-scope.cjs)
+  echo "pre-push: $local_ref $range → $class"
+  if [ "$class" = "product" ]; then
+    product=1
+  fi
+done
+
+if [ "$saw_update" -eq 0 ]; then
+  echo "pre-push: no refs updated; skipping verify:proof"
+  exit 0
+fi
+
+if [ "$product" -eq 0 ]; then
+  echo "pre-push: skipping verify:proof (docs-only or delete-only range)"
+  exit 0
+fi
 
 npm run verify:proof

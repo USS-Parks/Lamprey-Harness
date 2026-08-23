@@ -29,6 +29,14 @@ import {
 import { normalizeToolsForProvider } from './providers/schema-normalizer'
 import { filterToolsForRole, type PipelineRole } from './role-tool-access'
 import { buildModelToolSurface, isAlreadyAvailable, CORE_TOOL_NAMES } from './model-tool-surface'
+import {
+  handleAskUserQuestion,
+  handleCreateDocument,
+  handleEnterPlanMode,
+  handleExitPlanMode,
+  handleMarkChapter,
+  handleMemoryAdd
+} from './session-tool-handlers'
 
 // Types are duplicated between main and renderer the same way mcp-manager.ts
 // keeps its own McpTool/McpServerConfig — the two tsconfig roots can't reach
@@ -262,15 +270,15 @@ export type NativeToolHandler = (
   ctx: ToolExecutionContext
 ) => Promise<NativeToolHandlerResult>
 
-// The unified tool registry has three sources: native Lamprey tools (added
-// in code at startup), MCP server tools (live from mcpManager.getAllTools()),
-// and plugin tools (not yet wired). chat.ts calls getOpenAITools() to build
-// the tool list passed to the model, and dispatches results back through the
-// registry so the call lifecycle is recorded by tool-calls-store.
+// The unified tool registry has two live sources: native Lamprey tools
+// (added in code at startup) and MCP server tools (mcpManager.getAllTools()).
+// C11 already wires plugin skills, slash commands, and plugin-owned MCP
+// servers. There is no providerKind:'plugin' native-tool loader (K10).
+// Chat dispatch builds the model surface via getNormalizedToolsForProvider
+// / getModelToolSurface, not getOpenAITools.
 
-// Chrome MCP destructive tools get requiresApproval marked at descriptor
-// build time. A future generalised network/destructive policy will subsume
-// this; for now the set is hard-coded.
+// Chrome MCP tools named below carry write/destructive risk; approval is
+// derived from those risk flags (AC-38), not from a chrome-only gate.
 const CHROME_DESTRUCTIVE = new Set(['click', 'fill', 'submit', 'type', 'press', 'select_option'])
 
 class ToolRegistry {
@@ -325,9 +333,8 @@ class ToolRegistry {
    *   natives (insertion order) → MCP (server id, then tool name).
    *
    * Each descriptor carries the full `inputSchema`. For the renderer-facing
-   * stub list (no schemas), see `getStubs()`. Chat dispatch always uses
-   * `getDescriptors()` / `getOpenAITools()` so the model still receives
-   * every tool's schema.
+   * stub list (no schemas), see `getStubs()`. Chat dispatch uses
+   * `getNormalizedToolsForProvider` / `getModelToolSurface`.
    */
   getDescriptors(): LampreyToolDescriptor[] {
     const list: LampreyToolDescriptor[] = []
@@ -343,15 +350,15 @@ class ToolRegistry {
         const isDestructive = serverId === 'chrome' && CHROME_DESTRUCTIVE.has(tool.name)
         const risks: ToolRisk[] = isDestructive ? ['destructive', 'write', 'network'] : ['network']
         const lazy = true
-        // C3 — MCP tools opt in to plan-mode gating by default when their
-        // risks include write/destructive. Chrome's destructive set
-        // (click/fill/submit/type/press/select_option) thus mutates: true;
-        // every other MCP read tool stays unmuted.
+        // AC-38 — approval follows risk flags, same as natives. Chrome
+        // click/fill/submit/type/press/select_option still require approval
+        // because they carry write+destructive. Other MCP reads stay network-only.
         const mutates = risks.some((r) => r === 'write' || r === 'destructive')
+        const requiresApproval = risks.some((r) => r === 'write' || r === 'destructive')
         const tags = computeToolTags({
           providerKind: 'mcp',
           risks,
-          requiresApproval: isDestructive,
+          requiresApproval,
           parallelizable: false,
           lazy,
           mutates
@@ -365,7 +372,7 @@ class ToolRegistry {
           providerId: serverId,
           inputSchema: (tool.inputSchema as unknown) || { type: 'object', properties: {} },
           risks,
-          requiresApproval: isDestructive,
+          requiresApproval,
           enabled: true,
           tags,
           lazy,
@@ -437,43 +444,8 @@ class ToolRegistry {
    * parameters object must include `type: "object"` at minimum; descriptors
    * with missing or non-object `inputSchema` get a minimal fallback.
    */
-  getOpenAITools(): ChatCompletionTool[] {
-    const descriptors = this.getDescriptors()
-    const tools: ChatCompletionTool[] = []
-    for (const d of descriptors) {
-      let parameters = d.inputSchema as Record<string, unknown> | undefined
-      if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) {
-        parameters = { type: 'object', properties: {} }
-      } else if (!parameters.type) {
-        parameters = { ...parameters, type: 'object' }
-      }
-      tools.push({
-        type: 'function' as const,
-        function: {
-          name: d.name,
-          description: d.description,
-          parameters
-        }
-      })
-    }
-    // Dev-mode assertion — validate every tool entry conforms.
-    // Skipped in production builds (process.env.NODE_ENV check) to avoid
-    // runtime overhead. The assertion catches schema regressions early.
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
-      for (const t of tools) {
-        const fn = (t as { function?: { name?: string; parameters?: unknown } }).function
-        if (t.type !== 'function') {
-          console.error('[tool-registry] getOpenAITools: tool entry missing type="function"', t)
-        }
-        if (!fn?.name || typeof fn.name !== 'string') {
-          console.error('[tool-registry] getOpenAITools: tool entry missing function.name', t)
-        }
-        if (!fn?.parameters || typeof fn.parameters !== 'object') {
-          console.error('[tool-registry] getOpenAITools: tool entry missing function.parameters', t)
-        }
-      }
-    }
-    return tools
+  getOpenAITools(provider = 'deepseek'): ChatCompletionTool[] {
+    return this.getNormalizedToolsForProvider(provider)
   }
 
   /**
@@ -485,8 +457,7 @@ class ToolRegistry {
    * user). Non-core tools that fail are dropped with a logged warning.
    *
    * This is the canonical path for chat.ts to build provider-bound tools.
-   * `getOpenAITools()` remains for callers that need the un-normalized array
-   * (tests, internal inspection).
+   * `getOpenAITools()` is a one-line alias of this method.
    */
   getNormalizedToolsForProvider(provider: string): ChatCompletionTool[] {
     return this.normalizeDescriptors(this.getDescriptors(), provider)
@@ -500,11 +471,8 @@ class ToolRegistry {
    * read-only subset, Reviewer gets inspection tools, Coder gets the full
    * set (gated by plan mode + permissions at dispatch).
    *
-   * The chat dispatch (`electron/ipc/chat.ts`) calls this with `role: 'coder'`
-   * because single-mode and the multi-mode Coder are the only stages that
-   * currently receive tools. Planner and Reviewer use `chatOnce` /
-   * `subAgentRunner` paths that ignore the `tools` parameter today, but
-   * filtering by role here keeps the wire ready for future stage upgrades.
+   * Chat dispatch calls `getNormalizedToolsForProvider` (AC-15). This helper
+   * remains for `multi_agent_run` role subsets and WC-2 tests.
    */
   getNormalizedToolsForRole(role: PipelineRole, provider: string): ChatCompletionTool[] {
     const descriptors = filterToolsForRole(this.getDescriptors(), role)
@@ -529,7 +497,7 @@ class ToolRegistry {
     provider: string,
     opts: { unlockedNames?: Iterable<string> } = {}
   ): ChatCompletionTool[] {
-    const all = this.getNormalizedToolsForRole('coder', provider)
+    const all = this.getNormalizedToolsForProvider(provider)
     return buildModelToolSurface(all, { unlockedNames: opts.unlockedNames })
   }
 
@@ -715,8 +683,6 @@ class ToolRegistry {
 
 export const toolRegistry = new ToolRegistry()
 
-// memory_add execution stays inline in chat.ts because the handler needs to
-// broadcast `memory:added` to the renderer; only its descriptor lives here.
 toolRegistry.registerNative({
   id: 'memory_add',
   name: 'memory_add',
@@ -735,7 +701,7 @@ toolRegistry.registerNative({
   risks: ['write'],
   requiresApproval: false,
   enabled: true
-})
+}, handleMemoryAdd)
 
 // shell_command — PowerShell on Windows, bash elsewhere. The workspace
 // boundary is also enforced inside the handler so a missing approval gate
@@ -997,13 +963,8 @@ toolRegistry.registerNative(
   async (args) => executeShellOutput(args as unknown as ShellOutputArgs)
 )
 
-// Track 2 / C3 — plan-mode toggles. These tools flip a per-conversation
-// boolean (conversations.plan_mode_active) that the chat dispatcher
-// consults before approving any mutating tool. Their handlers live inline
-// because they need to emit a `plan:mode-changed` event to the renderer —
-// the same pattern memory_add uses for `memory:added`. Mutates is
-// explicitly false: the flag belongs to session state, not workspace
-// state, and the model must always be able to flip it off.
+// Track 2 / C3 — plan-mode toggles. Handlers live in session-tool-handlers.ts
+// (AC-16). Mutates is explicitly false: the flag belongs to session state.
 toolRegistry.registerNative({
   id: 'enter_plan_mode',
   name: 'enter_plan_mode',
@@ -1022,7 +983,7 @@ toolRegistry.registerNative({
   enabled: true,
   mutates: false,
   transcriptHidden: true
-})
+}, handleEnterPlanMode)
 
 toolRegistry.registerNative({
   id: 'exit_plan_mode',
@@ -1042,7 +1003,7 @@ toolRegistry.registerNative({
   enabled: true,
   mutates: false,
   transcriptHidden: true
-})
+}, handleExitPlanMode)
 
 // Track 2 / E1 — mark_chapter. Anchors a chapter title (and optional
 // short summary) to the message the model has just produced or the user
@@ -1079,13 +1040,9 @@ toolRegistry.registerNative({
   enabled: true,
   mutates: false,
   transcriptHidden: true
-})
+}, handleMarkChapter)
 
-// Integration / H6 — ask_user_question. Pauses the calling agent / workflow
-// until the user picks one of 2-4 chip options in the renderer modal. The
-// handler is wired in chat.ts because it has to route through the singleton
-// ask-user-runtime (which only the main-process side can broadcast through).
-// Mutates is false: the question is session-scoped UX, not workspace state.
+// Integration / H6 — ask_user_question. Handler in session-tool-handlers.ts.
 toolRegistry.registerNative({
   id: 'ask_user_question',
   name: 'ask_user_question',
@@ -1139,16 +1096,9 @@ toolRegistry.registerNative({
   enabled: true,
   mutates: false,
   transcriptHidden: true
-})
+}, handleAskUserQuestion)
 
-// create_document — produces a standalone deliverable (plan, draft, code
-// file, report) that renders as a card below the assistant message. The
-// handler lives inline in chat.ts because it has to stash the attachment on
-// the in-flight assistant turn and broadcast `chat:document-created` to the
-// renderer, the same way memory_add emits `memory:added`. transcriptHidden:
-// the card row IS the visible side effect — leaving a tool-call card would
-// double-render. mutates: false because the deliverable is session-scoped
-// (lives on the message row), not a workspace write.
+// create_document — standalone deliverable card. Handler in session-tool-handlers.ts.
 toolRegistry.registerNative({
   id: 'create_document',
   name: 'create_document',
@@ -1183,7 +1133,7 @@ toolRegistry.registerNative({
   enabled: true,
   mutates: false,
   transcriptHidden: true
-})
+}, handleCreateDocument)
 
 // Tool packs are loaded by electron/services/tool-packs.ts (imported from
 // electron/ipc/index.ts), not from this file. Side-effect imports at the

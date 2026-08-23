@@ -366,6 +366,7 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
         status: 'running'
         startedAt: number
       } | null
+      orphaned: boolean
       followUps: FollowUpRecord[]
       observedAt: number
       revision: number
@@ -376,20 +377,22 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       try {
         const active = deps.store.getActiveTurn(conversationId)
         const runtime = deps.runtimes.lookupActive(conversationId)
+        const live =
+          active?.status === 'running' && runtime?.turnId === active.id
+            ? {
+                conversationId,
+                turnId: runtime.turnId,
+                kind: runtime.kind,
+                status: 'running' as const,
+                startedAt: runtime.startedAt
+              }
+            : null
         return {
           success: true,
           data: {
             conversationId,
-            activeTurn:
-              active?.status === 'running' && runtime?.turnId === active.id
-                ? {
-                    conversationId,
-                    turnId: runtime.turnId,
-                    kind: runtime.kind,
-                    status: 'running',
-                    startedAt: runtime.startedAt
-                  }
-                : null,
+            activeTurn: live,
+            orphaned: active?.status === 'running' && live === null,
             followUps: deps.store.listFollowUps(conversationId),
             observedAt: deps.now(),
             revision: nextTurnControlRevision()

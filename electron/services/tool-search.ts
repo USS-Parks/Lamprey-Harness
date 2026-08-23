@@ -8,8 +8,8 @@
 // Chrome / etc.; sending the full JSON Schemas to the renderer on every
 // list call is wasteful. The lazy-schema split here is the IPC-payload
 // optimization. The main process still has the full schemas in memory —
-// chat.ts continues to call `toolRegistry.getOpenAITools()` and gets every
-// tool's full schema — so the model surface is unchanged.
+// chat.ts builds the model surface via getNormalizedToolsForProvider /
+// getModelToolSurface — so the model still receives full schemas.
 //
 // Tag taxonomy (used by tools:search ranking and by the renderer for
 // filter chips):

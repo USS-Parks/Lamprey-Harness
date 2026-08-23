@@ -21,7 +21,7 @@
  *     normalization pathway.
  */
 
-import type { ChatCompletionTool } from 'openai/resources/chat/completions'
+import { CORE_NORMALIZE_NAMES } from '../core-tool-names'
 
 export interface ProviderTool {
   type: 'function'
@@ -75,17 +75,7 @@ const STRUCTURAL_UNSUPPORTED = new Set(['$ref', 'oneOf', 'anyOf', 'allOf'])
  * If a core tool's schema cannot be normalized, the harness fails at startup
  * with a clear error.
  */
-const CORE_TOOL_NAMES = new Set([
-  'workspace_context',
-  'view_image',
-  'shell_command',
-  'apply_patch',
-  'verify_workspace',
-  'shell_list',
-  'shell_monitor',
-  'shell_stop',
-  'shell_output'
-])
+const CORE_TOOL_NAMES = new Set(CORE_NORMALIZE_NAMES)
 
 export interface NormalizerResult {
   tools: ProviderTool[]
@@ -157,14 +147,16 @@ function stripUnsupportedKeywords(schema: Record<string, unknown>): Record<strin
 /**
  * Normalize tool descriptors for a specific provider.
  *
- * @param tools       Lamprey tool descriptors from the registry.
- * @param _provider   Target provider (unused currently — all providers accept
- *                    the same subset per FC-0, but kept as a seam for future
- *                    provider-specific adjustments).
+ * @param tools     Lamprey tool descriptors from the registry.
+ * @param provider  Target provider. Anthropic / Google / MiniMax wire notes
+ *                  in FUNCTION_CALLING.md §16 are request-level (compat
+ *                  host, ignored `strict`/`response_format`/`reasoning_effort`),
+ *                  not tool-schema transforms — so schemas stay identical
+ *                  across those ids. The name is read for fail-fast errors.
  */
 export function normalizeToolsForProvider(
   tools: Array<{ name: string; description: string; inputSchema: unknown; providerKind?: string }>,
-  _provider: string
+  provider: string
 ): NormalizerResult {
   const result: ProviderTool[] = []
   const warnings: string[] = []
@@ -175,11 +167,11 @@ export function normalizeToolsForProvider(
       const isCore = CORE_TOOL_NAMES.has(tool.name)
       if (isCore) {
         throw new Error(
-          `Core tool "${tool.name}" has missing or invalid inputSchema. Cannot normalize for provider "${_provider}".`
+          `Core tool "${tool.name}" has missing or invalid inputSchema. Cannot normalize for provider "${provider}".`
         )
       }
       warnings.push(
-        `Dropping tool "${tool.name}" — missing or invalid inputSchema (provider "${_provider}").`
+        `Dropping tool "${tool.name}" — missing or invalid inputSchema (provider "${provider}").`
       )
       continue
     }
@@ -191,11 +183,11 @@ export function normalizeToolsForProvider(
       if (isCore) {
         throw new Error(
           `Core tool "${tool.name}" uses unsupported JSON Schema keyword "${structural}" which cannot be stripped. ` +
-            `Fix the tool's inputSchema to remove this keyword before normalizing for provider "${_provider}".`
+            `Fix the tool's inputSchema to remove this keyword before normalizing for provider "${provider}".`
         )
       }
       warnings.push(
-        `Dropping tool "${tool.name}" — uses unsupported structural keyword "${structural}" (provider "${_provider}").`
+        `Dropping tool "${tool.name}" — uses unsupported structural keyword "${structural}" (provider "${provider}").`
       )
       continue
     }

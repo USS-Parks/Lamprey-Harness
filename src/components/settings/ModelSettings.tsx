@@ -99,7 +99,7 @@ export function ModelSettings() {
     id: '',
     name: '',
     contextWindow: 65536,
-    supportsTools: true,
+    supportsTools: false,
     supportsVision: false
   })
   const [providers, setProviders] = useState<
@@ -182,7 +182,7 @@ export function ModelSettings() {
       id: '',
       name: '',
       contextWindow: 65536,
-      supportsTools: true,
+      supportsTools: false,
       supportsVision: false
     })
   }

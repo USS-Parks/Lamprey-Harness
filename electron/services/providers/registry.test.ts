@@ -815,6 +815,27 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
       expect(desc.supportsVision).toBe(true)
       // Unknown ids still fall through to the DeepSeek default.
       expect(resolveModel('totally-unknown-model').provider).toBe('deepseek')
+      expect(resolveModel('totally-unknown-model').supportsTools).toBe(false)
+    } finally {
+      setUserDataPathProvider(null)
+    }
+  })
+
+  it('custom models omit supportsTools default to false', async () => {
+    const { mkdtempSync, writeFileSync: wf } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join: j } = await import('path')
+    const { setUserDataPathProvider } = await import('./registry')
+    const dir = mkdtempSync(j(tmpdir(), 'lamprey-custom-omit-tools-'))
+    wf(
+      j(dir, 'settings.json'),
+      JSON.stringify({
+        customModels: [{ id: 'omit-tools-model', name: 'Omit', provider: 'ollama' }]
+      })
+    )
+    setUserDataPathProvider(() => dir)
+    try {
+      expect(resolveModel('omit-tools-model').supportsTools).toBe(false)
     } finally {
       setUserDataPathProvider(null)
     }

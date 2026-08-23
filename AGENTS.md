@@ -4,12 +4,13 @@
 Electron desktop **single-agent coding harness** (React 19, TypeScript, electron-vite) mirroring Codex in the Opus 4.5 era. Routes per-model to **thirty-two built-in providers** — frontier labs, public hosts and aggregators, regional specialists, local runtimes, and self-hosted gateways — plus unlimited user-defined **custom OpenAI-compatible endpoints** (`settings.json.customProviders`). The built-ins include DeepSeek, Google AI, DashScope, OpenRouter, Zhipu, OpenAI, Anthropic, xAI, Mistral, Moonshot, Groq, Together, Fireworks, Cerebras, Hugging Face, AIHubMix, FreeLLMAPI, Cohere, MiniMax, NVIDIA, GitHub Models, SambaNova, SiliconFlow, Reka, SEA-LION, DeepInfra, Hyperbolic, Perplexity, Sarvam, Inception, and keyless Ollama + LM Studio. The model can fan out via the `multi_agent_run` tool (Task-tool analog); the always-on Planner→Coder→Reviewer pipeline was excised in the Unburdening Phase (v0.14.0).
 
 ## Architecture quick-pointers
-- Provider registry + dispatch: `electron/services/providers/registry.ts` — `MODEL_CATALOG`, `chatStream`, `chatOnce`, `validateProviderKey`, `RETIRED_MODEL_MAP`. Adding a model = append to `MODEL_CATALOG`; Custom Models from settings.json are consulted by `resolveModel` (JM-11).
+- Provider registry + dispatch: `electron/services/providers/registry.ts` — `chatStream`, `chatOnce`, `validateProviderKey`; `MODEL_CATALOG` / `RETIRED_MODEL_MAP` live in `electron/services/providers/catalog.ts` and are re-exported. Adding a model = append to that catalog; Custom Models from settings.json are consulted by `resolveModel` (JM-11).
 - Chat turn: `electron/ipc/chat.ts` — `chat:send` → `runHeadlessTurn` → `runChatRound` (also the seam loops/wake-ups run turns through). System prompts in `electron/services/system-prompt-builder.ts` (`AGENT_ROLE_PROMPTS`/`buildAgentSystemPrompt` survive for the `multi_agent_run` tool only).
 - Multi-provider keychain: `electron/services/keychain.ts` keyed by provider id — any of the 32 built-ins or a custom endpoint id (+ `web_search:*` namespace for search providers). Provider-id authority is the registry (`resolveProviderDescriptor` / `isKnownProvider` / `listAllProviders`); the main + renderer `ProviderId` unions are parity-locked by `provider-parity.test.ts`. IPC: `settings:saveProviderKey` / `:test` / `:delete` / `:list`. Writes are atomic (temp+rename) via `electron/services/atomic-json.ts` (JM-13).
 - UI surfaces: `src/components/settings/ApiKeySettings.tsx` (multi-provider list), `chat/ChatInput.tsx`, right-panel pills in `src/components/artifacts/RightPanelHome.tsx`.
 
 ## Current State
+- **Audit Closure:** released 2026-08-22 as **v0.29.0**. Closes the August 2026 audit: honest turn settlement, extracted tool dispatch, compressor stack accounting, gated pack strip, `supportsTools` false defaults, catalog extract, honest pre-push. See `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md` and `PLANNING/AC_AFTER.md`. Honest gaps: R1–R4 live playbooks, live `supportsTools` probes, unsigned builds, `turn.interrupted` event-name leftover, OpenWiki refresh and native-DB CI first Actions run (`user-verification-needed`).
 - **Direct-provider routing hotfix:** released 2026-07-19 as **v0.27.1**. All 70 pinned models route through their named provider and independently stored key; `MODEL_CATALOG` contains zero OpenRouter-brokered aliases. OpenRouter remains an explicit opt-in provider for live catalog imports only. Settings key saves synchronize the chat key-state store, the model menu refreshes keys whenever it opens, and a Moonshot key unlocks direct Kimi K3 without restart. The model menu is viewport-bounded and scrollable with the active entry revealed. Retired broker aliases map to direct equivalents; unsupported stale defaults fall back to a known catalog model.
 - **Provider Discovery Expansion v2 (PX2-0–PX2-9):** complete (2026-07-19, **v0.27.0**) — 32 built-in providers and 79 pinned chat models. Adds API-key acceptance for AIHubMix, FreeLLMAPI, Cohere, MiniMax, NVIDIA, GitHub Models, SambaNova, SiliconFlow, Reka, SEA-LION, DeepInfra, Hyperbolic, Perplexity, Sarvam, and Inception Labs; refreshes current Kimi, Grok 4.20, and direct Gemma 4 rosters; adds descriptor-owned catalog normalization, filtered collision-safe bulk import, an editable FreeLLMAPI address, and MiniMax reasoning preservation. Imported capabilities default off until proven. Live authentication remains pending for providers whose keys were not available during the release. See `PLANNING/LAMPREY_PROVIDER_DISCOVERY_EXPANSION_PLAN.md` and `PLANNING/PX2_BASELINE.md`.
 - **Prompts 1–20 + 21 + multi-provider revision**: complete (see `memory/project_build_status.md` for per-prompt commit SHAs).
@@ -121,3 +122,16 @@ Canonical planning shorthand:
 ---
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+This repository has a generated `openwiki/` evidence index. It is optional just-in-time context, not required startup reading.
+
+- Treat source code and tests as authoritative. A brief's unknowns and review items are verification gaps, not automatic requirements.
+- Prefer the narrowest quiet validation that proves the changed behavior. Preserve complete failure output.
+
+The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+
+<!-- OPENWIKI:END -->

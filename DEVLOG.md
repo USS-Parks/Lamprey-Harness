@@ -1,5 +1,19 @@
 ## 2026-08-22 — Audit Closure Phase
 
+## [Audit Closure — Prompt AC-4] Ghost guard once  —  2026-08-22
+
+**Files changed:** `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest chat-turn-settlement + ghost-reply-guard + loop-turn-wiring ✓ (40 tests)
+- verify:proof --no-tests ✓
+- user-verification-needed: a research throw before headless (fabricated citation / cancel) — transcript may not get a system notice from send catch anymore; headless failures still persist one
+
+**Notes:** Deleted the duplicate SP-4 persist in `chat:send` catch. `runHeadlessTurn` remains the only ghost persist. Send catch still returns IPC failure and finalizes if a runtime exists. Pre-headless research throws no longer write a second (or only) system notice from that catch.
+
+**Commit:** pending this prompt
+
 ## [Audit Closure — Prompt AC-3] finalizeTurn owns the closer  —  2026-08-22
 
 **Files changed:** `electron/services/finalize-turn.ts`, `electron/services/finalize-turn.test.ts`, `electron/ipc/chat.ts`, `electron/services/turn-interrupt.ts`, `electron/services/turn-interrupt.test.ts`, `electron/ipc/turn-interrupt-wiring.test.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `electron/services/queued-follow-up-dispatch.test.ts`, `electron/services/steering-boundary-wiring.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`

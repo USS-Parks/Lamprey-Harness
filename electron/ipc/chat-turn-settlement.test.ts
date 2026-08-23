@@ -92,6 +92,18 @@ describe('AC-1 tool-round cap settles failed, not completed', () => {
   })
 })
 
+describe('AC-4 ghost guard runs in runHeadlessTurn only', () => {
+  it('chat:send catch no longer persists a second ghost notice', () => {
+    const sendStart = src.indexOf("ipcMain.handle('chat:send'")
+    const send = src.slice(sendStart, src.indexOf("ipcMain.handle('chat:cancel'"))
+    expect(send).not.toMatch(/turnEndedGhosted\(/)
+    expect(send).not.toMatch(/buildGhostReplyNotice\(/)
+    const fn = src.slice(src.indexOf('export async function runHeadlessTurn'))
+    expect(fn).toMatch(/turnEndedGhosted\(rows\)/)
+    expect(fn).toMatch(/buildGhostReplyNotice\(/)
+  })
+})
+
 describe('AC-3 every closer goes through finalizeTurn', () => {
   it('headless finally, research success, send success/error, and queue settle call finalizeTurn', () => {
     expect(src.match(/finalizeTurn\(/g)?.length ?? 0).toBeGreaterThanOrEqual(5)

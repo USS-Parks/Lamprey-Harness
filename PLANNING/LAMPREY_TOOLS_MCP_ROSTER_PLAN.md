@@ -1,7 +1,6 @@
 # LAMPREY_TOOLS_MCP_ROSTER_PLAN.md — Tools + MCP Roster Phase (TR-0 … TR-10)
 
-**Status: PENDING** — awaiting explicit user green light + STS instruction.
-This drafting session does not implement product prompts and does not run STS.
+**Status: COMPLETE** — STS finished 2026-08-23 as v0.30.1.
 
 Drafted 2026-08-23 against tip **`origin/main` @ `7ea0f9e`** (OpenWiki minimal tree landed)
 and app **v0.30.0**. User locked scope: **update both native tools and MCP curated catalog**.
@@ -220,7 +219,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** greppable; OD lock tests
 
 ### **TR-10 — Phase wrap → v0.30.1**
-- [ ] Full gate: vitest + build + verify:proof.
+- [x] Full gate: vitest + build + verify:proof.
   - `package.json` → `0.30.1`
   - `RELEASE_NOTES/v0.30.1.md`
   - Current State: Tools + MCP Roster released as v0.30.1

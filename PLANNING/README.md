@@ -12,7 +12,7 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 | File | Role |
 |------|------|
-| `LAMPREY_TOOLS_MCP_ROSTER_PLAN.md` | Tools + MCP Roster P-SPR — current working plan (v0.30.1) |
+| `LAMPREY_TOOLS_MCP_ROSTER_PLAN.md` | Tools + MCP Roster P-SPR — shipped as v0.30.1 |
 | `TR_BASELINE.md` | Roster baseline (packs, CORE lists, dual catalog, K8 table) |
 | `LAMPREY_OPERABILITY_DEBT_PLAN.md` | Operability Debt P-SPR — shipped reference (v0.30.0) |
 | `OD_BASELINE.md` / `OD_AFTER.md` | Operability Debt before/after measurements |

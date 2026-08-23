@@ -144,7 +144,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Track A — MCP curated catalog
 
 ### **TR-1 — K8: Prove or replace broken upstream packages**
-- [ ] For each current catalog package (`@playwright/mcp`, `@modelcontextprotocol/server-*`),
+- [x] For each current catalog package (`@playwright/mcp`, `@modelcontextprotocol/server-*`),
   record whether npm resolves. If any 404/deprecated, pick replacement args or drop with
   DEVLOG rationale before expansion. Do not expand on a broken base.
 - **Closes:** K8 gate

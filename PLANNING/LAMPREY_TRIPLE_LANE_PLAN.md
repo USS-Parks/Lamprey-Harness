@@ -152,7 +152,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Shared baseline
 
 ### **TL-0 — Lock Triple Lane baseline**
-- [ ] Write PLANNING/TL_BASELINE.md with only: tip SHA; package version; lane goals A/B/C; code touchpoint map for OpenRouter and customProviders; cite CJ26 Claude Code refresh row; soft inventory S1-S8; pointer to this P-SPR. No product code.
+- [x] Write PLANNING/TL_BASELINE.md with only: tip SHA; package version; lane goals A/B/C; code touchpoint map for OpenRouter and customProviders; cite CJ26 Claude Code refresh row; soft inventory S1-S8; pointer to this P-SPR. No product code.
 - **Closes:** S6
 - **Files:** PLANNING/TL_BASELINE.md
 - **Verify:** file exists

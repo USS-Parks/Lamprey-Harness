@@ -580,7 +580,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track E — Dead code
 
 ### **AC-25 — D1: Delete `pipeline-orphans`**
-- [ ] Remove `electron/services/pipeline-orphans.ts` and `pipeline-orphans.test.ts`. No production importer remains (already true). Absence lock: production `electron/` does not import that path. This also drops one of the 18 ABI-guarded files; AC-0’s list in AFTER (AC-31) will show 17 unless another file is added. That is correct, not a regression.
+- [x] Remove `electron/services/pipeline-orphans.ts` and `pipeline-orphans.test.ts`. No production importer remains (already true). Absence lock: production `electron/` does not import that path. This also drops one of the 18 ABI-guarded files; AC-0’s list in AFTER (AC-31) will show 17 unless another file is added. That is correct, not a regression.
 - **Closes:** D1, DEL-7
 - **Files:** the two pipeline-orphans files (deleted)
 - **Verify:** tsc ×2; grep lock

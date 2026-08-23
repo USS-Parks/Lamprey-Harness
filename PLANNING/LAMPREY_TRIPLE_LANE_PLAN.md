@@ -181,7 +181,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** typecheck + touched tests, or DEVLOG N/A
 
 ### **TL-A5 — Delta 2 (optional)**
-- [ ] Same pattern as TL-A4 for A3 item 2 / N/A.
+- [x] Same pattern as TL-A4 for A3 item 2 / N/A.
 
 ### **TL-A6 — Delta 3 (optional)**
 - [ ] Same pattern for item 3 / N/A.

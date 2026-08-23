@@ -95,7 +95,7 @@ ABI; pure/source-lock suites cover validation, renderer isolation, range/diff de
 activity mapping, and false-success negatives. The production build and both bundle smokes are
 part of the milestone gate.
 
-`PLANNING/CJ26_ARTIFACT_EDITING_PLAYBOOK.md` is the packaged owner GUI acceptance pass. Until
+`PLANNING/archive/CJ26_ARTIFACT_EDITING_PLAYBOOK.md` is the packaged owner GUI acceptance pass. Until
 its receipt is appended, v0.22.0 is implementation-complete locally but not published and not a
 blanket current-Codex artifact-parity claim.
 

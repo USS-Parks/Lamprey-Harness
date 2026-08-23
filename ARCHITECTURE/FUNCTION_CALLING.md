@@ -284,7 +284,7 @@ Native models (with `supportsTools: true`) skip both layers.
 
 Everything below rides the one OpenAI-compatible pathway; these are the known
 deviations that matter to dispatch or capability flags. Endpoint existence was
-probed live 2026-07-11; see `PLANNING/PX_BASELINE.md` for per-model evidence.
+probed live 2026-07-11; see `PLANNING/archive/PX_BASELINE.md` for per-model evidence.
 
 | Provider | Reasoning channel | `/v1/models` | Notes |
 |---|---|---|---|

@@ -75,7 +75,7 @@ inject interactive artifact source into the chat DOM or bypass `electron/ipc/art
 - `electron/preload.ts` — the `window.api` contextBridge. **Never add a raw `ipcRenderer.invoke` in renderer code.**
 - `src/` — React 19 renderer. Zustand stores under `src/stores/`, IPC-bound hooks under `src/hooks/`, components grouped by domain.
 
-The full plan, including subsystem specs and decisions, lives in [PLANNING/LAMPREY_HARNESS_FINAL.md](PLANNING/LAMPREY_HARNESS_FINAL.md). Each prompt's commit message and DEVLOG entry explain the why.
+The original harness plan is archived at [PLANNING/archive/LAMPREY_HARNESS_FINAL.md](PLANNING/archive/LAMPREY_HARNESS_FINAL.md). Live canon is [PLANNING/README.md](PLANNING/README.md). Each prompt's commit message and DEVLOG entry explain the why.
 
 ---
 

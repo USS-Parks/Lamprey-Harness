@@ -20,11 +20,11 @@ landed. Line counts at rewrite time: `electron/ipc/chat.ts` 1915,
 evidence.
 
 **Closest ancestors (format, not scope):**
-`PLANNING/LAMPREY_JULY_2026_MAINTENANCE_PLAN.md` (audit → remediating STS),
-`PLANNING/LAMPREY_SWEET_SPOT_PLAN.md` (evidence tables + K-register + expanded
-prompts), `PLANNING/LAMPREY_UNBURDENING_PLAN.md` (delete / keep locks),
+`PLANNING/archive/LAMPREY_JULY_2026_MAINTENANCE_PLAN.md` (audit → remediating STS),
+`PLANNING/archive/LAMPREY_SWEET_SPOT_PLAN.md` (evidence tables + K-register + expanded
+prompts), `PLANNING/archive/LAMPREY_UNBURDENING_PLAN.md` (delete / keep locks),
 `PLANNING/PSPR_TEMPLATE.md` (§0 headings). Hygiene’s roster voice
-(`PLANNING/LAMPREY_HYGIENE_PLAN.md`) is the prompt-body density target.
+(`PLANNING/archive/LAMPREY_HYGIENE_PLAN.md`) is the prompt-body density target.
 
 **Graft:** the repo graph is not built (`graft/` empty). Spans below are live
 `rg` + file reads on `e3b3a6a`, not graph nodes.

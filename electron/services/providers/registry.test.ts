@@ -521,6 +521,18 @@ describe('provider descriptor resolution + key handling', () => {
     expect(mockCtorOpts.at(-1)?.baseURL).toBe('https://api.moonshot.ai/v1')
   })
 
+  it('TL-C3 connection refused on Ollama is a loud listen-failure', async () => {
+    const err = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:11434'), {
+      code: 'ECONNREFUSED'
+    })
+    mockModelsList.mockRejectedValueOnce(err)
+    const result = await validateProviderKeyDetailed('ollama')
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/connection refused/i)
+    expect(result.reason).toMatch(/nothing is listening/i)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
   it('normalizes Reka bare-array catalogs with X-Api-Key auth', async () => {
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       expect(init?.headers).toMatchObject({ 'X-Api-Key': 'test-key' })

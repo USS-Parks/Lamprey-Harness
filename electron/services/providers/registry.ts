@@ -11,6 +11,11 @@ import { MODEL_CATALOG, RETIRED_MODEL_MAP } from './catalog'
 import { boundedJsonPreview, recordEvent } from '../event-log'
 import { trace } from '../debug-trace'
 import { buildOpenRouterChatExtras, parseOpenRouterFallbacks, parseOpenRouterSort } from './openrouter-routing'
+import {
+  CONNECTION_REFUSED_HINT,
+  describeProviderProbeFailure,
+  isConnectionRefusedError
+} from './connection-error'
 
 export { MODEL_CATALOG, RETIRED_MODEL_MAP }
 
@@ -881,6 +886,11 @@ export async function validateProviderKeyDetailed(provider: string): Promise<Key
     if (err?.status === 401 || err?.status === 403) {
       return { ok: false, reason: `Provider rejected the key (HTTP ${err.status}).` }
     }
+    // TL-C3 — connection refused is a local-server miss, not a key problem.
+    // Skip the chat probe so the Test button can say that in one shot.
+    if (isConnectionRefusedError(err)) {
+      return { ok: false, reason: CONNECTION_REFUSED_HINT }
+    }
     // Fall through to a chat-completion fallback for providers that don't
     // expose /v1/models — DashScope's compatible-mode endpoint, for instance.
     return validateViaChatProbe(provider, client, err)
@@ -919,10 +929,12 @@ async function validateViaChatProbe(
     }
     return {
       ok: false,
-      reason:
+      reason: describeProviderProbeFailure(
+        err,
         err?.message ||
-        originalError?.message ||
-        'Provider returned an unexpected error during validation.'
+          originalError?.message ||
+          'Provider returned an unexpected error during validation.'
+      )
     }
   }
 }

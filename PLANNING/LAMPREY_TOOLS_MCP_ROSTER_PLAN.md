@@ -129,7 +129,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Baseline
 
 ### **TR-0 — Lock roster baseline → `PLANNING/TR_BASELINE.md`**
-- [ ] Write `PLANNING/TR_BASELINE.md` with only:
+- [x] Write `PLANNING/TR_BASELINE.md` with only:
   1. Tip SHA (`git rev-parse HEAD`) and `package.json` version.
   2. Count of `tool-packs.ts` imports; list of pack module basenames.
   3. `CORE_SURFACE_NAMES` and `CORE_NORMALIZE_NAMES` verbatim.

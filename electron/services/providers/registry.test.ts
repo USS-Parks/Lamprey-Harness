@@ -469,7 +469,8 @@ import {
   listAllProviders,
   listLiveModelIds,
   validateProviderKeyDetailed,
-  PROVIDERS
+  PROVIDERS,
+  OPENROUTER_AUTO_ID
 } from './registry'
 
 describe('provider descriptor resolution + key handling', () => {
@@ -819,6 +820,14 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
     } finally {
       setUserDataPathProvider(null)
     }
+  })
+
+  it('resolveModel maps openrouter/auto without pinning a catalog row (TL-B5)', () => {
+    const desc = resolveModel(OPENROUTER_AUTO_ID)
+    expect(desc.provider).toBe('openrouter')
+    expect(desc.apiModelId).toBe('openrouter/auto')
+    expect(MODEL_CATALOG.some((m) => m.id === OPENROUTER_AUTO_ID)).toBe(false)
+    expect(MODEL_CATALOG.filter((m) => m.provider === 'openrouter')).toEqual([])
   })
 
   it('custom models omit supportsTools default to false', async () => {

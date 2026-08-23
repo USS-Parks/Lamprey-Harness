@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-B5] Offer openrouter/auto when keyed  —  2026-08-23
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/ipc/model.ts`, `electron/ipc/model-openrouter-auto.wiring.test.ts`, `src/components/settings/OpenRouterRoutingSettings.tsx`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest registry + wiring + provider-parity ✓ (70 tests)
+
+**Notes:** Official id is `openrouter/auto`. Not a MODEL_CATALOG row (K4). Picker injects it only when `hasKey('openrouter')`. Session stickiness documented on the routing panel.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-B4] OpenRouter routing settings panel  —  2026-08-23
 
 **Files changed:** `src/components/settings/OpenRouterRoutingSettings.tsx`, `src/components/settings/openrouter-routing-settings.wiring.test.ts`, `src/components/settings/ModelSettings.tsx`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

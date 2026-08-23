@@ -1,4 +1,20 @@
+## 2026-08-23 — Tools + MCP Roster Phase
+
+## [Tools + MCP Roster — Prompt TR-0] Lock roster baseline  —  2026-08-23
+
+**Files changed:** `PLANNING/TR_BASELINE.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ (docs only)
+- tsc web ✓ (docs only)
+- vitest (none — docs only)
+- file exists: `PLANNING/TR_BASELINE.md`
+
+**Notes:** Captured at `cabd881` / v0.30.0. 24 pack imports. Dual catalog is the same seven ids. `NATIVE_TOOL_HINTS` is a stale 6-name subset (`web_find` is not CORE). OpenWiki has model `catalog.md` + `mcp.md`; no native inventory page.
+
+**Commit:** 734feab
+
 ## 2026-08-23 — Operability Debt Phase
+
 
 ## [Operability Debt — Prompt OD-0] Lock the baseline  —  2026-08-23
 

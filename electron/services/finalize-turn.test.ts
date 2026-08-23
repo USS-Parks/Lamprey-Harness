@@ -87,6 +87,27 @@ describe('AC-3 finalizeTurn', () => {
     })
   })
 
+  it('OD-3: cancelled drains and withholds the queue', () => {
+    const d = deps()
+    const dispatchQueue = vi.fn()
+    const result = finalizeTurn(
+      {
+        runtime: runtime(),
+        status: 'cancelled',
+        conversationId: 'c1',
+        model: 'm1',
+        correlationId: 'corr-1',
+        dispatchQueue
+      },
+      d
+    )
+    expect(result.settled).toBe(true)
+    expect(d.settled).toEqual([expect.objectContaining({ status: 'cancelled' })])
+    expect(d.drained).toEqual(['corr-1'])
+    expect(d.artifacts).toEqual(['corr-1'])
+    expect(dispatchQueue).not.toHaveBeenCalled()
+  })
+
   it('does not dispatch the queue when settlement is failed', () => {
     const d = deps()
     const dispatchQueue = vi.fn()

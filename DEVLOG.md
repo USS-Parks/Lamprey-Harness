@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-5] Align skill-wizard hints to CORE  —  2026-08-23
+
+**Files changed:** `src/data/core-surface-names.ts`, `src/components/customize/NewSkillWizard.tsx`, `electron/services/core-surface-hints.test.ts`, `tsconfig.node.json`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest core-surface-hints ✓ (2 tests)
+
+**Notes:** Wizard imports shared `CORE_SURFACE_NAMES`. Test locks it equal to electron CORE. Dropped stale `web_find` / `verify_workspace` hints.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-4] Add-flow catalog smoke  —  2026-08-23
 
 **Files changed:** `src/components/customize/AddConnectorFlow.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

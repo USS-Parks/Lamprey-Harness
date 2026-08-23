@@ -232,7 +232,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/operability-debt-safety.test.ts`
 
 ### **OD-8 — Fold August rows into `catalog.ts`**
-- [ ] Append the twelve `AUGUST_2026_MODELS` descriptors to
+- [x] Append the twelve `AUGUST_2026_MODELS` descriptors to
   `MODEL_CATALOG` in `electron/services/providers/catalog.ts` (no row
   edits to existing entries). Drop the “Mechanical extract… No row
   edits” comment or rewrite it to “canonical catalog including the

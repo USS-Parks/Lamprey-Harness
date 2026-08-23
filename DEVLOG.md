@@ -107,6 +107,19 @@ finalizeTurn.
 permanent non-goal. `turn.interrupted` is a kept event name. Native-DB CI
 first-run clause dropped (`3e0fde9`). No v0.30.0 Current State entry yet.
 
+**Commit:** 9cb6bc0
+
+## [Operability Debt — Prompt OD-8] Fold August rows into catalog.ts  —  2026-08-23
+
+**Files changed:** `electron/services/providers/catalog.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest catalog-august-2026 + supports-tools-audit + registry ✓ (60 tests)
+
+**Notes:** Twelve August rows appended. Overlay file still present until OD-9;
+its push loop skips duplicate ids.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

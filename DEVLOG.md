@@ -93,6 +93,20 @@ finalizeTurn.
 **Notes:** Missing-table still no-ops. Any other SQLite error rethrows.
 `unlockTools` does not catch persist failures.
 
+**Commit:** 9402827
+
+## [Operability Debt — Prompt OD-7] Sync Current State parked wording  —  2026-08-23
+
+**Files changed:** `CLAUDE.md`, `AGENTS.md`, `electron/services/operability-debt-safety.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓ (3 tests)
+
+**Notes:** R1–R4 / supportsTools / OpenWiki are parked. Unsigned builds are a
+permanent non-goal. `turn.interrupted` is a kept event name. Native-DB CI
+first-run clause dropped (`3e0fde9`). No v0.30.0 Current State entry yet.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

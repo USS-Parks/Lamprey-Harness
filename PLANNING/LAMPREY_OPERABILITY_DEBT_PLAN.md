@@ -221,7 +221,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/tool-unlock-state.test.ts`
 
 ### **OD-7 — Sync CLAUDE.md / AGENTS.md Current State**
-- [ ] Rewrite the Audit Closure Current State honest-gap clause to match
+- [x] Rewrite the Audit Closure Current State honest-gap clause to match
   K1/K2/K6/K7/K9: R1–R4 parked; live `supportsTools` probes parked;
   OpenWiki parked (empty checkout); unsigned builds permanent non-goal;
   `turn.interrupted` is a kept event name, not a leftover hole.

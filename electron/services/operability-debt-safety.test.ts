@@ -35,6 +35,11 @@ describe('OD-4 honest gaps with teeth', () => {
       expect(state, file).toMatch(/OpenWiki/)
       expect(state, file).toMatch(/unsigned/)
       expect(state, file).toMatch(/turn\.interrupted/)
+      expect(state, file).toMatch(/Parked:/)
+      expect(state, file).toMatch(/Permanent non-goal:\s*unsigned builds/)
+      expect(state, file).toMatch(/kept audit event name/)
+      expect(state, file).not.toMatch(/event-name leftover/)
+      expect(state, file).not.toMatch(/native-DB CI first Actions run \(`user-verification-needed`\)/)
     }
   })
 })

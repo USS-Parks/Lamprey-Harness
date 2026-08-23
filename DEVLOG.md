@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-7] OpenWiki native tools page  —  2026-08-23
+
+**Files changed:** `openwiki/domains/tools/native.md`, `openwiki/domains/tools/index.md`, `openwiki/domains/tools/catalog.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- page exists; catalog.md labeled as models
+
+**Notes:** Hand-authored (no OpenWiki CLI pass — a full `code --update` would rewrite the tree). CORE table + 24-pack map. catalog.md now points at native.md.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-6] Native inventory lock  —  2026-08-23
 
 **Files changed:** `electron/services/native-inventory-lock.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

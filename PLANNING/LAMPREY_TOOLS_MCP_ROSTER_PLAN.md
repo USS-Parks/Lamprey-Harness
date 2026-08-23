@@ -198,7 +198,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** that test; packs still load
 
 ### **TR-7 — K5: OpenWiki native tools page**
-- [ ] Add `openwiki/domains/tools/native.md` listing CORE surface + pack map.
+- [x] Add `openwiki/domains/tools/native.md` listing CORE surface + pack map.
   Update tools `index.md`. Clarify `catalog.md` remains **model** catalog.
   Prefer constrained `openwiki code --update -p`; hand-author if CLI over-scopes.
 - **Closes:** S4

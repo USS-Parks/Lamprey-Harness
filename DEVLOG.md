@@ -1,5 +1,31 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-10] Phase wrap v0.30.1  —  2026-08-23
+
+**Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.30.1.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest (full) — see phase-complete
+- build — see phase-complete
+- verify:proof — see phase-complete
+
+**Notes:** Source wrap. No Bucket. Download table still points at v0.30.0 installers.
+
+## [Tools + MCP Roster — phase complete] v0.30.1  —  2026-08-23
+
+Ten curated MCP templates (was seven). Native hygiene only. OpenWiki native inventory page.
+
+**Final gate:** (running after wrap commit)
+**Honest gaps:**
+- Installer / Bucket artifacts still v0.30.0
+- Live auth of new MCP templates is owner work
+- Official Slack hosted MCP is not the one-click template (needs a partner Slack app)
+- Fetch template dropped; no Python/`uvx` replacement shipped
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-9] Current State catch-up  —  2026-08-23
 
 **Files changed:** `CLAUDE.md`, `AGENTS.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

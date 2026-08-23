@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-2] Expand curated MCP catalog  —  2026-08-23
+
+**Files changed:** `resources/connectors/catalog.json`, `src/data/connectors-catalog.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- JSON parse ✓ (10 entries)
+
+**Notes:** Dual catalog now: playwright, filesystem, github (docker official), postgres (dbhub), sqlite (mcp-server-sqlite-npx), memory, linear (mcp-remote), sentry, notion, slack. Fetch dropped (K8). Existing installed mcp-servers.json untouched.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-1] Prove or replace broken MCP packages  —  2026-08-23
 
 **Files changed:** `PLANNING/TR_BASELINE.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

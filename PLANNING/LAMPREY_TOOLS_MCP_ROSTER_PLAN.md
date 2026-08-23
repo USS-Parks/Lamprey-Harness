@@ -152,7 +152,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** baseline table present
 
 ### **TR-2 — K2: Expand curated catalog (Linear, Sentry, Notion, Slack)**
-- [ ] Add four templates to **both** `resources/connectors/catalog.json` and
+- [x] Add four templates to **both** `resources/connectors/catalog.json` and
   `src/data/connectors-catalog.ts`:
   - `linear` — category Project; env placeholder per current upstream package
   - `sentry` — category Observability

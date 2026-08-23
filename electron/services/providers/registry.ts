@@ -10,6 +10,12 @@ import { getKey } from '../keychain'
 import { MODEL_CATALOG, RETIRED_MODEL_MAP } from './catalog'
 import { boundedJsonPreview, recordEvent } from '../event-log'
 import { trace } from '../debug-trace'
+import { buildOpenRouterChatExtras, parseOpenRouterFallbacks, parseOpenRouterSort } from './openrouter-routing'
+import {
+  CONNECTION_REFUSED_HINT,
+  describeProviderProbeFailure,
+  isConnectionRefusedError
+} from './connection-error'
 
 export { MODEL_CATALOG, RETIRED_MODEL_MAP }
 
@@ -801,7 +807,26 @@ function readCustomModelDescriptors(): ModelDescriptor[] {
   }
 }
 
+/** Official OpenRouter auto-router. Not a pinned catalog row (K4). */
+export const OPENROUTER_AUTO_ID = 'openrouter/auto'
+
+export const OPENROUTER_AUTO_DESCRIPTOR: ModelDescriptor = {
+  id: OPENROUTER_AUTO_ID,
+  name: 'OpenRouter Auto',
+  provider: 'openrouter',
+  apiModelId: OPENROUTER_AUTO_ID,
+  contextWindow: 200000,
+  supportsTools: true,
+  supportsVision: true,
+  tier: 'pro',
+  description:
+    'OpenRouter auto-router. A session may stick to one upstream model; prompt cache can miss across swaps.'
+}
+
 export function resolveModel(modelId: string): ModelDescriptor {
+  if (modelId === OPENROUTER_AUTO_ID || modelId === 'openrouter-auto') {
+    return OPENROUTER_AUTO_DESCRIPTOR
+  }
   const found = MODEL_CATALOG.find((m) => m.id === modelId)
   if (found) return found
 
@@ -861,6 +886,11 @@ export async function validateProviderKeyDetailed(provider: string): Promise<Key
     if (err?.status === 401 || err?.status === 403) {
       return { ok: false, reason: `Provider rejected the key (HTTP ${err.status}).` }
     }
+    // TL-C3 — connection refused is a local-server miss, not a key problem.
+    // Skip the chat probe so the Test button can say that in one shot.
+    if (isConnectionRefusedError(err)) {
+      return { ok: false, reason: CONNECTION_REFUSED_HINT }
+    }
     // Fall through to a chat-completion fallback for providers that don't
     // expose /v1/models — DashScope's compatible-mode endpoint, for instance.
     return validateViaChatProbe(provider, client, err)
@@ -899,10 +929,12 @@ async function validateViaChatProbe(
     }
     return {
       ok: false,
-      reason:
+      reason: describeProviderProbeFailure(
+        err,
         err?.message ||
-        originalError?.message ||
-        'Provider returned an unexpected error during validation.'
+          originalError?.message ||
+          'Provider returned an unexpected error during validation.'
+      )
     }
   }
 }
@@ -1048,10 +1080,44 @@ export interface ChatOnceResult {
   reasoning?: string
 }
 
+function readOpenRouterRouting(): {
+  fallbacks: string[]
+  sort: ReturnType<typeof parseOpenRouterSort>
+  order: string[]
+  ignore: string[]
+} {
+  const empty = { fallbacks: [] as string[], sort: parseOpenRouterSort(undefined), order: [] as string[], ignore: [] as string[] }
+  if (!userDataPathProvider) return empty
+  try {
+    const path = join(userDataPathProvider(), 'settings.json')
+    if (!existsSync(path)) return empty
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as {
+      openrouterFallbacks?: unknown
+      openrouterProviderSort?: unknown
+      openrouterProviderOrder?: unknown
+      openrouterProviderIgnore?: unknown
+    }
+    return {
+      fallbacks: parseOpenRouterFallbacks(raw.openrouterFallbacks),
+      sort: parseOpenRouterSort(raw.openrouterProviderSort),
+      order: parseOpenRouterFallbacks(raw.openrouterProviderOrder),
+      ignore: parseOpenRouterFallbacks(raw.openrouterProviderIgnore)
+    }
+  } catch {
+    return empty
+  }
+}
+
 function providerChatExtras(desc: ModelDescriptor): Record<string, unknown> {
+  const extras: Record<string, unknown> = {}
   // MiniMax otherwise embeds <think> in visible content. Its documented
   // reasoning_split flag preserves the same trace in reasoning_details.
-  return desc.provider === 'minimax' ? { reasoning_split: true } : {}
+  if (desc.provider === 'minimax') extras.reasoning_split = true
+  // TL-B2/B3 — OpenRouter fallbacks + provider prefs. Empty settings → no extra fields (K4).
+  if (desc.provider === 'openrouter') {
+    Object.assign(extras, buildOpenRouterChatExtras(desc.apiModelId, readOpenRouterRouting()))
+  }
+  return extras
 }
 
 function reasoningDetailsText(value: unknown): string {

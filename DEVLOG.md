@@ -12,6 +12,20 @@
 Status APPROVED 2026-08-23 — STS by Basho. K8 is v0.30.0. Soft inventory
 S1–S7 recorded open. Line counts match AC method.
 
+**Commit:** 9c748d4
+
+## [Operability Debt — Prompt OD-1] Cap failure settles failed  —  2026-08-23
+
+**Files changed:** `electron/services/headless-turn-settlement.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest headless-turn-settlement + finalize-turn + tool-round-cap-error ✓ (7 tests)
+
+**Notes:** Throws `ToolRoundCapError`, applies the chat.ts abort/user-abort
+rule, then calls `finalizeTurn` on a real `TurnRuntimeRegistry`. Status is
+`failed`, queue withheld, both drains fire. No helper extracted from chat.ts.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

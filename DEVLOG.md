@@ -132,6 +132,20 @@ its push loop skips duplicate ids.
 
 **Notes:** Registry re-exports catalog only. No `MODEL_CATALOG.push` loop.
 
+**Commit:** 8af6fb6
+
+## [Operability Debt — Prompt OD-10] Archive spent PLANNING trees  —  2026-08-23
+
+**Files changed:** 72 `PLANNING/*.md` moved to `PLANNING/archive/`, `PLANNING/archive/README.md`, `CONTRIBUTING.md`, live `CLAUDE.md`/`AGENTS.md`/`ARCHITECTURE/`/`RELEASE_NOTES/` pointers, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓ (3 tests)
+- `node scripts/pre-push-scope.test.cjs` ✓
+
+**Notes:** Keep list stayed at `PLANNING/` root (11 markdown files). AC
+authority files not deleted. DEVLOG historical paths left as written.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

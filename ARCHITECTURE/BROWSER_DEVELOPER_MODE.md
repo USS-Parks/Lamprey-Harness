@@ -86,7 +86,7 @@ redaction, caps, cursor and navigation behavior, fixed inspection probes, trace 
 origin policy, approval metadata, PowerShell AST classification, IPC/preload/UI wiring,
 build, bundle smoke, and renderer smoke.
 
-`PLANNING/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md` is the owner-operated live gate. Until its
+`PLANNING/archive/CJ26_BROWSER_DEVELOPER_PLAYBOOK.md` is the owner-operated live gate. Until its
 visible packaged-app receipt exists, v0.25.0 has structural and headless implementation
 evidence but does not claim completed live Browser Developer parity.
 

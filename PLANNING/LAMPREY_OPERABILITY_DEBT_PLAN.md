@@ -251,7 +251,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/providers/catalog-august-2026.test.ts electron/services/providers/catalog-invariants.test.ts`
 
 ### **OD-10 — Archive spent PLANNING trees**
-- [ ] Create `PLANNING/archive/`. `git mv` every spent `PLANNING/*.md`
+- [x] Create `PLANNING/archive/`. `git mv` every spent `PLANNING/*.md`
   except the keep list below. Do **not** delete. Add
   `PLANNING/archive/README.md` naming the keep list and saying these
   files are reference-only.

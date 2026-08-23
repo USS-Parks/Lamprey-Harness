@@ -247,7 +247,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** tests for defaults
 
 ### **TL-C5 — Docs: Train elsewhere, serve, Lamprey**
-- [ ] Short OpenWiki or README section: fine-tune in Unsloth (or elsewhere), export/serve OpenAI-compatible, add preset in Lamprey (K6/K11). No training UI.
+- [x] Short OpenWiki or README section: fine-tune in Unsloth (or elsewhere), export/serve OpenAI-compatible, add preset in Lamprey (K6/K11). No training UI.
 - **Closes:** S3
 - **Verify:** doc exists
 

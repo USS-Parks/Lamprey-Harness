@@ -197,7 +197,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Lane B — OpenRouter Routing Depth
 
 ### **TL-B1 — Map OpenRouter code paths**
-- [ ] Document in DEVLOG or PLANNING/TL_OPENROUTER_MAP.md: OpenRouter keys, chatStream body, catalog import, model ids. Identify the single request-build seam for fallbacks/prefs. No behavior change required.
+- [x] Document in DEVLOG or PLANNING/TL_OPENROUTER_MAP.md: OpenRouter keys, chatStream body, catalog import, model ids. Identify the single request-build seam for fallbacks/prefs. No behavior change required.
 - **Closes:** S2 (orient)
 - **Verify:** map exists
 

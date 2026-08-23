@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-B1] Map OpenRouter code paths  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_OPENROUTER_MAP.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- map exists
+
+**Notes:** Seam is `providerChatExtras`. Pinned catalog still has zero OpenRouter rows.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-A3] Scoreboard empty (K12)  —  2026-08-23
 
 **Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

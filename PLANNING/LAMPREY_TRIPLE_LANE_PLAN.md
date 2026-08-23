@@ -265,7 +265,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** greppable
 
 ### **TL-W2 — Current State + DEVLOG catch-up**
-- [ ] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG Triple Lane section complete. Keep OD honest-gap lock tests green if wording changes.
+- [x] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG Triple Lane section complete. Keep OD honest-gap lock tests green if wording changes.
 - **Closes:** S7
 - **Verify:** greppable; OD lock tests
 

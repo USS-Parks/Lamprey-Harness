@@ -211,7 +211,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** tests for prefs serialization
 
 ### **TL-B4 — Settings UI: OpenRouter routing panel**
-- [ ] Settings surface to edit fallback model ids + sort preference; persist settings.json. Clearly opt-in (hide or disable unless OpenRouter key present is OK).
+- [x] Settings surface to edit fallback model ids + sort preference; persist settings.json. Clearly opt-in (hide or disable unless OpenRouter key present is OK).
 - **Files:** settings UI + store/IPC as needed
 - **Verify:** web typecheck; thin test or source-lock
 

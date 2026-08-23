@@ -167,12 +167,15 @@ export function recordFailure(input: RecordFailureInput, db?: Database): Failure
 
   if (existing) {
     const newCount = existing.count + 1
+    // Date.now() can match the first insert on a fast machine. A repeat
+    // must move last_seen_at so callers can tell the events apart.
+    const seenAt = Math.max(ts, existing.last_seen_at + 1)
     d.prepare(`
       UPDATE failure_ledger
         SET count = ?, last_seen_at = ?, updated_at = ?,
             message = CASE WHEN ? != '' THEN ? ELSE message END
         WHERE fingerprint = ?
-    `).run(newCount, ts, ts, input.message, input.message, fingerprint)
+    `).run(newCount, seenAt, seenAt, input.message, input.message, fingerprint)
 
     const updated = d.prepare(
       'SELECT * FROM failure_ledger WHERE fingerprint = ?'

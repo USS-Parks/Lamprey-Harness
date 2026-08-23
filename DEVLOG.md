@@ -1,3 +1,26 @@
+## 2026-08-23 — Audit Closure Phase
+
+## [Audit Closure — native-DB CI] First Actions run  —  2026-08-23
+
+**Files changed:** `electron/services/database-checkpoint.test.ts`, `electron/services/failure-ledger.ts`, `electron/services/proof-receipts.ts`, `electron/services/proof-receipts.test.ts`
+**Verify gate:**
+- tsc node
+- tsc web
+- tsc node ✓
+- tsc web ✓
+- vitest proof-receipts redact (always-on) ✓
+- native-db under Electron: the four CI failures gone (134 passed / 15 skipped; local backup-runner temp cleanup EPERM is Windows-only)
+
+**Notes:** AC-36's first `native-db` job ran the 17 ABI-guarded files and failed
+4 tests. `wal_checkpoint(TRUNCATE)` still zeroes the WAL file, but Electron's
+SQLite reports `log=0` even with frames present — the suite now asserts the
+truncate, not the pragma counts. Repeat ledger rows bump `last_seen_at` by at
+least 1 ms. `Authorization: Bearer <token>` redacts the whole value, not just
+`Bearer`. The proof-receipts migration fixture matches the db-migrations
+baseline (`created_at`, `projects`, and the other v15+ tables).
+
+**Commit:** pending
+
 ## 2026-08-22 — Audit Closure Phase
 
 ## [Audit Closure — Prompt AC-42] Phase wrap  —  2026-08-22

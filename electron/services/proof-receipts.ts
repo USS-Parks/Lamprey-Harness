@@ -159,7 +159,7 @@ const ARTIFACT_BYTE_CAP = 256 * 1024
 const MAX_LIST_LIMIT = 500
 
 const SECRET_ASSIGNMENT_PATTERN =
-  /\b([A-Z0-9_.-]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|AUTHORIZATION|BEARER|PRIVATE[_-]?KEY|CLIENT[_-]?SECRET|REFRESH[_-]?TOKEN|ACCESS[_-]?TOKEN|CREDENTIAL|COOKIE|SESSION[_-]?ID)[A-Z0-9_.-]*)(\s*[:=]\s*)(["']?)[^\s"',;}]+/gi
+  /\b([A-Z0-9_.-]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|AUTHORIZATION|BEARER|PRIVATE[_-]?KEY|CLIENT[_-]?SECRET|REFRESH[_-]?TOKEN|ACCESS[_-]?TOKEN|CREDENTIAL|COOKIE|SESSION[_-]?ID)[A-Z0-9_.-]*)(\s*[:=]\s*)(["']?)(?:Bearer\s+)?[^\s"',;}]+/gi
 
 function getStoreDb(options?: StoreOptions): Database {
   return options?.db ?? getDb()

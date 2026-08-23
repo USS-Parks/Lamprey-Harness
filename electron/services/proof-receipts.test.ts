@@ -38,9 +38,35 @@ function makeBaselineDb(): Database {
   const db = new BetterSqlite3(':memory:')
   db.pragma('foreign_keys = ON')
   db.exec(`
-    CREATE TABLE conversations (id TEXT PRIMARY KEY);
+    CREATE TABLE conversations (
+      id TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL DEFAULT 0
+    );
     CREATE TABLE messages (id TEXT PRIMARY KEY);
     CREATE TABLE events (id TEXT PRIMARY KEY);
+    CREATE TABLE projects (id TEXT PRIMARY KEY);
+    CREATE TABLE agent_runs (id TEXT PRIMARY KEY);
+    CREATE TABLE automations (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      cron TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      model TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      last_run_at INTEGER,
+      last_result TEXT
+    );
+    CREATE TABLE goals (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date TEXT,
+      status TEXT NOT NULL CHECK(status IN ('open','in_progress','done','abandoned')),
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `)
   return db
 }
@@ -286,5 +312,8 @@ describe('redactProofText', () => {
     expect(
       redactProofText('OPENAI_API_KEY=sk-test Authorization: Bearer-real cookie=session')
     ).toBe('OPENAI_API_KEY=[redacted] Authorization: [redacted] cookie=[redacted]')
+    expect(
+      redactProofText('Authorization: Bearer real-token')
+    ).toBe('Authorization: [redacted]')
   })
 })

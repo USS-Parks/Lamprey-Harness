@@ -261,7 +261,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Wrap
 
 ### **TL-W1 — Point PLANNING live canon at this P-SPR**
-- [ ] Update PLANNING/README.md: this plan is current working P-SPR; Tools+MCP Roster and OD remain shipped references (v0.30.1 / v0.30.0).
+- [x] Update PLANNING/README.md: this plan is current working P-SPR; Tools+MCP Roster and OD remain shipped references (v0.30.1 / v0.30.0).
 - **Verify:** greppable
 
 ### **TL-W2 — Current State + DEVLOG catch-up**

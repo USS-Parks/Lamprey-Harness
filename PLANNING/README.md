@@ -12,6 +12,10 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 | File | Role |
 |------|------|
+| `LAMPREY_TRIPLE_LANE_PLAN.md` | **Current working P-SPR** — Triple Lane (Claude Code refresh + OpenRouter routing depth + local endpoint polish). Target v0.31.0. Bucket still owed. |
+| `TL_BASELINE.md` | Triple Lane baseline (tip, touchpoints, Lane C audit) |
+| `TL_CLAUDE_CODE_INVENTORY.md` | Lane A inventory + empty pick list (K12) |
+| `TL_OPENROUTER_MAP.md` | Lane B request-seam map |
 | `LAMPREY_TOOLS_MCP_ROSTER_PLAN.md` | Tools + MCP Roster P-SPR — shipped as v0.30.1 |
 | `TR_BASELINE.md` | Roster baseline (packs, CORE lists, dual catalog, K8 table) |
 | `LAMPREY_OPERABILITY_DEBT_PLAN.md` | Operability Debt P-SPR — shipped reference (v0.30.0) |

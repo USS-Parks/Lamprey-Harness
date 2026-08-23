@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-W1] Point live canon at Triple Lane P-SPR  —  2026-08-23
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- greppable live-canon row
+
+**Notes:** Triple Lane is the current working P-SPR. Tools+MCP Roster v0.30.1 and Operability Debt v0.30.0 stay shipped references. Bucket still owed.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-A8] Delta 5 N/A (K12)  —  2026-08-23
 
 **Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

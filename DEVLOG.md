@@ -1,5 +1,34 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-W3] Phase wrap v0.31.0  —  2026-08-23
+
+**Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.31.0.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest (full) ✓ (2953 passed / 152 skipped / 0 failed)
+- build ✓
+- verify:proof ✓
+
+**Notes:** Source wrap to v0.31.0. Lane A inventory-only (K12). Lane B OpenRouter extras on the OpenRouter path only. Lane C local presets + loud refuse + tools/vision-off defaults. TL-W4 Bucket not run on the cloud VM.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — phase complete] v0.31.0  —  2026-08-23
+
+Empty Lane A (K12). OpenRouter fallbacks + provider prefs + `openrouter/auto`. Ollama / LM Studio / Unsloth API presets. No training UI. No Bucket.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2953 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:**
+- Installer / Bucket artifacts still v0.30.0 (TL-W4 owed)
+- Live OpenRouter routing and local-preset probes need an owner key/runtime pass
+- Lane A deltas remain unpicked until a later inventory
+- Native-DB vitest files skip under this Node ABI (same as prior wraps)
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-W2] Current State + DEVLOG catch-up  —  2026-08-23
 
 **Files changed:** `CLAUDE.md`, `AGENTS.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

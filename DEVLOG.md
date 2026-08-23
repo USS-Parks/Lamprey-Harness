@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-A8] Delta 5 N/A (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- DEVLOG N/A
+
+**Notes:** A3 pick list is empty. Lane A closes inventory-only (K12). No product deltas A4–A8.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-A7] Delta 4 N/A (K12)  —  2026-08-23
 
 **Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

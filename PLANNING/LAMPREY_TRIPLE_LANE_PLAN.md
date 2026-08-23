@@ -190,7 +190,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - [x] Same pattern for item 4 / N/A.
 
 ### **TL-A8 — Delta 5 (optional)**
-- [ ] Same pattern for item 5 / N/A.
+- [x] Same pattern for item 5 / N/A.
 
 ---
 

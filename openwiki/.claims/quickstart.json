@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:a0887651f87fba5100c6a69305eb9f1121fabcda64082ef2303b2165774fe0ed",
+  "claims": [
+    {
+      "id": "claim_914f889e083247ad81eb898f4f16a4e2",
+      "statement": "Lamprey is a local-first multi-provider desktop coding harness compatible with 33 built-in LLM providers, local runtimes, and custom OpenAI-compatible endpoints, routing requests only to configured services.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L4-L4",
+          "version": "repo-lines-v1:sha256:9819f3cc6fdca486783f77dabdbac4f46fbd5288c5d9cbd07c3705e5ffefbe80:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTgxOWYzY2M2ZmRjYTQ4Njc4M2Y3N2RhYmRiYWM0ZjQ2ZmJkNTI4OGM1ZDljYmQwN2MzNzA1ZTVmZmVmYmU4MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTgxOWYzY2M2ZmRjYTQ4Njc4M2Y3N2RhYmRiYWM0ZjQ2ZmJkNTI4OGM1ZDljYmQwN2MzNzA1ZTVmZmVmYmU4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTJkYWJlZTIyNWUxMTY5MTg0YjA2OGMzYmI0Y2E3YTM5NjQwYjVhOWE0YTFiN2Y3NjRjOTdkZTE1NjNkYjc2OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTk1ZTU5NWFlNmZiZDQ1N2RhZmYyMjZiMDEwMDI5YzJjNGM2NzJjYmUyOTgwYWQ2NGNlODMyNWVjM2ZjZjA4NyJ9"
+        },
+        {
+          "resource": "repo://README.md#L1-L18",
+          "version": "repo-lines-v1:sha256:59631bd7f51b9f023f013762a5b9db9ad655217570df439f3fec27925755b59b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2YjkyNDIyMzNjYjRjYTFlYjkzYzY2NWVmOGQ0NjE4MDg3YTViMmEyNDcyOWU1YzYzOTZhODYyNGI2MDhhYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiMTY5NDVjZDUzMWMzNGM5NDcxYmM1YjkwZDdhNzhlMTYwNDRjOWY2MWNkNGQ3NTg4YTVmODRhMmM1MTE4NzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwMWYyZWMxNzU5M2MxMDU0ZWI0NjM2N2Q4NDUzZWYyNGExNzNjZTk2YjcxMTdkOTFmOWE2OGQ0NGZlZjhiMDEifQ"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L1-L4",
+          "version": "repo-lines-v1:sha256:e4d04bdd94d2073af9dd0de45f9ddf225ccd800cd91a42be3b322f3e47336ce7:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTRmN2ZmYzRjMmJkM2ZmOTE0M2E3NjQ4MzY3MzJkMGVmMzIyNmYxNGQ5NjU2M2QxOGI3NTlkYWRlNGY4OGNkOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTUyYjJhNmI0OGU4ZjUyMTU5YjhiZDYwZjJiMGRiMzA0ZTJiMjJiNWRiOTIyYjI5MmM5MjBhYmFjODcwZWYyNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmQ5MWQ3MGI4NmZiNzAwMjNjNjRmZTMxYzkzMmQxMGM1MDMyNzk3NGM2YTA0YTZiZWNjMGZhOTdkYjY4Yjg1MCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_eed18c2f67f446dcae2cf3aaa436cf52",
+      "statement": "Lamprey v0.30.0 shipped with 82 pinned models across 33 providers; conversations and control state persist locally in SQLite; API keys store in the operating system keychain; the Unburdening phase excised the multi-agent pipeline, router, and proof-gate machinery.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L2-L2",
+          "version": "repo-lines-v1:sha256:31afb3cbd9b0d4ff8e0b0e1c950af6144a046283f09878feb3c13c817d58fc88:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzFhZmIzY2JkOWIwZDRmZjhlMGIwZTFjOTUwYWY2MTQ0YTA0NjI4M2YwOTg3OGZlYjNjMTNjODE3ZDU4ZmM4OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzFhZmIzY2JkOWIwZDRmZjhlMGIwZTFjOTUwYWY2MTQ0YTA0NjI4M2YwOTg3OGZlYjNjMTNjODE3ZDU4ZmM4OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjEsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmYjA4ZmRhMWFjYjk1N2I2MTE2YmQzNzgxMWExZmU0MWEwMTYxMWMwNjMxZWRiZjc4NmQ2ODg5YTI3YTU1YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzgwYWRiYzhhYzVkNTU1MzAwMzE0YTEwZmQ5ZjQ5YmE1YTEwYjdlOTRmODI3ZjE4OWIzNGExNTZiMGVmOWE3NyJ9"
+        },
+        {
+          "resource": "repo://README.md#L14-L19",
+          "version": "repo-lines-v1:sha256:f3fcc8acac378813b1bec5d5039e9706ac0cd744fe3f81be6e6590ab56a56a6c:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjUyZDcxMTEwM2Q1MGE0Mzc4MzBjNmZiY2QwNGZiNGJhYjQ5YTBmODJmNmQyNmQxYzc5MWM2ZTg0ODhkZDA5MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2VmN2Y4ZmZhZTNiZTg4MDQ2MGI5ZmZlM2FhNmVjYTYwNDRkMmMyNjVkZmE2OGNhNmYwMTYxYjZlOTFiZjA3MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjMzMDJmM2U4YTk2NGQyNDMxYzdmMzdjZGM3Y2NjMWFjZGFmZDcyZTg3Njg4MGY4YzI0NTEwOWY4MjZjYWY2OCJ9"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L50-L50",
+          "version": "repo-lines-v1:sha256:4e1ed4dcc30182a02facaef5258fb05bdbbd3db236a0baae87f0f175d680f9e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGUxZWQ0ZGNjMzAxODJhMDJmYWNhZWY1MjU4ZmIwNWJkYmJkM2RiMjM2YTBiYWFlODdmMGYxNzVkNjgwZjllOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGUxZWQ0ZGNjMzAxODJhMDJmYWNhZWY1MjU4ZmIwNWJkYmJkM2RiMjM2YTBiYWFlODdmMGYxNzVkNjgwZjllOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjY4OTk5MDU3ODRjYjlhY2RmMzQ4MzY0ZWYyN2Q3YjRmNmVlOGZiNjNkODc3YjA3ZTc1YzcxZGYxZTkzOGRjMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjQwODA0ZTI1ZDdiMjliYzZmMjAwMDBlMzcxNmFjYTE0YTY2MmVlNmYwNmI2MGZkMzdmYzdhMDAwNjlhY2M0YyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_5149efa8ba3648ae86eadae944decc24",
+      "statement": "Core entry points: chat turns via electron/ipc/chat.ts (runChatRound/runHeadlessTurn), turn control via electron/ipc/turn-control.ts (Steer/Queue), provider dispatch via electron/services/providers/registry.ts (chatStream/chatOnce), tool dispatch via electron/ipc/chat-tool-dispatch.ts.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L8-L8",
+          "version": "repo-lines-v1:sha256:4210405d8bd493e993a22c416a6fcbf43e4da4576a03c5871f24c408f7d841d5:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDIxMDQwNWQ4YmQ0OTNlOTkzYTIyYzQxNmE2ZmNiZjQzZTRkYTQ1NzZhMDNjNTg3MWYyNGM0MDhmN2Q4NDFkNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDIxMDQwNWQ4YmQ0OTNlOTkzYTIyYzQxNmE2ZmNiZjQzZTRkYTQ1NzZhMDNjNTg3MWYyNGM0MDhmN2Q4NDFkNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ5MWQ3MGI4NmZiNzAwMjNjNjRmZTMxYzkzMmQxMGM1MDMyNzk3NGM2YTA0YTZiZWNjMGZhOTdkYjY4Yjg1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWEyOWFlZTU5MWVhODcyODI5NDYyYTYyMWEzNmE1OWE0M2NhOGYwZDFhNzUwZGY5NDYwMThiMTEyYmM2NGYwMCJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L6-L11",
+          "version": "repo-lines-v1:sha256:0a83b9f24c42f8689c015b242686ad2b1b374972189c6960b91c21bfacb70615:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODJhZWFlNWQyMTQ2NjVjYjE1ZTRhNDE2NGJmMzA5ZDFmOTJlMGM1N2JlZWY3NmU5NGUzZGFhMTc2OWJkYWU1MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTBhOGYxNmIwNWQ3NmVlYTBmZmU0ZWRiZTQ4ZTI0N2E1ZTk4MDk2NTk0MzYxODM3ZWY5MWFiNGQ3NmEyMDZjZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWQxODU2ODcyMzYwODQ2YTM4ZDQ0ZGVjNjY1YTNjMzJlMjgxMmZjNWExNTNhNmRhMDE3ZjJkMDlkMTdmMWFhMyJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.3.3",
+    "at": "2026-08-23T18:40:37.531Z"
+  }
+}

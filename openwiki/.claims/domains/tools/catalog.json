@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:7f45a833f51a2a8b2d5ed8008ffa907f6c00bad15ecf55dd50ae414381df2a9f",
+  "claims": [
+    {
+      "id": "claim_3a8f4f0175824a58a566f174df37dec1",
+      "statement": "MODEL_CATALOG is a canonical array of 82 ModelDescriptor entries (v0.30.0) spanning 33 built-in providers; each descriptor specifies id, name, provider, apiModelId, contextWindow, supportsTools, supportsVision, tier, and optionally reasoningCapOnToolUse and defaultMaxTokens for output length capping.",
+      "evidence": [
+        {
+          "resource": "repo://electron/services/providers/catalog.ts#L1-L150",
+          "version": "repo-lines-v1:sha256:c3eac3f9a5e70086e91c4f133c4afac2b9c22341723f8c784a9f5d3e6cd23d0c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2Y2Q1NWJlZTJkY2UxNTFlMDIwM2Q1MWJlZjU5MjAyYjNmZjUxZDI1ZWNlMjMwY2I0N2Q5NzhlNzYzZDQ5NTEzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4NWY3NWU4NmJmY2ExNGRlMGI0YjgwNzdlMTc4YzlhYjJlYWVlYjUxZmE1Mzc0NjExY2M1OGFjZDdmYjhkOTdmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3YzZmODE4MGE3MDZlNWY1MzVmYzY0MDRhOWIwYzFlZTM1MmIzMGQ0YzUwNGQ0YTc4ZTEwZDZiOWRjNTJlNjA4In0"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L14-L16",
+          "version": "repo-lines-v1:sha256:57501907cc0df66309fd0e6905d8ddaf95c3b99f87cb3bc680c198560015920d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzZmMzRkYmYyYTAwYzgyYjlkYmQzM2IyN2ZkOGI5MDFlOTI1MTgwMjQ0Yjg5ODg0MTU0ZTM2ODdjMWQ4YTE4NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODFjZDE3ZmIzY2M4OTc0ZDY3ZmQzZjQ5MTQxZDhjZGE0MGZhZTExNTI5MTk2NWEyNzM2OTVhODc1ZDc4M2YyNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjM2MzM0ZmE0ODEzOTcyMTk1YjhhYTlhZDIxNTg2NGNkZWMxZDQyYzdiZGVlOGNmYTZmMDljY2FjYjhiNmJmYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2RjN2M2NmEzMDlkZWZlNmExMDFlNmMyNTJjODQ5NzNhOTdhY2U5ZGRjNzllYTJkMjBkZDYwZmMzMTc5ZTQ2MCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3ec3b4c905ac44e695c5f41ca4bd58b0",
+      "statement": "Custom models from settings.json.customProviders are resolved to their real provider by resolveModel (JM-11) and become first-class ids in dispatch, keychain, and Custom Models menu without shadowing built-ins; every unknown custom model defaults supportsTools to false.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L48-L48",
+          "version": "repo-lines-v1:sha256:9a514b8b11bef605bfbf88f22e4a9679b5026dc97de49ceb77f6b35201b81418:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWE1MTRiOGIxMWJlZjYwNWJmYmY4OGYyMmU0YTk2NzliNTAyNmRjOTdkZTQ5Y2ViNzdmNmIzNTIwMWI4MTQxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWE1MTRiOGIxMWJlZjYwNWJmYmY4OGYyMmU0YTk2NzliNTAyNmRjOTdkZTQ5Y2ViNzdmNmIzNTIwMWI4MTQxOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGVkNjQwNTUwNzEwZTAzNGIwNTU0MWU2ZTkzZTcyOTJkZTdiZjFmNDhlNTk0MDQxNTRiN2JkMDZhZTEzMjhlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDVkNDgxZjJiNzU3OGQwMmRmYjNkYTZkMTc2Yzc3OGEwMjI1NmQ5MzQ4ZWY4NGQ3MmQxMmMzZWU3ZjkyNDI0YSJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L48-L48",
+          "version": "repo-lines-v1:sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmQ3MDg0NTBlODdlZmZjODM5YTYwNTVlY2IxNDllZWM3MDE5OTY2ZGRiYjY1NzRjMDI5MjhkNmZlM2UyZjEwZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjdhNTgxZTY4ZWY2ZjhjYmRlNjFlMTRmNDY3MDE4MzgzMWNjYTI5YjgwYTg1NDQ4ODU3ZThhYTdkNWVjMTg5YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_8bf8f95fec6343ceb6afe957ef8b1935",
+      "statement": "Model Menu (ModelSettings component) routes through provider select (PX Layer 1 expansion), allows import from /v1/models (model:listLive IPC), and ships with group organization (Frontier / OSS hosts / Local / Custom endpoints) with keyed counts and key-format hints per provider.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L57-L57",
+          "version": "repo-lines-v1:sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGNiMWU1ZWJlNjYyNWRhZWVjNGFhYzk4ZTk5ZjkxYzdjZTc3ZTRiODJhOGJkZDc3M2U1ZTdkMjVhZTg5ZWJiNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODY0YzQ0YjhjNDNiMTI2MTI4MjBjNTAyYWIwYzViZjYyYWEyNmNkMWI2NDliYzI4NWMyZjA4NmYxMzNiYzA3YyJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L57-L57",
+          "version": "repo-lines-v1:sha256:05a4a8867140d3e92327252dc6038a2ce8654d8c3c793514fefe448181b353ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDVhNGE4ODY3MTQwZDNlOTIzMjcyNTJkYzYwMzhhMmNlODY1NGQ4YzNjNzkzNTE0ZmVmZTQ0ODE4MWIzNTNiYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDVhNGE4ODY3MTQwZDNlOTIzMjcyNTJkYzYwMzhhMmNlODY1NGQ4YzNjNzkzNTE0ZmVmZTQ0ODE4MWIzNTNiYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2EzMDY3YzkzZjBhZTJlM2NjNGQ3ZWE4NzgyZmNiOWE2MzhhZjE5NDZlZTdmYTdiNTYxMjkyMzAyOWI1OTEyNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWZiYmRhMWMwZjMyMTYwNTkwYjlmZWUxZTE4YWQ5OTE0M2NkNjQ0YjJlNWZmODc0YTljZTM2NWJmOWJlNmExMCJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.3.3",
+    "at": "2026-08-23T18:40:37.531Z"
+  }
+}

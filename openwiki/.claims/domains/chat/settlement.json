@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:aec4417c04f0ad1f28505c49ec54c825b3770d84c0bdf6c19fb5f7a0cb393f1e",
+  "claims": [
+    {
+      "id": "claim_53e4835be2ee4524824c131a2281d059",
+      "statement": "finalizeTurn is the exact-once turn settlement choreography that recovers pending Steer follow-ups, settles the runtime to a durable status (completed/failed/cancelled/interrupted), emits settlement events, drains pending documents/artifacts, and dispatches the next queued follow-up only if the turn completed successfully.",
+      "evidence": [
+        {
+          "resource": "repo://electron/services/finalize-turn.ts#L71-L112",
+          "version": "repo-lines-v1:sha256:b642b9c92307aa592e6872f5366db27b1c4fd9f008afa3a4a949976f337900fe:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0Mjg0Nzg3ZjM4ZGVlYjAyN2ViNDQ4ZjMxNDkyM2Y4MjQ1Y2VmMzM2NDkyZTMwYjA4YjRjYjE2MDZlNjAwZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwZmExNzA1NWZkZTJkZDY1YmQyYmM2NjJkNmNjZjY5MDQwYjMxMzQyOWFiNDQ4ZDUyZjlmOWNlNTNiOTk0NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a0666de7c1c84c158c8892c7a6d56d9d",
+      "statement": "Turn settlement is persisted to conversation_turns table with status cap: failed turns cap to 'failed', cancelled turns settle to 'cancelled', only completed turns dispatch queued follow-ups; settlement is exact-once because the runtime is removed from memory before the DB write even if persistence fails.",
+      "evidence": [
+        {
+          "resource": "repo://ARCHITECTURE/TURN_CONTROL_AND_STEERING.md#L40-L53",
+          "version": "repo-lines-v1:sha256:96be581f8d6db953616ac0f6f171bca00c496928768a9d2e1943d0cb0aabfb9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwZGE3NzU3Y2FmMGRjOTZiNWZhYjVhYTZhZTY3OTlkZDlkNjMyOTJjMjI3MjYyZjc5ZWY2ZTZiZDI4ZmYwMjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhZmJlNGNjN2U4ZWYwOWIyOTBjZmM0MjE2ZTdmYzhhNDYzYWYxMTVjNDU0YTZlNGQyYWFlYTNiNTY2Mjc3YjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxZmMzOTI3ZTNhMTgyYTJkOThkMjI2ZjczNjk5YmFjMzI0MmM1ODU4ODQ4NWRlMWZjNWU3YTA3ZDEyMjk2ZDQifQ"
+        },
+        {
+          "resource": "repo://CLAUDE.md#L10-L14",
+          "version": "repo-lines-v1:sha256:e3e5792b2939649252585279a000bb9afc17842ba988910b335b84faa23aee0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDliZGEzYWY2YzU1NmM0M2FlNGU0OThjNTA4YTVlMjI5Mzg5M2NhNWM1ZDgzMzYyM2I5YTEzNmZjZDQ2MzNhMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzZmMzRkYmYyYTAwYzgyYjlkYmQzM2IyN2ZkOGI5MDFlOTI1MTgwMjQ0Yjg5ODg0MTU0ZTM2ODdjMWQ4YTE4NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGFhYjYzZDk2ZjZjYjBlMzRmZTg3ZWRmYmI1OTQxMzkwNDI3YzYwYTBkY2MyMzgwZjQ3Mjk2N2M3OGQzOTYwMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDZiYTE0MGU0YzFjYTQxYzM3ZmY2MDM1OGQ3MzY1ZDU3ZGEwYWZmMGNlZWY5Y2Q5MjU5OWE4MWZhZGQxMmJiZCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_075bb126ff0241068793837c23f4084a",
+      "statement": "Error paths persist system messages: pre-stream throws (before streaming starts) persist as failed with a system note, mid-response stream failures persist partial content with a failure marker, tool dispatch errors persist tool_calls with error message, user cancels settle as 'cancelled' with reason, signals (SIGTERM/window close) settle as 'interrupted' with recovery on restart.",
+      "evidence": [
+        {
+          "resource": "repo://CLAUDE.md#L47-L47",
+          "version": "repo-lines-v1:sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzQxMWVjOTUxYTk1NzI1NzJlMTc5OGU0ZmYwNDUwZDU4YzVlMjk1MDUxNWZiODFmYWMyMDY3YzhiYTEyMzU5MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWNlN2JiNzcxYmVlMThhMTgwOWVkZTk0NmNmNGVlODg4Y2Q2MjkzYjUwM2M1MTI1Nzk0MTNiZmE1MzhlZjg1MyJ9"
+        },
+        {
+          "resource": "repo://ARCHITECTURE/TURN_CONTROL_AND_STEERING.md#L41-L53",
+          "version": "repo-lines-v1:sha256:da641e88e3adb472d205d0a839d61996f7e4e2eca1ba83c4ea612cdf97daa3f9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3ZGIxYzA2YmIwMWRjOTE3YmFkNGVlOGM2MWI0ZWQ4OTcxZTZhYmY5MmY1MDZmY2UwZDY1NjNmYTdkNzhmNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwZGE3NzU3Y2FmMGRjOTZiNWZhYjVhYTZhZTY3OTlkZDlkNjMyOTJjMjI3MjYyZjc5ZWY2ZTZiZDI4ZmYwMjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjNWY1ZmE1OTEwZDMyNjg0MjAxNzBkMTUzNmU1M2M4ZGRjZmYwYWJlMjc2MzkwMDIwOTRmNzc4MzM4NzBmMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxZmMzOTI3ZTNhMTgyYTJkOThkMjI2ZjczNjk5YmFjMzI0MmM1ODU4ODQ4NWRlMWZjNWU3YTA3ZDEyMjk2ZDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c1dfb5166c2e4a638381f57b42223e42",
+      "statement": "Pending Steer follow-ups are recovered before settlement: if undelivered Steers exist when the turn settles, recoverPendingRuntimeSteers converts them to editable drafts with a recovery reason noting why they were not delivered.",
+      "evidence": [
+        {
+          "resource": "repo://electron/services/finalize-turn.ts#L79-L88",
+          "version": "repo-lines-v1:sha256:b508f70eadf80358e4288d1d8802ee6ef8015769632a2d843373993f730fe65f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlM2E2NGJlYjY4MzliYjJkODUxYjk0Y2M5N2U5ZTRkODcwMmRlZjczZGI0NTFlZjI1ZWE4OGZlMDhhZjRmMTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5MmJmYzViMjQ0N2I4ODM5NzEwN2M0YTdjYzNkNWQ0OWVhODRkMWI4MDVmY2JlYjQ5N2QyMjMzYWVhMjA3OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyMWI4N2YwOWRhY2JmYTA0NTMyY2VmOTA2Yzg3ODQwMWNmZGM3ZjQyNDQwYTdlNDIxOGJjYzYyNTg1MmQwMTEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.3.3",
+    "at": "2026-08-23T18:40:37.531Z"
+  }
+}

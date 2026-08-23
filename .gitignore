@@ -31,3 +31,6 @@ opencode.jsonc
 # One-off local research scratch (not part of the app)
 /research/
 output/
+
+# Local Graft context graph (not product docs)
+graft/

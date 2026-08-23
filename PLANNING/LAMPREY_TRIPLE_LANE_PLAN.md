@@ -162,7 +162,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 ### Lane A — Claude Code Refresh
 
 ### **TL-A1 — Pin Claude Code evidence**
-- [ ] Record Claude Code version/build, evidence date, and sources in inventory preamble (or TL_BASELINE amend). No product deltas until this pin exists (K2).
+- [x] Record Claude Code version/build, evidence date, and sources in inventory preamble (or TL_BASELINE amend). No product deltas until this pin exists (K2).
 - **Files:** PLANNING/TL_CLAUDE_CODE_INVENTORY.md (create) and/or TL_BASELINE
 - **Verify:** greppable version + date
 

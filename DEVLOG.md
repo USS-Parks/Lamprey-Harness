@@ -120,6 +120,18 @@ first-run clause dropped (`3e0fde9`). No v0.30.0 Current State entry yet.
 **Notes:** Twelve August rows appended. Overlay file still present until OD-9;
 its push loop skips duplicate ids.
 
+**Commit:** 789d76c
+
+## [Operability Debt — Prompt OD-9] Thin registry; delete the overlay  —  2026-08-23
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/catalog-august-2026.ts` (deleted), `electron/services/providers/catalog-august-2026.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest catalog-august-2026 + supports-tools-audit + registry ✓ (61 tests)
+
+**Notes:** Registry re-exports catalog only. No `MODEL_CATALOG.push` loop.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

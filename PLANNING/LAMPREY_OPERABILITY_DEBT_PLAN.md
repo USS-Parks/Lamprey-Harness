@@ -243,7 +243,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/providers/catalog-august-2026.test.ts electron/services/providers/catalog-invariants.test.ts`
 
 ### **OD-9 — Thin registry; delete the overlay**
-- [ ] Remove `AUGUST_2026_MODELS` import and the `MODEL_CATALOG.push`
+- [x] Remove `AUGUST_2026_MODELS` import and the `MODEL_CATALOG.push`
   loop from `registry.ts`. Delete `catalog-august-2026.ts`. Retarget
   `catalog-august-2026.test.ts` at `MODEL_CATALOG` (keep the twelve ids
   and the Anthropic / guard-pairing cases). Registry still re-exports

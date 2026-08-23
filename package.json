@@ -27,6 +27,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:native-db": "node scripts/test-native-db.cjs",
     "verify:proof": "node scripts/verify-proof.cjs",
     "verify:all": "npm run build && node scripts/verify-proof.cjs --require-smokes",
     "smoke:bundle": "node scripts/smoke-bundle.cjs",

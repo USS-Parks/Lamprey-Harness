@@ -375,7 +375,7 @@ review text (Hygiene / Sweet Spot density).
 ### Baseline
 
 ### **AC-0 — Lock the baseline → `PLANNING/AC_BASELINE.md`**
-- [ ] Write `PLANNING/AC_BASELINE.md` with, and only with: (a) line counts for `electron/ipc/chat.ts`, `electron/services/providers/registry.ts`, `electron/services/tool-registry.ts`, `electron/preload.ts`; (b) the 18-file ABI-guarded list from `node scripts/verify-proof.cjs --list-native-skips` (paste the script’s list, do not retype from memory); (c) this plan’s §1 and §2 tables verbatim; (d) `package.json` version (`0.28.0` at rewrite); (e) HEAD SHA at the moment AC-0 commits. No product code. No behavior change.
+- [x] Write `PLANNING/AC_BASELINE.md` with, and only with: (a) line counts for `electron/ipc/chat.ts`, `electron/services/providers/registry.ts`, `electron/services/tool-registry.ts`, `electron/preload.ts`; (b) the 18-file ABI-guarded list from `node scripts/verify-proof.cjs --list-native-skips` (paste the script’s list, do not retype from memory); (c) this plan’s §1 and §2 tables verbatim; (d) `package.json` version (`0.28.0` at rewrite); (e) HEAD SHA at the moment AC-0 commits. No product code. No behavior change.
 - **Closes:** ADD-1
 - **Files:** `PLANNING/AC_BASELINE.md` only
 - **Verify:** file exists; no tsc delta
@@ -536,7 +536,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; resolve/import tests; tsc web if the settings draft changes
 
 ### **AC-19 — TL9/TL14: Persist `tool_search` unlocks**
-- [ ] Unlock set is in-memory (`tool-unlock-state.ts`). A restart forgets every unlock. Persist per `conversationId` (K6): small table or an existing conversation-scoped blob. Survive process restart. Clear on conversation delete (JM-11 already clears capability state — extend that path). Test a restart-shaped reload.
+- [x] Unlock set is in-memory (`tool-unlock-state.ts`). A restart forgets every unlock. Persist per `conversationId` (K6): small table or an existing conversation-scoped blob. Survive process restart. Clear on conversation delete (JM-11 already clears capability state — extend that path). Test a restart-shaped reload.
 
   FC-10 downgrade + lazy (TL14): one test that unlock state does not leak tools the downgraded round must not see. AC-12’s contract list is the other half of TL14.
 - **Closes:** TL9, rest of TL14, IMP-16, ADD-6
@@ -546,7 +546,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track D — Settings and honesty
 
 ### **AC-20 — S1/S2/S8: Settings → Tools (surface, spill, tab types)**
-- [ ] New Settings tab (or a section on an existing tab — prefer a **Tools** tab next to Timeouts): `toolSurface` (`full` | `lazy`), `toolResultSpill` (on/off), `toolResultSpillBytes`. Add the spill keys to `DEFAULT_APP_SETTINGS` and the renderer literal; `default-app-settings.test.ts` parity must pass. Defaults stay era: surface `full` (`:91`), spill on, 8192 bytes.
+- [x] New Settings tab (or a section on an existing tab — prefer a **Tools** tab next to Timeouts): `toolSurface` (`full` | `lazy`), `toolResultSpill` (on/off), `toolResultSpillBytes`. Add the spill keys to `DEFAULT_APP_SETTINGS` and the renderer literal; `default-app-settings.test.ts` parity must pass. Defaults stay era: surface `full` (`:91`), spill on, 8192 bytes.
 
   Widen `SettingsTabId` (`ui-store.ts:151–166`) to match `SettingsDialog` `TABS` (`SettingsDialog.tsx:31–55`) so deep-links to Loops / Orchestration / Reasoning / RAG / Snip / Persistence / Activity / Library type-check. That is S8. Do not redesign the dialog.
 - **Closes:** S1, S2, S8, ADD-2, ADD-3, ADD-14
@@ -554,25 +554,25 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; default-app-settings + settings component tests
 
 ### **AC-21 — S3: Timeout defaults belong in DEFAULT_APP_SETTINGS**
-- [ ] `streamInactivityMs` and `mcpCallTimeoutMs` live in the canonical defaults object (current 60s / 120s, already the Timeouts panel’s working numbers). `StreamingTimeoutsSettings.tsx`, `registry.ts:51–52`, and `mcp-manager.ts` read those defaults — no third local constant. Parity test extended. Do not change the numbers.
+- [x] `streamInactivityMs` and `mcpCallTimeoutMs` live in the canonical defaults object (current 60s / 120s, already the Timeouts panel’s working numbers). `StreamingTimeoutsSettings.tsx`, `registry.ts:51–52`, and `mcp-manager.ts` read those defaults — no third local constant. Parity test extended. Do not change the numbers.
 - **Closes:** S3, IMP-17
 - **Files:** `default-app-settings.ts`, `settings-store.ts`, `StreamingTimeoutsSettings.tsx`, `registry.ts`, `mcp-manager.ts`, parity test
 - **Verify:** tsc ×2; `default-app-settings.test.ts`
 
 ### **AC-22 — S4: Loop Settings tells the truth about tokens**
-- [ ] `LoopSettings.tsx:162` already says the token budget is a soft guard and that iteration + wall-clock are the hard caps. It does not say the estimate is chars/4, and it does not say multi-round tool turns undercount (documented at `chat.ts:557–558`). Finish the hint. No formula change in this prompt.
+- [x] `LoopSettings.tsx:162` already says the token budget is a soft guard and that iteration + wall-clock are the hard caps. It does not say the estimate is chars/4, and it does not say multi-round tool turns undercount (documented at `chat.ts:557–558`). Finish the hint. No formula change in this prompt.
 - **Closes:** S4, IMP-18, ADD-13
 - **Files:** `src/components/settings/LoopSettings.tsx`
 - **Verify:** tsc web; a source-lock string test if one exists for that panel
 
 ### **AC-23 — S5: `tool_search` card in the transcript**
-- [ ] Unlock / search tool calls render a real tool card (name + matches), not an invisible meta-round. Reuse existing tool-card chrome (`ToolUseCard.tsx`). Handler stays at the named function from AC-8/AC-16 (`chat.ts:1503–1522` today). No new panel. No new pill.
+- [x] Unlock / search tool calls render a real tool card (name + matches), not an invisible meta-round. Reuse existing tool-card chrome (`ToolUseCard.tsx`). Handler stays at the named function from AC-8/AC-16 (`chat.ts:1503–1522` today). No new panel. No new pill.
 - **Closes:** S5, ADD-4
 - **Files:** renderer tool-card mapping, types if needed
 - **Verify:** tsc web; era-chrome or tool-card test
 
 ### **AC-24 — S6: Settings pointer to Browser Developer**
-- [ ] Per K7: no second toggle. Settings gets a short note that Browser Developer Mode is armed from the Browser panel (`browser.ts:155`). Optional deep-link if the app already has panel routing. One line, not a new tab.
+- [x] Per K7: no second toggle. Settings gets a short note that Browser Developer Mode is armed from the Browser panel (`browser.ts:155`). Optional deep-link if the app already has panel routing. One line, not a new tab.
 - **Closes:** S6, ADD-5
 - **Files:** Settings dialog or a small settings snippet
 - **Verify:** tsc web
@@ -650,7 +650,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** the helper’s unit test if extracted; manual dry-run notes in DEVLOG
 
 ### **AC-36 — G2: Native-DB CI under Electron ABI**
-- [ ] CI job runs the 18 (or post-AC-25, 17) skip-listed files in an environment where better-sqlite3 loads (Electron’s ABI, or `electron-rebuild` + the same Node Electron uses). Local `verify:proof` keeps the skip banner (`scripts/verify-proof.cjs:89–109`). Job failure is red, not skip. Add `npm run test:native-db` that names the files. DEVLOG records whether the job was proven on a real runner this prompt or is `user-verification-needed`.
+- [x] CI job runs the 18 (or post-AC-25, 17) skip-listed files in an environment where better-sqlite3 loads (Electron’s ABI, or `electron-rebuild` + the same Node Electron uses). Local `verify:proof` keeps the skip banner (`scripts/verify-proof.cjs:89–109`). Job failure is red, not skip. Add `npm run test:native-db` that names the files. DEVLOG records whether the job was proven on a real runner this prompt or is `user-verification-needed`.
 - **Closes:** G2, ADD-11
 - **Files:** `.github/workflows/*`, `package.json` script, maybe a thin wrapper
 - **Verify:** workflow file present; script listed in `package.json`

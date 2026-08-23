@@ -162,8 +162,17 @@ export type SettingsTabId =
   | 'planGoal'
   | 'hooks'
   | 'automations'
+  | 'loops'
+  | 'orchestration'
+  | 'library'
+  | 'rag'
+  | 'snip'
   | 'timeouts'
+  | 'tools'
   | 'seedBudget'
+  | 'reasoning'
+  | 'persistence'
+  | 'activity'
 
 export type CustomizeColumnId = 'skills' | 'connectors' | 'plugins'
 

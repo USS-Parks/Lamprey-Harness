@@ -393,6 +393,19 @@ export const MIGRATIONS: Migration[] = [
     up(db) {
       applyGoalAutomationBridgeSchema(db)
     }
+  },
+  {
+    version: 33,
+    description: 'Audit Closure AC-19 — persist tool_search unlocks per conversation',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS conversation_tool_unlocks (
+          conversation_id TEXT NOT NULL,
+          tool_name TEXT NOT NULL,
+          PRIMARY KEY (conversation_id, tool_name)
+        )
+      `)
+    }
   }
 ]
 

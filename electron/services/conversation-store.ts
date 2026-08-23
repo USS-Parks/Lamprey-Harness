@@ -577,6 +577,7 @@ export function deleteConversation(id: string) {
     safeRun('DELETE FROM tool_calls WHERE conversation_id = ?', convId)
     safeRun('DELETE FROM rag_retrievals WHERE conversation_id = ?', convId)
     safeRun('DELETE FROM conversation_rag_attachments WHERE conversation_id = ?', convId)
+    safeRun('DELETE FROM conversation_tool_unlocks WHERE conversation_id = ?', convId)
     db.prepare('DELETE FROM conversations WHERE id = ?').run(convId)
     ftsDeleteAllForConversation(convId)
   })

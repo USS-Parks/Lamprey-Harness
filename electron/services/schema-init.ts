@@ -647,6 +647,7 @@ function initGithubRagSessionsSnip(db: Database.Database): void {
 }
 
 // ───────────────────────── Segment 6: message_stage_metrics (RT2) ─────────────────────────
+// Historical RT2 table. No writer since Unburdening. Keep the DDL (K1).
 // Reasoning-Trace Phase / RT2 — per-stage token + duration metrics for
 // multi-agent pipelines. FK→messages.id with ON DELETE CASCADE means a
 // deleted conversation cleans up its metrics transitively.

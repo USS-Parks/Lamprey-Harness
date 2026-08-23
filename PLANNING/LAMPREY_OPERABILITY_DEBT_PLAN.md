@@ -176,7 +176,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/finalize-turn.test.ts electron/services/headless-turn-settlement.test.ts`
 
 ### **OD-4 — Honest gaps with teeth**
-- [ ] New `electron/services/operability-debt-safety.test.ts` source-locks:
+- [x] New `electron/services/operability-debt-safety.test.ts` source-locks:
   1. `electron-builder.yml` still has `signAndEditExecutable: false` (K2 —
      unsigned is a permanent non-goal, not a hole).
   2. `turn-interrupt.ts` still records `type: 'turn.interrupted'` and

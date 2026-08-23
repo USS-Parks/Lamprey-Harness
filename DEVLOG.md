@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-4] Add-flow catalog smoke  —  2026-08-23
+
+**Files changed:** `src/components/customize/AddConnectorFlow.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest AddConnectorFlow + connectors-catalog ✓ (3 tests)
+
+**Notes:** Source-locks AddConnectorFlow reading CONNECTORS_CATALOG. Asserts length 10 and linear/sentry/notion/slack present; fetch absent.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-3] Dual-catalog parity lock  —  2026-08-23
 
 **Files changed:** `src/data/connectors-catalog.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

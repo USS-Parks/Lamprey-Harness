@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-C2] Local endpoint presets  —  2026-08-23
+
+**Files changed:** `src/lib/local-endpoint-presets.ts`, `src/lib/local-endpoint-presets.test.ts`, `src/components/settings/ApiKeySettings.tsx`, `src/components/settings/api-key-settings-presets.wiring.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest local-endpoint-presets + wiring
+
+**Notes:** Ollama/LM Studio write `providerBaseUrlOverrides` only when unset. Unsloth is a custom endpoint (`unsloth`, `http://127.0.0.1:8000/v1`). Second click is a no-op. Built-in ids cannot be shadowed.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-C1] Audit custom endpoint path  —  2026-08-23
 
 **Files changed:** `PLANNING/TL_BASELINE.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

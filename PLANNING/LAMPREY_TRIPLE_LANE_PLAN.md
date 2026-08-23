@@ -234,7 +234,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** written notes
 
 ### **TL-C2 — Connection presets**
-- [ ] Ship editable presets (K7): Ollama http://127.0.0.1:11434/v1, LM Studio common port, Unsloth Studio API base placeholders. One-click add/merge into custom providers without stomping user edits (idempotent).
+- [x] Ship editable presets (K7): Ollama http://127.0.0.1:11434/v1, LM Studio common port, Unsloth Studio API base placeholders. One-click add/merge into custom providers without stomping user edits (idempotent).
 - **Files:** UI + defaults module + tests
 - **Verify:** web typecheck; tests
 

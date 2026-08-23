@@ -214,7 +214,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** greppable
 
 ### **TR-9 — Current State + DEVLOG catch-up**
-- [ ] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG section has TR entries.
+- [x] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG section has TR entries.
   Keep OD honest-gap lock tests green if wording changes.
 - **Files:** `CLAUDE.md`, `AGENTS.md`, `DEVLOG.md`
 - **Verify:** greppable; OD lock tests

@@ -1,5 +1,19 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-9] Current State catch-up  —  2026-08-23
+
+**Files changed:** `CLAUDE.md`, `AGENTS.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓
+- greppable Tools + MCP Roster in Current State
+
+**Notes:** Top Current State bullet records the ten-entry catalog, CORE hints, and native.md. OD/AC parked wording left intact.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-8] Point live canon at Tools+MCP P-SPR  —  2026-08-23
 
 **Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

@@ -199,7 +199,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `npx vitest run electron/services/operability-debt-safety.test.ts`
 
 ### **OD-5 — Mid-round drains are not the closer**
-- [ ] At both mid-round `drainPendingDocuments` / `drainPendingArtifacts`
+- [x] At both mid-round `drainPendingDocuments` / `drainPendingArtifacts`
   sites in `electron/ipc/chat.ts` (the no-tool-calls persist path and the
   stream-error persist path), add a short comment: these attach docs/
   artifacts to the in-flight assistant row; they are not turn-closers;

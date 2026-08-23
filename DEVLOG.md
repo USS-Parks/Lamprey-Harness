@@ -66,6 +66,20 @@ the queue, same as `failed`. `completed` still queues.
 pair, and Current State still naming R1–R4 / supportsTools / OpenWiki /
 unsigned / turn.interrupted. OD-7 will flip the wording to parked/non-goal.
 
+**Commit:** 7db699a
+
+## [Operability Debt — Prompt OD-5] Mid-round drains are not the closer  —  2026-08-23
+
+**Files changed:** `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest chat-turn-settlement ✓ (19 tests)
+- verify:proof --no-tests ✓
+
+**Notes:** Comments on both persist-path drains. Calls not moved into
+finalizeTurn.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { toast } from '@/stores/toast-store'
 import type { ProviderInfo } from '@/lib/types'
 import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
+import {
+  LOCAL_ENDPOINT_PRESETS,
+  applyLocalEndpointPreset
+} from '@/lib/local-endpoint-presets'
 import { useProvidersStore } from '@/stores/providers-store'
 
 interface ProviderEntry extends ProviderInfo {
@@ -337,6 +341,65 @@ export function ApiKeySettings() {
     await refresh()
   }
 
+  const handleApplyLocalPreset = async (presetId: string) => {
+    if (!window.api) return
+    setBusy(`preset:${presetId}`)
+    try {
+      const current = await window.api.settings.get()
+      if (!current.success) {
+        toast.error('Could not read settings')
+        return
+      }
+      const settings = current.data as Record<string, unknown>
+      const existingOverrides =
+        settings.providerBaseUrlOverrides &&
+        typeof settings.providerBaseUrlOverrides === 'object' &&
+        !Array.isArray(settings.providerBaseUrlOverrides)
+          ? (settings.providerBaseUrlOverrides as Record<string, string>)
+          : {}
+      const existingCustom = Array.isArray(settings.customProviders)
+        ? (settings.customProviders as Array<{
+            id: string
+            baseURL: string
+            label?: string
+            requiresKey?: boolean
+          }>)
+        : []
+      const builtinIds = new Set(providers.filter((p) => GROUPED_IDS.has(p.id)).map((p) => p.id))
+      const result = applyLocalEndpointPreset(
+        presetId,
+        {
+          providerBaseUrlOverrides: existingOverrides,
+          customProviders: existingCustom
+        },
+        builtinIds
+      )
+      if (result.status === 'unchanged') {
+        toast.info(result.message)
+        return
+      }
+      const saved = await window.api.settings.set({
+        providerBaseUrlOverrides: result.settings.providerBaseUrlOverrides,
+        customProviders: result.settings.customProviders
+      })
+      if (!saved.success) {
+        toast.error(`Failed to apply preset: ${saved.error}`)
+        return
+      }
+      const preset = LOCAL_ENDPOINT_PRESETS.find((row) => row.id === presetId)
+      if (preset?.kind === 'builtin') {
+        setBaseURLDrafts((state) => ({
+          ...state,
+          [preset.id]: result.settings.providerBaseUrlOverrides[preset.id] ?? preset.baseURL
+        }))
+      }
+      toast.success(result.message)
+      await refresh()
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const renderProviderCard = (p: ProviderEntry, isCustomEndpoint = false) => {
     const draft = drafts[p.id] || ''
     const visible = showKey[p.id] || false
@@ -647,6 +710,30 @@ export function ApiKeySettings() {
           </p>
 
           {customEndpoints.map((p) => renderProviderCard(p, true))}
+
+          <div className="space-y-2 rounded border border-dashed border-[var(--panel-border)] bg-[var(--bg-primary)] p-3">
+            <p className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">
+              Local presets
+            </p>
+            <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">
+              Ollama and LM Studio are built-in runtimes — a click fills their base URL only if you
+              have not already set one. Unsloth Studio is added as a custom OpenAI-compatible
+              endpoint. Existing edits are left alone.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {LOCAL_ENDPOINT_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handleApplyLocalPreset(preset.id)}
+                  disabled={busy === `preset:${preset.id}`}
+                  className="rounded border border-[var(--panel-border)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-40"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="space-y-2 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3">
             <div className="grid grid-cols-2 gap-2">

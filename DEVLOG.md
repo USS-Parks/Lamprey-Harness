@@ -1,3 +1,332 @@
+## 2026-08-23 — Triple Lane Phase
+
+## [Triple Lane — Prompt TL-W3] Phase wrap v0.31.0  —  2026-08-23
+
+**Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.31.0.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest (full) ✓ (2953 passed / 152 skipped / 0 failed)
+- build ✓
+- verify:proof ✓
+
+**Notes:** Source wrap to v0.31.0. Lane A inventory-only (K12). Lane B OpenRouter extras on the OpenRouter path only. Lane C local presets + loud refuse + tools/vision-off defaults. TL-W4 Bucket not run on the cloud VM.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — phase complete] v0.31.0  —  2026-08-23
+
+Empty Lane A (K12). OpenRouter fallbacks + provider prefs + `openrouter/auto`. Ollama / LM Studio / Unsloth API presets. No training UI. No Bucket.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2953 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:**
+- Installer / Bucket artifacts still v0.30.0 (TL-W4 owed)
+- Live OpenRouter routing and local-preset probes need an owner key/runtime pass
+- Lane A deltas remain unpicked until a later inventory
+- Native-DB vitest files skip under this Node ABI (same as prior wraps)
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-W2] Current State + DEVLOG catch-up  —  2026-08-23
+
+**Files changed:** `CLAUDE.md`, `AGENTS.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety
+
+**Notes:** Current State leads with Triple Lane outcomes. Audit Closure parked-item sentences left in place so OD-4 locks stay green. Bucket still owed.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-W1] Point live canon at Triple Lane P-SPR  —  2026-08-23
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- greppable live-canon row
+
+**Notes:** Triple Lane is the current working P-SPR. Tools+MCP Roster v0.30.1 and Operability Debt v0.30.0 stay shipped references. Bucket still owed.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A8] Delta 5 N/A (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- DEVLOG N/A
+
+**Notes:** A3 pick list is empty. Lane A closes inventory-only (K12). No product deltas A4–A8.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A7] Delta 4 N/A (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- DEVLOG N/A
+
+**Notes:** A3 pick list is empty. No product delta. Empty Lane A is success (K12).
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A6] Delta 3 N/A (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- DEVLOG N/A
+
+**Notes:** A3 pick list is empty. No product delta. Empty Lane A is success (K12).
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A5] Delta 2 N/A (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- DEVLOG N/A
+
+**Notes:** A3 pick list is empty. No product delta. Empty Lane A is success (K12).
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A4] Delta 1 N/A (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- DEVLOG N/A
+
+**Notes:** A3 pick list is empty. No product delta. Empty Lane A is success (K12).
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-C6] No training UI in core  —  2026-08-23
+
+**Files changed:** `electron/services/providers/no-training-ui.lock.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest no-training-ui.lock
+
+**Notes:** Grep lock on `src/` + `electron/` product TS. No LoRA/RL trainer UI. Train-elsewhere docs stay in OpenWiki.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-C5] Train elsewhere, serve, Lamprey  —  2026-08-23
+
+**Files changed:** `openwiki/domains/chat/local-endpoints.md`, `openwiki/domains/chat/index.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- doc exists
+
+**Notes:** Four-step path: train outside, serve `/v1`, apply a local preset, import models with tools/vision off. No trainer UI.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-C4] Local capability defaults stay off  —  2026-08-23
+
+**Files changed:** `electron/services/providers/local-endpoint-capabilities.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest local-endpoint-capabilities
+
+**Notes:** Live import, custom-model reader, and the Models-tab draft already default tools/vision off. C4 locks that. No product change.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-C3] Loud connection-refused probe  —  2026-08-23
+
+**Files changed:** `electron/services/providers/connection-error.ts`, `electron/services/providers/connection-error.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest connection-error + registry C3 case
+
+**Notes:** Test button already listed `/v1/models`. ECONNREFUSED now short-circuits the chat fallback and returns a listen-failure sentence. Cloud 401/403 copy unchanged.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-C2] Local endpoint presets  —  2026-08-23
+
+**Files changed:** `src/lib/local-endpoint-presets.ts`, `src/lib/local-endpoint-presets.test.ts`, `src/components/settings/ApiKeySettings.tsx`, `src/components/settings/api-key-settings-presets.wiring.test.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest local-endpoint-presets + wiring
+
+**Notes:** Ollama/LM Studio write `providerBaseUrlOverrides` only when unset. Unsloth is a custom endpoint (`unsloth`, `http://127.0.0.1:8000/v1`). Second click is a no-op. Built-in ids cannot be shadowed.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-C1] Audit custom endpoint path  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_BASELINE.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- written notes in TL_BASELINE §8
+
+**Notes:** `ollama` / `lmstudio` are built-ins (cannot shadow via `customProviders`). Unsloth absent. Probe exists but connection-refused copy is thin. Capability flags already default false on custom/import.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-B6] Tests + OpenWiki routing note  —  2026-08-23
+
+**Files changed:** `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.test.ts`, `openwiki/domains/chat/openrouter-routing.md`, `openwiki/domains/chat/index.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest openrouter-routing + registry (K4 MiniMax lock + source lock)
+
+**Notes:** Empty OpenRouter routing still sends `{}`. MiniMax still only gets `reasoning_split`. Catalog still has zero OpenRouter rows. Direct-provider default unchanged (K4).
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-B5] Offer openrouter/auto when keyed  —  2026-08-23
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/ipc/model.ts`, `electron/ipc/model-openrouter-auto.wiring.test.ts`, `src/components/settings/OpenRouterRoutingSettings.tsx`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest registry + wiring + provider-parity ✓ (70 tests)
+
+**Notes:** Official id is `openrouter/auto`. Not a MODEL_CATALOG row (K4). Picker injects it only when `hasKey('openrouter')`. Session stickiness documented on the routing panel.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-B4] OpenRouter routing settings panel  —  2026-08-23
+
+**Files changed:** `src/components/settings/OpenRouterRoutingSettings.tsx`, `src/components/settings/openrouter-routing-settings.wiring.test.ts`, `src/components/settings/ModelSettings.tsx`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest wiring + default-app-settings ✓ (14 tests)
+
+**Notes:** Panel sits on the Models tab. Inputs disabled until `hasKey('openrouter')`. Persists B2/B3 keys.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-B3] OpenRouter provider prefs  —  2026-08-23
+
+**Files changed:** `electron/services/providers/openrouter-routing.ts`, `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/services/default-app-settings.ts`, `electron/services/default-app-settings.test.ts`, `src/lib/types.ts`, `src/stores/settings-store.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest openrouter-routing + registry + default-app-settings ✓ (76 tests)
+
+**Notes:** `openrouterProviderSort` default `'default'` omits the `provider` object. DeepSeek never receives it (K4). Settings UI is TL-B4.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-B2] OpenRouter fallback models  —  2026-08-23
+
+**Files changed:** `electron/services/providers/openrouter-routing.ts`, `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/services/default-app-settings.ts`, `electron/services/default-app-settings.test.ts`, `src/lib/types.ts`, `src/stores/settings-store.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest openrouter-routing + registry + default-app-settings ✓ (69 tests)
+
+**Notes:** Empty `openrouterFallbacks` sends no `models` field. DeepSeek bodies stay unchanged (K4). UI for editing the list is TL-B4.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-B1] Map OpenRouter code paths  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_OPENROUTER_MAP.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- map exists
+
+**Notes:** Seam is `providerChatExtras`. Pinned catalog still has zero OpenRouter rows.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A3] Scoreboard empty (K12)  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- pick list empty + wont table present
+
+**Notes:** Nothing scored High-ROI and Low/Med-risk without hitting Unburdening, K10, or a CJ26 park. Lane A inventory-only is success under K12. A4–A8 will be N/A DEVLOG commits after Lanes B and C (roster order).
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A2] Claude vs Lamprey inventory  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- file exists; every matrix row has retained/narrowed/stale/missing
+
+**Notes:** Core coding loop is retained. Post-era CC surfaces (teleport, voice, marketplace sync, IDE extensions) are missing and mostly parked/non-goals. Unburdening pipeline claim marked stale.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-A1] Pin Claude Code evidence  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- greppable: `2.1.241` and `2026-08-23` in `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`
+
+**Notes:** Public GitHub tag, not a local `claude --version`. 2.1.241 itself is bugfix-only; inventory will use the 2.1.x surface.
+
+**Commit:** (pending)
+
+
+## [Triple Lane — Prompt TL-0] Lock Triple Lane baseline  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_BASELINE.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- file exists: `PLANNING/TL_BASELINE.md`
+
+**Notes:** Tip `8364ba3`, package `0.30.1`. OpenRouter extras seam is `providerChatExtras`. Ollama/LM Studio already built-in; Unsloth absent. Bucket deferred (TL-W4 not this STS).
+
+**Commit:** (pending)
+
 ## 2026-08-23 — Tools + MCP Roster Phase
 
 ## [Tools + MCP Roster — Prompt TR-10] Phase wrap v0.30.1  —  2026-08-23

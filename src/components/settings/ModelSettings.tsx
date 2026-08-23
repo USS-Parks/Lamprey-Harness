@@ -3,6 +3,7 @@ import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { toast } from '@/stores/toast-store'
 import { DEFAULT_MODEL_CONFIG, type ModelConfig, type ModelInfo } from '@/lib/types'
+import { OpenRouterRoutingSettings } from './OpenRouterRoutingSettings'
 
 type CatalogStatus =
   'verified' | 'missing' | 'no-key' | 'unsupported-endpoint' | 'auth-failed' | 'error'
@@ -331,6 +332,8 @@ export function ModelSettings() {
           provider's live /v1/models endpoint with your stored key, no inferences.
         </p>
       </div>
+
+      <OpenRouterRoutingSettings />
 
       <div className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3">
         <div className="flex flex-wrap items-center gap-2">

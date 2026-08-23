@@ -76,6 +76,15 @@ export interface DefaultAppSettings {
   orchMaxCandidates: number
   orchMaxDepth: number
   orchAdvisorModel: string
+  /**
+   * TL-B2 — ordered OpenRouter fallback model ids (`models` extra). Empty
+   * means no fallbacks are sent (K4: default OpenRouter body unchanged).
+   */
+  openrouterFallbacks: string[]
+  /** TL-B3 — OpenRouter provider sort. `default` omits the provider object. */
+  openrouterProviderSort: 'default' | 'price' | 'latency' | 'throughput'
+  openrouterProviderOrder: string[]
+  openrouterProviderIgnore: string[]
 }
 
 export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
@@ -116,5 +125,9 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   orchMaxWallclockMs: 1800000,
   orchMaxCandidates: 4,
   orchMaxDepth: 2,
-  orchAdvisorModel: ''
+  orchAdvisorModel: '',
+  openrouterFallbacks: [],
+  openrouterProviderSort: 'default',
+  openrouterProviderOrder: [],
+  openrouterProviderIgnore: []
 }

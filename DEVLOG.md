@@ -1,5 +1,19 @@
 ## 2026-08-22 — Audit Closure Phase
 
+## [Audit Closure — Prompt AC-3] finalizeTurn owns the closer  —  2026-08-22
+
+**Files changed:** `electron/services/finalize-turn.ts`, `electron/services/finalize-turn.test.ts`, `electron/ipc/chat.ts`, `electron/services/turn-interrupt.ts`, `electron/services/turn-interrupt.test.ts`, `electron/ipc/turn-interrupt-wiring.test.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `electron/services/queued-follow-up-dispatch.test.ts`, `electron/services/steering-boundary-wiring.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest finalize-turn + interrupt + wiring + chat-turn-settlement + queue + steering + loop-turn + audit-wiring ✓ (55 tests)
+- verify:proof --no-tests ✓
+- user-verification-needed: complete a research turn and a cancelled turn; confirm documents/artifacts still attach and a queued follow-up only fires after a completed turn
+
+**Notes:** One closer recovers pending Steering, settles, drains documents and artifacts, and dispatches the queue only when settlement is `completed`. Call sites: headless finally, research success, chat:send success/error, interrupt (after abort), queue prep/commit failure. Mid-round drains stay. Extra send/research drains remain until AC-10; they are now finalizeTurn calls (idempotent if already settled). Three TurnControlStore wrappers untouched (T13 finalize only).
+
+**Commit:** pending this prompt
+
 ## [Audit Closure — Prompt AC-2] One cancel path, one settlement status  —  2026-08-22
 
 **Files changed:** `electron/ipc/chat.ts`, `electron/services/turn-interrupt.ts`, `electron/services/turn-control-types.ts`, `src/lib/turn-control-types.ts`, `electron/services/turn-interrupt.test.ts`, `electron/ipc/turn-interrupt-wiring.test.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `electron/services/task-delivery.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`

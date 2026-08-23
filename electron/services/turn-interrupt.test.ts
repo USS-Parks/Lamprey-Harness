@@ -25,6 +25,7 @@ function harness(options: { settlementThrows?: boolean } = {}) {
     now: () => 250,
     recoverPendingSteers,
     drainDocuments: (correlationId) => drained.push(correlationId),
+    drainArtifacts: () => undefined,
     record: (event) => events.push(event),
     reportError: (message, error) => errors.push({ message, error }),
     emitSettled: (runtime, status, _completedAt, persisted) =>

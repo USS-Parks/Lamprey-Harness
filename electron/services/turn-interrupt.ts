@@ -1,4 +1,6 @@
 import { recordEvent, type RecordEventInput } from './event-log'
+import { finalizeTurn, type FinalizeTurnDependencies } from './finalize-turn'
+import { drainPendingArtifacts } from './pending-turn-artifacts'
 import { drainPendingDocuments } from './pending-turn-documents'
 import { recoverPendingRuntimeSteers } from './steer-delivery'
 import { emitTurnSettled } from './turn-lifecycle-events'
@@ -23,14 +25,10 @@ export interface TurnInterruptDependencies {
   now: () => number
   recoverPendingSteers: (runtime: TurnRuntime, reason: string) => number
   drainDocuments: (correlationId: string | undefined) => unknown
+  drainArtifacts: (correlationId: string | undefined) => unknown
   record: (input: RecordEventInput) => unknown
   reportError: (message: string, error: unknown) => void
-  emitSettled: (
-    runtime: TurnRuntime,
-    status: 'cancelled',
-    completedAt: number,
-    persisted: boolean
-  ) => void
+  emitSettled: FinalizeTurnDependencies['emitSettled']
 }
 
 const MAX_ID_LENGTH = 256
@@ -119,29 +117,25 @@ export function createTurnInterruptAction(deps: TurnInterruptDependencies) {
     }
 
     const interruptedAt = deps.now()
-    let recoveredFollowUps = 0
-    try {
-      recoveredFollowUps = deps.recoverPendingSteers(
-        runtime,
-        'turn interrupted before pending Steering was delivered'
-      )
-    } catch (error) {
-      deps.reportError('[turn-interrupt] pending Steer recovery failed', error)
-    }
-
     runtime.abort('user-interrupt')
-    deps.drainDocuments(runtime.correlationId)
-
-    let persisted: boolean
-    try {
-      persisted = deps.runtimes.settle(runtime, 'cancelled', interruptedAt)
-    } catch (error) {
-      // Registry settlement deliberately marks/removes the runtime before its
-      // durable write. Startup orphan recovery repairs that write honestly.
-      persisted = false
-      deps.reportError('[turn-interrupt] settlement persistence failed', error)
-    }
-    deps.emitSettled(runtime, 'cancelled', interruptedAt, persisted)
+    const { settled: persisted, recoveredFollowUps } = finalizeTurn(
+      {
+        runtime,
+        status: 'cancelled',
+        conversationId: runtime.conversationId,
+        correlationId: runtime.correlationId,
+        completedAt: interruptedAt,
+        steerRecoveryReason: 'turn interrupted before pending Steering was delivered'
+      },
+      {
+        recoverPendingSteers: deps.recoverPendingSteers,
+        settle: (next, status, completedAt) => deps.runtimes.settle(next, status, completedAt),
+        emitSettled: deps.emitSettled,
+        drainDocuments: deps.drainDocuments,
+        drainArtifacts: deps.drainArtifacts,
+        reportError: deps.reportError
+      }
+    )
 
     try {
       deps.record({
@@ -183,6 +177,7 @@ export const interruptTurn = createTurnInterruptAction({
   now: Date.now,
   recoverPendingSteers: recoverPendingRuntimeSteers,
   drainDocuments: drainPendingDocuments,
+  drainArtifacts: drainPendingArtifacts,
   record: recordEvent,
   reportError: (message, error) => console.error(message, error),
   emitSettled: emitTurnSettled

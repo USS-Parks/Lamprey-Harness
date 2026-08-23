@@ -22,7 +22,8 @@ import {
 import { drainPendingDocuments, pushPendingDocument } from '../services/pending-turn-documents'
 import { drainPendingArtifacts } from '../services/pending-turn-artifacts'
 import { interruptTurn } from '../services/turn-interrupt'
-import { emitTurnSettled, emitTurnStarted } from '../services/turn-lifecycle-events'
+import { finalizeTurn } from '../services/finalize-turn'
+import { emitTurnStarted } from '../services/turn-lifecycle-events'
 import {
   createQueuedFollowUpDispatchDependencies,
   dispatchNextQueuedFollowUp,
@@ -105,7 +106,6 @@ import {
 import type { TurnKind } from '../services/turn-control-types'
 import {
   consumeSteersAtBoundary,
-  recoverPendingRuntimeSteers,
   type SteerBoundaryResult
 } from '../services/steer-delivery'
 // LP-1 (Loop Phase) — wire the headless turn runner into the loop runner.
@@ -194,24 +194,6 @@ function emitPhase(conversationId: string, phase: AgentRunPhase): void {
   emitChatEvent('chat:phase', { conversationId, phase })
 }
 
-function settleTurnRuntimeSafely(
-  runtime: TurnRuntime,
-  status: SettledTurnStatus,
-  completedAt = Date.now()
-): boolean {
-  try {
-    const settled = turnRuntimeRegistry.settle(runtime, status, completedAt)
-    if (settled) emitTurnSettled(runtime, status, completedAt, true)
-    return settled
-  } catch (err) {
-    // The runtime is already terminal and removed. Startup recovery can
-    // settle the durable orphan without keeping a stale in-memory turn.
-    console.error('[chat] turn runtime settlement persistence failed:', err)
-    emitTurnSettled(runtime, status, completedAt, false)
-    return false
-  }
-}
-
 function dispatchQueuedFollowUpAfterCompletedTurn(input: {
   conversationId: string
   model: string
@@ -219,7 +201,12 @@ function dispatchQueuedFollowUpAfterCompletedTurn(input: {
 }): void {
   const dependencies = createQueuedFollowUpDispatchDependencies({
     settleTurn: (runtime, status) => {
-      settleTurnRuntimeSafely(runtime, status)
+      finalizeTurn({
+        runtime,
+        status,
+        conversationId: runtime.conversationId,
+        correlationId: runtime.correlationId
+      })
     },
     runTurn: (queued: QueuedFollowUpRunInput) =>
       runHeadlessTurn({
@@ -342,22 +329,17 @@ export function registerChatHandlers(): void {
             content: `${outcome.summary}\n\n**Sources:** ${outcome.sourceCount} (${outcome.acceptedCount} accepted, ${outcome.singleSourceCount} single-source, ${outcome.disputedCount} disputed) · Providers: ${outcome.providersUsed.join(', ') || 'none'}\n\n[Open full report](artifact://research/${outcome.filename})`,
             model
           })
-          if (turnRuntime.pendingSteers.length > 0) {
-            recoverPendingRuntimeSteers(
-              turnRuntime,
-              'research completed before pending Steering reached an ordinary model boundary'
-            )
-          }
-          const settled = settleTurnRuntimeSafely(turnRuntime, 'completed')
-          drainPendingDocuments(correlationId)
-          drainPendingArtifacts(correlationId)
-          if (settled) {
-            dispatchQueuedFollowUpAfterCompletedTurn({
-              conversationId,
-              model,
-              activeSkillIds
-            })
-          }
+          finalizeTurn({
+            runtime: turnRuntime,
+            status: 'completed',
+            conversationId,
+            model,
+            activeSkillIds,
+            correlationId,
+            steerRecoveryReason:
+              'research completed before pending Steering reached an ordinary model boundary',
+            dispatchQueue: dispatchQueuedFollowUpAfterCompletedTurn
+          })
           return {
             success: true,
             data: { conversationId, correlationId, turnId: turnRuntime.turnId }
@@ -415,8 +397,15 @@ export function registerChatHandlers(): void {
         runtime: turnRuntime
       })
 
-      drainPendingDocuments(correlationId)
-      drainPendingArtifacts(correlationId)
+      finalizeTurn({
+        runtime: turnRuntime,
+        status: 'completed',
+        conversationId,
+        model,
+        activeSkillIds,
+        correlationId,
+        dispatchQueue: dispatchQueuedFollowUpAfterCompletedTurn
+      })
       // JM-8 (CC-20) — same success payload shape as the research path.
       return {
         success: true,
@@ -427,23 +416,14 @@ export function registerChatHandlers(): void {
       // { success:false, error: undefined }, violating the IPC contract.
       const errMsg = err instanceof Error ? err.message : String(err ?? 'unknown error')
       if (turnRuntime) {
-        if (turnRuntime.pendingSteers.length > 0) {
-          try {
-            recoverPendingRuntimeSteers(
-              turnRuntime,
-              `turn failed before Steering delivery: ${errMsg}`
-            )
-          } catch (recoveryErr) {
-            console.error('[chat] pending Steer recovery failed:', recoveryErr)
-          }
-        }
-        settleTurnRuntimeSafely(
-          turnRuntime,
-          turnRuntime.signal.aborted || isUserAbortError(err) ? 'cancelled' : 'failed'
-        )
+        finalizeTurn({
+          runtime: turnRuntime,
+          status: turnRuntime.signal.aborted || isUserAbortError(err) ? 'cancelled' : 'failed',
+          conversationId,
+          correlationId,
+          steerRecoveryReason: `turn failed before Steering delivery: ${errMsg}`
+        })
       }
-      drainPendingDocuments(correlationId)
-      drainPendingArtifacts(correlationId)
       emitPhase(conversationId, 'error')
       emitChatEvent('chat:error', { conversationId, error: errMsg })
       // Mirror into the event spine so the timeline reader sees the failure
@@ -776,24 +756,15 @@ export async function runHeadlessTurn(input: {
     throw err
   } finally {
     unlinkExternalSignal()
-    if (runtime.pendingSteers.length > 0) {
-      try {
-        recoverPendingRuntimeSteers(
-          runtime,
-          settlementStatus === 'completed'
-            ? 'turn completed before pending Steering was delivered'
-            : `turn settled as ${settlementStatus} before pending Steering was delivered`
-        )
-      } catch (err) {
-        console.error('[chat] pending Steer recovery failed:', err)
-      }
-    }
-    const settled = settleTurnRuntimeSafely(runtime, settlementStatus)
-    drainPendingDocuments(correlationId)
-    drainPendingArtifacts(correlationId)
-    if (settled && settlementStatus === 'completed') {
-      dispatchQueuedFollowUpAfterCompletedTurn({ conversationId, model, activeSkillIds })
-    }
+    finalizeTurn({
+      runtime,
+      status: settlementStatus,
+      conversationId,
+      model,
+      activeSkillIds,
+      correlationId,
+      dispatchQueue: dispatchQueuedFollowUpAfterCompletedTurn
+    })
   }
 }
 

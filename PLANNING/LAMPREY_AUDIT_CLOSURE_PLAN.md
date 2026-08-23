@@ -414,7 +414,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; turn-interrupt + chat tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-3 — T3/T13: `finalizeTurn()`**
-- [ ] One function owns the closer that today is copy-pasted: settle the runtime, recover pending steers, drain pending documents, drain pending artifacts, dispatch queued follow-ups only when the settlement is `'completed'`. Call it from `runHeadlessTurn` finally (`chat.ts:770–789`), from `chat:send`’s success and error drains (`:413–414`, `:440–441`), from the research success drain (`:347–348`), from `interruptTurn` (today it drains documents itself at `turn-interrupt.ts:185`), and from queue prep/commit failure (`queued-follow-up-dispatch.ts` `settleTurn`).
+- [x] One function owns the closer that today is copy-pasted: settle the runtime, recover pending steers, drain pending documents, drain pending artifacts, dispatch queued follow-ups only when the settlement is `'completed'`. Call it from `runHeadlessTurn` finally (`chat.ts:770–789`), from `chat:send`’s success and error drains (`:413–414`, `:440–441`), from the research success drain (`:347–348`), from `interruptTurn` (today it drains documents itself at `turn-interrupt.ts:185`), and from queue prep/commit failure (`queued-follow-up-dispatch.ts` `settleTurn`).
 
   Mid-round drains inside `runChatRound` (`:1104–1105`, `:1332–1333`) stay — those attach documents/artifacts to the in-flight assistant row, they are not turn-closers. Do not merge them into `finalizeTurn`.
 

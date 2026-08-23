@@ -54,10 +54,8 @@ describe('ST-5 same-turn Steering boundary wiring', () => {
       chat.indexOf('} finally {', chat.indexOf('export async function runHeadlessTurn')),
       chat.indexOf('/**\n * HY2', chat.indexOf('export async function runHeadlessTurn'))
     )
-    expect(finallyBlock.indexOf('recoverPendingRuntimeSteers(')).toBeGreaterThan(-1)
-    expect(finallyBlock.indexOf('recoverPendingRuntimeSteers(')).toBeLessThan(
-      finallyBlock.indexOf('settleTurnRuntimeSafely(')
-    )
+    expect(finallyBlock.indexOf('finalizeTurn(')).toBeGreaterThan(-1)
+    expect(finallyBlock).toContain('dispatchQueue: dispatchQueuedFollowUpAfterCompletedTurn')
   })
 
   it('emits a bounded user-message event with metadata but no URL, bytes, or path', () => {

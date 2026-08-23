@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-B6] Tests + OpenWiki routing note  —  2026-08-23
+
+**Files changed:** `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.test.ts`, `openwiki/domains/chat/openrouter-routing.md`, `openwiki/domains/chat/index.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest openrouter-routing + registry (K4 MiniMax lock + source lock)
+
+**Notes:** Empty OpenRouter routing still sends `{}`. MiniMax still only gets `reasoning_split`. Catalog still has zero OpenRouter rows. Direct-provider default unchanged (K4).
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-B5] Offer openrouter/auto when keyed  —  2026-08-23
 
 **Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/ipc/model.ts`, `electron/ipc/model-openrouter-auto.wiring.test.ts`, `src/components/settings/OpenRouterRoutingSettings.tsx`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

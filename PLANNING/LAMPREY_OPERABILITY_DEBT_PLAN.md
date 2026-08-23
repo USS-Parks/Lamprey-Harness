@@ -278,7 +278,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2.
 
 ### **OD-13 — Release notes**
-- [ ] Write `RELEASE_NOTES/v0.30.0.md` in the same plain voice as
+- [x] Write `RELEASE_NOTES/v0.30.0.md` in the same plain voice as
   `RELEASE_NOTES/v0.29.0.md`. Name settlement tests, parked gaps,
   persist loud-fail, one catalog, archive. No marketing verbs.
 - Verify: tsc ×2.

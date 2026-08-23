@@ -115,6 +115,17 @@ describe('SP-1 defaults parity — canonical vs renderer literal', () => {
     expectRendererDefault('browserDeveloperSitePolicies', '{}')
   })
 
+  it('AC-20/AC-21: spill and timeout defaults live in both literals', () => {
+    expect(DEFAULT_APP_SETTINGS.toolResultSpill).toBe(true)
+    expectRendererDefault('toolResultSpill', 'true')
+    expect(DEFAULT_APP_SETTINGS.toolResultSpillBytes).toBe(8192)
+    expectRendererDefault('toolResultSpillBytes', '8192')
+    expect(DEFAULT_APP_SETTINGS.streamInactivityMs).toBe(60000)
+    expectRendererDefault('streamInactivityMs', '60000')
+    expect(DEFAULT_APP_SETTINGS.mcpCallTimeoutMs).toBe(120000)
+    expectRendererDefault('mcpCallTimeoutMs', '120000')
+  })
+
   it('AO-1: orchestration defaults are OFF + bounded, and parity-locked', () => {
     expect(DEFAULT_APP_SETTINGS.orchestrationEnabled).toBe(false)
     expectRendererDefault('orchestrationEnabled', 'false')

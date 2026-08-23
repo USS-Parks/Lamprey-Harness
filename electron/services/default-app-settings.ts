@@ -18,8 +18,8 @@
 //
 // Era values (Sweet Spot Phase §4 decision register):
 //   agentMode 'single'  — the Opus 4.5-era product never auto-fanned a turn
-//                         into a planner→coder→reviewer pipeline. 'auto' and
-//                         'multi' remain one click away in Settings → Agents.
+//                         into a planner→coder→reviewer pipeline. Those modes
+//                         were deleted in UB-7; leftover keys are inert.
 //   proofGate 'off'     — no trust-pill machinery on default turns.
 //   toolSurface 'full'  — the model gets its full tool set every turn, like
 //                         the era product. 'lazy' remains the MCP-heavy opt-in.
@@ -43,6 +43,10 @@ export interface DefaultAppSettings {
   modelConfig: Record<string, unknown>
   customModels: unknown[]
   toolSurface: 'lazy' | 'full'
+  toolResultSpill: boolean
+  toolResultSpillBytes: number
+  streamInactivityMs: number
+  mcpCallTimeoutMs: number
   agenticCodingMode: boolean
   agenticCodingSkills: string[]
   snipEnabled: boolean
@@ -89,6 +93,10 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   modelConfig: {},
   customModels: [],
   toolSurface: 'full',
+  toolResultSpill: true,
+  toolResultSpillBytes: 8192,
+  streamInactivityMs: 60000,
+  mcpCallTimeoutMs: 120000,
   agenticCodingMode: false,
   agenticCodingSkills: ['plan', 'context', 'verify'],
   snipEnabled: true,

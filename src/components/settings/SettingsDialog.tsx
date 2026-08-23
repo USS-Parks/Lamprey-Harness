@@ -19,6 +19,7 @@ import { LibraryView } from '@/components/library/LibraryView'
 import { RagSettings } from './RagSettings'
 import { SnipSettings } from './SnipSettings'
 import { StreamingTimeoutsSettings } from './StreamingTimeoutsSettings'
+import { ToolSettings } from './ToolSettings'
 import { ReasoningAuditSettings } from './ReasoningAuditSettings'
 import { PersistenceSettings } from './PersistenceSettings'
 import { SeedBudgetSettings } from './SeedBudgetSettings'
@@ -48,6 +49,7 @@ const TABS = [
   { id: 'rag', label: 'RAG' },
   { id: 'snip', label: 'Snip' },
   { id: 'timeouts', label: 'Timeouts' },
+  { id: 'tools', label: 'Tools' },
   { id: 'seedBudget', label: 'Seed Budget' },
   { id: 'reasoning', label: 'Reasoning Audit' },
   { id: 'persistence', label: 'Persistence' },
@@ -123,6 +125,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'rag' && <RagSettings />}
             {activeTab === 'snip' && <SnipSettings />}
             {activeTab === 'timeouts' && <StreamingTimeoutsSettings />}
+            {activeTab === 'tools' && <ToolSettings />}
             {activeTab === 'seedBudget' && <SeedBudgetSettings />}
             {activeTab === 'reasoning' && <ReasoningAuditSettings />}
             {activeTab === 'persistence' && <PersistenceSettings />}

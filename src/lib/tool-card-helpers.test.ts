@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   collapsedSummary,
   formatElapsed,
+  parseToolSearchMatches,
   previewResult,
   summarizeArgs
 } from './tool-card-helpers'
@@ -123,5 +124,30 @@ describe('formatElapsed', () => {
     expect(formatElapsed(60_000)).toBe('1m 0s')
     expect(formatElapsed(64_000)).toBe('1m 4s')
     expect(formatElapsed(125_000)).toBe('2m 5s')
+  })
+})
+
+describe('parseToolSearchMatches', () => {
+  it('reads unlocked names and the query', () => {
+    const view = parseToolSearchMatches(
+      JSON.stringify({ query: 'browser', unlocked: ['browser_screenshot', 'web_open'] })
+    )
+    expect(view).toEqual({
+      query: 'browser',
+      names: ['browser_screenshot', 'web_open'],
+      error: undefined
+    })
+  })
+
+  it('falls back to tools[].name', () => {
+    const view = parseToolSearchMatches(
+      JSON.stringify({ query: 'q', tools: [{ name: 'skill_open' }] })
+    )
+    expect(view?.names).toEqual(['skill_open'])
+  })
+
+  it('returns null for junk', () => {
+    expect(parseToolSearchMatches(undefined)).toBeNull()
+    expect(parseToolSearchMatches('not-json')).toBeNull()
   })
 })

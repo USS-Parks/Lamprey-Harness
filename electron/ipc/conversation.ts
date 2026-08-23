@@ -14,7 +14,8 @@ import {
 import { chunk as chunkText } from '../services/rag/chunker'
 import { readSettings } from '../services/settings-helper'
 import { recordEvent } from '../services/event-log'
-import { clearToolUnlockState } from '../services/tool-unlock-state'
+import { clearToolUnlockState, setToolUnlockPersist } from '../services/tool-unlock-state'
+import { createSqliteToolUnlockPersist } from '../services/tool-unlock-persist'
 import { clearCapabilityTrackingForConversation } from '../services/providers/capability-tracker'
 
 type SeedKind = 'none' | 'message' | 'block' | 'transcript-range' | 'custom'
@@ -282,6 +283,7 @@ function resolveSeedContent(params: ForkParams): string | null {
   return null
 }
 export function registerConversationHandlers(): void {
+  setToolUnlockPersist(createSqliteToolUnlockPersist())
   ipcMain.handle('conversation:list', async () => {
     try {
       return { success: true, data: store.listConversations() }

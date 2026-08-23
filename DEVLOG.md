@@ -1,3 +1,99 @@
+## 2026-08-22 — Audit Closure Phase
+
+## [Audit Closure — Prompt AC-0] Lock the baseline  —  2026-08-22
+
+**Files changed:** `PLANNING/AC_BASELINE.md`
+**Verify gate:**
+- tsc node ✓ (no product delta)
+- tsc web ✓ (no product delta)
+- vitest n/a
+- measurement: line counts 1915 / 2547 / 1191 / 1613; 18 ABI-guarded files from `listNativeGuardedTestFiles()`; HEAD `482c371`; version 0.28.0
+
+**Notes:** `--list-native-skips` printed the loads banner on this machine (native binding loads). The 18-file list is the same walk the script uses.
+
+**Commit:** batched with AC-20–AC-24, AC-19, AC-36 per owner instruction
+
+## [Audit Closure — Prompt AC-20] Settings → Tools  —  2026-08-22
+
+**Files changed:** `electron/services/default-app-settings.ts`, `src/stores/settings-store.ts`, `src/stores/ui-store.ts`, `src/components/settings/ToolSettings.tsx`, `src/components/settings/SettingsDialog.tsx`, `electron/services/default-app-settings.test.ts`, `src/components/settings/tools-settings.wiring.test.ts`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest default-app-settings + tools-settings.wiring
+
+**Notes:** Also deleted the Settings → Agents sentence (handoff moved that from AC-32). SettingsTabId now matches every dialog tab plus `tools`.
+
+**Commit:** batched
+
+## [Audit Closure — Prompt AC-21] Timeout defaults in DEFAULT_APP_SETTINGS  —  2026-08-22
+
+**Files changed:** `default-app-settings.ts`, `settings-store.ts`, `StreamingTimeoutsSettings.tsx`, `mcp-manager.ts`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest default-app-settings.test.ts
+
+**Notes:** `registry.ts` is Improve-owned. Its local `DEFAULT_STREAM_INACTIVITY_MS` is already 60000, matching the new canonical default. Not edited.
+
+**Commit:** batched
+
+## [Audit Closure — Prompt AC-22] Loop Settings token honesty  —  2026-08-22
+
+**Files changed:** `src/components/settings/LoopSettings.tsx`
+**Verify gate:**
+- tsc web ✓
+- vitest tools-settings.wiring (chars/4 + undercount lock)
+
+**Notes:** Hint only. No formula change.
+
+**Commit:** batched
+
+## [Audit Closure — Prompt AC-23] tool_search transcript card  —  2026-08-22
+
+**Files changed:** `src/lib/tool-card-helpers.ts`, `src/lib/tool-card-helpers.test.ts`, `src/components/chat/ToolUseCard.tsx`
+**Verify gate:**
+- tsc web ✓
+- vitest tool-card-helpers + tools-settings.wiring
+
+**Notes:** Reuses ToolUseCard chrome. Parses `unlocked` / `tools[].name`.
+
+**Commit:** batched
+
+## [Audit Closure — Prompt AC-24] Settings pointer to Browser Developer  —  2026-08-22
+
+**Files changed:** `src/components/settings/ToolSettings.tsx`
+**Verify gate:**
+- tsc web ✓
+- vitest tools-settings.wiring (no `browserDeveloperModeEnabled` toggle)
+
+**Notes:** K7 held. Deep-link opens the existing Browser panel.
+
+**Commit:** batched
+
+## [Audit Closure — Prompt AC-19] Persist tool_search unlocks  —  2026-08-22
+
+**Files changed:** `electron/services/tool-unlock-state.ts`, `electron/services/tool-unlock-persist.ts`, `electron/services/tool-unlock-state.test.ts`, `electron/ipc/conversation.ts`, `electron/services/conversation-store.ts`, `electron/services/db-migrations.ts`, `electron/services/db-migrations.test.ts`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest tool-unlock-state + db-migrations
+
+**Notes:** Migration v33 `conversation_tool_unlocks`. Restart-shaped persist test + TL14 downgrade returns []. Delete path clears the table.
+
+**Commit:** batched
+
+## [Audit Closure — Prompt AC-36] Native-DB CI under Electron ABI  —  2026-08-22
+
+**Files changed:** `scripts/test-native-db.cjs`, `package.json` (script only), `.github/workflows/ci.yml`
+**Verify gate:**
+- workflow file present
+- `test:native-db` listed in package.json
+- user-verification-needed: first green Actions run of the `native-db` job
+
+**Notes:** Version not bumped. Local verify:proof skip banner unchanged.
+
+**Commit:** batched
+
 ## Codex July 2026 Parity — Prompt ST-8 Renderer turn reconciliation — 2026-07-17
 
 **Files changed:** `src/lib/follow-up-state.ts`,

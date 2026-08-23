@@ -3,21 +3,50 @@
 // When `settings.toolSurface === 'lazy'`, chat dispatch sends the model the
 // core tools + `tool_search`. As the model unlocks tools via `tool_search`,
 // their names accumulate here so subsequent rounds (and turns) of the SAME
-// conversation include them. State is process-local and ephemeral — it is not
-// persisted; a fresh app launch starts every conversation at the core set,
-// which is correct (the model re-discovers what it needs cheaply).
+// conversation include them. AC-19 persists the unlock set per conversation
+// so a restart does not forget it. Clear on conversation delete.
 //
 // Downgrade path (FC-10-style, surface-scoped): if a model repeatedly emits
 // malformed `tool_search` calls (no usable query), the conversation is pinned
 // to the full catalog so a model that can't drive the round-trip still works.
+// Downgrade itself stays process-local. While downgraded, getUnlockedTools
+// returns [] so a lazy rebuild cannot attach unlocks the downgraded round
+// must not see (TL14).
 
 /** Malformed `tool_search` calls before a conversation falls back to full. */
 export const MALFORMED_SEARCH_DOWNGRADE_THRESHOLD = 3
 
+export interface ToolUnlockPersist {
+  load(conversationId: string): string[]
+  save(conversationId: string, names: string[]): void
+  clear(conversationId: string): void
+}
+
 const unlocked = new Map<string, Set<string>>()
+const hydrated = new Set<string>()
 const lazyActive = new Set<string>()
 const downgraded = new Set<string>()
 const malformedSearches = new Map<string, number>()
+
+let persist: ToolUnlockPersist | null = null
+
+export function setToolUnlockPersist(store: ToolUnlockPersist | null): void {
+  persist = store
+}
+
+function hydrate(conversationId: string): void {
+  if (hydrated.has(conversationId) || !persist) return
+  const names = persist.load(conversationId)
+  if (names.length > 0) {
+    let set = unlocked.get(conversationId)
+    if (!set) {
+      set = new Set<string>()
+      unlocked.set(conversationId, set)
+    }
+    for (const n of names) set.add(n)
+  }
+  hydrated.add(conversationId)
+}
 
 /** Mark the lazy surface as active for a conversation (no-op if downgraded). */
 export function activateLazySurface(conversationId: string): void {
@@ -37,16 +66,20 @@ export function isSurfaceDowngraded(conversationId: string): boolean {
 /** Add resolved tool names to the conversation's unlocked set. */
 export function unlockTools(conversationId: string, names: string[]): void {
   if (!names || names.length === 0) return
+  hydrate(conversationId)
   let set = unlocked.get(conversationId)
   if (!set) {
     set = new Set<string>()
     unlocked.set(conversationId, set)
   }
   for (const n of names) set.add(n)
+  persist?.save(conversationId, names)
 }
 
 /** Snapshot of the conversation's unlocked tool names. */
 export function getUnlockedTools(conversationId: string): string[] {
+  if (downgraded.has(conversationId)) return []
+  hydrate(conversationId)
   return [...(unlocked.get(conversationId) ?? [])]
 }
 
@@ -67,14 +100,17 @@ export function recordMalformedSearch(conversationId: string): number {
 /** Drop all lazy-surface state for a conversation (call on delete). */
 export function clearToolUnlockState(conversationId: string): void {
   unlocked.delete(conversationId)
+  hydrated.delete(conversationId)
   lazyActive.delete(conversationId)
   downgraded.delete(conversationId)
   malformedSearches.delete(conversationId)
+  persist?.clear(conversationId)
 }
 
-/** Test-only reset of the entire module state. */
+/** Test-only reset of the in-memory maps. Persist is left for the test to own. */
 export function __resetToolUnlockStateForTesting(): void {
   unlocked.clear()
+  hydrated.clear()
   lazyActive.clear()
   downgraded.clear()
   malformedSearches.clear()

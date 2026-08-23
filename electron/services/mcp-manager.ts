@@ -22,6 +22,7 @@ import {
   McpHostedOAuthProvider,
   requestMcpUrlElicitationConsent
 } from './mcp-hosted-session'
+import { DEFAULT_APP_SETTINGS } from './default-app-settings'
 
 // T2 — Per-call MCP timeout. The SDK has built-in `RequestOptions.timeout`
 // support (it throws McpError with code RequestTimeout on expiry). We pass
@@ -65,7 +66,7 @@ export class McpResourceBoundsError extends Error {
   }
 }
 
-const DEFAULT_MCP_CALL_TIMEOUT_MS = 120_000
+const DEFAULT_MCP_CALL_TIMEOUT_MS = DEFAULT_APP_SETTINGS.mcpCallTimeoutMs
 const MIN_MCP_CALL_TIMEOUT_MS = 5_000
 
 let mcpCallTimeoutOverrideMs: number | null = null

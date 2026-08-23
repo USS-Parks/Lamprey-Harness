@@ -1234,4 +1234,29 @@ describe('TL-B2 OpenRouter fallback extras', () => {
       }
     )
   })
+
+  it('MiniMax still only gets reasoning_split when OpenRouter routing is set (K4)', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          message: { content: 'ok', reasoning_details: [] },
+          finish_reason: 'stop'
+        }
+      ]
+    })
+    await withSettings(
+      {
+        openrouterFallbacks: ['openai/gpt-4o-mini'],
+        openrouterProviderSort: 'price',
+        openrouterProviderOrder: ['Anthropic']
+      },
+      async () => {
+        await chatOnce([{ role: 'user', content: 'q' }], 'minimax-m2.7')
+        const body = mockCreate.mock.calls[0][0]
+        expect(body.reasoning_split).toBe(true)
+        expect(body.models).toBeUndefined()
+        expect(body.provider).toBeUndefined()
+      }
+    )
+  })
 })

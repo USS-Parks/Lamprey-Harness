@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import {
   parseOpenRouterFallbacks,
   parseOpenRouterSort,
   buildOpenRouterChatExtras,
   buildOpenRouterFallbackExtras
 } from './openrouter-routing'
+import { MODEL_CATALOG } from './catalog'
 
 describe('parseOpenRouterFallbacks (TL-B2)', () => {
   it('returns [] for missing / non-array values', () => {
@@ -86,5 +89,19 @@ describe('OpenRouter provider prefs (TL-B3)', () => {
         ignore: []
       })
     ).toEqual({})
+  })
+})
+
+describe('TL-B6 K4 source lock', () => {
+  it('registry only spreads OpenRouter extras inside the openrouter branch', () => {
+    const src = readFileSync(join(__dirname, 'registry.ts'), 'utf-8')
+    expect(src).toMatch(/if \(desc\.provider === 'openrouter'\) \{/)
+    expect(src).toMatch(/buildOpenRouterChatExtras\(/)
+    const extrasFn = src.slice(src.indexOf('function providerChatExtras'))
+    const orBranch = extrasFn.match(
+      /if \(desc\.provider === 'openrouter'\) \{[\s\S]*?buildOpenRouterChatExtras[\s\S]*?\n {2}\}/
+    )
+    expect(orBranch).toBeTruthy()
+    expect(MODEL_CATALOG.filter((m) => m.provider === 'openrouter')).toEqual([])
   })
 })

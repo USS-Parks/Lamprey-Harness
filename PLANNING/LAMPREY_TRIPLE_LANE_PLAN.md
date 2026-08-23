@@ -220,7 +220,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** model resolve/menu accepts id; test
 
 ### **TL-B6 — Tests + short architecture/OpenWiki note**
-- [ ] Harden tests for K4 (non-OpenRouter unchanged). Add short openwiki or ARCHITECTURE note on OpenRouter routing depth (K11).
+- [x] Harden tests for K4 (non-OpenRouter unchanged). Add short openwiki or ARCHITECTURE note on OpenRouter routing depth (K11).
 - **Closes:** S2, S5
 - **Verify:** touched vitest; doc exists
 

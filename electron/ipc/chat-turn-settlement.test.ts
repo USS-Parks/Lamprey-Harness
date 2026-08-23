@@ -117,6 +117,17 @@ describe('AC-3 every closer goes through finalizeTurn', () => {
   })
 })
 
+describe('OD-5 mid-round drains are not the closer', () => {
+  it('both persist-path drains carry the finalizeTurn closer comment', () => {
+    const sites = src.split('drainPendingDocuments(correlationId)')
+    expect(sites.length).toBeGreaterThanOrEqual(3)
+    const first = sites[0] ?? ''
+    const second = sites[1] ?? ''
+    expect(first).toMatch(/Mid-round drain \(OD-5\):[\s\S]*Not a turn-closer — finalizeTurn owns/)
+    expect(second).toMatch(/Mid-round drain \(OD-5\):[\s\S]*Not a turn-closer — finalizeTurn owns/)
+  })
+})
+
 describe('AC-10 send success does not double-finalize', () => {
   it('runHeadlessTurn await is not followed by a success finalizeTurn', () => {
     const after = src.slice(src.indexOf('await runHeadlessTurn({'))

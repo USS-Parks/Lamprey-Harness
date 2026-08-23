@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSkillsStore } from '@/stores/skills-store'
 import { useMcpStore } from '@/stores/mcp-store'
 import { toast } from '@/stores/toast-store'
+import { CORE_SURFACE_NAMES } from '@/data/core-surface-names'
 
 interface NewSkillWizardProps {
   onClose: () => void
@@ -30,15 +31,6 @@ const INITIAL: DraftState = {
   directoryMode: false,
   scaffoldReference: false
 }
-
-const NATIVE_TOOL_HINTS = [
-  'shell_command',
-  'apply_patch',
-  'view_image',
-  'web_find',
-  'workspace_context',
-  'verify_workspace'
-]
 
 function parseAllowedTools(text: string): string[] {
   return text
@@ -90,7 +82,7 @@ export function NewSkillWizard({ onClose }: NewSkillWizardProps) {
 
   const toolSuggestions = useMemo(() => {
     const fromMcp = mcpServers.map((s) => `mcp:${s.id}-*`)
-    return [...NATIVE_TOOL_HINTS, ...fromMcp]
+    return [...CORE_SURFACE_NAMES, ...fromMcp]
   }, [mcpServers])
 
   const addSuggestion = (tool: string) => {

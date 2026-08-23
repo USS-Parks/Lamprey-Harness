@@ -1,4 +1,167 @@
+## 2026-08-23 — Tools + MCP Roster Phase
+
+## [Tools + MCP Roster — Prompt TR-10] Phase wrap v0.30.1  —  2026-08-23
+
+**Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.30.1.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest (full) ✓ (2918 passed / 152 skipped / 0 failed)
+- build ✓
+- verify:proof ✓ (exit 0)
+
+**Notes:** Source wrap. No Bucket. Download table still points at v0.30.0 installers.
+
+**Commit:** 6b5002d
+
+## [Tools + MCP Roster — phase complete] v0.30.1  —  2026-08-23
+
+Ten curated MCP templates (was seven). Native hygiene only. OpenWiki native inventory page.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2918 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:**
+- Installer / Bucket artifacts still v0.30.0
+- Live auth of new MCP templates is owner work
+- Official Slack hosted MCP is not the one-click template (needs a partner Slack app)
+- Fetch template dropped; no Python/`uvx` replacement shipped
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-9] Current State catch-up  —  2026-08-23
+
+**Files changed:** `CLAUDE.md`, `AGENTS.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest operability-debt-safety ✓
+- greppable Tools + MCP Roster in Current State
+
+**Notes:** Top Current State bullet records the ten-entry catalog, CORE hints, and native.md. OD/AC parked wording left intact.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-8] Point live canon at Tools+MCP P-SPR  —  2026-08-23
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- greppable: `LAMPREY_TOOLS_MCP_ROSTER_PLAN.md` in live-canon table
+
+**Notes:** OD plan stays as shipped v0.30.0 reference.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-7] OpenWiki native tools page  —  2026-08-23
+
+**Files changed:** `openwiki/domains/tools/native.md`, `openwiki/domains/tools/index.md`, `openwiki/domains/tools/catalog.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- page exists; catalog.md labeled as models
+
+**Notes:** Hand-authored (no OpenWiki CLI pass — a full `code --update` would rewrite the tree). CORE table + 24-pack map. catalog.md now points at native.md.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-6] Native inventory lock  —  2026-08-23
+
+**Files changed:** `electron/services/native-inventory-lock.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest native-inventory-lock ✓ (2 tests)
+
+**Notes:** After `tool-packs` import, every CORE name is registered. All 24 pack import paths exist and each file has at least one `registerNative(`. No full-name golden list.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-5] Align skill-wizard hints to CORE  —  2026-08-23
+
+**Files changed:** `src/data/core-surface-names.ts`, `src/components/customize/NewSkillWizard.tsx`, `electron/services/core-surface-hints.test.ts`, `tsconfig.node.json`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest core-surface-hints ✓ (2 tests)
+
+**Notes:** Wizard imports shared `CORE_SURFACE_NAMES`. Test locks it equal to electron CORE. Dropped stale `web_find` / `verify_workspace` hints.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-4] Add-flow catalog smoke  —  2026-08-23
+
+**Files changed:** `src/components/customize/AddConnectorFlow.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest AddConnectorFlow + connectors-catalog ✓ (3 tests)
+
+**Notes:** Source-locks AddConnectorFlow reading CONNECTORS_CATALOG. Asserts length 10 and linear/sentry/notion/slack present; fetch absent.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-3] Dual-catalog parity lock  —  2026-08-23
+
+**Files changed:** `src/data/connectors-catalog.test.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest src/data/connectors-catalog.test.ts ✓ (1 test)
+
+**Notes:** Locks ids + name/command/args/auth/category + env key sets. No shared helper.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-2] Expand curated MCP catalog  —  2026-08-23
+
+**Files changed:** `resources/connectors/catalog.json`, `src/data/connectors-catalog.ts`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- JSON parse ✓ (10 entries)
+
+**Notes:** Dual catalog now: playwright, filesystem, github (docker official), postgres (dbhub), sqlite (mcp-server-sqlite-npx), memory, linear (mcp-remote), sentry, notion, slack. Fetch dropped (K8). Existing installed mcp-servers.json untouched.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-1] Prove or replace broken MCP packages  —  2026-08-23
+
+**Files changed:** `PLANNING/TR_BASELINE.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ (docs only)
+- tsc web ✓ (docs only)
+- vitest (none — docs only)
+- baseline K8 table present
+
+**Notes:** npm 2026-08-23. Keep playwright/filesystem/memory. Replace github (deprecated → official docker image), postgres (deprecated → `@bytebase/dbhub`), sqlite (404 → `mcp-server-sqlite-npx`). Drop fetch (404; `mcp-server-fetch` is a security holding). K2 adds: Linear via `mcp-remote`, `@sentry/mcp-server`, `@notionhq/notion-mcp-server`, `slack-mcp-server`. Code lands in TR-2.
+
+**Commit:** (pending)
+
+
+## [Tools + MCP Roster — Prompt TR-0] Lock roster baseline  —  2026-08-23
+
+**Files changed:** `PLANNING/TR_BASELINE.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ (docs only)
+- tsc web ✓ (docs only)
+- vitest (none — docs only)
+- file exists: `PLANNING/TR_BASELINE.md`
+
+**Notes:** Captured at `cabd881` / v0.30.0. 24 pack imports. Dual catalog is the same seven ids. `NATIVE_TOOL_HINTS` is a stale 6-name subset (`web_find` is not CORE). OpenWiki has model `catalog.md` + `mcp.md`; no native inventory page.
+
+**Commit:** 734feab
+
 ## 2026-08-23 — Operability Debt Phase
+
 
 ## [Operability Debt — Prompt OD-0] Lock the baseline  —  2026-08-23
 

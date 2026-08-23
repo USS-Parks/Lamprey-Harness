@@ -6,6 +6,7 @@ import {
   RISK_TONE,
   collapsedSummary,
   formatElapsed,
+  parseToolSearchMatches,
   previewResult
 } from '@/lib/tool-card-helpers'
 import { PrPatchCard } from './PrPatchCard'
@@ -126,7 +127,10 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
   // pending / denied stay collapsed (denied result is short; running has
   // its live elapsed in the header).
   const isPrPatch = toolName.startsWith('pr_patch_')
-  const autoExpanded = isError || (status === 'success' && (isDestructive || isPrPatch))
+  const isToolSearch = toolName === 'tool_search'
+  const searchView = isToolSearch ? parseToolSearchMatches(result) : null
+  const autoExpanded =
+    isError || (status === 'success' && (isDestructive || isPrPatch || isToolSearch))
   const expanded = userToggled !== null ? userToggled : autoExpanded
 
   // Plain-English label first. Fall back to the bare tool name if the
@@ -244,6 +248,28 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
               </div>
               {isPrPatch ? (
                 <PrPatchCard toolName={toolName} args={args} result={result} />
+              ) : searchView ? (
+                <div className="text-[12px] text-[var(--text-secondary)]">
+                  {searchView.query && (
+                    <div className="mb-1 font-mono text-[11px] text-[var(--text-muted)]">
+                      query: {searchView.query}
+                    </div>
+                  )}
+                  {searchView.error && (
+                    <div className="mb-1 text-[var(--error)]">{searchView.error}</div>
+                  )}
+                  {searchView.names.length > 0 ? (
+                    <ul className="list-disc pl-4 font-mono">
+                      {searchView.names.map((name) => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    !searchView.error && (
+                      <div className="font-mono text-[var(--text-muted)]">No matching tools</div>
+                    )
+                  )}
+                </div>
               ) : (
               <pre
                 className={

@@ -8,6 +8,8 @@ import { useSettingsStore } from '@/stores/settings-store'
 // Phase, 2026-06-10): the per-stage pipeline budgets died with the
 // pipeline; stream + MCP caps remain.
 
+// Seconds form of DEFAULT_APP_SETTINGS.streamInactivityMs / mcpCallTimeoutMs
+// (60000 / 120000). Renderer cannot import the canonical object.
 const DEFAULTS = {
   streamInactivitySec: 60,
   mcpCallTimeoutSec: 120

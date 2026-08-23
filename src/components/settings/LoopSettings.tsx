@@ -159,7 +159,7 @@ export function LoopSettings() {
         <NumberRow
           id="loopTokenBudget"
           label="Token budget"
-          hint="Soft guard: a loop stops once the estimated tokens spent crosses this. Estimated from the sent context + reply (iteration + wall-clock are the hard caps). 0 = iteration-bounded only."
+          hint="Soft guard: a loop stops once the estimated tokens spent crosses this. The estimate is chars/4 of the sent context + reply. Multi-round tool turns undercount the re-sent stack, so iteration + wall-clock are the hard caps. 0 = iteration-bounded only."
           value={tokenBudget}
           onCommit={(n) => void updateSettings({ loopTokenBudget: n })}
           defaultValue={DEFAULTS.loopTokenBudget}

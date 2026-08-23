@@ -87,3 +87,28 @@ jobs:
           path: coverage/
           if-no-files-found: warn
           retention-days: 14
+
+  native-db:
+    # AC-36 — the 18 ABI-guarded suites must run red/green under Electron's
+    # ABI, not skip under the Node-based `test` job (v0.9.2 class of hole).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
+
+      - name: Native DB suites under Electron ABI
+        env:
+          ELECTRON_RUN_AS_NODE: '1'
+        run: npx electron scripts/test-native-db.cjs

@@ -171,6 +171,17 @@ parity claim.
 **Notes:** Same line-count method as OD-0. Overlay file gone. S1–S7 closed.
 Version bump is OD-14.
 
+**Commit:** a569223
+
+## [Operability Debt — Prompt OD-13] Release notes for v0.30.0  —  2026-08-23
+
+**Files changed:** `RELEASE_NOTES/v0.30.0.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+
+**Notes:** Same plain voice as v0.29.0. No marketing verbs.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

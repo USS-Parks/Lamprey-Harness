@@ -162,6 +162,24 @@ describe('dispatchNextQueuedFollowUp', () => {
     expect(state.calls).toEqual([])
   })
 
+  it('rejects a queued item when registerTurn refuses a live turn', async () => {
+    const state = harness([queuedRecord('blocked', 0)])
+    state.deps.registerTurn = () => {
+      state.calls.push('register')
+      throw new Error('turn-runtime: conversation conversation-1 already has running turn turn-live')
+    }
+    await expect(
+      dispatchNextQueuedFollowUp({ conversationId: 'conversation-1', model: 'model-1' }, state.deps)
+    ).resolves.toEqual({ status: 'failed', followUpId: 'blocked', turnId: '' })
+    expect(state.records[0].status).toBe('rejected')
+    expect(state.rejectionMessages).toEqual([
+      'Turn still running; queued follow-up was not started.'
+    ])
+    expect(state.calls).not.toContain('start')
+    expect(state.calls).not.toContain('run')
+    expect(state.calls).not.toContain('settle:failed')
+  })
+
   it('claims the first position synchronously and dispatches exactly one item', async () => {
     const state = harness([queuedRecord('second', 1), queuedRecord('first', 0)])
     let releasePreparation!: () => void

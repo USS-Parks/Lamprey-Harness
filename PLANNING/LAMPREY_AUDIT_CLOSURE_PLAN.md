@@ -384,7 +384,7 @@ review text (Hygiene / Sweet Spot density).
 ### Track A — Turn settlement
 
 ### **AC-1 — T1: Settle the tool-round cap as failure**
-- [ ] When `runChatRound` hits `round >= MAX_TOOL_ROUNDS` (`electron/ipc/chat.ts:884–893`) it emits `chat:error` and `return null`. `runHeadlessTurn` treats that null as a clean end (`:738` `if (!result) return null`) and the `finally` at `:784–788` settles whatever `settlementStatus` is — initialized to `'completed'` at `:606`. The ghost-reply guard only runs in `catch` (`:743–768`). `chat:send` therefore returns success. Tool rows are not a visible reply: `turnEndedGhosted` (`ghost-reply-guard.ts:38–43`) only stands down for `role:'system'` or a non-planner `assistant`.
+- [x] When `runChatRound` hits `round >= MAX_TOOL_ROUNDS` (`electron/ipc/chat.ts:884–893`) it emits `chat:error` and `return null`. `runHeadlessTurn` treats that null as a clean end (`:738` `if (!result) return null`) and the `finally` at `:784–788` settles whatever `settlementStatus` is — initialized to `'completed'` at `:606`. The ghost-reply guard only runs in `catch` (`:743–768`). `chat:send` therefore returns success. Tool rows are not a visible reply: `turnEndedGhosted` (`ghost-reply-guard.ts:38–43`) only stands down for `role:'system'` or a non-planner `assistant`.
 
   Change that path only:
   1. The cap must not be a quiet `null`. Throw a small typed error (preferred) or return a failure object that `runHeadlessTurn` cannot confuse with a clean null. Name it so tests can `instanceof` it.

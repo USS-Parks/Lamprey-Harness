@@ -139,7 +139,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 ## §1 — Prompt Roster
 
 ### **OD-0 — Lock the baseline**
-- [ ] Write `PLANNING/OD_BASELINE.md` with the same line-count method as
+- [x] Write `PLANNING/OD_BASELINE.md` with the same line-count method as
   `AC_BASELINE.md` / `AC_AFTER.md` (`fs.readFileSync` split on newlines).
   Record: `chat.ts`, `finalize-turn.ts`, `turn-interrupt.ts`,
   `tool-unlock-state.ts`, `tool-unlock-persist.ts`, `registry.ts`,
@@ -150,7 +150,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2. No new tests.
 
 ### **OD-1 — Cap failure settles `failed` (behavioral)**
-- [ ] New `electron/services/headless-turn-settlement.test.ts`. Build a
+- [x] New `electron/services/headless-turn-settlement.test.ts`. Build a
   real `TurnRuntimeRegistry`, throw `ToolRoundCapError`, apply the same
   status rule `chat.ts` uses (`aborted || isUserAbortError` → `cancelled`,
   else `failed`), then call `finalizeTurn`. Assert settlement is `failed`,

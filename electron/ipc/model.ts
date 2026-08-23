@@ -1,6 +1,8 @@
 import { ipcMain } from 'electron'
 import {
   MODEL_CATALOG,
+  OPENROUTER_AUTO_DESCRIPTOR,
+  OPENROUTER_AUTO_ID,
   isKnownProvider,
   listAllProviders,
   listLiveModelIds,
@@ -9,6 +11,7 @@ import {
 } from '../services/providers/registry'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
 import { buildLiveModelImports } from '../services/providers/model-import'
+import { hasKey } from '../services/keychain'
 
 interface ModelInfo {
   id: string
@@ -71,7 +74,25 @@ function combinedModels(): ModelInfo[] {
   const customIds = new Set(customs.map((m) => m.id))
   // Custom entries override built-ins with the same id.
   const builtIns = BUILTIN_MODELS.filter((m) => !customIds.has(m.id))
-  return [...builtIns, ...customs]
+  const models = [...builtIns, ...customs]
+  // TL-B5 — offer openrouter/auto when an OpenRouter key is stored. Not a
+  // pinned catalog row (K4). Skip if the user already added the same id.
+  if (hasKey('openrouter') && !customIds.has(OPENROUTER_AUTO_ID) && !models.some((m) => m.id === OPENROUTER_AUTO_ID)) {
+    models.push({
+      id: OPENROUTER_AUTO_DESCRIPTOR.id,
+      name: OPENROUTER_AUTO_DESCRIPTOR.name,
+      apiModelId: OPENROUTER_AUTO_DESCRIPTOR.apiModelId,
+      provider: OPENROUTER_AUTO_DESCRIPTOR.provider,
+      contextWindow: OPENROUTER_AUTO_DESCRIPTOR.contextWindow,
+      supportsTools: OPENROUTER_AUTO_DESCRIPTOR.supportsTools,
+      supportsVision: OPENROUTER_AUTO_DESCRIPTOR.supportsVision,
+      isReasoner: OPENROUTER_AUTO_DESCRIPTOR.isReasoner,
+      tier: OPENROUTER_AUTO_DESCRIPTOR.tier,
+      description: OPENROUTER_AUTO_DESCRIPTOR.description,
+      custom: true
+    })
+  }
+  return models
 }
 
 export function registerModelHandlers(): void {

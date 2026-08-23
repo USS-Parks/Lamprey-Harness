@@ -802,7 +802,26 @@ function readCustomModelDescriptors(): ModelDescriptor[] {
   }
 }
 
+/** Official OpenRouter auto-router. Not a pinned catalog row (K4). */
+export const OPENROUTER_AUTO_ID = 'openrouter/auto'
+
+export const OPENROUTER_AUTO_DESCRIPTOR: ModelDescriptor = {
+  id: OPENROUTER_AUTO_ID,
+  name: 'OpenRouter Auto',
+  provider: 'openrouter',
+  apiModelId: OPENROUTER_AUTO_ID,
+  contextWindow: 200000,
+  supportsTools: true,
+  supportsVision: true,
+  tier: 'pro',
+  description:
+    'OpenRouter auto-router. A session may stick to one upstream model; prompt cache can miss across swaps.'
+}
+
 export function resolveModel(modelId: string): ModelDescriptor {
+  if (modelId === OPENROUTER_AUTO_ID || modelId === 'openrouter-auto') {
+    return OPENROUTER_AUTO_DESCRIPTOR
+  }
   const found = MODEL_CATALOG.find((m) => m.id === modelId)
   if (found) return found
 

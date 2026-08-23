@@ -56,6 +56,8 @@ export function OpenRouterRoutingSettings() {
         <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">
           Optional fallbacks and provider prefs on OpenRouter calls only. Direct providers
           (DeepSeek, Anthropic, …) are unchanged. Disabled until an OpenRouter key is stored.
+          When a key is present, the model picker includes <span className="font-mono">openrouter/auto</span>.
+          Auto may stick to one upstream model for the session; prompt cache can miss across swaps.
         </p>
       </div>
       {!enabled && (

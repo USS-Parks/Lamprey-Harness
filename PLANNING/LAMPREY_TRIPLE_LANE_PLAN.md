@@ -216,7 +216,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** web typecheck; thin test or source-lock
 
 ### **TL-B5 — Optional openrouter/auto**
-- [ ] Allow selecting openrouter/auto (or current official auto id) when OpenRouter is configured. Document session stickiness / cache caveat in UI help or OpenWiki (K5). If upstream id differs at implement time, use official id and note in DEVLOG.
+- [x] Allow selecting openrouter/auto (or current official auto id) when OpenRouter is configured. Document session stickiness / cache caveat in UI help or OpenWiki (K5). If upstream id differs at implement time, use official id and note in DEVLOG.
 - **Verify:** model resolve/menu accepts id; test
 
 ### **TL-B6 — Tests + short architecture/OpenWiki note**

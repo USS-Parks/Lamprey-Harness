@@ -113,4 +113,27 @@ Present:
 
 Absent: authored native-tool inventory (`openwiki/domains/tools/native.md` does not exist).
 
+## 7. TR-1 / K8 npm resolution (2026-08-23)
+
+Queried `https://registry.npmjs.org/<pkg>` for each current catalog package and the K2 candidates.
+
+| Package | Latest | Status | Decision |
+|---------|--------|--------|----------|
+| `@playwright/mcp` | 0.0.79 | resolves, not deprecated | **Keep** (`@latest` pin stays) |
+| `@modelcontextprotocol/server-filesystem` | 2026.7.10 | resolves, not deprecated | **Keep** |
+| `@modelcontextprotocol/server-github` | 2025.4.8 | **deprecated** | **Replace** with official local server: `docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server`. No official npm successor. |
+| `@modelcontextprotocol/server-postgres` | 0.6.2 | **deprecated** | **Replace** with `@bytebase/dbhub` (`npx -y @bytebase/dbhub --transport stdio --dsn <url>`). Claude Code docs name DBHub as the Postgres example. |
+| `@modelcontextprotocol/server-sqlite` | — | **404** | **Replace** with `mcp-server-sqlite-npx` (community successor; latest 0.8.0, not deprecated). |
+| `@modelcontextprotocol/server-memory` | 2026.7.4 | resolves, not deprecated | **Keep** |
+| `@modelcontextprotocol/server-fetch` | — | **404** | **Drop**. Official Fetch is Python (`uvx`). npm name `mcp-server-fetch` is a security holding package — do not ship. |
+| `@sentry/mcp-server` | 0.37.0 | resolves, not deprecated | **Add** (K2). Env: `SENTRY_ACCESS_TOKEN`. |
+| `@notionhq/notion-mcp-server` | 2.5.1 | resolves, not deprecated | **Add** (K2). Env: `NOTION_TOKEN`. |
+| `mcp-remote` | 0.1.45 | resolves, not deprecated | **Add** for Linear (`npx -y mcp-remote https://mcp.linear.app/mcp`) — Linear's documented npx path. |
+| `slack-mcp-server` | 1.3.0 | resolves, not deprecated | **Add** (K2). Official `https://mcp.slack.com/mcp` needs a partner Slack app; generic OAuth would be a broken one-click. Env: `SLACK_MCP_XOXP_TOKEN`. |
+| `@modelcontextprotocol/server-slack` | 2025.4.25 | **deprecated** | Do not use. |
+| `linear-mcp-server` / `@linear/mcp` | 0.1.0 / 404 | unofficial / missing | Prefer official `mcp-remote` URL. |
+
+Catalog after TR-2 (planned): keep playwright / filesystem / memory; replace github / postgres / sqlite; drop fetch; add linear / sentry / notion / slack. **10 entries.**
+
 Authored and reviewed by Basho Parks, copyright 2026
+

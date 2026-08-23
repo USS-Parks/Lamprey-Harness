@@ -1,5 +1,19 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-1] Prove or replace broken MCP packages  —  2026-08-23
+
+**Files changed:** `PLANNING/TR_BASELINE.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ (docs only)
+- tsc web ✓ (docs only)
+- vitest (none — docs only)
+- baseline K8 table present
+
+**Notes:** npm 2026-08-23. Keep playwright/filesystem/memory. Replace github (deprecated → official docker image), postgres (deprecated → `@bytebase/dbhub`), sqlite (404 → `mcp-server-sqlite-npx`). Drop fetch (404; `mcp-server-fetch` is a security holding). K2 adds: Linear via `mcp-remote`, `@sentry/mcp-server`, `@notionhq/notion-mcp-server`, `slack-mcp-server`. Code lands in TR-2.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-0] Lock roster baseline  —  2026-08-23
 
 **Files changed:** `PLANNING/TR_BASELINE.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

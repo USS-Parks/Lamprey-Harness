@@ -159,6 +159,18 @@ authority files not deleted. DEVLOG historical paths left as written.
 Codex July ledger. Spent trees point at `archive/`. No current-Codex
 parity claim.
 
+**Commit:** 7d4eff4
+
+## [Operability Debt — Prompt OD-12] Write OD_AFTER  —  2026-08-23
+
+**Files changed:** `PLANNING/OD_AFTER.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+
+**Notes:** Same line-count method as OD-0. Overlay file gone. S1–S7 closed.
+Version bump is OD-14.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

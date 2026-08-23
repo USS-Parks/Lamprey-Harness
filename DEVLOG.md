@@ -1,5 +1,6 @@
 ## 2026-08-22 — Audit Closure Phase
 
+<<<<<<< HEAD
 ## [Audit Closure — Prompt AC-5] Queue register conflict is recovered  —  2026-08-22
 
 **Files changed:** `electron/services/queued-follow-up-dispatch.ts`, `electron/services/queued-follow-up-dispatch.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
@@ -68,6 +69,116 @@
 **Notes:** Cap used to `return null`. `runHeadlessTurn` treated that as a clean end and the finally settled `completed`. It now throws `ToolRoundCapError`. Headless catch maps non-abort throws to `failed`, the existing ghost-reply persist runs (tool-only rows still count as ghosted), and `chat:send` already returns `{ success: false, error }`. Queue dispatch stays gated on `completed`. Ceiling still 50. Duplicate ghost block in `chat:send` catch is AC-4.
 
 **Commit:** pending this prompt
+=======
+## [Audit Closure — Prompt AC-25] Delete pipeline-orphans  —  2026-08-22
+
+**Files changed:** `electron/services/pipeline-orphans.ts` (deleted),
+`electron/services/pipeline-orphans.test.ts` (deleted),
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest n/a (deleted skip-guarded suite; no remaining importer)
+- grep lock: no `pipeline-orphans` under production `electron/` ✓
+
+**Notes:** Production `electron/` had no importer. One ABI-guarded skip
+drops from the verify:proof native list; AFTER (AC-31) should show 17.
+Graft cards under `graft/` were not touched (graph is not this track).
+
+**Commit:** see git log (AC-25).
+
+## [Audit Closure — Prompt AC-26] Composer leftovers  —  2026-08-22
+
+**Files changed:** `electron/services/system-prompt-builder.ts`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+- `buildComposerSystemPrompt` deleted; `COMPOSER_SYSTEM` kept for absence lock
+- `PSEUDO_TAG_GUARD` comments no longer claim it is appended
+
+**Notes:** Tests that lock absence of the guard from COMPOSER_SYSTEM stay.
+
+**Commit:** see git log (AC-26).
+
+## [Audit Closure — Prompt AC-27] Delete setMessageProofStatus  —  2026-08-22
+
+**Files changed:** `electron/services/conversation-store.ts`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+
+**Notes:** `messages.proof_status` column stays. `contracts:waive` IPC never
+called this setter; it waives the change-contract row only.
+
+**Commit:** see git log (AC-27).
+
+## [Audit Closure — Prompt AC-28] Lock message_stage_metrics write-less  —  2026-08-22
+
+**Files changed:** `electron/services/schema-init.ts`,
+`electron/services/message-stage-metrics-nowrite.test.ts`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+
+**Notes:** DDL comment now says historical RT2, no writer since Unburdening.
+
+**Commit:** see git log (AC-28).
+
+## [Audit Closure — Prompt AC-29] Drop unused contracts preload  —  2026-08-22
+
+**Files changed:** `electron/preload.ts`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+
+**Notes:** `src/` had zero `api.contracts` callers. Main `contracts:*` IPC
+stays; `change_contracts` tables stay. No model-tool caller of the preload
+namespace.
+
+**Commit:** see git log (AC-29).
+
+## [Audit Closure — Prompt AC-30] After-action dead proof.gate scoring  —  2026-08-22
+
+**Files changed:** `electron/services/after-action-report.ts`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+
+**Notes:** passed/failed counts remain as legacy listing. The live
+"Untrusted proof gate" cause is gone. waived scoring stays;
+`change-contract-store` still emits `proof.gate.waived`.
+
+**Commit:** see git log (AC-30).
+
+## [Audit Closure — Prompt AC-32] Stale ledger and Reasoning Audit copy  —  2026-08-22
+
+**Files changed:** `electron/services/failure-ledger.ts`,
+`src/components/settings/ReasoningAuditSettings.tsx`,
+`PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+
+**Notes:** Settings → Agents sentence left for Add (owns
+`default-app-settings.ts`). Copy no longer names Planner / Reviewer /
+"Show pipeline trace".
+
+**Commit:** see git log (AC-32).
+
+## [Audit Closure — Prompt AC-40] Plugin tools: tell the truth  —  2026-08-22
+
+**Files changed:** `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- user said no more gates this session; hook still runs on commit
+
+**Notes:** Grep found no dead plugin-native-tool registration hook. C11
+already wired plugin skills, slash commands, and plugin-owned MCP.
+`tool-registry.ts:267` still says "plugin tools (not yet wired)" —
+Improve owns that file (AC-14). Branch taken: no file fight;
+`blocked-on-improve` for the comment. Wrap finishes it if Improve does
+not. No plugin-tool runtime built (K10).
+
+**Commit:** see git log (AC-40).
+>>>>>>> feat/audit-closure-delete
 
 ## Codex July 2026 Parity — Prompt ST-8 Renderer turn reconciliation — 2026-07-17
 

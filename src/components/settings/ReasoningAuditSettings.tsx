@@ -25,12 +25,8 @@ export function ReasoningAuditSettings() {
       </h3>
       <p className="text-xs leading-relaxed text-[var(--text-muted)]">
         Every assistant turn's chain-of-thought is persisted alongside the
-        visible reply — for the Planner, Coder, Reviewer, and Composer rows
-        of every multi-agent pipeline, plus single-agent turns that use a
-        thinking model. The full audit trail is always available in the chat
-        history (Reviewer + Composer bubbles carry their own reasoning pills;
-        the Planner trace lives behind the "Show pipeline trace" toggle on
-        the Coder bubble below it).
+        visible reply. The Reasoning-Trace Viewer shows that trail. Past
+        reasoning can be re-fed on the next turn when the toggle below is on.
       </p>
 
       <label

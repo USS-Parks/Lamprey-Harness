@@ -208,6 +208,7 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
   const toolErrors = tools.filter((t) => t.status === 'error')
   const toolDenied = tools.filter((t) => t.status === 'denied')
   const chatErrors = events.filter((e) => e.type === 'chat.error')
+  // passed/failed have no live producers. Count historical rows only.
   const proofGatePassed = events.filter((e) => e.type === 'proof.gate.passed')
   const proofGateFailed = events.filter((e) => e.type === 'proof.gate.failed')
   const proofGateWaived = events.filter((e) => e.type === 'proof.gate.waived')
@@ -258,16 +259,6 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
       severity: 'error',
       title: 'Chat orchestration errors',
       detail: `${chatErrors.length} chat error event(s) were recorded in this conversation.`
-    })
-  }
-  if (proofGateFailed.length > 0) {
-    const latest = proofGateFailed.at(-1)
-    causes.push({
-      severity: 'warning',
-      title: 'Untrusted proof gate',
-      detail:
-        `${proofGateFailed.length} proof gate failure event(s) were recorded. ` +
-        `${preview(latest?.payload?.reason, 220)}`
     })
   }
   if (proofGateWaived.length > 0) {

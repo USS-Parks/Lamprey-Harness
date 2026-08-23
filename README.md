@@ -32,7 +32,15 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.30.0 — Operability Debt.** Settlement has behavioral tests (cap is
+**New in v0.30.1 — Tools + MCP Roster.** The curated Add-connector catalog
+is ten templates: Linear, Sentry, Notion, and Slack are new; GitHub /
+Postgres / SQLite point at live packages; Fetch was dropped. Dual JSON/TS
+catalogs are parity-locked. Skill-wizard hints follow `CORE_SURFACE_NAMES`.
+OpenWiki `domains/tools/native.md` lists the native roster;
+`catalog.md` remains the model catalog. Source wrap only — download links
+below still serve the last Bucketed v0.30.0 installers.
+
+**Previously in v0.30.0 — Operability Debt.** Settlement has behavioral tests (cap is
 `failed`, cancel is `cancelled`, the closer queues only on `completed`).
 `turn.interrupted` stays the audit event name. R1–R4 playbooks, live
 `supportsTools` probes, and OpenWiki are parked; unsigned builds are a

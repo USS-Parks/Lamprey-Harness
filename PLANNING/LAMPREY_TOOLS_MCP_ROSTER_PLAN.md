@@ -1,7 +1,6 @@
 # LAMPREY_TOOLS_MCP_ROSTER_PLAN.md — Tools + MCP Roster Phase (TR-0 … TR-10)
 
-**Status: PENDING** — awaiting explicit user green light + STS instruction.
-This drafting session does not implement product prompts and does not run STS.
+**Status: COMPLETE** — STS finished 2026-08-23 as v0.30.1.
 
 Drafted 2026-08-23 against tip **`origin/main` @ `7ea0f9e`** (OpenWiki minimal tree landed)
 and app **v0.30.0**. User locked scope: **update both native tools and MCP curated catalog**.
@@ -129,7 +128,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Baseline
 
 ### **TR-0 — Lock roster baseline → `PLANNING/TR_BASELINE.md`**
-- [ ] Write `PLANNING/TR_BASELINE.md` with only:
+- [x] Write `PLANNING/TR_BASELINE.md` with only:
   1. Tip SHA (`git rev-parse HEAD`) and `package.json` version.
   2. Count of `tool-packs.ts` imports; list of pack module basenames.
   3. `CORE_SURFACE_NAMES` and `CORE_NORMALIZE_NAMES` verbatim.
@@ -144,7 +143,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Track A — MCP curated catalog
 
 ### **TR-1 — K8: Prove or replace broken upstream packages**
-- [ ] For each current catalog package (`@playwright/mcp`, `@modelcontextprotocol/server-*`),
+- [x] For each current catalog package (`@playwright/mcp`, `@modelcontextprotocol/server-*`),
   record whether npm resolves. If any 404/deprecated, pick replacement args or drop with
   DEVLOG rationale before expansion. Do not expand on a broken base.
 - **Closes:** K8 gate
@@ -152,7 +151,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** baseline table present
 
 ### **TR-2 — K2: Expand curated catalog (Linear, Sentry, Notion, Slack)**
-- [ ] Add four templates to **both** `resources/connectors/catalog.json` and
+- [x] Add four templates to **both** `resources/connectors/catalog.json` and
   `src/data/connectors-catalog.ts`:
   - `linear` — category Project; env placeholder per current upstream package
   - `sentry` — category Observability
@@ -166,14 +165,14 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** tsc web; JSON parse
 
 ### **TR-3 — K3: Dual-catalog parity lock test**
-- [ ] Add a vitest that imports TS catalog and reads `resources/connectors/catalog.json`,
+- [x] Add a vitest that imports TS catalog and reads `resources/connectors/catalog.json`,
   asserting same ids and matching `command`/`args`/`auth`/`category`/`name` (env key sets equal).
 - **Closes:** S2
 - **Files:** new test; maybe tiny shared normalize helper
 - **Verify:** that vitest file green
 
 ### **TR-4 — Customize Add-flow smoke for new entries**
-- [ ] Extend or add a thin test so catalog length and new ids appear in the module
+- [x] Extend or add a thin test so catalog length and new ids appear in the module
   AddConnectorFlow reads. No Playwright E2E required.
 - **Closes:** S1 remainder
 - **Files:** test near AddConnectorFlow / catalog import
@@ -182,7 +181,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Track B — Native roster hygiene
 
 ### **TR-5 — K4: Align `NATIVE_TOOL_HINTS` to `CORE_SURFACE_NAMES`**
-- [ ] Stop maintaining a second list. Smallest correct path (ponytail): extract
+- [x] Stop maintaining a second list. Smallest correct path (ponytail): extract
   `CORE_SURFACE_NAMES` to a shared module both electron and web can import, **or**
   duplicate once with a test that electron CORE equals the shared export used by the wizard.
 - **Closes:** S3
@@ -190,7 +189,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** tsc ×2; touched tests
 
 ### **TR-6 — Native inventory machine-readable lock**
-- [ ] Add/extend a test that: (1) after pack bootstrap, every `CORE_SURFACE_NAMES` entry is
+- [x] Add/extend a test that: (1) after pack bootstrap, every `CORE_SURFACE_NAMES` entry is
   registered; (2) every `tool-packs.ts` import path file exists; (3) fails if a pack
   registers zero tools. Prefer structural locks over a brittle full-name golden file.
 - **Closes:** part of S4
@@ -198,7 +197,7 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 - **Verify:** that test; packs still load
 
 ### **TR-7 — K5: OpenWiki native tools page**
-- [ ] Add `openwiki/domains/tools/native.md` listing CORE surface + pack map.
+- [x] Add `openwiki/domains/tools/native.md` listing CORE surface + pack map.
   Update tools `index.md`. Clarify `catalog.md` remains **model** catalog.
   Prefer constrained `openwiki code --update -p`; hand-author if CLI over-scopes.
 - **Closes:** S4
@@ -208,19 +207,19 @@ without inventing speculative tools or rebuilding Unburdening/plugin-tool runtim
 ### Track C — Docs wrap
 
 ### **TR-8 — Point PLANNING live canon at this P-SPR**
-- [ ] Update `PLANNING/README.md` live-canon table: this plan is current working P-SPR;
+- [x] Update `PLANNING/README.md` live-canon table: this plan is current working P-SPR;
   OD remains shipped reference (v0.30.0).
 - **Files:** `PLANNING/README.md`
 - **Verify:** greppable
 
 ### **TR-9 — Current State + DEVLOG catch-up**
-- [ ] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG section has TR entries.
+- [x] Sync CLAUDE.md / AGENTS.md Current State; ensure DEVLOG section has TR entries.
   Keep OD honest-gap lock tests green if wording changes.
 - **Files:** `CLAUDE.md`, `AGENTS.md`, `DEVLOG.md`
 - **Verify:** greppable; OD lock tests
 
 ### **TR-10 — Phase wrap → v0.30.1**
-- [ ] Full gate: vitest + build + verify:proof.
+- [x] Full gate: vitest + build + verify:proof.
   - `package.json` → `0.30.1`
   - `RELEASE_NOTES/v0.30.1.md`
   - Current State: Tools + MCP Roster released as v0.30.1

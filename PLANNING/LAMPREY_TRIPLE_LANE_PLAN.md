@@ -167,7 +167,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** greppable version + date
 
 ### **TL-A2 — Write Claude vs Lamprey inventory**
-- [ ] Author PLANNING/TL_CLAUDE_CODE_INVENTORY.md matrix (tools, MCP/connectors, skills, projects, permissions, UX micro-interactions, status line, plan mode, etc.). Mark each retained / narrowed / stale / missing vs Lamprey tip. No product code.
+- [x] Author PLANNING/TL_CLAUDE_CODE_INVENTORY.md matrix (tools, MCP/connectors, skills, projects, permissions, UX micro-interactions, status line, plan mode, etc.). Mark each retained / narrowed / stale / missing vs Lamprey tip. No product code.
 - **Closes:** S1 (measure)
 - **Verify:** file exists; every row has a status
 

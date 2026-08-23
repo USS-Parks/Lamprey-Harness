@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-A2] Claude vs Lamprey inventory  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- file exists; every matrix row has retained/narrowed/stale/missing
+
+**Notes:** Core coding loop is retained. Post-era CC surfaces (teleport, voice, marketplace sync, IDE extensions) are missing and mostly parked/non-goals. Unburdening pipeline claim marked stale.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-A1] Pin Claude Code evidence  —  2026-08-23
 
 **Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

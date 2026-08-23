@@ -10,7 +10,7 @@ import { getKey } from '../keychain'
 import { MODEL_CATALOG, RETIRED_MODEL_MAP } from './catalog'
 import { boundedJsonPreview, recordEvent } from '../event-log'
 import { trace } from '../debug-trace'
-import { buildOpenRouterFallbackExtras, parseOpenRouterFallbacks } from './openrouter-routing'
+import { buildOpenRouterChatExtras, parseOpenRouterFallbacks, parseOpenRouterSort } from './openrouter-routing'
 
 export { MODEL_CATALOG, RETIRED_MODEL_MAP }
 
@@ -1049,15 +1049,31 @@ export interface ChatOnceResult {
   reasoning?: string
 }
 
-function readOpenRouterFallbacks(): string[] {
-  if (!userDataPathProvider) return []
+function readOpenRouterRouting(): {
+  fallbacks: string[]
+  sort: ReturnType<typeof parseOpenRouterSort>
+  order: string[]
+  ignore: string[]
+} {
+  const empty = { fallbacks: [] as string[], sort: parseOpenRouterSort(undefined), order: [] as string[], ignore: [] as string[] }
+  if (!userDataPathProvider) return empty
   try {
     const path = join(userDataPathProvider(), 'settings.json')
-    if (!existsSync(path)) return []
-    const raw = JSON.parse(readFileSync(path, 'utf-8')) as { openrouterFallbacks?: unknown }
-    return parseOpenRouterFallbacks(raw.openrouterFallbacks)
+    if (!existsSync(path)) return empty
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as {
+      openrouterFallbacks?: unknown
+      openrouterProviderSort?: unknown
+      openrouterProviderOrder?: unknown
+      openrouterProviderIgnore?: unknown
+    }
+    return {
+      fallbacks: parseOpenRouterFallbacks(raw.openrouterFallbacks),
+      sort: parseOpenRouterSort(raw.openrouterProviderSort),
+      order: parseOpenRouterFallbacks(raw.openrouterProviderOrder),
+      ignore: parseOpenRouterFallbacks(raw.openrouterProviderIgnore)
+    }
   } catch {
-    return []
+    return empty
   }
 }
 
@@ -1066,9 +1082,9 @@ function providerChatExtras(desc: ModelDescriptor): Record<string, unknown> {
   // MiniMax otherwise embeds <think> in visible content. Its documented
   // reasoning_split flag preserves the same trace in reasoning_details.
   if (desc.provider === 'minimax') extras.reasoning_split = true
-  // TL-B2 — OpenRouter `models` fallbacks. Empty settings → no extra fields (K4).
+  // TL-B2/B3 — OpenRouter fallbacks + provider prefs. Empty settings → no extra fields (K4).
   if (desc.provider === 'openrouter') {
-    Object.assign(extras, buildOpenRouterFallbackExtras(desc.apiModelId, readOpenRouterFallbacks()))
+    Object.assign(extras, buildOpenRouterChatExtras(desc.apiModelId, readOpenRouterRouting()))
   }
   return extras
 }

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { parseOpenRouterFallbacks, buildOpenRouterFallbackExtras } from './openrouter-routing'
+import {
+  parseOpenRouterFallbacks,
+  parseOpenRouterSort,
+  buildOpenRouterChatExtras,
+  buildOpenRouterFallbackExtras
+} from './openrouter-routing'
 
 describe('parseOpenRouterFallbacks (TL-B2)', () => {
   it('returns [] for missing / non-array values', () => {
@@ -35,5 +40,51 @@ describe('buildOpenRouterFallbackExtras (TL-B2)', () => {
         'google/gemini-flash-1.5'
       ])
     ).toEqual({ models: ['openai/gpt-4o-mini', 'google/gemini-flash-1.5'] })
+  })
+})
+
+describe('OpenRouter provider prefs (TL-B3)', () => {
+  it('parseOpenRouterSort falls back to default', () => {
+    expect(parseOpenRouterSort(undefined)).toBe('default')
+    expect(parseOpenRouterSort('nope')).toBe('default')
+    expect(parseOpenRouterSort('price')).toBe('price')
+    expect(parseOpenRouterSort('latency')).toBe('latency')
+    expect(parseOpenRouterSort('throughput')).toBe('throughput')
+  })
+
+  it('emits provider.sort when not default', () => {
+    expect(
+      buildOpenRouterChatExtras('anthropic/claude-sonnet-4', {
+        fallbacks: [],
+        sort: 'price',
+        order: [],
+        ignore: []
+      })
+    ).toEqual({ provider: { sort: 'price' } })
+  })
+
+  it('emits provider.order and provider.ignore', () => {
+    expect(
+      buildOpenRouterChatExtras('anthropic/claude-sonnet-4', {
+        fallbacks: ['openai/gpt-4o-mini'],
+        sort: 'latency',
+        order: ['Anthropic', 'OpenAI'],
+        ignore: ['Azure']
+      })
+    ).toEqual({
+      models: ['openai/gpt-4o-mini'],
+      provider: { sort: 'latency', order: ['Anthropic', 'OpenAI'], ignore: ['Azure'] }
+    })
+  })
+
+  it('empty prefs + empty fallbacks stay {} (K4)', () => {
+    expect(
+      buildOpenRouterChatExtras('anthropic/claude-sonnet-4', {
+        fallbacks: [],
+        sort: 'default',
+        order: [],
+        ignore: []
+      })
+    ).toEqual({})
   })
 })

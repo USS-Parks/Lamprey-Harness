@@ -573,6 +573,9 @@ export interface AppSettings {
   orchAdvisorModel?: string
   /** TL-B2 — OpenRouter fallback model ids. Empty = no `models` extra. */
   openrouterFallbacks?: string[]
+  openrouterProviderSort?: 'default' | 'price' | 'latency' | 'throughput'
+  openrouterProviderOrder?: string[]
+  openrouterProviderIgnore?: string[]
 }
 
 export const DEFAULT_AGENTIC_CODING_SKILLS: string[] = ['plan', 'context', 'verify']

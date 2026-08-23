@@ -61,7 +61,10 @@ const defaultSettings: AppSettings = {
   orchMaxCandidates: 4,
   orchMaxDepth: 2,
   orchAdvisorModel: '',
-  openrouterFallbacks: []
+  openrouterFallbacks: [],
+  openrouterProviderSort: 'default',
+  openrouterProviderOrder: [],
+  openrouterProviderIgnore: []
 }
 
 interface SettingsState {

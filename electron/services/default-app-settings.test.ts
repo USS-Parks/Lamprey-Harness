@@ -141,6 +141,15 @@ describe('SP-1 defaults parity — canonical vs renderer literal', () => {
     expectRendererDefault('openrouterFallbacks', '[]')
   })
 
+  it('TL-B3: OpenRouter provider prefs default off', () => {
+    expect(DEFAULT_APP_SETTINGS.openrouterProviderSort).toBe('default')
+    expectRendererDefault('openrouterProviderSort', "'default'")
+    expect(DEFAULT_APP_SETTINGS.openrouterProviderOrder).toEqual([])
+    expectRendererDefault('openrouterProviderOrder', '[]')
+    expect(DEFAULT_APP_SETTINGS.openrouterProviderIgnore).toEqual([])
+    expectRendererDefault('openrouterProviderIgnore', '[]')
+  })
+
   it('every canonical key appears in the renderer literal', () => {
     for (const key of Object.keys(DEFAULT_APP_SETTINGS)) {
       expect(rendererSource, `renderer defaults literal is missing key \`${key}\``).toMatch(

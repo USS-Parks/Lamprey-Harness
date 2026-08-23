@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-B4] OpenRouter routing settings panel  —  2026-08-23
+
+**Files changed:** `src/components/settings/OpenRouterRoutingSettings.tsx`, `src/components/settings/openrouter-routing-settings.wiring.test.ts`, `src/components/settings/ModelSettings.tsx`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest wiring + default-app-settings ✓ (14 tests)
+
+**Notes:** Panel sits on the Models tab. Inputs disabled until `hasKey('openrouter')`. Persists B2/B3 keys.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-B3] OpenRouter provider prefs  —  2026-08-23
 
 **Files changed:** `electron/services/providers/openrouter-routing.ts`, `electron/services/providers/openrouter-routing.test.ts`, `electron/services/providers/registry.ts`, `electron/services/providers/registry.test.ts`, `electron/services/default-app-settings.ts`, `electron/services/default-app-settings.test.ts`, `src/lib/types.ts`, `src/stores/settings-store.ts`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

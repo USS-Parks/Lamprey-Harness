@@ -1,5 +1,18 @@
 ## 2026-08-23 — Triple Lane Phase
 
+## [Triple Lane — Prompt TL-A1] Pin Claude Code evidence  —  2026-08-23
+
+**Files changed:** `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- greppable: `2.1.241` and `2026-08-23` in `PLANNING/TL_CLAUDE_CODE_INVENTORY.md`
+
+**Notes:** Public GitHub tag, not a local `claude --version`. 2.1.241 itself is bugfix-only; inventory will use the 2.1.x surface.
+
+**Commit:** (pending)
+
+
 ## [Triple Lane — Prompt TL-0] Lock Triple Lane baseline  —  2026-08-23
 
 **Files changed:** `PLANNING/TL_BASELINE.md`, `PLANNING/LAMPREY_TRIPLE_LANE_PLAN.md`, `DEVLOG.md`

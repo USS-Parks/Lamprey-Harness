@@ -177,7 +177,7 @@ Execute in order. Do not batch. Each prompt is one commit.
 - **Verify:** pick list or explicit empty + wont table
 
 ### **TL-A4 — Delta 1 (optional)**
-- [ ] If A3 listed item 1: implement that single delta with tests. If empty: DEVLOG note TL-A4 N/A (K12) and skip code.
+- [x] If A3 listed item 1: implement that single delta with tests. If empty: DEVLOG note TL-A4 N/A (K12) and skip code.
 - **Verify:** typecheck + touched tests, or DEVLOG N/A
 
 ### **TL-A5 — Delta 2 (optional)**

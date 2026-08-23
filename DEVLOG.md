@@ -1,5 +1,18 @@
 ## 2026-08-23 — Tools + MCP Roster Phase
 
+## [Tools + MCP Roster — Prompt TR-8] Point live canon at Tools+MCP P-SPR  —  2026-08-23
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- greppable: `LAMPREY_TOOLS_MCP_ROSTER_PLAN.md` in live-canon table
+
+**Notes:** OD plan stays as shipped v0.30.0 reference.
+
+**Commit:** (pending)
+
+
 ## [Tools + MCP Roster — Prompt TR-7] OpenWiki native tools page  —  2026-08-23
 
 **Files changed:** `openwiki/domains/tools/native.md`, `openwiki/domains/tools/index.md`, `openwiki/domains/tools/catalog.md`, `PLANNING/LAMPREY_TOOLS_MCP_ROSTER_PLAN.md`, `DEVLOG.md`

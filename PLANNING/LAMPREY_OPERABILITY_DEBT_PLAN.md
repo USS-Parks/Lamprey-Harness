@@ -266,7 +266,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2; `node scripts/pre-push-scope.test.cjs` if present; no product tests required.
 
 ### **OD-11 — PLANNING README pointer**
-- [ ] Rewrite `PLANNING/README.md` so the live canon is this phase +
+- [x] Rewrite `PLANNING/README.md` so the live canon is this phase +
   Audit Closure authority + the Codex July 2026 parity ledger. Point at
   `archive/` for spent trees. Do not claim current-Codex parity.
 - Verify: tsc ×2. Docs only.

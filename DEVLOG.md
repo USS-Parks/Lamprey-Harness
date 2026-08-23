@@ -146,6 +146,19 @@ its push loop skips duplicate ids.
 **Notes:** Keep list stayed at `PLANNING/` root (11 markdown files). AC
 authority files not deleted. DEVLOG historical paths left as written.
 
+**Commit:** 0201bf3
+
+## [Operability Debt — Prompt OD-11] PLANNING README pointer  —  2026-08-23
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+
+**Notes:** Live canon is Operability Debt + Audit Closure authority + the
+Codex July ledger. Spent trees point at `archive/`. No current-Codex
+parity claim.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

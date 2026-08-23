@@ -182,6 +182,28 @@ Version bump is OD-14.
 
 **Notes:** Same plain voice as v0.29.0. No marketing verbs.
 
+**Commit:** e018a12
+
+## [Operability Debt — Prompt OD-14] Phase wrap  —  2026-08-23
+
+**Files changed:** `package.json`, `package-lock.json`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `DEVLOG.md`, `PLANNING/LAMPREY_OPERABILITY_DEBT_PLAN.md`, `PLANNING/README.md`, `electron/services/browser-developer-ui-wiring.test.ts`
+**Verify gate:**
+- lint ✓
+- tsc node ✓
+- tsc web ✓
+- full vitest ✓ (2911 passed / 152 skipped / 0 failed)
+- build ✓
+- smoke:bundle ✓
+- smoke:renderer ✓
+- verify:proof exit 0 (17 ABI-guarded native-DB files skip)
+
+**Notes:** Version 0.30.0. Browser-developer playbook lock retargeted to
+`PLANNING/archive/` after OD-10. Bucket (`pwsh scripts\bucket.ps1`) stays on
+the Windows machine — this session cannot upload to R2.
+
+**Final gate:** lint OK · tsc node+web OK · vitest 2911 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:** R1–R4 live playbooks parked; live `supportsTools` probes parked; OpenWiki parked (empty checkout); unsigned builds permanent non-goal; `turn.interrupted` kept on purpose.
+
 **Commit:** pending
 
 ## 2026-08-23 — Audit Closure Phase

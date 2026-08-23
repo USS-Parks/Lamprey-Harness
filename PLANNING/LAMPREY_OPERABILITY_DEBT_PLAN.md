@@ -284,7 +284,7 @@ Do not merge mid-round drains into `finalizeTurn`.
 - Verify: tsc ×2.
 
 ### **OD-14 — Phase wrap**
-- [ ] Full gate: lint, tsc ×2, full vitest, build, `verify:proof`.
+- [x] Full gate: lint, tsc ×2, full vitest, build, `verify:proof`.
   Bump `package.json` (and lock if it carries version) to **0.30.0**.
   Add Operability Debt to CLAUDE.md + AGENTS.md Current State. README
   “New in v0.30.0”. DEVLOG phase-complete entry with house tail.

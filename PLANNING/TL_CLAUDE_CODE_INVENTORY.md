@@ -162,4 +162,42 @@ Lamprey comparators are source-checked at tip `8364ba3` plus this branch's docs-
 
 Computer Use / Chrome-profile control, Record/Replay, remote handoff / teleport, Office/Sites plugins, VS Code/JetBrains extensions, Agent SDK, cloud routines, voice, org managed-settings. See K-register + CJ26 parked rows.
 
+## TL-A3 scoreboard (K3 / K12)
+
+Score only **missing** or **stale** rows that could become product work. ROI = value to a Lamprey coding session. Risk = era-lock, Unburdening, K10 approvals, or new privileged surface.
+
+| Candidate (from matrix) | ROI | Risk | Why it does not make the pick list |
+|-------------------------|-----|------|------------------------------------|
+| LSP / IDE diagnostics | M | M | Grep/read already cover the loop; an LSP client is a new subsystem, not a High-ROI snip. |
+| Voice dictation | L | M | Niche; new I/O surface. |
+| Claude.ai-synced plugins | L | H | Cloud identity + override rules. |
+| GitHub Actions / GitLab CI product | L | M | Not a desktop-harness job. |
+| Auto-mode bash classifier | M | H | Would skip or soften K10 approval/snip/gates. |
+| Org managed settings | L | M | Single-owner app. |
+| Vim / readline input flavors | L | L | Textarea is enough in a GUI. |
+| `/teleport` / Remote Control | M | H | CJ26 parked remote-handoff. |
+| Agent SDK / self-hosted runner | L | H | Different product. |
+| VS Code / JetBrains extensions | M | H | Separate distribution; not this Electron app. |
+| claude.ai/code web + mobile | M | H | CJ26 parked. |
+| Fullscreen TUI renderer (stale) | L | L | Not a gap — Lamprey is already a GUI. |
+| Always-on Planner→Coder→Reviewer (stale) | — | H | Unburdening deletion; must not return. |
+
+Narrowed-but-present rows (plan mode, MCP elicitation, `/cost` HUD, notebook edit, skill `context: fork`) are already covered enough that copying Claude Code 2.1.x would be polish, not High ROI.
+
+### Pick list
+
+**Empty.** No High-ROI + Low/Med-risk deltas. Lane A closes inventory-only under **K12**.
+
+TL-A4 … TL-A8 are N/A (DEVLOG-only commits).
+
+### Wont table (K12)
+
+| Wont | Reason |
+|------|--------|
+| All scored missing/stale rows above | Fail K3 (ROI not High, or risk High, or parked/Unburdening). |
+| Any Unburdening pipeline revival | Plan non-goal. |
+| Plugin-native tool runtime | K10 — local tools stay on approval/snip/gates. |
+| Unsloth training UI | K6 (Lane C). |
+
 Authored and reviewed by Basho Parks, copyright 2026
+

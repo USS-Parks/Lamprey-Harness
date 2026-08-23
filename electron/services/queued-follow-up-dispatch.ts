@@ -149,7 +149,26 @@ export async function dispatchNextQueuedFollowUp(
   const followUp = deps.store.listQueuedFollowUps(input.conversationId)[0]
   if (!followUp) return { status: 'empty' }
 
-  const runtime = deps.registerTurn(input.conversationId)
+  let runtime: TurnRuntime
+  try {
+    runtime = deps.registerTurn(input.conversationId)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const rejectionMessage = /already has running turn/.test(message)
+      ? 'Turn still running; queued follow-up was not started.'
+      : `register conflict: ${message}`
+    try {
+      const rejected = deps.store.transitionFollowUp(followUp.id, 'rejected', deps.now(), {
+        rejectionReason: 'invalidInput',
+        rejectionMessage
+      })
+      deps.recordDisposition(rejected, 'rejected', followUp.conversationId)
+    } catch (rejectionError) {
+      deps.reportError('[queue] failed to persist queued follow-up register rejection', rejectionError)
+    }
+    deps.reportError('[queue] queued follow-up register failed', error)
+    return { status: 'failed', followUpId: followUp.id, turnId: followUp.turnId ?? '' }
+  }
   deps.emitTurnStarted(runtime)
 
   let accepted: FollowUpRecord | null = null

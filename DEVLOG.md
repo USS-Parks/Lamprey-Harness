@@ -1,5 +1,18 @@
 ## 2026-08-22 — Audit Closure Phase
 
+## [Audit Closure — Prompt AC-5] Queue register conflict is recovered  —  2026-08-22
+
+**Files changed:** `electron/services/queued-follow-up-dispatch.ts`, `electron/services/queued-follow-up-dispatch.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest queued-follow-up-dispatch ✓ (8 tests)
+- user-verification-needed: queue a follow-up while a turn is still running and confirm the item is rejected with “Turn still running” instead of sitting queued forever
+
+**Notes:** `registerTurn` throw (live turn) now rejects the queued row with `invalidInput` and an honest message. No second turn is started. No runtime to settle. Event/audit records the rejection when the store write succeeds.
+
+**Commit:** pending this prompt
+
 ## [Audit Closure — Prompt AC-4] Ghost guard once  —  2026-08-22
 
 **Files changed:** `electron/ipc/chat.ts`, `electron/ipc/chat-turn-settlement.test.ts`, `PLANNING/LAMPREY_AUDIT_CLOSURE_PLAN.md`, `DEVLOG.md`

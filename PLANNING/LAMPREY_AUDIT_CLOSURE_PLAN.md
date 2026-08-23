@@ -432,7 +432,7 @@ review text (Hygiene / Sweet Spot density).
 - **Verify:** tsc ×2; ghost-reply + chat + loop-turn-wiring tests; `npm run verify:proof -- --no-tests`
 
 ### **AC-5 — T5: Queue dispatch must not throw past the user**
-- [ ] `dispatchNextQueuedFollowUp` (`queued-follow-up-dispatch.ts:145`) calls `deps.registerTurn` at `:152` before claiming the follow-up at `:158`. If a turn is already running, `turnRuntimeRegistry.register` throws. `accepted` is still null, so the catch (`:163–179`) cannot reject the row; it returns `{ status: 'failed' }` and the queued item stays queued.
+- [x] `dispatchNextQueuedFollowUp` (`queued-follow-up-dispatch.ts:145`) calls `deps.registerTurn` at `:152` before claiming the follow-up at `:158`. If a turn is already running, `turnRuntimeRegistry.register` throws. `accepted` is still null, so the catch (`:163–179`) cannot reject the row; it returns `{ status: 'failed' }` and the queued item stays queued.
 
   If `registerTurn` refuses because a turn is already running, mark the follow-up rejected or recovered with an honest reason (`turn still running` / `register conflict`). Do not leave a thrown conflict as a stalled queue item. Do not dispatch a second turn on top of a live one.
 

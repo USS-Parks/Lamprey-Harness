@@ -126,17 +126,12 @@ gate. The owner packaged-app playbook remains open.
 ## Quick start
 
 1. **Download** your platform's installer above and run it.
-2. **Get a key — any one provider is enough to start.** DeepSeek
-   ([platform.deepseek.com](https://platform.deepseek.com)) and direct Google AI Gemma
-   ([aistudio.google.com](https://aistudio.google.com/app/apikey)) are inexpensive doors in;
-   OpenAI, Anthropic, xAI, Mistral, Kimi, Groq,
-   Together, Fireworks, Cerebras, Hugging Face, Qwen, GLM, AIHubMix, FreeLLMAPI,
-   Cohere, MiniMax, NVIDIA, GitHub Models, SambaNova, SiliconFlow, Reka, SEA-LION,
-   DeepInfra, Hyperbolic, Perplexity, Sarvam, and Inception Labs cards all live in
-   Settings &rarr; API Keys with a "Get a key" link and format hint on each.
-3. **Or skip keys entirely** — a local [Ollama](https://ollama.com/download) or
-   LM Studio is detected keylessly, and any other OpenAI-compatible endpoint can
-   be added under Settings &rarr; API Keys &rarr; Custom endpoints.
+2. **Get a key — any one provider is enough to start.** Each name is the official key page (same URL as Settings &rarr; API Keys).
+   Inexpensive doors in: [DeepSeek](https://platform.deepseek.com/api_keys), [Google AI (Gemma)](https://aistudio.google.com/app/apikey).
+   **Frontier:** [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://platform.claude.com/settings/keys), [xAI](https://console.x.ai), [Mistral](https://console.mistral.ai/api-keys), [Kimi](https://platform.kimi.ai/console/api-keys), [Meta](https://dev.meta.ai/)
+   **Hosts:** [OpenRouter](https://openrouter.ai/keys), [Groq](https://console.groq.com/keys), [Together](https://api.together.ai/settings/api-keys), [Fireworks](https://app.fireworks.ai/settings/users/api-keys), [Cerebras](https://cloud.cerebras.ai), [Hugging Face](https://huggingface.co/settings/tokens), [AIHubMix](https://aihubmix.com/token), [FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi), [NVIDIA](https://build.nvidia.com/settings/api-keys), [GitHub Models](https://github.com/settings/personal-access-tokens), [SambaNova](https://cloud.sambanova.ai/apis), [SiliconFlow](https://cloud.siliconflow.com/account/ak), [DeepInfra](https://deepinfra.com/dash/api_keys), [Hyperbolic](https://app.hyperbolic.xyz/settings)
+   **Specialists:** [Qwen](https://dashscope.console.aliyun.com/apiKey), [GLM](https://open.bigmodel.cn/usercenter/apikeys), [Cohere](https://dashboard.cohere.com/api-keys), [MiniMax](https://platform.minimax.io/user-center/basic-information/interface-key), [Reka](https://platform.reka.ai/keys), [SEA-LION](https://playground.sea-lion.ai/), [Perplexity](https://www.perplexity.ai/settings/api), [Sarvam](https://dashboard.sarvam.ai/), [Inception](https://platform.inceptionlabs.ai/)
+3. **Or skip keys entirely** — a local [Ollama](https://ollama.com/download) or [LM Studio](https://lmstudio.ai) is detected keylessly. Unsloth Studio is a one-click custom-endpoint preset. Any other OpenAI-compatible endpoint can be added under Settings &rarr; API Keys &rarr; Custom endpoints.
 4. **Paste your key** in the first-run modal. It's encrypted with the OS keychain via Electron `safeStorage`.
 5. **Type something.** Let's go.
 

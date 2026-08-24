@@ -23,10 +23,10 @@ Conversations and control state live in SQLite on your machine. API keys stay in
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.30.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
@@ -38,8 +38,7 @@ provider sort/order/ignore, and `openrouter/auto`; direct-provider default
 is unchanged and `MODEL_CATALOG` still has zero OpenRouter rows. Local
 Ollama / LM Studio / Unsloth Studio presets, loud connection-refused probe
 copy, and tools/vision off by default on live local imports. No training UI
-in core. Source wrap only — download links still serve the last Bucketed
-v0.30.0 installers.
+in core. Bucketed installers and README download links are on v0.31.0.
 
 **Previously in v0.30.1 — Tools + MCP Roster.** The curated Add-connector catalog
 is ten templates: Linear, Sentry, Notion, and Slack are new; GitHub /

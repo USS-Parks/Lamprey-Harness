@@ -218,17 +218,21 @@ try {
     if (-not $releaseExists) { $ghError = "gh release create failed after 3 attempts" }
   }
 
+  # Tag CI can 404/422 the uploads endpoint or land different Windows bytes
+  # than local dist/. Clobber-retry until live inventory matches local
+  # name/size/sha256 — names-only would pass a CDN/updater mismatch.
   if (-not $ghError) {
-    gh release upload $tag --repo $config.github.repo --clobber @artifactPaths
-    if ($LASTEXITCODE -ne 0) {
+    $uploadMatched = $false
+    $lastUploadProblems = $null
+    $maxUploadAttempts = 5
+    for ($attempt = 1; $attempt -le $maxUploadAttempts -and -not $uploadMatched; $attempt++) {
+      gh release upload $tag --repo $config.github.repo --clobber @artifactPaths
       $uploadExit = $LASTEXITCODE
-      # The tag workflow may finish its own Windows upload while this command is
-      # running. GitHub then returns 404/422 for the colliding asset even though
-      # the release is complete. Reconcile the live inventory before calling the
-      # ship partial. The tag workflow can build different bytes from the local
-      # package, so a matching name alone does not prove updater integrity.
+
       $assetJson = gh release view $tag --repo $config.github.repo --json assets 2>$null
-      if ($LASTEXITCODE -eq 0) {
+      if ($LASTEXITCODE -ne 0) {
+        $lastUploadProblems = "exit $uploadExit; release inventory check failed"
+      } else {
         try {
           $uploadedAssets = @(($assetJson | ConvertFrom-Json).assets |
             Where-Object { $_.state -eq "uploaded" })
@@ -253,19 +257,28 @@ try {
             )
           } | ForEach-Object { $_.Name })
           if ($missingNames.Count -eq 0 -and $mismatchedNames.Count -eq 0) {
-            Write-Host "  GH upload raced the tag workflow; live release inventory matches local artifacts" -ForegroundColor Green
+            $uploadMatched = $true
+            if ($uploadExit -ne 0) {
+              Write-Host "  GH upload raced the tag workflow; live release inventory matches local artifacts" -ForegroundColor Green
+            }
           } else {
             $problems = @()
             if ($missingNames.Count -gt 0) { $problems += "missing: $($missingNames -join ', ')" }
             if ($mismatchedNames.Count -gt 0) { $problems += "mismatched: $($mismatchedNames -join ', ')" }
-            $ghError = "gh release upload failed (exit $uploadExit); $($problems -join '; ')"
+            $lastUploadProblems = "exit $uploadExit; $($problems -join '; ')"
           }
         } catch {
-          $ghError = "gh release upload failed (exit $uploadExit); release inventory could not be parsed"
+          $lastUploadProblems = "exit $uploadExit; release inventory could not be parsed"
         }
-      } else {
-        $ghError = "gh release upload failed (exit $uploadExit); release inventory check failed"
       }
+
+      if (-not $uploadMatched) {
+        Write-Host "  gh release upload attempt $attempt/$maxUploadAttempts did not match local artifacts ($lastUploadProblems)" -ForegroundColor Yellow
+        if ($attempt -lt $maxUploadAttempts) { Start-Sleep -Seconds (2 * $attempt) }
+      }
+    }
+    if (-not $uploadMatched) {
+      $ghError = "gh release upload failed after $maxUploadAttempts attempts; $lastUploadProblems"
     }
   }
 

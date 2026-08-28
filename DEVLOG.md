@@ -1,3 +1,17 @@
+## 2026-08-28 — v0.31.0 installer story (docs)
+
+## [Docs] Current State matches GitHub v0.31.0  —  2026-08-28
+
+**Files changed:** `CLAUDE.md`, `AGENTS.md`, `README.md`, `RELEASE_NOTES/v0.31.0.md`, `PLANNING/README.md`, `DEVLOG.md`
+**Verify gate:**
+- user-verification-needed: OD-4 Current State lock (`operability-debt-safety.test.ts`)
+- product code unchanged
+
+**Notes:** Canon is v0.31.0. Current State no longer says source-wrap-only or that installers remain v0.30.0. GitHub release exists (tag workflow 32671185022; latest.yml 0.31.0). TL-W4 stays [ ] until digest match.
+
+**Commit:** (pending)
+
+
 ## 2026-08-23 — Triple Lane Phase
 
 ## [Triple Lane — Prompt TL-W3] Phase wrap v0.31.0  —  2026-08-23
@@ -17,11 +31,11 @@
 
 ## [Triple Lane — phase complete] v0.31.0  —  2026-08-23
 
-Empty Lane A (K12). OpenRouter fallbacks + provider prefs + `openrouter/auto`. Ollama / LM Studio / Unsloth API presets. No training UI. No Bucket.
+Empty Lane A (K12). OpenRouter fallbacks + provider prefs + `openrouter/auto`. Ollama / LM Studio / Unsloth API presets. No training UI. GitHub v0.31.0 exists; TL-W4 CDN digest match still open.
 
 **Final gate:** lint OK · tsc node+web OK · vitest 2953 passed / 152 skipped / 0 failed · build OK · verify:proof exit 0
 **Honest gaps:**
-- Installer / Bucket artifacts still v0.30.0 (TL-W4 owed)
+- Triple Lane B/C is wired in the product (not source-wrap-only). GitHub release v0.31.0 exists (tag workflow 32671185022; latest.yml version 0.31.0). README download links point there. Auto-update follows GitHub, not CDN. A Bucket run attempted R2 + CDN purge and then lost the GitHub Windows upload race to CI (PR #5). scripts/bucket.ps1 later gained retry/reconcile; that does not close TL-W4. TL-W4 stays [ ] until GitHub asset sha256 == local dist/ == CDN is proven, or Bucket is re-run. Do not tell operators the installers are still v0.30.0.
 - Live OpenRouter routing and local-preset probes need an owner key/runtime pass
 - Lane A deltas remain unpicked until a later inventory
 - Native-DB vitest files skip under this Node ABI (same as prior wraps)

@@ -9,9 +9,6 @@
 
 **Notes:** Canon is v0.31.0. Current State no longer says source-wrap-only or that installers remain v0.30.0. GitHub release exists (tag workflow 32671185022; latest.yml 0.31.0). TL-W4 stays [ ] until digest match.
 
-**Commit:** (pending)
-
-
 ## 2026-08-23 — Triple Lane Phase
 
 ## [Triple Lane — Prompt TL-W3] Phase wrap v0.31.0  —  2026-08-23

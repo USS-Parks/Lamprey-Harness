@@ -325,7 +325,7 @@ export function registerFilesHandlers(): void {
 
   ipcMain.handle('files:openInVSCode', async (_event, args?: { targetPath?: string }) => {
     try {
-      const requested = args?.targetPath || process.cwd()
+      const requested = args?.targetPath || getActiveWorkspace()
       const target = confineToWorkspace(requested)
       if (!target) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const codePath = await probeCodeBinary()
@@ -356,7 +356,7 @@ export function registerFilesHandlers(): void {
 
   ipcMain.handle('files:openInExplorer', async (_event, args?: { targetPath?: string }) => {
     try {
-      const requested = args?.targetPath || process.cwd()
+      const requested = args?.targetPath || getActiveWorkspace()
       const target = confineToWorkspace(requested)
       if (!target) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       await shell.openPath(target)

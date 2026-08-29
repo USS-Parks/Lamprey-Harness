@@ -8,9 +8,7 @@
 - tsc web ✓
 - vitest `electron/ipc/files.test.ts` + `electron/services/security-hardening.test.ts` ✓ (24 passed)
 
-**Notes:** JM-19/JM-20 claimed `files:*` stayed inside the workspace. `listDir` / `readText` / `walk` already used `confineToWorkspace`. `files:process`, `files:openInVSCode`, `files:openInExplorer`, and `app:openPath` now reuse that helper. No second policy.
-
-**Commit:** 763e5f8
+**Notes:** JM-19/JM-20 claimed `files:*` stayed inside the workspace. `listDir` / `readText` / `walk` already used `confineToWorkspace`. `files:process`, `files:openInVSCode`, `files:openInExplorer`, and `app:openPath` now reuse that helper. No-path VS Code / Explorer opens default to `getActiveWorkspace()`, then confine — no `process.cwd()` fallback. No second policy.
 
 ## 2026-08-28 — v0.31.0 installer story (docs)
 

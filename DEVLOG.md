@@ -1,3 +1,17 @@
+## 2026-08-29 — Workspace confinement on remaining file channels
+
+## [Hotfix] Confine process/open channels with confineToWorkspace  —  2026-08-29
+
+**Files changed:** `electron/ipc/files.ts`, `electron/main.ts`, `electron/ipc/files.test.ts`, `electron/services/security-hardening.test.ts`, `DEVLOG.md`
+**Verify gate:**
+- tsc node — pending
+- tsc web — pending
+- vitest `electron/ipc/files.test.ts` + `electron/services/security-hardening.test.ts` — pending
+
+**Notes:** JM-19/JM-20 claimed `files:*` stayed inside the workspace. `listDir` / `readText` / `walk` already used `confineToWorkspace`. `files:process`, `files:openInVSCode`, `files:openInExplorer`, and `app:openPath` now reuse that helper. No second policy.
+
+**Commit:** (pending)
+
 ## 2026-08-28 — v0.31.0 installer story (docs)
 
 ## [Docs] Current State matches GitHub v0.31.0  —  2026-08-28

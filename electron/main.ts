@@ -3,6 +3,7 @@ import { basename, extname, join } from 'path'
 import { readFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { registerAllIpcHandlers } from './ipc'
+import { confineToWorkspace, OUTSIDE_WORKSPACE_ERROR } from './ipc/files'
 import { closeDb, startPeriodicCheckpoint } from './services/database'
 import { startBackupRunner, setBackupWarningEmitter } from './services/backup-runner'
 // SP-6 — startup GC for the HY3 tool-result spill directory (D3).
@@ -574,8 +575,13 @@ app.whenReady().then(() => {
 
   ipcMain.handle('app:openPath', async (_event, p: string) => {
     try {
+      if (typeof p !== 'string' || !p) {
+        return { success: false, error: 'path required' }
+      }
+      const safe = confineToWorkspace(p)
+      if (!safe) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const { shell } = await import('electron')
-      const err = await shell.openPath(p)
+      const err = await shell.openPath(safe)
       if (err) return { success: false, error: err }
       return { success: true, data: null }
     } catch (e: any) {

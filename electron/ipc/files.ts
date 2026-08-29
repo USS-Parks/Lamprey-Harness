@@ -140,14 +140,12 @@ async function walkProject(rootPath: string): Promise<string[]> {
   return results
 }
 
-// JM-20 (SEC-4) — confine the renderer file-read IPCs to the active workspace
-// root. These power the @file mention index, the Files panel, and quick-open;
-// every renderer caller already passes a workspace-rooted path. Before this,
-// they read ANY absolute path the renderer sent (no root check, unlike
-// apply_patch / shell_command), so a renderer compromise could disclose
-// ~/.ssh/id_rsa or userData/keys.json verbatim. Returns null when the path
-// escapes the root (`..`, absolute-elsewhere, other drive on Windows).
-function confineToWorkspace(candidate: string): string | null {
+// JM-20 (SEC-4) — confine renderer file IPCs to the active workspace root.
+// listDir / readText / walk were first; files:process, openInVSCode,
+// openInExplorer, and app:openPath (main.ts) reuse this same helper.
+// Returns null when the path escapes the root (`..`, absolute-elsewhere,
+// other drive on Windows).
+export function confineToWorkspace(candidate: string): string | null {
   const root = path.resolve(getActiveWorkspace())
   const target = path.resolve(root, candidate)
   const rel = path.relative(root, target)
@@ -156,7 +154,7 @@ function confineToWorkspace(candidate: string): string | null {
   return target
 }
 
-const OUTSIDE_WORKSPACE_ERROR =
+export const OUTSIDE_WORKSPACE_ERROR =
   'Path is outside the active workspace. File access is confined to the project root.'
 
 export function registerFilesHandlers(): void {
@@ -218,7 +216,16 @@ export function registerFilesHandlers(): void {
   ipcMain.handle('files:process', async (_event, paths: string[]) => {
     try {
       if (!Array.isArray(paths)) return { success: false, error: 'paths must be an array' }
-      const result = await processFiles(paths)
+      const safePaths: string[] = []
+      for (const candidate of paths) {
+        if (typeof candidate !== 'string') {
+          return { success: false, error: 'paths must be an array of strings' }
+        }
+        const safe = confineToWorkspace(candidate)
+        if (!safe) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
+        safePaths.push(safe)
+      }
+      const result = await processFiles(safePaths)
       return { success: true, data: result }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'File processing failed' }
@@ -318,7 +325,9 @@ export function registerFilesHandlers(): void {
 
   ipcMain.handle('files:openInVSCode', async (_event, args?: { targetPath?: string }) => {
     try {
-      const target = args?.targetPath || process.cwd()
+      const requested = args?.targetPath || process.cwd()
+      const target = confineToWorkspace(requested)
+      if (!target) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const codePath = await probeCodeBinary()
       if (!codePath) {
         return {
@@ -347,7 +356,9 @@ export function registerFilesHandlers(): void {
 
   ipcMain.handle('files:openInExplorer', async (_event, args?: { targetPath?: string }) => {
     try {
-      const target = args?.targetPath || process.cwd()
+      const requested = args?.targetPath || process.cwd()
+      const target = confineToWorkspace(requested)
+      if (!target) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       await shell.openPath(target)
       return { success: true, data: { path: target } }
     } catch (err: any) {

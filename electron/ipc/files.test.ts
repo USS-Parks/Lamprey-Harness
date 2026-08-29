@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
+import { mkdtempSync } from 'fs'
+import { tmpdir } from 'os'
+import { join, resolve } from 'path'
 
 // files.ts imports electron at module load (ipcMain / dialog / BrowserWindow /
 // shell). We mock those with the minimal surface the module body touches —
@@ -13,7 +16,50 @@ vi.mock('electron', () => ({
   shell: { openPath: async () => '' }
 }))
 
-import { buildVSCodeLaunchPlan, parseProbeOutput } from './files'
+const workspaceRoot = { current: mkdtempSync(join(tmpdir(), 'lamprey-confine-')) }
+
+vi.mock('../services/workspace-state', () => ({
+  getActiveWorkspace: () => workspaceRoot.current,
+  setActiveWorkspace: () => ({ path: workspaceRoot.current }),
+  clearActiveWorkspace: () => undefined
+}))
+
+import {
+  buildVSCodeLaunchPlan,
+  confineToWorkspace,
+  parseProbeOutput
+} from './files'
+
+describe('confineToWorkspace', () => {
+  const root = workspaceRoot.current
+
+  it('allows a relative path inside the workspace', () => {
+    expect(confineToWorkspace('src/foo.ts')).toBe(resolve(root, 'src/foo.ts'))
+  })
+
+  it('allows an absolute path inside the workspace', () => {
+    const abs = resolve(root, 'readme.md')
+    expect(confineToWorkspace(abs)).toBe(abs)
+  })
+
+  it('allows the workspace root itself', () => {
+    expect(confineToWorkspace(root)).toBe(resolve(root))
+    expect(confineToWorkspace('.')).toBe(resolve(root))
+  })
+
+  it('keeps a path that leaves and re-enters the workspace', () => {
+    expect(confineToWorkspace('src/../package.json')).toBe(resolve(root, 'package.json'))
+  })
+
+  it('denies a parent-escape path', () => {
+    expect(confineToWorkspace('../secret')).toBeNull()
+  })
+
+  it('denies an absolute path outside the workspace', () => {
+    expect(confineToWorkspace(resolve(root, '..', 'outside.txt'))).toBeNull()
+    expect(confineToWorkspace('/etc/passwd')).toBeNull()
+  })
+})
 
 describe('parseProbeOutput', () => {
   it('returns null for empty output', () => {

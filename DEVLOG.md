@@ -4,13 +4,13 @@
 
 **Files changed:** `electron/ipc/files.ts`, `electron/main.ts`, `electron/ipc/files.test.ts`, `electron/services/security-hardening.test.ts`, `DEVLOG.md`
 **Verify gate:**
-- tsc node — pending
-- tsc web — pending
-- vitest `electron/ipc/files.test.ts` + `electron/services/security-hardening.test.ts` — pending
+- tsc node ✓
+- tsc web ✓
+- vitest `electron/ipc/files.test.ts` + `electron/services/security-hardening.test.ts` ✓ (24 passed)
 
 **Notes:** JM-19/JM-20 claimed `files:*` stayed inside the workspace. `listDir` / `readText` / `walk` already used `confineToWorkspace`. `files:process`, `files:openInVSCode`, `files:openInExplorer`, and `app:openPath` now reuse that helper. No second policy.
 
-**Commit:** (pending)
+**Commit:** 763e5f8
 
 ## 2026-08-28 — v0.31.0 installer story (docs)
 

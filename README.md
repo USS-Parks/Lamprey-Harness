@@ -38,7 +38,9 @@ provider sort/order/ignore, and `openrouter/auto`; direct-provider default
 is unchanged and `MODEL_CATALOG` still has zero OpenRouter rows. Local
 Ollama / LM Studio / Unsloth Studio presets, loud connection-refused probe
 copy, and tools/vision off by default on live local imports. No training UI
-in core. Bucketed installers and README download links are on v0.31.0.
+in core. GitHub installers and README download links are on v0.31.0.
+CDN/R2 closeout is TL-W4 until GitHub asset sha256 == local dist/ ==
+CDN is proven.
 
 **Previously in v0.30.1 — Tools + MCP Roster.** The curated Add-connector catalog
 is ten templates: Linear, Sentry, Notion, and Slack are new; GitHub /

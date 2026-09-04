@@ -25,6 +25,24 @@ describe('JM-19 main-window navigation + open guards', () => {
   it('webview attachment is denied app-wide', () => {
     expect(main).toMatch(/will-attach-webview[\s\S]*?preventDefault/)
   })
+
+  it('ping and shell:openExternal use the harness success/error envelope', () => {
+    const ping = main.slice(
+      main.indexOf("ipcMain.handle('ping'"),
+      main.indexOf("ipcMain.handle('shell:openExternal'")
+    )
+    expect(ping).toMatch(/\{ success: true, data: 'pong' \}/)
+    expect(ping).not.toMatch(/=> 'pong'/)
+
+    const openExternal = main.slice(
+      main.indexOf("ipcMain.handle('shell:openExternal'"),
+      main.indexOf("ipcMain.handle('update:restart'")
+    )
+    expect(openExternal).toMatch(/return \{ success: true, data: null \}/)
+    expect(openExternal).toMatch(/return \{ success: false, error: 'Only http\(s\) URLs are allowed' \}/)
+    expect(openExternal).toMatch(/return \{ success: false, error: e\?\.message \?\? 'openExternal failed' \}/)
+    expect(openExternal).toMatch(/await shell\.openExternal\(url\)/)
+  })
 })
 
 describe('JM-19 artifact sandbox lockdown', () => {

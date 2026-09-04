@@ -508,10 +508,16 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('ping', () => 'pong')
-  ipcMain.handle('shell:openExternal', (_event, url: string) => {
-    if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
-      shell.openExternal(url)
+  ipcMain.handle('ping', () => ({ success: true, data: 'pong' }))
+  ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+    if (typeof url !== 'string' || !(url.startsWith('https://') || url.startsWith('http://'))) {
+      return { success: false, error: 'Only http(s) URLs are allowed' }
+    }
+    try {
+      await shell.openExternal(url)
+      return { success: true, data: null }
+    } catch (e: any) {
+      return { success: false, error: e?.message ?? 'openExternal failed' }
     }
   })
 

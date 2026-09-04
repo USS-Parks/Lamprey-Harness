@@ -55,6 +55,39 @@ describe('JM-20 file-read confinement + MCP spawn approval', () => {
     expect(files).not.toMatch(/fs\.readFile\(filePath\)/)
   })
 
+  it('files:process, openInVSCode, openInExplorer, and app:openPath reuse confineToWorkspace', () => {
+    const files = read('electron/ipc/files.ts')
+    const main = read('electron/main.ts')
+
+    const processHandler = files.slice(
+      files.indexOf("'files:process'"),
+      files.indexOf("'files:getWorkdir'")
+    )
+    expect(processHandler).toMatch(/confineToWorkspace\(/)
+    expect(processHandler).toMatch(/processFiles\(safePaths\)/)
+    expect(processHandler).not.toMatch(/processFiles\(paths\)/)
+
+    const vsHandler = files.slice(
+      files.indexOf("'files:openInVSCode'"),
+      files.indexOf("'files:openInExplorer'")
+    )
+    expect(vsHandler).toMatch(/confineToWorkspace\(/)
+    expect(vsHandler).toMatch(/args\?\.targetPath \|\| getActiveWorkspace\(\)/)
+    expect(vsHandler).not.toMatch(/process\.cwd\(\)/)
+    expect(vsHandler).toMatch(/buildVSCodeLaunchPlan\(codePath, target\)/)
+
+    const explorerHandler = files.slice(files.indexOf("'files:openInExplorer'"))
+    expect(explorerHandler).toMatch(/confineToWorkspace\(/)
+    expect(explorerHandler).toMatch(/args\?\.targetPath \|\| getActiveWorkspace\(\)/)
+    expect(explorerHandler).not.toMatch(/process\.cwd\(\)/)
+    expect(explorerHandler).toMatch(/shell\.openPath\(target\)/)
+
+    const openPathHandler = main.slice(main.indexOf("'app:openPath'"))
+    expect(openPathHandler).toMatch(/confineToWorkspace\(/)
+    expect(openPathHandler).toMatch(/shell\.openPath\(safe\)/)
+    expect(openPathHandler).not.toMatch(/shell\.openPath\(p\)/)
+  })
+
   it('adding a stdio MCP connector requires an approval dialog before spawn', () => {
     const mcp = read('electron/ipc/mcp.ts')
     const handler = mcp.slice(mcp.indexOf("'mcp:addServer'"))

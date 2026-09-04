@@ -1,3 +1,15 @@
+## 2026-08-29 — Workspace confinement on remaining file channels
+
+## [Hotfix] Confine process/open channels with confineToWorkspace  —  2026-08-29
+
+**Files changed:** `electron/ipc/files.ts`, `electron/main.ts`, `electron/ipc/files.test.ts`, `electron/services/security-hardening.test.ts`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- vitest `electron/ipc/files.test.ts` + `electron/services/security-hardening.test.ts` ✓ (24 passed)
+
+**Notes:** JM-19/JM-20 claimed `files:*` stayed inside the workspace. `listDir` / `readText` / `walk` already used `confineToWorkspace`. `files:process`, `files:openInVSCode`, `files:openInExplorer`, and `app:openPath` now reuse that helper. No-path VS Code / Explorer opens default to `getActiveWorkspace()`, then confine — no `process.cwd()` fallback. No second policy.
+
 ## 2026-08-28 — v0.31.0 installer story (docs)
 
 ## [Docs] Current State matches GitHub v0.31.0  —  2026-08-28

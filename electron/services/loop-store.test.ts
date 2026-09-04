@@ -11,7 +11,8 @@ vi.mock('electron', () => ({
 }))
 
 import { createConversation } from './conversation-store'
-import { __resetDbForTests, getDb } from './database'
+import { __resetDbForTests, __setUserDataForTests, getDb } from './database'
+import { LATEST_VERSION } from './db-migrations'
 import {
   nextPosition,
   createLoop,
@@ -32,6 +33,9 @@ import {
   listLoopRuns
 } from './loop-store'
 
+mkdirSync(TEST_USER_DATA, { recursive: true })
+__setUserDataForTests(TEST_USER_DATA)
+
 function nativeOk(): boolean {
   try {
     getDb()
@@ -48,7 +52,7 @@ beforeEach(() => {
 })
 
 afterAll(() => {
-  __resetDbForTests()
+  __setUserDataForTests(null)
   if (existsSync(TEST_USER_DATA)) rmSync(TEST_USER_DATA, { recursive: true, force: true })
 })
 
@@ -64,9 +68,9 @@ describe('nextPosition (pure)', () => {
 })
 
 describe('LP-2 loop-store CRUD', () => {
-  it.skipIf(!nativeOk())('migration v17 brings the schema to user_version 17', () => {
+  it.skipIf(!nativeOk())('fresh open stamps user_version to LATEST_VERSION', () => {
     const v = getDb().pragma('user_version', { simple: true })
-    expect(v).toBe(17)
+    expect(v).toBe(LATEST_VERSION)
   })
 
   it.skipIf(!nativeOk())('creates, reads, updates, and lists loops', () => {

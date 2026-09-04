@@ -13,6 +13,10 @@ import {
 
 let db: Database.Database | null = null
 let persistenceReadOnlyMode = false
+// Test-only userData override. `vi.mock('electron')` does not intercept
+// Electron's built-in under ELECTRON_RUN_AS_NODE, so native-db CI cannot
+// call app.getPath. Not exposed via IPC.
+let testUserData: string | null = null
 
 /**
  * JM-18 (DB-11) — encryption-aware read-only open for the backup runner.
@@ -40,7 +44,8 @@ export function openReadonlyHandleAt(dbPath: string): Database.Database {
 }
 
 function openDatabaseHandle(dbPath: string): Database.Database {
-  if (!isDatabaseEncrypted()) {
+  // Encryption probe reads app.getPath. Skip it when tests own the dir.
+  if (testUserData !== null || !isDatabaseEncrypted()) {
     return new Database(
       dbPath,
       persistenceReadOnlyMode ? { readonly: true, fileMustExist: true } : undefined
@@ -90,7 +95,7 @@ export function getDb(): Database.Database {
 
 function openAndInit(): void {
   {
-    const dbPath = join(app.getPath('userData'), 'lamprey.db')
+    const dbPath = join(testUserData ?? app.getPath('userData'), 'lamprey.db')
     db = openDatabaseHandle(dbPath)
     if (!persistenceReadOnlyMode) {
       db.pragma('journal_mode = WAL')
@@ -488,8 +493,13 @@ export function closeDb(opts?: { checkpoint?: boolean }): void {
 }
 
 // Test-only escape hatch: drop the cached connection so the next
-// `getDb()` re-opens against the current `app.getPath()` (which the
-// test will have re-mocked to a fresh tmpdir). Not exposed via IPC.
+// `getDb()` re-opens against testUserData or `app.getPath()`. Not
+// exposed via IPC.
 export function __resetDbForTests(): void {
+  closeDb()
+}
+
+export function __setUserDataForTests(dir: string | null): void {
+  testUserData = dir
   closeDb()
 }

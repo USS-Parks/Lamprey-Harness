@@ -46,6 +46,7 @@ import {
   isHeadlessCliArgv,
   runHeadlessFromArgv
 } from './services/headless-runner'
+import { openExternalReply, pingReply } from './services/shell-ipc'
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
@@ -507,12 +508,12 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('ping', () => 'pong')
-  ipcMain.handle('shell:openExternal', (_event, url: string) => {
-    if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
-      shell.openExternal(url)
-    }
-  })
+  ipcMain.handle('ping', () => pingReply())
+  ipcMain.handle('shell:openExternal', (_event, url: string) =>
+    openExternalReply(url, (href) => {
+      void shell.openExternal(href)
+    })
+  )
 
   ipcMain.handle('update:restart', async () => {
     await quitAndInstall()

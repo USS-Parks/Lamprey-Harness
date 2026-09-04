@@ -1,3 +1,15 @@
+## 2026-09-04 — Native-DB CI getDb skips
+
+## [Hotfix] Run getDb suites under Electron-as-node  —  2026-09-04
+
+**Files changed:** `electron/services/database.ts`, `electron/services/conversation-store.ts`, `electron/services/sessions-search.test.ts`, `electron/services/loop-store.test.ts`, `electron/services/loop-runner.test.ts`, `.github/workflows/ci.yml`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- ELECTRON_RUN_AS_NODE=1 native-db ✓ (17 files, 150 passed / 0 skipped)
+
+**Notes:** 2026-08-27 P1: native-db CI was 135 passed / 15 skipped. The 15 were `nativeOk()` → `getDb()` → `app.getPath` (sessions-search 6, loop-runner 2, loop-store 7). `vi.mock('electron')` does not intercept Electron's built-in under `ELECTRON_RUN_AS_NODE`. `__setUserDataForTests` bypasses `app.getPath`. loop-runner mocks `readLoopConfig` enabled (toggle stays locked in loop-safety). loop-store user_version assert now follows `LATEST_VERSION` (was 17). Un-skipping exposed `backfillSessionsFts` using SQLite double-quotes (`title <> ""` = empty identifier). Single-quoted. HAS_NATIVE_SQLITE suites were already running. Regular `test` job still skips these when the Node ABI cannot load better-sqlite3.
+
 ## 2026-08-29 — Workspace confinement on remaining file channels
 
 ## [Hotfix] Confine process/open channels with confineToWorkspace  —  2026-08-29

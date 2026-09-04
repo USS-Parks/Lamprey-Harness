@@ -89,8 +89,11 @@ jobs:
           retention-days: 14
 
   native-db:
-    # AC-36 — the 18 ABI-guarded suites must run red/green under Electron's
+    # AC-36 — ABI-guarded suites must run red/green under Electron's
     # ABI, not skip under the Node-based `test` job (v0.9.2 class of hole).
+    # Walker finds files with HAS_NATIVE_SQLITE / nativeOk() (17 as of
+    # 2026-09). getDb() suites set __setUserDataForTests so they run
+    # without a ready Electron app.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

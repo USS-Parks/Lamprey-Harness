@@ -27,6 +27,24 @@ describe('JM-19 main-window navigation + open guards', () => {
   })
 })
 
+describe('IPC envelope contract (audit 2026-08-27 P1)', () => {
+  const main = read('electron/main.ts')
+
+  it('ping returns the standard { success, data } envelope, not a bare string', () => {
+    expect(main).not.toMatch(/ipcMain\.handle\('ping',\s*\(\)\s*=>\s*'pong'\)/)
+    expect(main).toMatch(/ipcMain\.handle\('ping'[\s\S]*?pingReply\(\)/)
+  })
+
+  it('shell:openExternal returns an envelope and does not swallow non-http(s)', () => {
+    const start = main.indexOf("ipcMain.handle('shell:openExternal'")
+    expect(start).toBeGreaterThan(-1)
+    const next = main.indexOf('ipcMain.handle(', start + 1)
+    const handler = main.slice(start, next === -1 ? undefined : next)
+    expect(handler).toMatch(/openExternalReply\(/)
+    expect(handler).not.toMatch(/if \(typeof url === 'string' && \(url\.startsWith\('https:\/\/'\)/)
+  })
+})
+
 describe('JM-19 artifact sandbox lockdown', () => {
   const art = read('electron/services/artifact-sandbox.ts')
 

@@ -1,0 +1,83 @@
+[
+  {
+    "finding": "SA-01",
+    "probe": "abort after first serial MCP operation",
+    "operations": [
+      {
+        "startedAfterAbort": false
+      },
+      {
+        "startedAfterAbort": true
+      }
+    ],
+    "observed": true
+  },
+  {
+    "finding": "SA-02",
+    "probe": "unknown descriptor in plan mode",
+    "forwardedToMcp": 1,
+    "observed": true
+  },
+  {
+    "finding": "SA-15",
+    "probe": "null tool_search",
+    "error": "Cannot read properties of null (reading 'query')",
+    "observed": true
+  },
+  {
+    "finding": "SA-07",
+    "probe": "compression boundary with two tool results",
+    "selected": [
+      "assistant",
+      "one"
+    ],
+    "surviving": [
+      "two"
+    ],
+    "observed": true
+  },
+  {
+    "finding": "SA-09",
+    "probe": "legal property names matching schema keywords",
+    "properties": [
+      "normal"
+    ],
+    "required": [
+      "if"
+    ],
+    "observed": true
+  },
+  {
+    "finding": "SA-06",
+    "probe": "invalid restore source",
+    "movesBeforeValidationFailure": 3,
+    "error": "fixture: invalid SQLite file",
+    "observed": true
+  },
+  {
+    "finding": "SA-24",
+    "probe": "uncited research output",
+    "citedSources": 0,
+    "accepted": true,
+    "observed": true
+  },
+  {
+    "finding": "SA-25",
+    "probe": "OS open rejects after immediate IPC success",
+    "reply": {
+      "success": true,
+      "data": null
+    },
+    "observed": true
+  },
+  {
+    "finding": "SA-26",
+    "probe": "outside workspace dropped path",
+    "reply": {
+      "success": false,
+      "error": "Path is outside the active workspace. File access is confined to the project root."
+    },
+    "forwarded": 0,
+    "observed": true
+  }
+]

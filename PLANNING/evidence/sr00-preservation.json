@@ -1,0 +1,14 @@
+{
+  "beforeHead": "39c2c5ef6a4bba116d21fc9c3da9a8427bb8ca5b",
+  "upstreamHead": "673fd1b815ac38412d8769627eebae85646e487e",
+  "ownedSha256": {
+    "PLANNING/README.md": "aa87076b3a3307f17abb3e6ab30a45ad74049128cdcfcda7fe9aa461a58d7a7b",
+    "PLANNING/LAMPREY_AUGUST_2026_AUDIT.md": "e1393a2585e3bae5638fb6de589bdb09ecaeea638075e99a7040ebf655d97379",
+    "PLANNING/LAMPREY_AUGUST_2026_AUDIT_PLAN.md": "f0a63648d22fecdf5d7ca0b607523af93f1c913659202cae6d9d9c11f02bdd3c",
+    "PLANNING/LAMPREY_SADDLE_PADDOCK_PLAN.md": "52776d200b6a71f08b0902f4e4cc6ec1124deb73cec012949301075047b0fcb6"
+  },
+  "statusBefore": " M PLANNING/README.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT_PLAN.md\n?? PLANNING/LAMPREY_SADDLE_PADDOCK_PLAN.md\n?? PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md\n?? PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md\n?? PLANNING/evidence/SEPTEMBER_AUDIT_EVIDENCE.md\n?? PLANNING/evidence/september-audit-inspect.py\n?? PLANNING/evidence/september-audit-probes-upstream.json\n?? PLANNING/evidence/september-audit-probes.cjs\n?? PLANNING/evidence/september-audit-probes.json\n?? PLANNING/evidence/september-audit-provenance.json\n?? PLANNING/evidence/september-audit-release.json\n?? PLANNING/evidence/september-audit-remote.json\n?? PLANNING/evidence/september-audit-scan.json\n?? PLANNING/evidence/september-audit-upstream.diff\n?? PLANNING/evidence/september-audit-worktrees.json\n?? PLANNING/evidence/sr00-owned-planning.patch\n?? PLANNING/evidence/sr00-planning-readme-original.txt\n?? PLANNING/evidence/sr00-readme-base.txt\n?? PLANNING/evidence/sr00-readme-incoming.txt\n?? PLANNING/evidence/sr00-reconcile.py\n",
+  "reconciledReadmeSha256": "6c439a7d3c9e8e8fa2927af18db895cbbe165d7747c2741cea6af1895ef97933",
+  "afterHead": "673fd1b815ac38412d8769627eebae85646e487e",
+  "statusAfter": " M PLANNING/README.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT_PLAN.md\n?? PLANNING/LAMPREY_SADDLE_PADDOCK_PLAN.md\n?? PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md\n?? PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md\n?? PLANNING/evidence/SEPTEMBER_AUDIT_EVIDENCE.md\n?? PLANNING/evidence/september-audit-inspect.py\n?? PLANNING/evidence/september-audit-probes-upstream.json\n?? PLANNING/evidence/september-audit-probes.cjs\n?? PLANNING/evidence/september-audit-probes.json\n?? PLANNING/evidence/september-audit-provenance.json\n?? PLANNING/evidence/september-audit-release.json\n?? PLANNING/evidence/september-audit-remote.json\n?? PLANNING/evidence/september-audit-scan.json\n?? PLANNING/evidence/september-audit-upstream.diff\n?? PLANNING/evidence/september-audit-worktrees.json\n?? PLANNING/evidence/sr00-owned-planning.patch\n?? PLANNING/evidence/sr00-planning-readme-original.txt\n?? PLANNING/evidence/sr00-readme-base.txt\n?? PLANNING/evidence/sr00-readme-incoming.txt\n?? PLANNING/evidence/sr00-reconcile.py\n"
+}

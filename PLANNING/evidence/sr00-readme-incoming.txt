@@ -12,9 +12,7 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 | File | Role |
 |------|------|
-| `LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md` | **Current approved P-SPR** — full STS and Bucket authorized 2026-09-05. SR-00 through SR-38. |
 | `LAMPREY_TRIPLE_LANE_PLAN.md` | **Current working P-SPR** — Triple Lane B/C is wired in the product as **v0.31.0** (not source-wrap-only). GitHub release v0.31.0 exists (tag workflow 32671185022; latest.yml version 0.31.0). README download links point there. Auto-update follows GitHub, not CDN. A Bucket run attempted R2 + CDN purge and then lost the GitHub Windows upload race to CI (PR #5). `scripts/bucket.ps1` later gained retry/reconcile; that does not close TL-W4. TL-W4 stays [ ] until GitHub asset sha256 == local dist/ == CDN is proven, or Bucket is re-run. Do not tell operators the installers are still v0.30.0. |
-| `LAMPREY_AUGUST_2026_AUDIT_PLAN.md` | Draft P-SPR — August 2026 Audit Closure (OA-1 … OA-WRAP). **PENDING** approval. Target v0.32.0. |
 | `TL_BASELINE.md` | Triple Lane baseline (tip, touchpoints, Lane C audit) |
 | `TL_CLAUDE_CODE_INVENTORY.md` | Lane A inventory + empty pick list (K12) |
 | `TL_OPENROUTER_MAP.md` | Lane B request-seam map |

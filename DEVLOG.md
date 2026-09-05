@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-00: Reconcile approved remediation baseline
+
+**Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md`, `PLANNING/evidence/SEPTEMBER_AUDIT_EVIDENCE.md`, `PLANNING/evidence/september-audit-inspect.py`, `PLANNING/evidence/september-audit-probes.cjs`, `PLANNING/evidence/september-audit-probes.json`, `PLANNING/evidence/september-audit-probes-upstream.json`, `PLANNING/evidence/september-audit-provenance.json`, `PLANNING/evidence/september-audit-release.json`, `PLANNING/evidence/september-audit-remote.json`, `PLANNING/evidence/september-audit-scan.json`, `PLANNING/evidence/september-audit-upstream.diff`, `PLANNING/evidence/september-audit-worktrees.json`, `PLANNING/evidence/sr00-preservation.json`, `PLANNING/evidence/sr00-owned-planning.patch`, `PLANNING/evidence/sr00-planning-readme-original.txt`, `PLANNING/evidence/sr00-readme-base.txt`, `PLANNING/evidence/sr00-readme-incoming.txt`, `PLANNING/evidence/sr00-reconcile.py`, `PLANNING/evidence/sr-close.py`
+
+**Verification:** Fetched origin/main at 673fd1b815ac38412d8769627eebae85646e487e; inspected the 13-commit delta. Preservation SHA256 checks passed for all three pre-existing untracked plans. Saved original planning index and patch; resolved its single reviewed release-status conflict. No new worktree. Prior audit proves residual findings against this upstream source; no product source altered by this prompt.
+
+**Notes:** User approved full STS and Bucket on 2026-09-05 in this session. Existing August drafts and Saddle plan remain untracked and untouched. Publication authorization persists through SR-38; destructive storage cleanup remains separately gated.
+
+**Commit:** see `PLANNING/evidence/sr00.json` (SHA recorded immediately after commit).
+
 ## 2026-08-29 — Workspace confinement on remaining file channels
 
 ## [Hotfix] Confine process/open channels with confineToWorkspace  —  2026-08-29

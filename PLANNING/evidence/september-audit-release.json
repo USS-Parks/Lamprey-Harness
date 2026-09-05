@@ -1,0 +1,114 @@
+{
+  "verifiedAt": "2026-09-05T15:09:15.027711+00:00",
+  "github": {
+    "assets": [
+      {
+        "apiUrl": "https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/assets/526722592",
+        "contentType": "application/x-apple-diskimage",
+        "createdAt": "2026-08-23T22:41:48Z",
+        "digest": "sha256:dc6e796a0cd812e8d46ee27be94b752591ba6e4d3d464abaca8162d007d5f1ca",
+        "downloadCount": 3,
+        "id": "RA_kwDOSsfePs4fZSYg",
+        "label": "",
+        "name": "Lamprey-arm64.dmg",
+        "size": 327812786,
+        "state": "uploaded",
+        "updatedAt": "2026-08-23T22:41:59Z",
+        "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-arm64.dmg"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/assets/526729475",
+        "contentType": "application/x-msdos-program",
+        "createdAt": "2026-08-23T22:47:39Z",
+        "digest": "sha256:0e38fbbf71922a85e3f13e6396734dcc095f4e27a9c1bfb52297ba99bbe009d7",
+        "downloadCount": 6,
+        "id": "RA_kwDOSsfePs4fZUED",
+        "label": "",
+        "name": "Lamprey-x64.exe",
+        "size": 301957676,
+        "state": "uploaded",
+        "updatedAt": "2026-08-23T22:47:57Z",
+        "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.exe"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/assets/526729488",
+        "contentType": "application/octet-stream",
+        "createdAt": "2026-08-23T22:47:39Z",
+        "digest": "sha256:2ab58400bd46e3ee777bff22936e097c8eceefaaa0ab165a1871aba0831388fe",
+        "downloadCount": 2,
+        "id": "RA_kwDOSsfePs4fZUEQ",
+        "label": "",
+        "name": "Lamprey-x64.exe.blockmap",
+        "size": 314149,
+        "state": "uploaded",
+        "updatedAt": "2026-08-23T22:47:39Z",
+        "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.exe.blockmap"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/assets/526729414",
+        "contentType": "application/zip",
+        "createdAt": "2026-08-23T22:47:39Z",
+        "digest": "sha256:e0863b0240e9c1f37cfeed030ca5514011dd53aba989bba27d9e488c13f90c09",
+        "downloadCount": 3,
+        "id": "RA_kwDOSsfePs4fZUDG",
+        "label": "",
+        "name": "Lamprey-x64.zip",
+        "size": 403062865,
+        "state": "uploaded",
+        "updatedAt": "2026-08-23T22:47:54Z",
+        "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.zip"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/assets/526723054",
+        "contentType": "application/octet-stream",
+        "createdAt": "2026-08-23T22:42:31Z",
+        "digest": "sha256:55aaf2e625045c1b2754fe76460b0256ba6546b4ed670e2bf17b9df7aa088a83",
+        "downloadCount": 5,
+        "id": "RA_kwDOSsfePs4fZSfu",
+        "label": "",
+        "name": "Lamprey-x86_64.AppImage",
+        "size": 547107237,
+        "state": "uploaded",
+        "updatedAt": "2026-08-23T22:42:45Z",
+        "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x86_64.AppImage"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/assets/526729503",
+        "contentType": "text/yaml",
+        "createdAt": "2026-08-23T22:47:39Z",
+        "digest": "sha256:1d4b28e895dad2b23dfca0e31c82c5c537cd72720902275b7a249146e107d5df",
+        "downloadCount": 25,
+        "id": "RA_kwDOSsfePs4fZUEf",
+        "label": "",
+        "name": "latest.yml",
+        "size": 328,
+        "state": "uploaded",
+        "updatedAt": "2026-08-23T22:47:39Z",
+        "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/latest.yml"
+      }
+    ],
+    "body": "# Lamprey v0.31.0 \u00e2\u20ac\u201d Triple Lane\n\nReleased 2026-08-23. Source wrap. Installer artifacts stay on v0.30.0\nuntil Bucket (TL-W4, coordinator).\n\n## Lane A \u00e2\u20ac\u201d Claude Code refresh\n\n- Inventory pinned to Claude Code **2.1.241** (GitHub tag 2026-08-23).\n- Pick list empty (K12). Empty Lane A is success. No product deltas.\n\n## Lane B \u00e2\u20ac\u201d OpenRouter routing depth\n\n- Opt-in OpenRouter path can send fallbacks plus provider\n  sort / order / ignore. Empty routing stays `{}` (K4).\n- `openrouter/auto` is offered when an OpenRouter key is present. It is\n  not a `MODEL_CATALOG` row.\n- Direct-provider default is unchanged. Catalog still has zero\n  OpenRouter-brokered aliases.\n\n## Lane C \u00e2\u20ac\u201d Local endpoint polish\n\n- Settings presets for Ollama, LM Studio, and Unsloth Studio API.\n- Connection-refused probes use loud copy instead of a generic fetch\n  failure.\n- Live local imports still default tools and vision off. Local tools\n  still pass approval / snip / gates (K10).\n- No Unsloth training UI in core (K6).\n\n## Non-goals held\n\n- No Unburdening rebuild.\n- No `MODEL_CATALOG` fabrication.\n- No plugin-tool runtime.\n- No Bucket on this wrap.\n\nAuthored and reviewed by Basho Parks, copyright 2026\n",
+    "publishedAt": "2026-08-23T22:38:05Z",
+    "tagName": "v0.31.0",
+    "targetCommitish": "main",
+    "url": "https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.31.0"
+  },
+  "cdnHeads": [
+    {
+      "url": "https://cdn.islandmountain.io/Lamprey-x64.exe",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://cdn.islandmountain.io/Lamprey-x64.zip",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://cdn.islandmountain.io/Lamprey-arm64.dmg",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://cdn.islandmountain.io/Lamprey-x86_64.AppImage",
+      "error": "HTTP Error 403: Forbidden"
+    }
+  ]
+}

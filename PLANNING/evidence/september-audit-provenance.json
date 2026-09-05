@@ -1,0 +1,330 @@
+{
+  "SA-01": {
+    "path": "electron/services/chat-tool-dispatch.ts",
+    "lines": "329,368",
+    "commits": {
+      "fcfe380660f6b83f41c18f88db88fc1c613a21cc": {
+        "author-time": "1787456099",
+        "summary": "Ship Audit Closure leftovers as v0.29.0",
+        "filename": "electron/services/chat-tool-dispatch.ts"
+      },
+      "9d35430b11653914fe3643019f62044fda0f86d4": {
+        "author-time": "1780170303",
+        "summary": "Bootstrap the Electron + React 19 desktop harness",
+        "filename": "electron/ipc/chat.ts"
+      },
+      "b8af812cbd4b29f32df86b8c5a6c1bdd2cee8bb6": {
+        "author-time": "1780411113",
+        "summary": "Add the agentic coding mode end to end (v0.1.26)",
+        "filename": "electron/ipc/chat.ts"
+      },
+      "cbab91fe3dbb129cd8647a368830a2b8ce36b4d9": {
+        "author-time": "1780462441",
+        "summary": "Add the durable event-log spine with producers and read APIs",
+        "filename": "electron/ipc/chat.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-02": {
+    "path": "electron/services/chat-tool-dispatch.ts",
+    "lines": "277,285",
+    "commits": {
+      "2dc6cb922e1769cc3d281bc4e98cb85681d6e586": {
+        "author-time": "1780543830",
+        "summary": "Land the parity tracks: memory, verify, scheduling, and the tool layer",
+        "filename": "electron/ipc/chat.ts"
+      },
+      "b8af812cbd4b29f32df86b8c5a6c1bdd2cee8bb6": {
+        "author-time": "1780411113",
+        "summary": "Add the agentic coding mode end to end (v0.1.26)",
+        "filename": "electron/ipc/chat.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-03": {
+    "path": "electron/services/mcp-manager.ts",
+    "lines": "470,484",
+    "commits": {
+      "8deb95e523b21ecc099dccc7148c7c76d12a5f13": {
+        "author-time": "1780701966",
+        "summary": "Add the Customize surface: Skills, Connectors, and Plugins (v0.5.0)",
+        "filename": "electron/services/mcp-manager.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-04": {
+    "path": "electron/services/mcp-manager.ts",
+    "lines": "298,315",
+    "commits": {
+      "9c84110e0543d3d2b62d83ef00ae1c901eb7d24e": {
+        "author-time": "1780173477",
+        "summary": "Add the MCP client: SSE and stdio transports, status UI, Google OAuth",
+        "filename": "electron/services/mcp-manager.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-05": {
+    "path": "electron/ipc/conversation.ts",
+    "lines": "493,527",
+    "commits": {
+      "4d7316ae7599a2537435529770aeacdcca0c5e51": {
+        "author-time": "1780267755",
+        "summary": "Ship the IDE-parity pass and the multi-provider revision (v0.1.9)",
+        "filename": "electron/ipc/conversation.ts"
+      },
+      "9d35430b11653914fe3643019f62044fda0f86d4": {
+        "author-time": "1780170303",
+        "summary": "Bootstrap the Electron + React 19 desktop harness",
+        "filename": "electron/ipc/conversation.ts"
+      },
+      "240066bdcb5d4c744d35898636dad230c00adc85": {
+        "author-time": "1780763808",
+        "summary": "Add the Reasoning-Trace viewer with per-stage metrics and export (v0.8.1)",
+        "filename": "electron/ipc/conversation.ts"
+      },
+      "2dc6cb922e1769cc3d281bc4e98cb85681d6e586": {
+        "author-time": "1780543830",
+        "summary": "Land the parity tracks: memory, verify, scheduling, and the tool layer",
+        "filename": "electron/ipc/conversation.ts"
+      },
+      "f0cfddd19bd274b0be3d8254ca78801f201dc1e5": {
+        "author-time": "1780177313",
+        "summary": "Add the model switcher, per-model config, and the reasoning expander",
+        "filename": "electron/ipc/conversation.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-06": {
+    "path": "electron/services/backup-runner.ts",
+    "lines": "238,268",
+    "commits": {
+      "db9bacd8f54be2f74b6d83f649b701f58390b10d": {
+        "author-time": "1780805778",
+        "summary": "Land the Persistence and Seed phase (v0.9.0)",
+        "filename": "electron/services/backup-runner.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-07": {
+    "path": "electron/services/context-compressor.ts",
+    "lines": "172,186",
+    "commits": {
+      "2dc6cb922e1769cc3d281bc4e98cb85681d6e586": {
+        "author-time": "1780543830",
+        "summary": "Land the parity tracks: memory, verify, scheduling, and the tool layer",
+        "filename": "electron/services/context-compressor.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-08": {
+    "path": "electron/ipc/files.ts",
+    "lines": "150,156",
+    "commits": {
+      "82ac0232b39cd80f8c558a1dfd974b38de9b2794": {
+        "author-time": "1783007574",
+        "summary": "Confine file reads and gate MCP process spawns (JM-20)",
+        "filename": "electron/ipc/files.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-09": {
+    "path": "electron/services/providers/schema-normalizer.ts",
+    "lines": "124,143",
+    "commits": {
+      "0f53097beed5a066b3ceefefba46338407c25a60": {
+        "author-time": "1780983268",
+        "summary": "Land the Function Calling phase: native tool calls with a fallback parser",
+        "filename": "electron/services/providers/schema-normalizer.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-10": {
+    "path": "electron/services/providers/registry.ts",
+    "lines": "783,800",
+    "commits": {
+      "0493ae62688c41d10bd2da845cd4aee09ec35e17": {
+        "author-time": "1783004886",
+        "summary": "Feed system rows to the model and honor custom models (JM-11)",
+        "filename": "electron/services/providers/registry.ts"
+      },
+      "007bf475b3e1e0e4212c6c140aa3df08acec0df3": {
+        "author-time": "1783790818",
+        "summary": "Accept user-defined custom OpenAI-compatible providers end to end",
+        "filename": "electron/services/providers/registry.ts"
+      },
+      "fcfe380660f6b83f41c18f88db88fc1c613a21cc": {
+        "author-time": "1787456099",
+        "summary": "Ship Audit Closure leftovers as v0.29.0",
+        "filename": "electron/services/providers/registry.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-11": {
+    "path": "src/components/settings/SettingsDialog.tsx",
+    "lines": "66,83",
+    "commits": {
+      "9c84110e0543d3d2b62d83ef00ae1c901eb7d24e": {
+        "author-time": "1780173477",
+        "summary": "Add the MCP client: SSE and stdio transports, status UI, Google OAuth",
+        "filename": "src/components/settings/SettingsDialog.tsx"
+      },
+      "a1d5475a139981978beaf446f7011d74aea4c439": {
+        "author-time": "1780720117",
+        "summary": "Add \"Import from Claude Code\" for skill bundles (v0.7.0)",
+        "filename": "src/components/settings/SettingsDialog.tsx"
+      }
+    },
+    "error": ""
+  },
+  "SA-12": {
+    "path": "src/components/layout/Sidebar.tsx",
+    "lines": "468,474",
+    "commits": {
+      "0d6aeb519a7b3a2bab2d77829bb9f42956195740": {
+        "author-time": "1780176178",
+        "summary": "Add toasts, conversation search, keyboard shortcuts, and AI-generated titles",
+        "filename": "src/components/layout/Sidebar.tsx"
+      }
+    },
+    "error": ""
+  },
+  "SA-13": {
+    "path": "src/hooks/useKeyboardShortcuts.ts",
+    "lines": "103,118",
+    "commits": {
+      "0d6aeb519a7b3a2bab2d77829bb9f42956195740": {
+        "author-time": "1780176178",
+        "summary": "Add toasts, conversation search, keyboard shortcuts, and AI-generated titles",
+        "filename": "src/hooks/useKeyboardShortcuts.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-14": {
+    "path": "src/components/settings/ApiKeyModal.tsx",
+    "lines": "26,44",
+    "commits": {
+      "b2504563116664c167e2e5e2e0820065552206a5": {
+        "author-time": "1780199360",
+        "summary": "Route requests across multiple providers",
+        "filename": "src/components/settings/ApiKeyModal.tsx"
+      },
+      "bc4da8e5c4733cfbc2b013e02e4532fce07119dd": {
+        "author-time": "1780451350",
+        "summary": "Apply the security and agent audit remediations (v0.1.27)",
+        "filename": "src/components/settings/ApiKeyModal.tsx"
+      },
+      "4d7316ae7599a2537435529770aeacdcca0c5e51": {
+        "author-time": "1780267755",
+        "summary": "Ship the IDE-parity pass and the multi-provider revision (v0.1.9)",
+        "filename": "src/components/settings/ApiKeyModal.tsx"
+      }
+    },
+    "error": ""
+  },
+  "SA-15": {
+    "path": "electron/services/chat-tool-dispatch.ts",
+    "lines": "120,126",
+    "commits": {
+      "fcfe380660f6b83f41c18f88db88fc1c613a21cc": {
+        "author-time": "1787456099",
+        "summary": "Ship Audit Closure leftovers as v0.29.0",
+        "filename": "electron/services/chat-tool-dispatch.ts"
+      },
+      "b8af812cbd4b29f32df86b8c5a6c1bdd2cee8bb6": {
+        "author-time": "1780411113",
+        "summary": "Add the agentic coding mode end to end (v0.1.26)",
+        "filename": "electron/ipc/chat.ts"
+      },
+      "0f53097beed5a066b3ceefefba46338407c25a60": {
+        "author-time": "1780983268",
+        "summary": "Land the Function Calling phase: native tool calls with a fallback parser",
+        "filename": "electron/ipc/chat.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-16": {
+    "path": "scripts/test-native-db.cjs",
+    "lines": "46,60",
+    "commits": {
+      "613dac0d7e90d3697f3fe6f4c7507c979c43fed9": {
+        "author-time": "1787452723",
+        "summary": "feat(settings): land Audit Closure Addition track",
+        "filename": "scripts/test-native-db.cjs"
+      }
+    },
+    "error": ""
+  },
+  "SA-17": {
+    "path": "electron/services/pr-chat-ui-wiring.test.ts",
+    "lines": "7,27",
+    "commits": {
+      "8493e3011bfee220b82bf0d9a1337223829e7934": {
+        "author-time": "1784419885",
+        "summary": "Connect pull request chat and patch cards",
+        "filename": "electron/services/pr-chat-ui-wiring.test.ts"
+      }
+    },
+    "error": ""
+  },
+  "SA-18": {
+    "path": "scripts/bucket.ps1",
+    "lines": "221,263",
+    "commits": {
+      "4758e3835d6a6ace0ca97be1c981adb478394710": {
+        "author-time": "1787532399",
+        "summary": "Retry GH Windows upload until local bytes match",
+        "filename": "scripts/bucket.ps1"
+      },
+      "95c30db5d61dd5b31ba272b78615d72d9fda43c8": {
+        "author-time": "1781459450",
+        "summary": "Harden the Bucket gh-release step against intermittent failures",
+        "filename": "scripts/bucket.ps1"
+      },
+      "84b39d7bfddfd8133179450d6ca2b050b44d6b6f": {
+        "author-time": "1784395886",
+        "summary": "Record the v0.20.0 publication",
+        "filename": "scripts/bucket.ps1"
+      },
+      "d9d53786ca71550861883a61bf8088b43e3275d8": {
+        "author-time": "1784427088",
+        "summary": "fix(release): verify raced assets by content",
+        "filename": "scripts/bucket.ps1"
+      }
+    },
+    "error": ""
+  },
+  "SA-19": {
+    "path": "DEVLOG.md",
+    "lines": "1,29",
+    "commits": {
+      "11a3917e7b820baa5be49f9b60af34bc56a26b36": {
+        "author-time": "1787520652",
+        "summary": "docs(planning): TL-0 lock Triple Lane baseline",
+        "filename": "DEVLOG.md"
+      },
+      "5a29f1a77e189529f9264901993e4a48ade4c674": {
+        "author-time": "1787524010",
+        "summary": "chore(release): TL-W3 wrap Triple Lane as v0.31.0",
+        "filename": "DEVLOG.md"
+      },
+      "e89882cebf439a2f6b5f5596d91e4f2e22c330d2": {
+        "author-time": "1781454215",
+        "summary": "Land the Loop phase: interval, self-paced, and autonomous loops (v0.15.0)",
+        "filename": "DEVLOG.md"
+      }
+    },
+    "error": ""
+  }
+}

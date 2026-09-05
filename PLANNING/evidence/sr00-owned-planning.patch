@@ -1,0 +1,14 @@
+diff --git a/PLANNING/README.md b/PLANNING/README.md
+index 06c4ee7..66fa1d3 100644
+--- a/PLANNING/README.md
++++ b/PLANNING/README.md
+@@ -12,7 +12,8 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
+ 
+ | File | Role |
+ |------|------|
+-| `LAMPREY_TRIPLE_LANE_PLAN.md` | **Current working P-SPR** — Triple Lane source-wrapped as **v0.31.0**. Bucket still owed (TL-W4). |
++| `LAMPREY_TRIPLE_LANE_PLAN.md` | **Current working P-SPR** — Triple Lane source-wrapped and Bucketed as **v0.31.0**. |
++| `LAMPREY_AUGUST_2026_AUDIT_PLAN.md` | Draft P-SPR — August 2026 Audit Closure (OA-1 … OA-WRAP). **PENDING** approval. Target v0.32.0. |
+ | `TL_BASELINE.md` | Triple Lane baseline (tip, touchpoints, Lane C audit) |
+ | `TL_CLAUDE_CODE_INVENTORY.md` | Lane A inventory + empty pick list (K12) |
+ | `TL_OPENROUTER_MAP.md` | Lane B request-seam map |

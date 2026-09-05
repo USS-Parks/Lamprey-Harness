@@ -1,0 +1,1474 @@
+{
+  "suppression": [
+    {
+      "path": "electron/services/agent-identity-db-integration.test.ts",
+      "line": 21,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/artifact-schema-db-integration.test.ts",
+      "line": 19,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/automation-db-integration.test.ts",
+      "line": 15,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/cc-skill-importer.ts",
+      "line": 183,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/cc-skill-importer.ts",
+      "line": 302,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/cc-skill-importer.ts",
+      "line": 345,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/database.ts",
+      "line": 309,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/db-encryption.ts",
+      "line": 76,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/debug-trace.ts",
+      "line": 123,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/fork-turn-db-integration.test.ts",
+      "line": 6,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/goal-automation-bridge-db.test.ts",
+      "line": 15,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/goal-db-integration.test.ts",
+      "line": 15,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 25,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/mcp-manager.ts",
+      "line": 360,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/mcp-manager.ts",
+      "line": 379,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/rag/embeddings/service.ts",
+      "line": 238,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/rag/ingest.ts",
+      "line": 181,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/rag/loaders/docx.ts",
+      "line": 15,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/rag/loaders/pdf.ts",
+      "line": 33,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/rag/store.ts",
+      "line": 689,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/rag/vec-loader.ts",
+      "line": 26,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/skill-loader.ts",
+      "line": 210,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/skill-loader.ts",
+      "line": 275,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/slash-commands.ts",
+      "line": 189,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/slash-commands.ts",
+      "line": 246,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/snip/actions.ts",
+      "line": 13,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/task-lifecycle-db-integration.test.ts",
+      "line": 6,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 21,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "src/components/tools/ToolApprovalModal.tsx",
+      "line": 84,
+      "match": "eslint-disable"
+    },
+    {
+      "path": "src/components/tools/panels/SideChatPanel.tsx",
+      "line": 94,
+      "match": "eslint-disable"
+    }
+  ],
+  "placeholders": [
+    {
+      "path": "electron/ipc/chat.ts",
+      "line": 629,
+      "match": "stubbed"
+    },
+    {
+      "path": "electron/services/conversation-store.ts",
+      "line": 320,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/conversation-store.ts",
+      "line": 321,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/event-log.test.ts",
+      "line": 285,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/event-log.ts",
+      "line": 797,
+      "match": "stubbed"
+    },
+    {
+      "path": "electron/services/image-gen-providers.ts",
+      "line": 8,
+      "match": "not implemented"
+    },
+    {
+      "path": "electron/services/memory-store.test.ts",
+      "line": 133,
+      "match": "stubbed"
+    },
+    {
+      "path": "electron/services/memory-store.ts",
+      "line": 345,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/memory-store.ts",
+      "line": 907,
+      "match": "stubbed"
+    },
+    {
+      "path": "electron/services/providers/registry.test.ts",
+      "line": 10,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/providers/registry.test.ts",
+      "line": 620,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/providers/registry.test.ts",
+      "line": 632,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/providers/registry.ts",
+      "line": 123,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/providers/registry.ts",
+      "line": 127,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/rag/retrieve.ts",
+      "line": 227,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/rag/retrieve.ts",
+      "line": 236,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/rag/retrieve.ts",
+      "line": 257,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/rag/retrieve.ts",
+      "line": 267,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/rag/retrieve.ts",
+      "line": 284,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/rag/retrieve.ts",
+      "line": 293,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/sanitize-pseudo-tags.test.ts",
+      "line": 24,
+      "match": "TODO"
+    },
+    {
+      "path": "electron/services/sanitize-pseudo-tags.test.ts",
+      "line": 26,
+      "match": "TODO"
+    },
+    {
+      "path": "electron/services/slash-commands.ts",
+      "line": 310,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/statusline-config.ts",
+      "line": 159,
+      "match": "placeholder"
+    },
+    {
+      "path": "electron/services/worktree-runner.test.ts",
+      "line": 45,
+      "match": "stubbed"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 6,
+      "match": "placeholder"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 7,
+      "match": "placeholder"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 28,
+      "match": "placeholder"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 29,
+      "match": "placeholder"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 30,
+      "match": "placeholder"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 31,
+      "match": "placeholder"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 40,
+      "match": "TODO"
+    },
+    {
+      "path": "scripts/check-ai-artifacts.cjs",
+      "line": 40,
+      "match": "TODO"
+    },
+    {
+      "path": "scripts/smoke-renderer.cjs",
+      "line": 66,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/activity/ActivityTimeline.tsx",
+      "line": 148,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/activity/ActivityTimeline.tsx",
+      "line": 151,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/activity/TaskControlPanel.tsx",
+      "line": 278,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/automations/AutomationsPanel.tsx",
+      "line": 162,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/automations/AutomationsPanel.tsx",
+      "line": 213,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/automations/AutomationsPanel.tsx",
+      "line": 239,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/automations/AutomationsPanel.tsx",
+      "line": 249,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/automations/CronEditor.tsx",
+      "line": 49,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/ArtifactEditorDialog.tsx",
+      "line": 234,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/ArtifactEditorDialog.tsx",
+      "line": 253,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/ArtifactEditorDialog.tsx",
+      "line": 271,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/AskUserModal.tsx",
+      "line": 265,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/AskUserModal.tsx",
+      "line": 289,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/ChapterQuickJumper.tsx",
+      "line": 110,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/ChatInput.tsx",
+      "line": 1439,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/ChatInput.tsx",
+      "line": 1447,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/PinDialog.tsx",
+      "line": 60,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/chat/PinDialog.tsx",
+      "line": 72,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/ConnectorsColumn.tsx",
+      "line": 138,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/ConnectorsColumn.tsx",
+      "line": 139,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/ConnectorsColumn.tsx",
+      "line": 195,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/NewSkillWizard.tsx",
+      "line": 164,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/NewSkillWizard.tsx",
+      "line": 174,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/NewSkillWizard.tsx",
+      "line": 237,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/NewSkillWizard.tsx",
+      "line": 258,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/customize/SkillsColumn.tsx",
+      "line": 233,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/github/InlineCommentComposer.tsx",
+      "line": 108,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/github/InlineCommentComposer.tsx",
+      "line": 121,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/github/InlineCommentComposer.tsx",
+      "line": 128,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/github/InlineCommentComposer.tsx",
+      "line": 144,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/SessionSearchBar.tsx",
+      "line": 11,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/SessionSearchBar.tsx",
+      "line": 14,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/SessionSearchBar.tsx",
+      "line": 43,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/SessionSearchBar.tsx",
+      "line": 43,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/Sidebar.tsx",
+      "line": 1055,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/Sidebar.tsx",
+      "line": 1056,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/layout/StatusLine.tsx",
+      "line": 130,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/library/LibraryView.tsx",
+      "line": 56,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/library/LibraryView.tsx",
+      "line": 57,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/memory/MemoryEditor.tsx",
+      "line": 131,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/memory/MemoryEditor.tsx",
+      "line": 146,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/memory/MemoryEditor.tsx",
+      "line": 160,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/projects/NewProjectModal.tsx",
+      "line": 131,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/projects/NewProjectModal.tsx",
+      "line": 133,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/projects/NewProjectModal.tsx",
+      "line": 145,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/projects/NewProjectModal.tsx",
+      "line": 147,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/projects/NewProjectModal.tsx",
+      "line": 160,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/projects/NewProjectModal.tsx",
+      "line": 161,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ApiKeyModal.tsx",
+      "line": 147,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ApiKeySettings.tsx",
+      "line": 479,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ApiKeySettings.tsx",
+      "line": 613,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ApiKeySettings.tsx",
+      "line": 748,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ApiKeySettings.tsx",
+      "line": 760,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ApiKeySettings.tsx",
+      "line": 773,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/CurrentInfoSettings.tsx",
+      "line": 250,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/CurrentInfoSettings.tsx",
+      "line": 344,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/GitHubSettings.tsx",
+      "line": 219,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/GitHubSettings.tsx",
+      "line": 227,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/HooksSettings.tsx",
+      "line": 337,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ImageGenSettings.tsx",
+      "line": 312,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ModelSettings.tsx",
+      "line": 456,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ModelSettings.tsx",
+      "line": 470,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ModelSettings.tsx",
+      "line": 592,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ModelSettings.tsx",
+      "line": 604,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/ModelSettings.tsx",
+      "line": 697,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/OpenRouterRoutingSettings.tsx",
+      "line": 75,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/OpenRouterRoutingSettings.tsx",
+      "line": 103,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/OpenRouterRoutingSettings.tsx",
+      "line": 115,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/PersistenceSettings.tsx",
+      "line": 341,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/PersistenceSettings.tsx",
+      "line": 348,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/PersistenceSettings.tsx",
+      "line": 377,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/WebToolsSettings.tsx",
+      "line": 348,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/settings/WebToolsSettings.tsx",
+      "line": 388,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/skills/SkillEditor.tsx",
+      "line": 178,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/skills/SkillEditor.tsx",
+      "line": 191,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/skills/SkillEditor.tsx",
+      "line": 212,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/QuickOpenPalette.tsx",
+      "line": 147,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/QuickOpenPalette.tsx",
+      "line": 148,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/panels/BrowserPanel.tsx",
+      "line": 304,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/panels/BrowserPanel.tsx",
+      "line": 305,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/panels/BrowserPanel.tsx",
+      "line": 409,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/panels/LoopsPanel.tsx",
+      "line": 204,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/panels/SideChatPanel.tsx",
+      "line": 215,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/tools/panels/SideChatPanel.tsx",
+      "line": 218,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workflows/DryRunPanel.tsx",
+      "line": 30,
+      "match": "stubbed"
+    },
+    {
+      "path": "src/components/workflows/WorkflowPalette.tsx",
+      "line": 91,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workflows/WorkflowPalette.tsx",
+      "line": 92,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workspace/BranchPickerPopover.tsx",
+      "line": 148,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workspace/BranchPickerPopover.tsx",
+      "line": 150,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workspace/BranchPickerPopover.tsx",
+      "line": 196,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workspace/BranchPickerPopover.tsx",
+      "line": 198,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/workspace/RepositoryPickerDialog.tsx",
+      "line": 176,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/worktree/WorktreeManagerModal.tsx",
+      "line": 119,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/components/worktree/WorktreeManagerModal.tsx",
+      "line": 126,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/data/connectors-catalog.ts",
+      "line": 75,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/data/connectors-catalog.ts",
+      "line": 87,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/lib/citation-parser.ts",
+      "line": 22,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/lib/types.ts",
+      "line": 378,
+      "match": "placeholder"
+    },
+    {
+      "path": "src/lib/types.ts",
+      "line": 1204,
+      "match": "placeholder"
+    }
+  ],
+  "skips": [
+    {
+      "path": "electron/services/agent-identity-db-integration.test.ts",
+      "line": 40,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/agent-identity-db-integration.test.ts",
+      "line": 59,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/agent-identity-db-integration.test.ts",
+      "line": 94,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/agent-identity-db-integration.test.ts",
+      "line": 111,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/agent-identity-db-integration.test.ts",
+      "line": 138,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/artifact-edit-store.test.ts",
+      "line": 51,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/artifact-schema-db-integration.test.ts",
+      "line": 69,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/artifact-schema-db-integration.test.ts",
+      "line": 97,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/artifact-schema-db-integration.test.ts",
+      "line": 150,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/artifact-schema-db-integration.test.ts",
+      "line": 179,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/artifact-schema-db-integration.test.ts",
+      "line": 220,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/artifact-store.test.ts",
+      "line": 51,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/automation-db-integration.test.ts",
+      "line": 48,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/automation-db-integration.test.ts",
+      "line": 66,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/automation-db-integration.test.ts",
+      "line": 93,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/backup-runner.test.ts",
+      "line": 33,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/conversation-store-sanitize.test.ts",
+      "line": 103,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/conversation-store-sanitize.test.ts",
+      "line": 125,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/conversation-store-sanitize.test.ts",
+      "line": 145,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/conversation-store-sanitize.test.ts",
+      "line": 166,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/conversation-store-sanitize.test.ts",
+      "line": 195,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/database-checkpoint.test.ts",
+      "line": 42,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/database-checkpoint.test.ts",
+      "line": 106,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/database-integrity.test.ts",
+      "line": 27,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/db-migrations.test.ts",
+      "line": 79,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/dev-server-manager.test.ts",
+      "line": 53,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/dev-server-manager.test.ts",
+      "line": 65,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/failure-ledger.test.ts",
+      "line": 31,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/goal-automation-bridge-db.test.ts",
+      "line": 36,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/goal-db-integration.test.ts",
+      "line": 46,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/goal-db-integration.test.ts",
+      "line": 65,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/keychain.test.ts",
+      "line": 151,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/keychain.test.ts",
+      "line": 157,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 37,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 50,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 60,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 71,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 88,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 103,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 116,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 131,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-db-integration.test.ts",
+      "line": 147,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-runner.test.ts",
+      "line": 42,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-runner.test.ts",
+      "line": 62,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 67,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 72,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 95,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 108,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 126,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 136,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/loop-store.test.ts",
+      "line": 147,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/monitor-service.test.ts",
+      "line": 78,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/proof-receipts.test.ts",
+      "line": 74,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/rag/embedder-meta.test.ts",
+      "line": 48,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/rag/embeddings/service.test.ts",
+      "line": 228,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/rag/store.test.ts",
+      "line": 6,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/rag/store.test.ts",
+      "line": 225,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/sandbox/darwin.test.ts",
+      "line": 161,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/sandbox/linux.test.ts",
+      "line": 170,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/schema-init.test.ts",
+      "line": 112,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/sessions-search.test.ts",
+      "line": 48,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/sessions-search.test.ts",
+      "line": 68,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/sessions-search.test.ts",
+      "line": 79,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/sessions-search.test.ts",
+      "line": 105,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/sessions-search.test.ts",
+      "line": 115,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/sessions-search.test.ts",
+      "line": 134,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/snip/apply.test.ts",
+      "line": 102,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/snip/tracking.test.ts",
+      "line": 89,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/snip/tracking.test.ts",
+      "line": 136,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/snip/tracking.test.ts",
+      "line": 163,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/snip/tracking.test.ts",
+      "line": 182,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/snip/tracking.test.ts",
+      "line": 234,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/snip/tracking.test.ts",
+      "line": 250,
+      "match": "describe.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 46,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 58,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 92,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 98,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 130,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 190,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-db-integration.test.ts",
+      "line": 243,
+      "match": "it.skip"
+    },
+    {
+      "path": "electron/services/turn-control-store.test.ts",
+      "line": 44,
+      "match": "describe.skip"
+    },
+    {
+      "path": "scripts/verify-proof.cjs",
+      "line": 27,
+      "match": "describe.skip"
+    },
+    {
+      "path": "scripts/verify-proof.cjs",
+      "line": 28,
+      "match": "it.skip"
+    }
+  ],
+  "empty_catch": [],
+  "whole_store": [
+    {
+      "path": "src/components/chat/ChatView.tsx",
+      "line": 38,
+      "match": "useChatStore()"
+    },
+    {
+      "path": "src/components/layout/Sidebar.tsx",
+      "line": 474,
+      "match": "useChatStore()"
+    },
+    {
+      "path": "src/components/settings/GitHubSettings.tsx",
+      "line": 21,
+      "match": "useGitHubStore()"
+    },
+    {
+      "path": "src/components/skills/SkillPanel.tsx",
+      "line": 11,
+      "match": "useSkillsStore()"
+    },
+    {
+      "path": "src/components/workspace/RepositoryPickerDialog.tsx",
+      "line": 22,
+      "match": "useGitHubStore()"
+    }
+  ],
+  "zero_literal_importers": [
+    {
+      "path": "electron/cli.ts",
+      "lines": 20
+    },
+    {
+      "path": "electron/main.ts",
+      "lines": 768
+    },
+    {
+      "path": "electron/services/parse-outcome-command.ts",
+      "lines": 133
+    },
+    {
+      "path": "electron/services/rag/chat-augmentation.ts",
+      "lines": 152
+    },
+    {
+      "path": "electron/services/rag/embedder-meta.ts",
+      "lines": 135
+    },
+    {
+      "path": "electron/services/rag/embeddings/worker.ts",
+      "lines": 143
+    },
+    {
+      "path": "electron/services/rag/loaders/__fixtures__/sample.ts",
+      "lines": 15
+    },
+    {
+      "path": "src/components/artifacts/ResearchArtifact.tsx",
+      "lines": 84
+    },
+    {
+      "path": "src/components/chat/CitationChip.tsx",
+      "lines": 40
+    },
+    {
+      "path": "src/components/chat/ContextAttachBar.tsx",
+      "lines": 74
+    },
+    {
+      "path": "src/components/chat/PlanChecklist.tsx",
+      "lines": 80
+    },
+    {
+      "path": "src/components/chat/SourcePreviewPane.tsx",
+      "lines": 77
+    },
+    {
+      "path": "src/components/github/IssuesPanel.tsx",
+      "lines": 149
+    },
+    {
+      "path": "src/components/github/PullRequestsPanel.tsx",
+      "lines": 295
+    },
+    {
+      "path": "src/components/layout/AddToolMenu.tsx",
+      "lines": 143
+    },
+    {
+      "path": "src/components/layout/SidebarFilterMenu.tsx",
+      "lines": 341
+    },
+    {
+      "path": "src/components/mcp/MCPStatusBar.tsx",
+      "lines": 115
+    },
+    {
+      "path": "src/components/model/ModelSwitcher.tsx",
+      "lines": 197
+    },
+    {
+      "path": "src/components/skills/SkillPanel.tsx",
+      "lines": 113
+    },
+    {
+      "path": "src/components/workflows/WorkflowsPanel.tsx",
+      "lines": 31
+    },
+    {
+      "path": "src/env.d.ts",
+      "lines": 9
+    },
+    {
+      "path": "src/hooks/useIpc.ts",
+      "lines": 36
+    },
+    {
+      "path": "src/lib/agent-run-routing.ts",
+      "lines": 17
+    },
+    {
+      "path": "src/lib/citation-parser.ts",
+      "lines": 88
+    },
+    {
+      "path": "src/lib/interleave-notices.ts",
+      "lines": 52
+    },
+    {
+      "path": "src/main.tsx",
+      "lines": 10
+    }
+  ],
+  "renderer_unreachable_candidates": [
+    {
+      "path": "src/components/artifacts/ResearchArtifact.tsx",
+      "lines": 84
+    },
+    {
+      "path": "src/components/chat/CitationChip.tsx",
+      "lines": 40
+    },
+    {
+      "path": "src/components/chat/ContextAttachBar.tsx",
+      "lines": 74
+    },
+    {
+      "path": "src/components/chat/PlanChecklist.tsx",
+      "lines": 80
+    },
+    {
+      "path": "src/components/chat/SourcePreviewPane.tsx",
+      "lines": 77
+    },
+    {
+      "path": "src/components/github/InlineCommentComposer.tsx",
+      "lines": 171
+    },
+    {
+      "path": "src/components/github/IssuesPanel.tsx",
+      "lines": 149
+    },
+    {
+      "path": "src/components/github/PRDiffView.tsx",
+      "lines": 125
+    },
+    {
+      "path": "src/components/github/PRStatusChecks.tsx",
+      "lines": 104
+    },
+    {
+      "path": "src/components/github/PullRequestsPanel.tsx",
+      "lines": 295
+    },
+    {
+      "path": "src/components/layout/AddToolMenu.tsx",
+      "lines": 143
+    },
+    {
+      "path": "src/components/layout/SidebarFilterMenu.tsx",
+      "lines": 341
+    },
+    {
+      "path": "src/components/mcp/MCPStatusBar.tsx",
+      "lines": 115
+    },
+    {
+      "path": "src/components/model/ModelSwitcher.tsx",
+      "lines": 197
+    },
+    {
+      "path": "src/components/skills/SkillEditor.tsx",
+      "lines": 284
+    },
+    {
+      "path": "src/components/skills/SkillPanel.tsx",
+      "lines": 113
+    },
+    {
+      "path": "src/components/workflows/AgentChip.tsx",
+      "lines": 59
+    },
+    {
+      "path": "src/components/workflows/PhaseGroup.tsx",
+      "lines": 25
+    },
+    {
+      "path": "src/components/workflows/WorkflowRunCard.tsx",
+      "lines": 82
+    },
+    {
+      "path": "src/components/workflows/WorkflowsPanel.tsx",
+      "lines": 31
+    },
+    {
+      "path": "src/hooks/useIpc.ts",
+      "lines": 36
+    },
+    {
+      "path": "src/lib/agent-run-routing.ts",
+      "lines": 17
+    },
+    {
+      "path": "src/lib/citation-parser.ts",
+      "lines": 88
+    },
+    {
+      "path": "src/lib/interleave-notices.ts",
+      "lines": 52
+    }
+  ],
+  "scan_counts": {
+    "text_files": 1085,
+    "production_ts": 561
+  }
+}

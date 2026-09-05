@@ -1,0 +1,154 @@
+[
+  {
+    "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness",
+    "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey Harness\nHEAD 39c2c5ef6a4bba116d21fc9c3da9a8427bb8ca5b\nbranch refs/heads/main",
+    "status": {
+      "exit": 0,
+      "output": "M PLANNING/README.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT_PLAN.md\n?? PLANNING/LAMPREY_SADDLE_PADDOCK_PLAN.md\n?? PLANNING/evidence/september-audit-inspect.py\n?? PLANNING/evidence/september-audit-probes.cjs\n?? PLANNING/evidence/september-audit-probes.json\n?? PLANNING/evidence/september-audit-provenance.json\n?? PLANNING/evidence/september-audit-release.json\n?? PLANNING/evidence/september-audit-scan.json\n?? PLANNING/evidence/september-audit-worktrees.json",
+      "error": "warning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied"
+    },
+    "not_in_cached_remotes": {
+      "exit": 0,
+      "output": "",
+      "error": ""
+    },
+    "generated_sizes": {
+      "node_modules": {
+        "bytes": 1447737676,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules"
+      },
+      "out": {
+        "bytes": 61417890,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\out"
+      },
+      "dist": {
+        "bytes": 27143579065,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\dist"
+      },
+      "coverage": {
+        "bytes": 36235980,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\coverage"
+      }
+    }
+  },
+  {
+    "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Add",
+    "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Add\nHEAD 613dac0d7e90d3697f3fe6f4c7507c979c43fed9\nbranch refs/heads/feat/audit-closure-add",
+    "status": {
+      "exit": 0,
+      "output": "",
+      "error": "warning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied"
+    },
+    "not_in_cached_remotes": {
+      "exit": 0,
+      "output": "",
+      "error": ""
+    },
+    "generated_sizes": {
+      "node_modules": {
+        "bytes": 1447737676,
+        "read_errors": 0,
+        "junction": true,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules"
+      },
+      "out": {
+        "bytes": 488927,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Add\\out"
+      }
+    }
+  },
+  {
+    "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Delete",
+    "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Delete\nHEAD c5a04e4bb0ac58c68e4fa5dbd44437f7b79ba2f6\nbranch refs/heads/feat/audit-closure-delete",
+    "status": {
+      "exit": 0,
+      "output": "",
+      "error": "warning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied"
+    },
+    "not_in_cached_remotes": {
+      "exit": 0,
+      "output": "",
+      "error": ""
+    },
+    "generated_sizes": {
+      "node_modules": {
+        "bytes": 1447737676,
+        "read_errors": 0,
+        "junction": true,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules"
+      },
+      "out": {
+        "bytes": 517744,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Delete\\out"
+      }
+    }
+  },
+  {
+    "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Improve",
+    "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Improve\nHEAD 4f25618b448661f01c6d12da15dcfe3a9e162730\nbranch refs/heads/feat/audit-closure-improve",
+    "status": {
+      "exit": 0,
+      "output": "",
+      "error": "warning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied"
+    },
+    "not_in_cached_remotes": {
+      "exit": 0,
+      "output": "",
+      "error": ""
+    },
+    "generated_sizes": {
+      "node_modules": {
+        "bytes": 1447737676,
+        "read_errors": 0,
+        "junction": true,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules"
+      },
+      "out": {
+        "bytes": 500842,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Improve\\out"
+      }
+    }
+  },
+  {
+    "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Wrap",
+    "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Wrap\nHEAD 2ff7aaf4181ece75ffadde21bf63c14018813f0f\nbranch refs/heads/feat/audit-closure-wrap",
+    "status": {
+      "exit": 0,
+      "output": "",
+      "error": "warning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\17076/.config/git/ignore': Permission denied"
+    },
+    "not_in_cached_remotes": {
+      "exit": 0,
+      "output": "",
+      "error": ""
+    },
+    "generated_sizes": {
+      "node_modules": {
+        "bytes": 1447737676,
+        "read_errors": 0,
+        "junction": true,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules"
+      },
+      "out": {
+        "bytes": 61405394,
+        "read_errors": 0,
+        "junction": false,
+        "resolved": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Wrap\\out"
+      }
+    }
+  }
+]

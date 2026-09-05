@@ -5,9 +5,9 @@ describe('BD-4 dangerous command policy', () => {
   it.runIf(process.platform === 'win32')(
     'uses the real PowerShell AST parser for ordinary safe commands on Windows',
     () => {
-    const result = inspectPowerShellCommand("Get-ChildItem -LiteralPath '.'", 'win32')
-    expect(result).toMatchObject({ verdict: 'safe' })
-    expect(result.commands.map((command) => command.toLowerCase())).toContain('get-childitem')
+      const result = inspectPowerShellCommand("Get-ChildItem -LiteralPath '.'", 'win32')
+      expect(result, result.reason).toMatchObject({ verdict: 'safe' })
+      expect(result.commands.map((command) => command.toLowerCase())).toContain('get-childitem')
     }
   )
 
@@ -18,7 +18,7 @@ describe('BD-4 dangerous command policy', () => {
         "Remove-Item -LiteralPath '.\\build' -Recurse",
         'win32'
       )
-      expect(result).toMatchObject({ verdict: 'dangerous' })
+      expect(result, result.reason).toMatchObject({ verdict: 'dangerous' })
       expect(result.reason).toContain('remove-item')
     }
   )

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-34A: Serialize Windows CI test workers and expose parser failures
+
+**Files changed:** `.github/workflows/ci.yml`, `electron/services/dangerous-command-policy.test.ts`, `PLANNING/evidence/sr33.json`
+
+**Verification:** Same full coverage command with maxWorkers=1 passed locally on Windows: 3007 passed, 174 skipped; 272 files passed, 18 skipped. Coverage statements 34.51%, branches 30.47%, functions 27.82%, lines 35.81%, all existing floors passed. No test removed, skipped, retried or relaxed by this change.
+
+**Notes:** Hosted runs 33984062387 and 33984347616 failed the real PowerShell safe-command assertion with uninspectable, matching an earlier intermittent failure. Their assertion output hid the reason; the updated assertion exposes it. Serialize Windows test files to remove competing test workers during real process-startup checks. Production parser timeout and fail-closed behavior unchanged. Hosted confirmation remains mandatory in SR-34; this is not a claim of a proven parser defect repair. SR-33 pushed at 89675c843e91040ed087d63c07a4d4f0dc00ba75.
+
+**Commit:** see `PLANNING/evidence/sr34a.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-33: Record storage and worktree retirement evidence
 
 **Files changed:** `PLANNING/evidence/sr-storage.py`, `PLANNING/evidence/sr33-storage.json`, `PLANNING/evidence/SR33_STORAGE.md`, `PLANNING/evidence/sr32.json`

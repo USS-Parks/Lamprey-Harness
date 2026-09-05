@@ -76,7 +76,9 @@ jobs:
         # thresholds pinned in vitest.config.ts (Prompt 12: floor =
         # baseline minus 2pp per metric — a regression guard, not a
         # quality target).
-        run: npm test -- --coverage
+        # Keep real process-startup checks within their production deadlines on
+        # the Windows runner; do not race them against other test-file workers.
+        run: npm test -- --coverage ${{ runner.os == 'Windows' && '--maxWorkers=1' || '' }}
 
       - name: Upload coverage report
         # One coverage artifact is enough; upload from the ubuntu leg only.
@@ -91,8 +93,8 @@ jobs:
   native-db:
     # AC-36 — ABI-guarded suites must run red/green under Electron's
     # ABI, not skip under the Node-based `test` job (v0.9.2 class of hole).
-    # Walker finds files with HAS_NATIVE_SQLITE / nativeOk() (17 as of
-    # 2026-09). getDb() suites set __setUserDataForTests so they run
+    # Walker finds files with HAS_NATIVE_SQLITE / nativeOk(). getDb()
+    # suites set __setUserDataForTests so they run
     # without a ready Electron app.
     runs-on: ubuntu-latest
     steps:

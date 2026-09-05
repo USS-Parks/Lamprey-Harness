@@ -3,8 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // rag_collections CRUD tests. Same `vi.mock('electron')` pattern as the
 // other store tests — getDb() throws under the mock and the store engages
 // its memory fallback. The cascade and FTS-sync-trigger checks from the
-// R1 spec require a real DB, so they live in a `describe.skipIf` block
-// with the SQL contract documented inline.
+// R1 spec require real DB coverage; this file covers only the memory fallback.
 vi.mock('electron', () => ({
   app: {
     getPath: () => {
@@ -222,12 +221,5 @@ describe('memory fallback signal', () => {
 //     vec row. Until R5, the only chunk delete path is via collection
 //     deletion (which goes through the chunk FK cascade) and ingest
 //     replacement (handled in the same R5 transaction).
-describe.skip('DB-backed cascade + FTS sync (requires real SQLite)', () => {
-  it('deleting a collection cascades to documents + chunks', () => {
-    // See comment above for the SQL contract this test would exercise.
-  })
-
-  it('inserting a chunk populates rag_chunks_fts via the AFTER INSERT trigger', () => {
-    // See comment above for the SQL contract this test would exercise.
-  })
-})
+// No test receipt is claimed here for cascade/FTS behavior. The former empty,
+// unconditionally skipped tests did not exercise that contract.

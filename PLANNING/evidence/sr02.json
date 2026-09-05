@@ -1,0 +1,7 @@
+{
+  "prompt": "SR-02",
+  "title": "Fail native acceptance on missing or skipped proof",
+  "verification": "Public Node entrypoint launches Electron ABI and passes 17 files/150 tests with zero skips. Three node:test gate tests pass, including actual command exit 1 with injected unavailable binding. Validator rejects missing/empty/skipped/failed/TODO required suites. Retained RAG store tests: 14 passed. Required lint and both project typechecks run as commit hooks.",
+  "notes": "Native report lists required files and validates every assertion result. Removed two empty unconditional RAG placeholders rather than claiming unimplemented cascade/FTS coverage. That limitation remains explicit. SR-01 commit 9f0b344c4b2c82815720e912ddc7f5efb2eff111.",
+  "files": ["scripts/test-native-db.cjs", "scripts/test-native-db.test.cjs", "electron/services/rag/store.test.ts", ".github/workflows/ci.yml", "PLANNING/evidence/sr01.json"]
+}

@@ -115,3 +115,6 @@ jobs:
         env:
           ELECTRON_RUN_AS_NODE: '1'
         run: npx electron scripts/test-native-db.cjs
+
+      - name: Native gate rejects missing proof
+        run: node --test scripts/test-native-db.test.cjs

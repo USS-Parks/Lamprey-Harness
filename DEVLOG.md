@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-02: Fail native acceptance on missing or skipped proof
+
+**Files changed:** `scripts/test-native-db.cjs`, `scripts/test-native-db.test.cjs`, `electron/services/rag/store.test.ts`, `.github/workflows/ci.yml`, `PLANNING/evidence/sr01.json`
+
+**Verification:** Public Node entrypoint launches Electron ABI and passes 17 files/150 tests with zero skips. Three node:test gate tests pass, including actual command exit 1 with injected unavailable binding. Validator rejects missing/empty/skipped/failed/TODO required suites. Retained RAG store tests: 14 passed. Required lint and both project typechecks run as commit hooks.
+
+**Notes:** Native report lists required files and validates every assertion result. Removed two empty unconditional RAG placeholders rather than claiming unimplemented cascade/FTS coverage. That limitation remains explicit. SR-01 commit 9f0b344c4b2c82815720e912ddc7f5efb2eff111.
+
+**Commit:** see `PLANNING/evidence/sr02.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-01: Run real native getDb suites
 
 **Files changed:** `electron/services/database.ts`, `electron/services/conversation-store.ts`, `electron/services/sessions-search.test.ts`, `electron/services/loop-store.test.ts`, `electron/services/loop-runner.test.ts`, `electron/services/backup-runner.test.ts`, `.github/workflows/ci.yml`, `PLANNING/evidence/sr00.json`, `PLANNING/evidence/sr01-reuse.py`, `PLANNING/evidence/sr-native.py`

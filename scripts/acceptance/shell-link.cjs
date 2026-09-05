@@ -1,4 +1,4 @@
-/* global window, document, DataTransfer, DragEvent, getComputedStyle */ // Renderer callbacks.
+/* global window, document, DataTransfer, DragEvent, getComputedStyle, MouseEvent */ // Renderer callbacks.
 const { _electron: electron } = require('playwright')
 const { mkdtempSync, writeFileSync, readdirSync, readFileSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
@@ -72,13 +72,29 @@ async function main() {
       console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, realKeyPersistence: true, localProviderAuthentication: true, dialogCompleted: true, plaintextConsent: 'granted in isolated fixture profile' }))
       return
     }
-    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs')) {
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize')) {
       await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()
         const saved = await window.api.settings.saveProviderKey(provider, 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
       }, process.argv.includes('--shortcuts') ? 'fixture-provider' : 'deepseek')
       await page.reload()
+    }
+    if (process.argv.includes('--resize')) {
+      const handle = page.getByTitle('Drag to resize · double-click to reset', { exact: true }).first()
+      await handle.waitFor()
+      const width = () => handle.evaluate((element) => element.parentElement.getBoundingClientRect().width)
+      const before = await width()
+      await handle.dispatchEvent('mousedown', { clientX: 100 })
+      await page.evaluate(() => document.dispatchEvent(new MouseEvent('mousemove', { clientX: 130 })))
+      await page.waitForFunction((before) => document.querySelector('.resize-handle-v-right').parentElement.getBoundingClientRect().width > before, before)
+      await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+      const stopped = await width()
+      await page.evaluate(() => document.dispatchEvent(new MouseEvent('mousemove', { clientX: 200 })))
+      assert.equal(await width(), stopped)
+      assert.equal(await page.evaluate(() => document.body.style.cursor), '')
+      console.log(JSON.stringify({ productionSidebarResize: true, blurStopsResize: true, cursorRestored: true }))
+      return
     }
     if (process.argv.includes('--prs')) {
       await require('./pull-requests.cjs')(app, page)

@@ -9,5 +9,6 @@
     "src/components/workspace/RepositoryPickerDialog.tsx",
     "scripts/acceptance/subscriptions.cjs",
     "PLANNING/evidence/sr24.json"
-  ]
+  ],
+  "commit": "fb41cd327b1af1468b7c8290870407e05a36058d"
 }

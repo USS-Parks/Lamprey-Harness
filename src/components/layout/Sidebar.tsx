@@ -6,6 +6,7 @@ import { useSidebarStore, SIDEBAR_DEFAULT_LIMIT } from '@/stores/sidebar-store'
 import { useNavHistoryStore } from '@/stores/nav-history-store'
 import { toast } from '@/stores/toast-store'
 import { useMediaQuery, NARROW_VIEWPORT_QUERY } from '@/hooks/useMediaQuery'
+import { useResizeDrag } from '@/hooks/useResizeDrag'
 import type { Conversation, Project } from '@/lib/types'
 import { PopoverMenu } from '@/components/ui/PopoverMenu'
 import { ActivityDashboard } from '@/components/activity/ActivityDashboard'
@@ -481,7 +482,7 @@ export function Sidebar() {
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed)
   const setSidebarWidth = useUiStore((s) => s.setSidebarWidth)
   const searchRef = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
+  const { dragging, onResizeStart: handleResizeStart } = useResizeDrag(sidebarWidth, setSidebarWidth, SIDEBAR_BOUNDS)
   const [filterVisible, setFilterVisible] = useState(false)
   const [sessionsVisible, setSessionsVisible] = useState(false)
   const [newProjectOpen, setNewProjectOpen] = useState(false)
@@ -517,33 +518,6 @@ export function Sidebar() {
   useEffect(() => {
     void loadProjects()
   }, [loadProjects])
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setDragging(true)
-      const startX = e.clientX
-      const startWidth = sidebarWidth
-      const onMove = (me: MouseEvent) => {
-        const delta = me.clientX - startX
-        const next = Math.max(
-          SIDEBAR_BOUNDS.min,
-          Math.min(SIDEBAR_BOUNDS.max, startWidth + delta)
-        )
-        setSidebarWidth(next)
-      }
-      const onUp = () => {
-        setDragging(false)
-        document.removeEventListener('mousemove', onMove)
-        document.removeEventListener('mouseup', onUp)
-        document.body.style.cursor = ''
-      }
-      document.body.style.cursor = 'col-resize'
-      document.addEventListener('mousemove', onMove)
-      document.addEventListener('mouseup', onUp)
-    },
-    [sidebarWidth, setSidebarWidth]
-  )
 
   // The Search nav row toggles the filter. If it's already
   // open AND the input has keyboard focus, the same chord dismisses it.

@@ -115,7 +115,7 @@ Depends on C. Result: repaired existing surfaces are reachable and usable.
 | [x] SR-23 | Make settings reflect acknowledged persistence (SA-30) | Failure envelope/rejection restores acknowledged values/theme and displays error; overlapping requests cannot roll newer success backward |
 | [x] SR-24 | Reconnect the existing pull-request panel (SA-17) | User navigates from app entry to panel; fixture repository supports list/diff/checks; approval-sensitive comment submission tested without sending unsolicited messages; structural test alone insufficient |
 | [x] SR-25 | Narrow hot store subscriptions (SA-12) | Streaming profiler/counters show unrelated Sidebar/settings/picker renders reduced; selected state changes still update correctly; no new state layer |
-| [ ] SR-26 | Clean up Sidebar resize lifecycle (SA-21) | Mouse release, lost focus and unmount during drag remove listeners/reset cursor; resizing still works |
+| [x] SR-26 | Clean up Sidebar resize lifecycle (SA-21) | Mouse release, lost focus and unmount during drag remove listeners/reset cursor; resizing still works |
 
 ### Milestone E — Honest maintenance and final audit closure
 

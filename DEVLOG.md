@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-26: Clean up Sidebar resize listeners on every drag exit
+
+**Files changed:** `src/hooks/useResizeDrag.ts`, `src/components/layout/Sidebar.tsx`, `scripts/acceptance/resize.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr25.json`
+
+**Verification:** Chromium mounted the actual React resize hook and tested mouseup, window blur, pointercancel and component unmount during drag. Each restored the prior cursor and detached movement handling; new drags still worked and clamped width. Production build passed. Real Electron Sidebar resized, stopped on blur, ignored subsequent movement and restored its cursor; graceful quit passed.
+
+**Notes:** Extracts only the Sidebar drag lifecycle into a small hook so React unmount behavior can be exercised directly. It follows the existing right-panel blur/pointercancel pattern and additionally restores the previous cursor and cancels an earlier drag before a new one. SR-25 committed and pushed at fb41cd327b1af1468b7c8290870407e05a36058d; full suite passed 3008 tests.
+
+**Commit:** see `PLANNING/evidence/sr26.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-25: Narrow Sidebar and GitHub store subscriptions
 
 **Files changed:** `src/components/layout/Sidebar.tsx`, `src/components/settings/GitHubSettings.tsx`, `src/components/workspace/RepositoryPickerDialog.tsx`, `scripts/acceptance/subscriptions.cjs`, `PLANNING/evidence/sr24.json`

@@ -465,13 +465,11 @@ function ProjectSection({
 }
 
 export function Sidebar() {
-  const {
-    conversations,
-    activeConversationId,
-    selectConversation,
-    createConversation,
-    deleteConversation
-  } = useChatStore()
+  const conversations = useChatStore((s) => s.conversations)
+  const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const selectConversation = useChatStore((s) => s.selectConversation)
+  const createConversation = useChatStore((s) => s.createConversation)
+  const deleteConversation = useChatStore((s) => s.deleteConversation)
   const searchQuery = useUiStore((s) => s.searchQuery)
   const setSearchQuery = useUiStore((s) => s.setSearchQuery)
   const searchFocusToken = useUiStore((s) => s.searchFocusToken)

@@ -19,7 +19,12 @@ export function RepositoryPickerDialog({
   projectId,
   onSelected
 }: RepositoryPickerDialogProps): React.ReactElement | null {
-  const { status, repos, loadingRepos, reposError, refreshStatus, refreshRepos } = useGitHubStore()
+  const status = useGitHubStore((s) => s.status)
+  const repos = useGitHubStore((s) => s.repos)
+  const loadingRepos = useGitHubStore((s) => s.loadingRepos)
+  const reposError = useGitHubStore((s) => s.reposError)
+  const refreshStatus = useGitHubStore((s) => s.refreshStatus)
+  const refreshRepos = useGitHubStore((s) => s.refreshRepos)
   const [filter, setFilter] = useState('')
   const [ownerFilter, setOwnerFilter] = useState<string>('all')
   const [busy, setBusy] = useState<string | null>(null)

@@ -18,8 +18,12 @@ import { PullRequestsPanel } from '@/components/github/PullRequestsPanel'
 // installation-token exchange is deferred — see README "Future work".
 
 export function GitHubSettings(): React.ReactElement {
-  const { status, loadingStatus, refreshStatus, refreshRepos, repos, loadingRepos } =
-    useGitHubStore()
+  const status = useGitHubStore((s) => s.status)
+  const loadingStatus = useGitHubStore((s) => s.loadingStatus)
+  const refreshStatus = useGitHubStore((s) => s.refreshStatus)
+  const refreshRepos = useGitHubStore((s) => s.refreshRepos)
+  const repos = useGitHubStore((s) => s.repos)
+  const loadingRepos = useGitHubStore((s) => s.loadingRepos)
   const [hasClient, setHasClient] = useState<boolean | null>(null)
   const [hasBundled, setHasBundled] = useState<boolean | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-25: Narrow Sidebar and GitHub store subscriptions
+
+**Files changed:** `src/components/layout/Sidebar.tsx`, `src/components/settings/GitHubSettings.tsx`, `src/components/workspace/RepositoryPickerDialog.tsx`, `scripts/acceptance/subscriptions.cjs`, `PLANNING/evidence/sr24.json`
+
+**Verification:** Production React/Zustand browser counters extracted the actual subscription declarations from baseline 5b685a7 and current source. For each of Sidebar, GitHubSettings and RepositoryPickerDialog, 100 unrelated store changes caused 100 renders before and zero after; a selected conversations/repos change caused one render and updated displayed data in both. Production build passed. Built Electron real streaming/cancellation and Settings-to-PR navigation/submission fixture passed.
+
+**Notes:** Uses existing per-field Zustand selectors; no new state layer. Counter measurements isolate subscriptions from parent/child effects and are not whole-app FPS or total render claims. The Sidebar counter uses streamingText churn; GitHub surfaces use unrelated fields in their own store. SR-24 committed and pushed at 5b685a7a21f98ad6313744627d5b2408689b52a1; full suite passed 3008 tests.
+
+**Commit:** see `PLANNING/evidence/sr25.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-24: Reconnect the existing pull-request panel from GitHub settings
 
 **Files changed:** `src/components/settings/GitHubSettings.tsx`, `src/components/github/PullRequestsPanel.tsx`, `src/components/github/InlineCommentComposer.tsx`, `src/components/github/PRDiffView.tsx`, `src/components/github/PRStatusChecks.tsx`, `scripts/acceptance/pull-requests.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr23.json`

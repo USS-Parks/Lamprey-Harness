@@ -12,5 +12,6 @@
     "scripts/acceptance/pull-requests.cjs",
     "scripts/acceptance/shell-link.cjs",
     "PLANNING/evidence/sr23.json"
-  ]
+  ],
+  "commit": "5b685a7a21f98ad6313744627d5b2408689b52a1"
 }

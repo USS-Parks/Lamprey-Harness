@@ -1,0 +1,529 @@
+{
+  "observed_at": "2026-09-05T18:36:26.792522+00:00",
+  "remote_main": "824d0aea5e8451dec7b16b32c78d8332849d7806",
+  "worktrees": [
+    {
+      "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness",
+      "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey Harness\nHEAD 824d0aea5e8451dec7b16b32c78d8332849d7806\nbranch refs/heads/codex/september-2026-remediation",
+      "head": "824d0aea5e8451dec7b16b32c78d8332849d7806",
+      "status": {
+        "exit": 0,
+        "output": "M PLANNING/evidence/sr32.json\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT.md\n?? PLANNING/LAMPREY_AUGUST_2026_AUDIT_PLAN.md\n?? PLANNING/LAMPREY_SADDLE_PADDOCK_PLAN.md\n?? PLANNING/evidence/sr-storage.py",
+        "error": ""
+      },
+      "unpublished_against_main": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "preserved_on_main": true,
+      "generated": {
+        "node_modules": {
+          "bytes": 1397641988,
+          "errors": [],
+          "shared_links": []
+        },
+        "out": {
+          "bytes": 61501980,
+          "errors": [],
+          "shared_links": []
+        },
+        "dist": {
+          "bytes": 27143579065,
+          "errors": [],
+          "shared_links": []
+        },
+        "coverage": {
+          "bytes": 36235980,
+          "errors": [],
+          "shared_links": []
+        }
+      },
+      "purpose": "Active sequential remediation and release",
+      "retirement_blocker": "Active canonical checkout"
+    },
+    {
+      "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Add",
+      "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Add\nHEAD 613dac0d7e90d3697f3fe6f4c7507c979c43fed9\nbranch refs/heads/feat/audit-closure-add",
+      "head": "613dac0d7e90d3697f3fe6f4c7507c979c43fed9",
+      "status": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "unpublished_against_main": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "preserved_on_main": true,
+      "generated": {
+        "node_modules": {
+          "shared_target": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules",
+          "separate_bytes": 0
+        },
+        "out": {
+          "bytes": 488927,
+          "errors": [],
+          "shared_links": []
+        }
+      },
+      "purpose": "Retained prior audit lane; no current session ownership established",
+      "retirement_blocker": "Explicit path-specific removal authorization and owner confirmation required"
+    },
+    {
+      "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Delete",
+      "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Delete\nHEAD c5a04e4bb0ac58c68e4fa5dbd44437f7b79ba2f6\nbranch refs/heads/feat/audit-closure-delete",
+      "head": "c5a04e4bb0ac58c68e4fa5dbd44437f7b79ba2f6",
+      "status": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "unpublished_against_main": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "preserved_on_main": true,
+      "generated": {
+        "node_modules": {
+          "shared_target": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules",
+          "separate_bytes": 0
+        },
+        "out": {
+          "bytes": 517744,
+          "errors": [],
+          "shared_links": []
+        }
+      },
+      "purpose": "Retained prior audit lane; no current session ownership established",
+      "retirement_blocker": "Explicit path-specific removal authorization and owner confirmation required"
+    },
+    {
+      "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Improve",
+      "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Improve\nHEAD 4f25618b448661f01c6d12da15dcfe3a9e162730\nbranch refs/heads/feat/audit-closure-improve",
+      "head": "4f25618b448661f01c6d12da15dcfe3a9e162730",
+      "status": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "unpublished_against_main": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "preserved_on_main": true,
+      "generated": {
+        "node_modules": {
+          "shared_target": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules",
+          "separate_bytes": 0
+        },
+        "out": {
+          "bytes": 500842,
+          "errors": [],
+          "shared_links": []
+        }
+      },
+      "purpose": "Retained prior audit lane; no current session ownership established",
+      "retirement_blocker": "Explicit path-specific removal authorization and owner confirmation required"
+    },
+    {
+      "path": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-AC-Wrap",
+      "registration": "worktree C:/Users/17076/Documents/Claude/Lamprey-Harness-AC-Wrap\nHEAD 2ff7aaf4181ece75ffadde21bf63c14018813f0f\nbranch refs/heads/feat/audit-closure-wrap",
+      "head": "2ff7aaf4181ece75ffadde21bf63c14018813f0f",
+      "status": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "unpublished_against_main": {
+        "exit": 0,
+        "output": "",
+        "error": ""
+      },
+      "preserved_on_main": true,
+      "generated": {
+        "node_modules": {
+          "shared_target": "C:\\Users\\17076\\Documents\\Claude\\Lamprey Harness\\node_modules",
+          "separate_bytes": 0
+        },
+        "out": {
+          "bytes": 61405394,
+          "errors": [],
+          "shared_links": []
+        }
+      },
+      "purpose": "Retained prior audit lane; no current session ownership established",
+      "retirement_blocker": "Explicit path-specific removal authorization and owner confirmation required"
+    }
+  ],
+  "dist_entries": {
+    ".icon-ico": {
+      "bytes": 83721,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.20.0": {
+      "bytes": 872075592,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.21.0": {
+      "bytes": 872132595,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.23.0": {
+      "bytes": 874894014,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.24.0": {
+      "bytes": 874935225,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.26.0": {
+      "bytes": 874882394,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.27.0": {
+      "bytes": 874863009,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.27.1": {
+      "bytes": 874896047,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.28.0": {
+      "bytes": 874862737,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.29.0": {
+      "bytes": 874892366,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.30.0": {
+      "bytes": 874892287,
+      "errors": [],
+      "shared_links": []
+    },
+    "bucket-cross-0.31.0": {
+      "bytes": 874920023,
+      "errors": [],
+      "shared_links": []
+    },
+    "builder-debug.yml": {
+      "bytes": 7452
+    },
+    "builder-effective-config.yaml": {
+      "bytes": 1513
+    },
+    "extracted-exe-icon.png": {
+      "bytes": 3024
+    },
+    "Lamprey-0.1.41-x64.exe.blockmap": {
+      "bytes": 249049
+    },
+    "Lamprey-0.1.41-x64.zip": {
+      "bytes": 316356294
+    },
+    "Lamprey-0.2.9-x64.exe.blockmap": {
+      "bytes": 244499
+    },
+    "Lamprey-0.2.9-x64.zip": {
+      "bytes": 313731484
+    },
+    "Lamprey-0.3.0-x64.exe": {
+      "bytes": 241631659
+    },
+    "Lamprey-0.3.0-x64.exe.blockmap": {
+      "bytes": 245648
+    },
+    "Lamprey-0.3.0-x64.zip": {
+      "bytes": 313811634
+    },
+    "Lamprey-0.3.1-x64.exe": {
+      "bytes": 241631677
+    },
+    "Lamprey-0.3.1-x64.exe.blockmap": {
+      "bytes": 245534
+    },
+    "Lamprey-0.3.1-x64.zip": {
+      "bytes": 313814156
+    },
+    "Lamprey-0.3.2-x64.exe": {
+      "bytes": 241631192
+    },
+    "Lamprey-0.3.2-x64.exe.blockmap": {
+      "bytes": 245871
+    },
+    "Lamprey-0.3.2-x64.zip": {
+      "bytes": 313817343
+    },
+    "Lamprey-0.3.3-x64.exe": {
+      "bytes": 241630469
+    },
+    "Lamprey-0.3.3-x64.exe.blockmap": {
+      "bytes": 245964
+    },
+    "Lamprey-0.3.3-x64.zip": {
+      "bytes": 313817222
+    },
+    "Lamprey-0.3.4-x64.exe": {
+      "bytes": 241631298
+    },
+    "Lamprey-0.3.4-x64.exe.blockmap": {
+      "bytes": 246173
+    },
+    "Lamprey-0.3.4-x64.zip": {
+      "bytes": 313814424
+    },
+    "Lamprey-0.3.5-x64.exe": {
+      "bytes": 241630028
+    },
+    "Lamprey-0.3.5-x64.exe.blockmap": {
+      "bytes": 246384
+    },
+    "Lamprey-0.3.5-x64.zip": {
+      "bytes": 313813346
+    },
+    "Lamprey-0.3.6-x64.exe": {
+      "bytes": 241639399
+    },
+    "Lamprey-0.3.6-x64.exe.blockmap": {
+      "bytes": 245962
+    },
+    "Lamprey-0.3.6-x64.zip": {
+      "bytes": 313821834
+    },
+    "Lamprey-0.3.7-x64.exe": {
+      "bytes": 241549244
+    },
+    "Lamprey-0.3.7-x64.exe.blockmap": {
+      "bytes": 247466
+    },
+    "Lamprey-0.3.7-x64.zip": {
+      "bytes": 314079468
+    },
+    "Lamprey-0.4.0-x64.exe": {
+      "bytes": 241677812
+    },
+    "Lamprey-0.4.0-x64.exe.blockmap": {
+      "bytes": 245222
+    },
+    "Lamprey-0.4.0-x64.zip": {
+      "bytes": 313896742
+    },
+    "Lamprey-0.5.0-x64.exe": {
+      "bytes": 241609424
+    },
+    "Lamprey-0.5.0-x64.exe.blockmap": {
+      "bytes": 246364
+    },
+    "Lamprey-0.5.0-x64.zip": {
+      "bytes": 314176174
+    },
+    "Lamprey-0.5.0-x86_64.AppImage": {
+      "bytes": 311056931
+    },
+    "Lamprey-0.5.1-x64.exe": {
+      "bytes": 244894777
+    },
+    "Lamprey-0.5.1-x64.exe.blockmap": {
+      "bytes": 250603
+    },
+    "Lamprey-0.5.1-x64.zip": {
+      "bytes": 317476942
+    },
+    "Lamprey-0.5.2-x64.exe": {
+      "bytes": 244892259
+    },
+    "Lamprey-0.5.2-x64.exe.blockmap": {
+      "bytes": 249799
+    },
+    "Lamprey-0.5.2-x64.zip": {
+      "bytes": 317475069
+    },
+    "Lamprey-0.5.3-x64.exe": {
+      "bytes": 244882513
+    },
+    "Lamprey-0.5.3-x64.exe.blockmap": {
+      "bytes": 249970
+    },
+    "Lamprey-0.5.3-x64.zip": {
+      "bytes": 317465476
+    },
+    "Lamprey-0.6.0-x64.exe": {
+      "bytes": 244888958
+    },
+    "Lamprey-0.6.0-x64.exe.blockmap": {
+      "bytes": 250049
+    },
+    "Lamprey-0.6.0-x64.zip": {
+      "bytes": 317470725
+    },
+    "Lamprey-0.6.1-x64.exe": {
+      "bytes": 244891330
+    },
+    "Lamprey-0.6.1-x64.exe.blockmap": {
+      "bytes": 250286
+    },
+    "Lamprey-0.6.1-x64.zip": {
+      "bytes": 317470685
+    },
+    "Lamprey-0.6.2-x64.exe": {
+      "bytes": 244890943
+    },
+    "Lamprey-0.6.2-x64.exe.blockmap": {
+      "bytes": 249630
+    },
+    "Lamprey-0.6.2-x64.zip": {
+      "bytes": 317472008
+    },
+    "Lamprey-0.7.0-x64.exe": {
+      "bytes": 244898881
+    },
+    "Lamprey-0.7.0-x64.exe.blockmap": {
+      "bytes": 249466
+    },
+    "Lamprey-0.7.0-x64.zip": {
+      "bytes": 317481960
+    },
+    "Lamprey-0.7.1-x64.exe": {
+      "bytes": 244897548
+    },
+    "Lamprey-0.7.1-x64.exe.blockmap": {
+      "bytes": 249911
+    },
+    "Lamprey-0.7.1-x64.zip": {
+      "bytes": 317478997
+    },
+    "Lamprey-0.7.2-x64.exe": {
+      "bytes": 244900981
+    },
+    "Lamprey-0.7.2-x64.exe.blockmap": {
+      "bytes": 249863
+    },
+    "Lamprey-0.7.2-x64.zip": {
+      "bytes": 317482249
+    },
+    "Lamprey-0.7.5-x64.exe": {
+      "bytes": 244912518
+    },
+    "Lamprey-0.7.5-x64.exe.blockmap": {
+      "bytes": 249843
+    },
+    "Lamprey-0.7.5-x64.zip": {
+      "bytes": 317498530
+    },
+    "Lamprey-0.8.0-x64.exe": {
+      "bytes": 244907236
+    },
+    "Lamprey-0.8.0-x64.exe.blockmap": {
+      "bytes": 249837
+    },
+    "Lamprey-0.8.0-x64.zip": {
+      "bytes": 317492482
+    },
+    "Lamprey-0.8.1-x64.exe": {
+      "bytes": 245666812
+    },
+    "Lamprey-0.8.1-x64.exe.blockmap": {
+      "bytes": 248627
+    },
+    "Lamprey-0.8.1-x64.zip": {
+      "bytes": 318277060
+    },
+    "Lamprey-0.8.2-x64.exe": {
+      "bytes": 245667136
+    },
+    "Lamprey-0.8.2-x64.exe.blockmap": {
+      "bytes": 248753
+    },
+    "Lamprey-0.8.2-x64.zip": {
+      "bytes": 318275757
+    },
+    "Lamprey-0.8.3-x64.exe": {
+      "bytes": 247041216
+    },
+    "Lamprey-0.8.3-x64.exe.blockmap": {
+      "bytes": 248821
+    },
+    "Lamprey-0.8.3-x64.zip": {
+      "bytes": 319636528
+    },
+    "Lamprey-Steering-Candidate-f774447-x64.exe": {
+      "bytes": 302092028
+    },
+    "Lamprey-Steering-Codex-UI-Candidate-x64.exe": {
+      "bytes": 300825871
+    },
+    "Lamprey-x64 - Copy.exe": {
+      "bytes": 302053612
+    },
+    "Lamprey-x64-max.zip": {
+      "bytes": 328977399
+    },
+    "Lamprey-x64.exe": {
+      "bytes": 301934091
+    },
+    "Lamprey-x64.exe.blockmap": {
+      "bytes": 314679
+    },
+    "Lamprey-x64.zip": {
+      "bytes": 403034394
+    },
+    "latest-for-v0.1.9-release.yml": {
+      "bytes": 468
+    },
+    "latest-v0.1.9.yml": {
+      "bytes": 339
+    },
+    "latest.yml": {
+      "bytes": 328
+    },
+    "release-notes-v0.11.0.md": {
+      "bytes": 3055
+    },
+    "release-notes-v0.2.0.md": {
+      "bytes": 2999
+    },
+    "release-notes-v0.2.1.md": {
+      "bytes": 3998
+    },
+    "release-notes-v0.2.2.md": {
+      "bytes": 3716
+    },
+    "release-notes-v0.2.7.md": {
+      "bytes": 3083
+    },
+    "release-notes-v0.2.8.md": {
+      "bytes": 1429
+    },
+    "release-notes-v0.3.1.md": {
+      "bytes": 8308
+    },
+    "release-notes-v0.8.0.md": {
+      "bytes": 5790
+    },
+    "win-unpacked": {
+      "bytes": 1202565055,
+      "errors": [],
+      "shared_links": []
+    }
+  },
+  "disk": {
+    "total": 1023113424896,
+    "used": 658411425792,
+    "free": 364701999104
+  },
+  "deletions": []
+}

@@ -3,5 +3,14 @@
   "title": "Reconcile audit and current documentation claims",
   "verification": "Eight provider parity tests and three operability safety documentation tests passed. Reviewed PR #12 and #14 against the current registry and CJ26_AFTER COMPLETE ledger; reused their corrections. Reviewed package URL diff and source-versus-installer statements. Report now records all 40 numbered findings and SR-31I maintenance evidence while retaining original audit baselines.",
   "notes": "Current-state docs point to active remediation; historical provider counts remain intact. README describes safeStorage and consented plaintext accurately. TL-W4 and final hosted/publication gates remain open. Original PRs remain open; content reuse does not imply merge. User planning files preserved. SR-31I pushed at 8b6989956e2641c6a690ce9f2826b929e134a9ef.",
-  "files": ["AGENTS.md", "CLAUDE.md", "README.md", "package.json", "PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md", "PLANNING/evidence/sr32-reconcile.py", "PLANNING/evidence/sr31i.json"]
+  "files": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "package.json",
+    "PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md",
+    "PLANNING/evidence/sr32-reconcile.py",
+    "PLANNING/evidence/sr31i.json"
+  ],
+  "commit": "824d0aea5e8451dec7b16b32c78d8332849d7806"
 }

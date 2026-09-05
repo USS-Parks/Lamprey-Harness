@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-33: Record storage and worktree retirement evidence
+
+**Files changed:** `PLANNING/evidence/sr-storage.py`, `PLANNING/evidence/sr33-storage.json`, `PLANNING/evidence/SR33_STORAGE.md`, `PLANNING/evidence/sr32.json`
+
+**Verification:** Fetched main and matched ls-remote at 824d0aea5e8451dec7b16b32c78d8332849d7806. All four retained audit worktrees are clean, have no commits outside that main, and their exact HEADs are preserved ancestors. Measured generated directories and every dist entry with zero read errors; junctions are counted as shared, not duplicate dependencies.
+
+**Notes:** No worktree or cache deletion performed. SR33_STORAGE.md records purpose, current dirty state, preservation, byte counts and retirement blockers. Canonical dist remains 25.28 GiB of disclosed retention debt; old artifact bytes are not assumed preserved. No additional checkout created. SR-32 pushed at 824d0aea5e8451dec7b16b32c78d8332849d7806.
+
+**Commit:** see `PLANNING/evidence/sr33.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-32: Reconcile audit and current documentation claims
 
 **Files changed:** `AGENTS.md`, `CLAUDE.md`, `README.md`, `package.json`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr32-reconcile.py`, `PLANNING/evidence/sr31i.json`

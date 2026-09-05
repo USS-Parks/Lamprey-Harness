@@ -82,6 +82,12 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         aria-labelledby="settings-heading"
         className="flex h-[560px] max-h-[calc(100vh-2rem)] w-[720px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-2xl"
         onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            event.stopPropagation()
+            onClose()
+            return
+          }
           if (event.key !== 'Tab') return
           // Reuse the approval dialog's boundary wrapping, excluding hidden
           // and disabled controls and inactive tabs.

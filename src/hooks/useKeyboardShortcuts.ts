@@ -14,6 +14,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
       const mod = e.ctrlKey || e.metaKey
 
       // Ctrl/Cmd+N — new conversation
@@ -100,18 +101,20 @@ export function useKeyboardShortcuts(): void {
         return
       }
 
-      // Esc — cancel stream, or close settings, or clear search
+      // Dialogs own Escape before the conversation's cancel shortcut.
       if (e.key === 'Escape') {
         const chat = useChatStore.getState()
         const ui = useUiStore.getState()
+        if (ui.settingsOpen || ui.quickOpenVisible || ui.workflowPaletteVisible || ui.memoryOpen ||
+          Array.from(document.querySelectorAll('[aria-modal="true"]')).some((element) => element.getClientRects().length > 0)) return
+        if (ui.worktreeModalOpen) {
+          e.preventDefault()
+          ui.closeWorktreeModal()
+          return
+        }
         if (chat.isStreaming) {
           e.preventDefault()
           chat.cancelStream()
-          return
-        }
-        if (ui.settingsOpen) {
-          e.preventDefault()
-          ui.closeSettings()
           return
         }
         // Don't intercept Esc inside text inputs — Sidebar's search has its own handler

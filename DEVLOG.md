@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-21: Give dialogs priority over the Escape cancellation shortcut
+
+**Files changed:** `src/hooks/useKeyboardShortcuts.ts`, `src/components/settings/SettingsDialog.tsx`, `src/components/layout/Sidebar.tsx`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr20.json`
+
+**Verification:** Production build passed. Real Electron renderer/preload/IPC and a local SSE provider verified that Settings Escape and workflow-palette Escape preserve the active request, and the next Escape outside dialogs aborts it. The stale Search Ctrl+K label is absent. Graceful fixture quit passed. Commit and pre-push hooks run lint, both TypeScript projects, the full unit suite and proof smokes.
+
+**Notes:** Global shortcuts respect consumed events and defer Escape to visible modal owners; worktree dismissal precedes turn cancellation. Settings consumes Escape at its dialog root. The fixture explicitly selects its local model through the real picker. Initial fixture execution submitted before selecting that model and failed against the default provider; no live provider acceptance is inferred from it. SR-20 GitHub CI and Pages passed; build was still running when checked.
+
+**Commit:** see `PLANNING/evidence/sr21.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-20: Make settings reachable and keyboard accessible at minimum size
 
 **Files changed:** `src/components/settings/SettingsDialog.tsx`, `src/components/layout/Sidebar.tsx`, `src/App.tsx`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr19.json`

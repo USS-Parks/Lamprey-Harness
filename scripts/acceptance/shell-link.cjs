@@ -15,12 +15,28 @@ async function main() {
   }))
   writeFileSync(join(profile, 'plugins.json'), JSON.stringify(plugins))
   let received = false
+  let streamClosed = 0
   const server = createServer((request, response) => {
+    if (process.argv.includes('--shortcuts') && request.url === '/v1/chat/completions') {
+      console.log('Fixture received chat completion request')
+      request.resume()
+      response.setHeader('Content-Type', 'text/event-stream')
+      response.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Streaming fixture' }, finish_reason: null }] })}\n\n`)
+      response.on('close', () => { streamClosed++ })
+      return
+    }
     if (request.url === '/lamprey-link-smoke') received = true
     response.setHeader('Content-Type', 'text/html')
     response.end('<title>Lamprey link check</title><p>Lamprey external-link check passed. You can close this tab.</p>')
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  if (process.argv.includes('--shortcuts')) {
+    writeFileSync(join(profile, 'settings.json'), JSON.stringify({
+      defaultModel: 'fixture-stream',
+      customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1` }],
+      customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 8192, supportsTools: false }]
+    }))
+  }
   let app
   try {
     const env = { ...process.env, LAMPREY_ACCEPTANCE_PROFILE: profile }
@@ -35,13 +51,48 @@ async function main() {
     page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
-    if (process.argv.includes('--attachments') || process.argv.includes('--settings')) {
-      await page.evaluate(async () => {
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts')) {
+      await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()
-        const saved = await window.api.settings.saveProviderKey('deepseek', 'fixture-only-not-a-real-key')
+        const saved = await window.api.settings.saveProviderKey(provider, 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
-      })
+      }, process.argv.includes('--shortcuts') ? 'fixture-provider' : 'deepseek')
       await page.reload()
+    }
+    if (process.argv.includes('--shortcuts')) {
+      await page.getByTitle('Switch model', { exact: true }).click()
+      await page.getByRole('menuitemradio', { name: /Fixture/ }).click()
+      const input = page.locator('textarea').first()
+      await input.fill('Say hello.')
+      await input.press('Enter')
+      const stop = page.getByRole('button', { name: 'Stop current turn' })
+      await stop.waitFor({ state: 'visible' })
+      await page.getByText('Streaming fixture', { exact: true }).waitFor({ state: 'visible' }).catch(async (error) => {
+        console.log(await page.locator('body').innerText())
+        throw error
+      })
+      await page.keyboard.press('Control+,')
+      const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+      await settings.waitFor({ state: 'visible' })
+      await page.keyboard.press('Escape')
+      await settings.waitFor({ state: 'hidden' })
+      assert(await stop.isVisible())
+      assert.equal(streamClosed, 0)
+      await page.keyboard.press('Control+k')
+      const palette = page.getByTestId('workflow-palette')
+      await palette.waitFor({ state: 'visible' })
+      await page.keyboard.press('Escape')
+      await palette.waitFor({ state: 'hidden' })
+      assert(await stop.isVisible())
+      assert.equal(streamClosed, 0)
+      assert.equal(await page.getByTitle('Search (Ctrl+K)', { exact: true }).count(), 0)
+      await page.keyboard.press('Escape')
+      await stop.waitFor({ state: 'hidden' })
+      const deadline = Date.now() + 5000
+      while (!streamClosed && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 50))
+      assert.equal(streamClosed, 1)
+      console.log(JSON.stringify({ productionBundle: true, realProviderStream: true, settingsEscapePreservesTurn: true, paletteEscapePreservesTurn: true, outsideEscapeAbortsRequest: true }))
+      return
     }
     if (process.argv.includes('--settings')) {
       const cases = []

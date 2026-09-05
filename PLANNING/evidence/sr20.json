@@ -3,5 +3,12 @@
   "title": "Make settings reachable and keyboard accessible at minimum size",
   "verification": "Production build and renderer TypeScript passed. Real Electron app entry reached all 24 tabs using ArrowDown plus Home/End at 800x600 and default 1280x800; each selected tab was fully within the scroll viewport. Mouse interaction, actual Light/Dark settings, Tab/Shift+Tab boundary wrapping and focus return to the Settings opener passed at both sizes. Graceful quit passed. Lint and both TypeScript projects run in the commit hook.",
   "notes": "Adds dialog/tab semantics, a labeled close control, constrained dimensions, scrolling and focus return; reuses the approval modal's focus-boundary approach. Live minimum-size testing found narrow side drawers intercepted settings clicks, so drawer/backdrop layers now sit below settings while approval modals retain priority. No new modal framework. SR-19 pushed at a0d6f9c7515a00ce77a4c6fed454d32dadf48e47; its GitHub CI and Pages passed, build still running when checked.",
-  "files": ["src/components/settings/SettingsDialog.tsx", "src/components/layout/Sidebar.tsx", "src/App.tsx", "scripts/acceptance/shell-link.cjs", "PLANNING/evidence/sr19.json"]
+  "files": [
+    "src/components/settings/SettingsDialog.tsx",
+    "src/components/layout/Sidebar.tsx",
+    "src/App.tsx",
+    "scripts/acceptance/shell-link.cjs",
+    "PLANNING/evidence/sr19.json"
+  ],
+  "commit": "fb18d5799f4875322baff4e6c9713bcfa6dad8de"
 }

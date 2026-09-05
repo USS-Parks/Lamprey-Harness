@@ -547,7 +547,7 @@ export function Sidebar() {
     [sidebarWidth, setSidebarWidth]
   )
 
-  // Ctrl+K (and the Search nav row) toggle the filter. If it's already
+  // The Search nav row toggles the filter. If it's already
   // open AND the input has keyboard focus, the same chord dismisses it.
   // IMPORTANT: this effect must depend ONLY on searchFocusToken — putting
   // filterVisible in the deps would loop (closing re-runs and re-opens).
@@ -765,7 +765,7 @@ export function Sidebar() {
         </button>
         <button
           onClick={handleSearchClick}
-          title="Search (Ctrl+K)"
+          title="Search"
           aria-label="Search"
           className="mt-1 rounded-md p-1.5 transition-colors hover:bg-[var(--bg-tertiary)]"
         >

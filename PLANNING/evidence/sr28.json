@@ -32,5 +32,6 @@
     "src/components/github/PullRequestsPanel.tsx",
     "src/components/layout/Sidebar.tsx",
     "src/components/projects/ProjectHome.tsx"
-  ]
+  ],
+  "commit": "1acaa13951d7f3add0a9d375ec192e22161b43fa"
 }

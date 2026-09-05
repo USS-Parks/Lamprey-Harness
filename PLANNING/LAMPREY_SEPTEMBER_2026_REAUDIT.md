@@ -285,4 +285,6 @@ This draft awaits the user's review and approval. The following is the repositor
 
 **SR-14 verification correction:** manager-level shutdown tests passed, but the real application smoke exposed a `will-quit` stall when asynchronous teardown began directly inside the event. SR-18 schedules that drain with `setImmediate`; the production fixture then emitted both quit passes and exited normally. Source-level and manager-only evidence did not prove application shutdown.
 
+**SA-32 — Both environment Commit controls call unsupported `window.prompt`.** SR-29's real production Electron probe returns `prompt() is not supported.` Both handlers therefore fail before collecting a commit message. They also leave busy state stuck on rejected IPC. The bounded SR-29 repair shares their equivalent commit/push behavior, uses an in-app commit-message dialog, preserves drafts on failure, and binds the operation to the displayed repository path. Real Electron commits and pushes to a temporary local bare remote passed from both floating and docked surfaces, including cancellation and failed-hook retry. No hosted repository was used by this acceptance test.
+
 Authored and reviewed by Basho Parks, copyright 2026

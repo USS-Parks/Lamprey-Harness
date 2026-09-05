@@ -125,7 +125,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 |---|---|---|
 | [x] SR-27 | Remove proven renderer dead code excluding restored PR surface (SA-22) | Resolve all 20 candidate files against entry points/dynamic imports; delete only proven unused code; app build/navigation smoke; record actual LOC removed, not promised 2,087 |
 | [x] SR-28 | Remove extraction leftovers and obsolete service wrapper (SA-22) | Recheck 49 advisory diagnostics, remove unused imports/obsolete wrapper as justified; intended exports and parity contracts retained; affected suites/typechecks pass |
-| [ ] SR-29 | Adjudicate near-duplicate environment handlers (SA-22) | Record actual overlap/error semantics; extract only a small proven common seam or document no-op; both surfaces retain behavior |
+| [x] SR-29 | Adjudicate near-duplicate environment handlers (SA-22) | Record actual overlap/error semantics; extract only a small proven common seam or document no-op; both surfaces retain behavior |
 | [ ] SR-30 | Make OpenWiki workflow configuration honest (SA-28) | Missing credentials no longer trigger scheduled doomed runs; manual/setup state clear; authenticated path remains available only when configured; no secret creation or paid run without authorization |
 | [ ] SR-31 | Adjudicate remaining audit candidates before scope freeze | Inspect fork atomicity, retry/abort, browser subscriptions, quit/subagent drain and dependency advisories; each receives source-backed disposition; confirmed new defects become reviewed roster addenda, not silent extra implementation |
 | [ ] SR-32 | Reconcile documentation and verification claims (SA-19) | Review/reuse PR #12/#14; current count/status/source/installer claims cite receipts; historical corrections explicit; prior user planning text preserved; TL-W4 stays open without publication proof |
@@ -180,5 +180,7 @@ If SR-35 changes shared build/verification behavior, rerun affected SR-34 gates 
 Final completion means all approved prompts have passing gates and commit-linked ledger entries; all 30 findings have evidence-backed dispositions; final source and live acceptance limitations are explicit; publication, if approved, has matching final hashes and exact remote SHA; user files are preserved; retained worktree/build-output debt is disclosed. “Tests pass,” “release exists,” or “plan written” alone cannot satisfy those criteria.
 
 Full STS and Bucket authorized by the user on 5 September 2026. Per-prompt receipts under `PLANNING/evidence/sr*.json` record checks and commit SHAs. Destructive cleanup remains subject to the explicit path-specific approval rule.
+
+SR-29 scope adjudication: the two environment Git handlers are equivalent apart from missing-bridge error copy. Live Electron confirms both invoke unsupported `window.prompt` (SA-32). The focused repair at this existing seam is one shared action hook and commit-message dialog, with try/finally cleanup and repository binding. Acceptance covers cancel, failed commit with retained draft, retry, real commit and push to a temporary local bare remote from both surfaces. This is part of the approved audit/remediation scope, not a new Git feature or a redesign of either environment surface.
 
 Authored and reviewed by Basho Parks, copyright 2026

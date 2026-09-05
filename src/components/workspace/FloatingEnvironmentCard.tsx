@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
 import { useEnvironment } from '@/hooks/useEnvironment'
+import { useEnvironmentGitAction } from '@/hooks/useEnvironmentGitAction'
 import { useSources } from '@/hooks/useSources'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { usePlanStore } from '@/stores/plan-store'
 import type { PlanStepStatus } from '@/lib/types'
-import { toast } from '@/stores/toast-store'
 import { WorkModePopover } from './WorkModePopover'
 import { BranchPickerPopover } from './BranchPickerPopover'
 import changesIcon from '@assets/Lamprey Env Card Changes Icon.png'
@@ -339,7 +339,7 @@ export function FloatingEnvironmentCard({
   const branchRef = useRef<HTMLButtonElement>(null)
   const [workModeOpen, setWorkModeOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
-  const [committing, setCommitting] = useState(false)
+  const { committing, handleCommitOrPush, commitDialog, commitDisabled, commitLabel } = useEnvironmentGitAction(snapshot, refresh)
   const [headerCollapsed, setHeaderCollapsed] = useState(false)
 
   const duration = reduced ? 0 : ENV_CARD_TRANSITION_MS
@@ -360,43 +360,6 @@ export function FloatingEnvironmentCard({
 
   if (state === 'hidden') return null
 
-  const handleCommitOrPush = async () => {
-    if (committing) return
-    if (!window.api?.review) {
-      toast.error('Review API unavailable')
-      return
-    }
-    if (snapshot.hasChanges) {
-      const msg = window.prompt('Commit message:')
-      if (!msg?.trim()) return
-      setCommitting(true)
-      const res = await window.api.review.commit({ message: msg.trim(), stageAll: true })
-      setCommitting(false)
-      if (!res.success) {
-        toast.error(res.error ?? 'Commit failed')
-        return
-      }
-      toast.success('Committed')
-      void refresh()
-    } else if (snapshot.ahead > 0) {
-      setCommitting(true)
-      const res = await window.api.review.push()
-      setCommitting(false)
-      if (!res.success) {
-        toast.error(res.error ?? 'Push failed')
-        return
-      }
-      toast.success('Pushed')
-      void refresh()
-    }
-  }
-
-  const commitDisabled = !snapshot.hasChanges && snapshot.ahead === 0
-  const commitLabel = snapshot.hasChanges
-    ? 'Commit'
-    : snapshot.ahead > 0
-    ? `Push (${snapshot.ahead} ahead)`
-    : 'Commit or push'
   // UB-6 — single-agent always; the 'Pipeline' label died with the toggle.
   const workModeLabel = 'Local'
 
@@ -424,6 +387,7 @@ export function FloatingEnvironmentCard({
 
   return (
     <>
+      {commitDialog}
       <div
         ref={containerRef}
         className="pointer-events-auto fixed z-40 rounded-xl border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-2 shadow-xl"

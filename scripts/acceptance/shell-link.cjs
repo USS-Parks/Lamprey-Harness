@@ -58,6 +58,14 @@ async function main() {
     page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--prompt-probe')) {
+      const result = await page.evaluate(() => {
+        try { window.prompt('Acceptance fixture prompt'); return 'supported' } catch (error) { return error.message }
+      })
+      assert.match(result, /prompt.*not supported/i)
+      console.log(JSON.stringify({ productionRendererPrompt: result }))
+      return
+    }
     if (process.argv.includes('--keys')) {
       const dialog = page.getByRole('dialog', { name: 'Welcome to the Lamprey Harness' })
       await dialog.waitFor()
@@ -72,13 +80,17 @@ async function main() {
       console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, realKeyPersistence: true, localProviderAuthentication: true, dialogCompleted: true, plaintextConsent: 'granted in isolated fixture profile' }))
       return
     }
-    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize')) {
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize') || process.argv.includes('--environment-git')) {
       await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()
         const saved = await window.api.settings.saveProviderKey(provider, 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
       }, process.argv.includes('--shortcuts') ? 'fixture-provider' : 'deepseek')
       await page.reload()
+    }
+    if (process.argv.includes('--environment-git')) {
+      await require('./environment-git.cjs')(app, page, profile)
+      return
     }
     if (process.argv.includes('--resize')) {
       const handle = page.getByTitle('Drag to resize · double-click to reset', { exact: true }).first()

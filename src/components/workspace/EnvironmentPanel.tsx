@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
 import { useEnvironment } from '@/hooks/useEnvironment'
+import { useEnvironmentGitAction } from '@/hooks/useEnvironmentGitAction'
 import { useSources } from '@/hooks/useSources'
 import { toast } from '@/stores/toast-store'
 import { WorkModePopover } from './WorkModePopover'
@@ -135,7 +136,7 @@ export function EnvironmentPanel(): React.ReactElement {
   const prListRef = useRef<HTMLButtonElement>(null)
   const [workModeOpen, setWorkModeOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
-  const [committing, setCommitting] = useState(false)
+  const { committing, handleCommitOrPush, commitDialog, commitDisabled, commitLabel } = useEnvironmentGitAction(snapshot, refresh)
 
   // GitHub integration state — kept local because the picker/dialogs are
   // only opened from this panel.
@@ -223,44 +224,12 @@ export function EnvironmentPanel(): React.ReactElement {
     setPickerOpen(true)
   }
 
-  const handleCommitOrPush = async () => {
-    if (committing || !window.api?.review) return
-    if (snapshot.hasChanges) {
-      const msg = window.prompt('Commit message:')
-      if (!msg?.trim()) return
-      setCommitting(true)
-      const res = await window.api.review.commit({ message: msg.trim(), stageAll: true })
-      setCommitting(false)
-      if (!res.success) {
-        toast.error(res.error ?? 'Commit failed')
-        return
-      }
-      toast.success('Committed')
-      void refresh()
-    } else if (snapshot.ahead > 0) {
-      setCommitting(true)
-      const res = await window.api.review.push()
-      setCommitting(false)
-      if (!res.success) {
-        toast.error(res.error ?? 'Push failed')
-        return
-      }
-      toast.success('Pushed')
-      void refresh()
-    }
-  }
-
-  const commitDisabled = !snapshot.hasChanges && snapshot.ahead === 0
-  const commitLabel = snapshot.hasChanges
-    ? 'Commit'
-    : snapshot.ahead > 0
-    ? `Push (${snapshot.ahead} ahead)`
-    : 'Commit or push'
   // UB-6 — single-agent always; the 'Pipeline' label died with the toggle.
   const workModeLabel = 'Local'
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-2">
+      {commitDialog}
       <PanelRow
         leading={<ChangesGlyph />}
         label="Changes"

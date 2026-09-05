@@ -109,7 +109,7 @@ Depends on C. Result: repaired existing surfaces are reachable and usable.
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
 | [x] SR-19 | Restore safe outside-workspace attachment flow (SA-26) | Actual drop of external file gets trusted supported import or clear picker fallback; picker attaches it successfully; forged generic path IPC remains denied |
-| [ ] SR-20 | Make settings navigation scrollable and keyboard accessible (SA-11) | All tabs reached at supported minimum/default sizes; dialog focus contained/returned; close labeled; light/dark and keyboard smoke |
+| [x] SR-20 | Make settings navigation scrollable and keyboard accessible (SA-11) | All tabs reached at supported minimum/default sizes; dialog focus contained/returned; close labeled; light/dark and keyboard smoke |
 | [ ] SR-21 | Correct modal-first Escape behavior and shortcut labels (SA-13) | With modal+stream active Escape dismisses modal without aborting turn; next intended cancellation works; labels match implemented shortcuts |
 | [ ] SR-22 | Handle API-key modal bridge failures (SA-14) | Browser without bridge, rejected IPC, failure envelope and packaged success show usable states without unhandled promises |
 | [ ] SR-23 | Make settings reflect acknowledged persistence (SA-30) | Failure envelope/rejection restores acknowledged values/theme and displays error; overlapping requests cannot roll newer success backward |

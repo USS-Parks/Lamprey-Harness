@@ -532,14 +532,14 @@ function App(): React.ReactElement {
       {isNarrow && !rightPanelCollapsed && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+            className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[1px]"
             onClick={() => setRightPanelCollapsed(true)}
             aria-hidden
           />
           <aside
             role="dialog"
             aria-label="Workspace panel"
-            className="fixed bottom-0 right-0 top-0 z-50 flex flex-col overflow-hidden rounded-l-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
+            className="fixed bottom-0 right-0 top-0 z-30 flex flex-col overflow-hidden rounded-l-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
             style={{
               width: Math.min(rightPanelWidth, window.innerWidth - 24),
               transition: 'transform 200ms ease-out',

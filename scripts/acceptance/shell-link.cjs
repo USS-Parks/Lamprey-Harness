@@ -1,4 +1,4 @@
-/* global window, document, DataTransfer, DragEvent */ // Renderer callbacks.
+/* global window, document, DataTransfer, DragEvent, getComputedStyle */ // Renderer callbacks.
 const { _electron: electron } = require('playwright')
 const { mkdtempSync, writeFileSync, readdirSync, readFileSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
@@ -32,17 +32,63 @@ async function main() {
       return app.windows().find((page) => page.url().includes('/renderer/'))
     })
     assert(page, 'Production renderer did not open')
+    page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
-    if (process.argv.includes('--attachments')) {
-      const externalPath = join(profile, 'outside-project.txt')
-      writeFileSync(externalPath, 'External attachment acceptance fixture.')
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings')) {
       await page.evaluate(async () => {
         await window.api.settings.grantPlaintextConsent()
         const saved = await window.api.settings.saveProviderKey('deepseek', 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
       })
       await page.reload()
+    }
+    if (process.argv.includes('--settings')) {
+      const cases = []
+      for (const [width, height] of [[800, 600], [1280, 800]]) {
+        await app.evaluate(({ BrowserWindow }, size) => BrowserWindow.getAllWindows().find((win) => win.webContents.getURL().includes('/renderer/')).setSize(...size), [width, height])
+        const opener = page.getByRole('button', { name: 'Settings', exact: true }).first()
+        await opener.focus()
+        await opener.click()
+        const dialog = page.getByRole('dialog', { name: 'Settings', exact: true })
+        await dialog.waitFor({ state: 'visible' })
+        const labels = await dialog.getByRole('tab').allTextContents()
+        assert.equal(labels.length, 24)
+        for (const label of labels) {
+          await page.waitForFunction((label) => document.activeElement?.textContent === label && document.activeElement.getAttribute('aria-selected') === 'true', label, { timeout: 5000 })
+          assert(await dialog.evaluate((root) => {
+            const tab = root.querySelector('[aria-selected="true"]').getBoundingClientRect()
+            const list = root.querySelector('[role="tablist"]').getBoundingClientRect()
+            return tab.top >= list.top - 1 && tab.bottom <= list.bottom + 1
+          }), `Tab ${label} is clipped at ${width}x${height}`)
+          await page.keyboard.press('ArrowDown')
+        }
+        await page.keyboard.press('End')
+        await page.waitForFunction(() => document.activeElement?.textContent === 'Activity')
+        await page.keyboard.press('Home')
+        await dialog.getByRole('tab', { name: 'Appearance', exact: true }).click()
+        const colors = []
+        for (const mode of ['Light', 'Dark']) {
+          await dialog.getByRole('button', { name: mode, exact: true }).click()
+          await page.waitForFunction((mode) => document.documentElement.dataset.themeMode === mode.toLowerCase(), mode)
+          colors.push(await dialog.evaluate((root) => getComputedStyle(root).backgroundColor))
+        }
+        assert.notEqual(colors[0], colors[1])
+        await dialog.getByRole('tab', { name: 'Appearance', exact: true }).focus()
+        await page.keyboard.press('Shift+Tab')
+        assert(await dialog.evaluate((root) => root.contains(document.activeElement)))
+        await page.keyboard.press('Tab')
+        assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('role')), 'tab')
+        await dialog.getByRole('button', { name: 'Close settings' }).click()
+        assert(await opener.evaluate((element) => document.activeElement === element))
+        cases.push({ width, height, tabsReached: labels.length, lightDark: true, focusContainedAndReturned: true })
+      }
+      console.log(JSON.stringify({ productionBundle: true, settings: cases }))
+      return
+    }
+    if (process.argv.includes('--attachments')) {
+      const externalPath = join(profile, 'outside-project.txt')
+      writeFileSync(externalPath, 'External attachment acceptance fixture.')
       const picker = page.getByTitle('Attach a file to your prompt')
       await picker.waitFor({ state: 'visible' })
       const denied = await page.evaluate((path) => window.api.files.process([path]), externalPath)

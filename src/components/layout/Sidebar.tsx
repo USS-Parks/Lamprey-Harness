@@ -672,14 +672,14 @@ export function Sidebar() {
     return (
       <>
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+          className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[1px]"
           onClick={() => setSidebarCollapsed(true)}
           aria-hidden
         />
         <aside
           role="dialog"
           aria-label="Navigation"
-          className="fixed bottom-0 left-0 top-0 z-50 flex flex-col overflow-hidden rounded-r-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
+          className="fixed bottom-0 left-0 top-0 z-30 flex flex-col overflow-hidden rounded-r-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
           style={{
             width: Math.min(sidebarWidth, window.innerWidth - 48),
             transform: 'translateX(0)',

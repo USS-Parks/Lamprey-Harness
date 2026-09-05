@@ -41,6 +41,31 @@ const arraySchema = {
 }
 
 describe('validateToolArguments', () => {
+  it.each(['null', '[]', '42', 'true', '"text"', []])('rejects explicit non-object roots %j', (args) => {
+    expect(validateToolArguments('tool', args, {}).valid).toBe(false)
+  })
+  it('validates recursive array objects, required keys, integer types and null unions', () => {
+    const schema = { type: 'object', properties: { rows: { type: 'array', items: { type: 'object', required: ['count', 'label'], properties: { count: { type: 'integer' }, label: { type: ['string', 'null'], enum: ['ok', null] }, closed: { type: 'object', additionalProperties: false } }, additionalProperties: false } } } }
+    for (const row of [{ count: null, label: 'ok' }, { count: 1.5, label: 'ok' }, { count: Infinity, label: 'ok' }, { count: 1 }, { count: 1, label: 'bad' }, { count: 1, label: 'ok', closed: { extra: true } }, null]) {
+      expect(validateToolArguments('tool', { rows: [row] }, schema).valid).toBe(false)
+    }
+    expect(validateToolArguments('tool', { rows: [{ count: 1, label: null, closed: {} }] }, schema).valid).toBe(true)
+    expect(validateToolArguments('tool', { rows: [Object.create({ count: 1, label: 'ok' })] }, schema).valid).toBe(false)
+  })
+  it('validates integer array items and deep required properties', () => {
+    const integers = { properties: { values: { type: 'array', items: { type: 'integer' } } } }
+    expect(validateToolArguments('tool', { values: [1, 2] }, integers).valid).toBe(true)
+    expect(validateToolArguments('tool', { values: [1, null] }, integers).valid).toBe(false)
+    const nested = { properties: { a: { properties: { b: { type: 'object', required: ['c'] } } } } }
+    expect(validateToolArguments('tool', { a: { b: {} } }, nested).valid).toBe(false)
+    expect(validateToolArguments('tool', { a: { b: { c: 1 } } }, nested).valid).toBe(true)
+  })
+  it('honors empty enums, structural enum values and boolean schemas', () => {
+    expect(validateToolArguments('tool', { value: 'x' }, { properties: { value: { enum: [] } } }).valid).toBe(false)
+    expect(validateToolArguments('tool', { value: { b: 2, a: 1 } }, { properties: { value: { enum: [{ a: 1, b: 2 }] } } }).valid).toBe(true)
+    expect(validateToolArguments('tool', {}, false).valid).toBe(false)
+    expect(validateToolArguments('tool', { value: 1 }, { properties: { value: false } }).valid).toBe(false)
+  })
   // ── Already-parsed objects ──────────────────────────────────────────
 
   it('accepts valid flat args as object', () => {

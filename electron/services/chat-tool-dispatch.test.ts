@@ -6,7 +6,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 const state = vi.hoisted(() => ({
   preHook: vi.fn(async () => ({ blocked: false })),
   approval: vi.fn(async () => ({ decision: 'allow', source: 'test' })),
-  end: vi.fn(), events: vi.fn(), plan: false, unknown: false, needsApproval: false
+  end: vi.fn(), events: vi.fn(), plan: false, unknown: false, needsApproval: false,
+  schema: null as Record<string, unknown> | null
 }))
 vi.mock('electron', () => ({ app: { getPath: () => { throw new Error('No user directory in fixture') } }, BrowserWindow: { getAllWindows: () => [] } }))
 vi.mock('./debug-trace', () => ({ trace: vi.fn() }))
@@ -21,7 +22,7 @@ vi.mock('./tool-registry', () => ({
   isMutatingDescriptor: (descriptor: unknown) => !!descriptor,
   isParallelizableDescriptor: () => false,
   toolRegistry: {
-    getById: (id: string) => state.unknown ? undefined : ({ id, name: id, providerId: 'fixture', providerKind: 'mcp', risks: [], inputSchema: { type: 'object', additionalProperties: false } }),
+    getById: (id: string) => state.unknown ? undefined : ({ id, name: id, providerId: 'fixture', providerKind: 'mcp', risks: [], inputSchema: state.schema ?? { type: 'object', additionalProperties: false } }),
     recordCallStart: vi.fn(), recordCallEnd: (...args: unknown[]) => state.end(...args), hasHandler: () => false,
     resolveToolSearch: () => [{ name: 'fixture__second', description: 'fixture write' }]
   }
@@ -42,6 +43,7 @@ afterEach(async () => {
   state.approval.mockReset().mockResolvedValue({ decision: 'allow', source: 'test' })
   state.end.mockClear(); state.events.mockClear()
   state.plan = false; state.unknown = false; state.needsApproval = false
+  state.schema = null
 })
 const call = (name: string) => ({ id: name, function: { name: `fixture__${name}`, arguments: '{}' } })
 async function connect() {
@@ -56,6 +58,20 @@ async function observedCalls(): Promise<string[]> {
 }
 
 describe('tool dispatch authority and cancellation', () => {
+  it('never dispatches invalid nested arguments to the real stdio server', async () => {
+    await connect()
+    state.schema = { type: 'object', properties: { rows: { type: 'array', items: { type: 'object', properties: { count: { type: 'integer' } }, required: ['count'], additionalProperties: false } } }, required: ['rows'] }
+    for (const row of [null, {}, { count: null }, { count: 1.5 }, { count: 1, extra: true }]) {
+      const request = call('second')
+      request.function.arguments = JSON.stringify({ rows: [row] })
+      expect(JSON.parse((await resolveSingleToolCall(request, 'c', 'model', '.', new AbortController().signal)).result).error).toBe('argument_validation_failed')
+    }
+    expect(await observedCalls()).toEqual([])
+    const valid = call('second')
+    valid.function.arguments = '{"rows":[{"count":1}]}'
+    await resolveSingleToolCall(valid, 'c', 'model', '.', new AbortController().signal)
+    expect(await observedCalls()).toEqual(['second'])
+  })
   it.each(['null','[]','42','true','"text"','{"query":42}'])('rejects malformed meta-tool payload %s', async (argumentsText) => {
     const request = { id: 'search', function: { name: 'tool_search', arguments: argumentsText } }
     const result = await resolveSingleToolCall(request,'search-invalid','model','.',new AbortController().signal)

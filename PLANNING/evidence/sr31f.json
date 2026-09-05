@@ -1,0 +1,7 @@
+{
+  "prompt": "SR-31F",
+  "title": "Enforce recursive tool argument types and required fields",
+  "verification": "70 validator, fallback-parser and dispatch tests passed. Real stdio MCP receiver observed zero calls for invalid nested objects, missing required values, null integers, fractional integers and extra fields; the valid counterpart reached its handler. Covers explicit non-object JSON roots, integer arrays, null unions, deep required fields, inherited properties, empty/structural enums and boolean schemas. Node TypeScript with unused checks and production build passed.",
+  "notes": "One recursive validator replaces inconsistent top-level/nested/array walkers. No-argument undefined/null/empty-string compatibility remains; JSON text null is explicitly rejected as a non-object payload. Unsupported combinators/references/patterns/bounds remain documented handler responsibilities; this is not a claim of full JSON Schema enforcement. SR-31E pushed at 1461e278563f7ac17ef868e27d8f5af60990c31a.",
+  "files": ["electron/services/tool-schema-validator.ts", "electron/services/tool-schema-validator.test.ts", "electron/services/chat-tool-dispatch.test.ts", "PLANNING/evidence/sr31e.json"]
+}

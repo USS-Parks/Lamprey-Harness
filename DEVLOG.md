@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31F: Enforce recursive tool argument types and required fields
+
+**Files changed:** `electron/services/tool-schema-validator.ts`, `electron/services/tool-schema-validator.test.ts`, `electron/services/chat-tool-dispatch.test.ts`, `PLANNING/evidence/sr31e.json`
+
+**Verification:** 70 validator, fallback-parser and dispatch tests passed. Real stdio MCP receiver observed zero calls for invalid nested objects, missing required values, null integers, fractional integers and extra fields; the valid counterpart reached its handler. Covers explicit non-object JSON roots, integer arrays, null unions, deep required fields, inherited properties, empty/structural enums and boolean schemas. Node TypeScript with unused checks and production build passed.
+
+**Notes:** One recursive validator replaces inconsistent top-level/nested/array walkers. No-argument undefined/null/empty-string compatibility remains; JSON text null is explicitly rejected as a non-object payload. Unsupported combinators/references/patterns/bounds remain documented handler responsibilities; this is not a claim of full JSON Schema enforcement. SR-31E pushed at 1461e278563f7ac17ef868e27d8f5af60990c31a.
+
+**Commit:** see `PLANNING/evidence/sr31f.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31E: Initialize chat from acknowledged model and provider state
 
 **Files changed:** `src/App.tsx`, `src/components/settings/ApiKeyModal.tsx`, `src/components/chat/ChatInput.tsx`, `src/stores/providers-store.ts`, `src/stores/model-store.ts`, `src/stores/model-store.test.ts`, `src/stores/chat-store.ts`, `vitest.config.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr31d.json`

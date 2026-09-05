@@ -1,292 +1,101 @@
-/**
- * FC-1A — Shared tool argument validator.
- *
- * Every tool call path (native API-returned tool_calls and fallback-parsed
- * calls) must pass through `validateToolArguments()` before dispatch. The
- * function accepts already-parsed objects, JSON strings, empty input, and
- * missing input, and returns a typed validation result.
- *
- * The validator handles the JSON Schema subset that Lamprey tool
- * descriptors use:
- *   - `type: "object"` at the top level
- *   - `properties` with `{ type, description, enum?, items? }`
- *   - `required` array
- *   - `additionalProperties: false`
- *   - Nested objects (same shape, recursive)
- *   - Arrays with `items` type definition
- *
- * Unsupported JSON Schema keywords (`$ref`, `oneOf`, `anyOf`, `allOf`,
- * `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`) are ignored
- * rather than rejected — the validator validates what it understands and
- * lets through what it doesn't. This prevents a schema addition from
- * blocking tool dispatch; the model's provider-side validation and the
- * tool handler's own parsing are the second line of defense.
- */
+import { isDeepStrictEqual } from 'node:util'
 
+/** Shared argument gate for object-root tool calls.
+ * Supports type (including unions), enum, required, properties,
+ * additionalProperties:false and recursive array items. This is not a full
+ * JSON Schema implementation: combinators, references, patterns and bounds
+ * remain handler responsibilities. Provider-side validation is not trusted.
+ */
 export interface ToolArgValidationValid {
   valid: true
   parsed: Record<string, unknown>
 }
-
 export interface ToolArgValidationInvalid {
   valid: false
   errors: string[]
 }
-
 export type ToolArgValidationResult = ToolArgValidationValid | ToolArgValidationInvalid
 
-interface JsonSchemaProperty {
-  type?: string
-  description?: string
-  enum?: unknown[]
-  items?: JsonSchemaProperty
-  properties?: Record<string, JsonSchemaProperty>
-  required?: string[]
-  additionalProperties?: boolean
-}
-
 interface JsonSchema {
-  type?: string
-  properties?: Record<string, JsonSchemaProperty>
+  type?: string | string[]
+  enum?: unknown[]
+  properties?: Record<string, JsonSchema | boolean>
   required?: string[]
   additionalProperties?: boolean
-  items?: JsonSchemaProperty
+  items?: JsonSchema | boolean
 }
 
-/**
- * Validate tool arguments against the tool's `inputSchema`.
- *
- * @param toolName  Human-readable name for error messages.
- * @param args      Already-parsed object, JSON string, undefined, or null.
- * @param schema    The tool's `inputSchema` (JSON Schema subset).
- */
-export function validateToolArguments(
-  toolName: string,
-  args: unknown,
-  schema: unknown
-): ToolArgValidationResult {
-  const schemaObj = schema as JsonSchema | undefined
-
-  // ── 1. Parse the argument payload ──────────────────────────────────
-
-  let parsed: Record<string, unknown>
-
-  if (args === undefined || args === null) {
-    // No arguments provided at all. Valid only if the schema has no
-    // required properties (or no properties at all).
-    if (
-      schemaObj?.required &&
-      Array.isArray(schemaObj.required) &&
-      schemaObj.required.length > 0
-    ) {
-      return {
-        valid: false,
-        errors: [
-          `${toolName}: no arguments provided but expected: ${schemaObj.required.join(', ')}`
-        ]
-      }
+export function validateToolArguments(toolName: string, args: unknown, schema: unknown): ToolArgValidationResult {
+  const definition = (schema ?? {}) as JsonSchema
+  let parsed: unknown = args
+  const emptyString = typeof args === 'string' && !args.trim()
+  // Retain the no-argument compatibility contract. JSON text "null" is
+  // different: it is an explicit non-object payload and must be rejected.
+  if (args == null || emptyString) {
+    if (definition.required?.length) return {
+      valid: false,
+      errors: [`${toolName}: ${emptyString ? 'empty argument string' : 'no arguments provided'} but expected: ${definition.required.join(', ')}`]
     }
     parsed = {}
-    return { valid: true, parsed }
-  }
-
-  if (typeof args === 'string') {
-    const trimmed = args.trim()
-    if (trimmed.length === 0) {
-      if (
-        schemaObj?.required &&
-        Array.isArray(schemaObj.required) &&
-        schemaObj.required.length > 0
-      ) {
-        return {
-          valid: false,
-          errors: [
-            `${toolName}: empty argument string but expected: ${schemaObj.required.join(', ')}`
-          ]
-        }
-      }
-      parsed = {}
-      return { valid: true, parsed }
-    }
-    try {
-      parsed = JSON.parse(trimmed)
-    } catch {
-      return {
-        valid: false,
-        errors: [`${toolName}: failed to parse arguments as JSON`]
-      }
-    }
-  } else if (typeof args === 'object') {
-    parsed = args as Record<string, unknown>
-  } else {
-    return {
-      valid: false,
-      errors: [
-        `${toolName}: arguments must be an object or JSON string, got ${typeof args}`
-      ]
+  } else if (typeof args === 'string') {
+    try { parsed = JSON.parse(args) } catch {
+      return { valid: false, errors: [`${toolName}: failed to parse arguments as JSON`] }
     }
   }
-
-  // ── 2. Validate against the schema ─────────────────────────────────
-
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { valid: false, errors: [`${toolName}: arguments must be an object or JSON string containing an object`] }
+  }
   const errors: string[] = []
-
-  // Top-level type check
-  if (schemaObj?.type && schemaObj.type !== 'object') {
-    // Non-object schemas (e.g. array-only tools) are deferred — validate
-    // what we can and pass through.
-    return { valid: true, parsed }
-  }
-
-  // Required properties
-  if (schemaObj?.required && Array.isArray(schemaObj.required)) {
-    for (const key of schemaObj.required) {
-      if (!(key in parsed) || parsed[key] === undefined) {
-        errors.push(`${toolName}: missing required property "${key}"`)
-      }
-    }
-  }
-
-  // Property-by-property validation
-  if (schemaObj?.properties) {
-    for (const [key, propSchema] of Object.entries(schemaObj.properties)) {
-      const value = parsed[key]
-      if (value === undefined) continue // Not provided — required check above catches if needed
-
-      validatePropertyValue(toolName, value, propSchema, errors, [key])
-    }
-  }
-
-  // Nested required checks — walk properties that are present and themselves
-  // have `required` arrays. Do this AFTER the required-key loop so that a
-  // missing nested object doesn't trigger a confusing cascade of errors.
-  if (schemaObj?.properties) {
-    for (const [key, propSchema] of Object.entries(schemaObj.properties)) {
-      const value = parsed[key]
-      if (value === undefined) continue
-      if (propSchema.required && Array.isArray(propSchema.required) && typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        const nested = value as Record<string, unknown>
-        for (const nestedKey of propSchema.required) {
-          if (!(nestedKey in nested) || nested[nestedKey] === undefined) {
-            errors.push(`${toolName}: missing required property "${nestedKey}" in "${key}"`)
-          }
-        }
-      }
-    }
-  }
-
-  // Additional properties check
-  if (schemaObj?.additionalProperties === false) {
-    const knownKeys = new Set(Object.keys(schemaObj.properties ?? {}))
-    for (const key of Object.keys(parsed)) {
-      if (!knownKeys.has(key) && parsed[key] !== undefined) {
-        errors.push(`${toolName}: unexpected property "${key}"`)
-      }
-    }
-  }
-
-  if (errors.length > 0) {
-    return { valid: false, errors }
-  }
-
-  return { valid: true, parsed }
+  validateValue(toolName, parsed, definition, errors, '', 0)
+  return errors.length ? { valid: false, errors } : { valid: true, parsed: parsed as Record<string, unknown> }
 }
 
-/**
- * Validate a single property value against its schema definition.
- * Recurses into nested objects and array items.
- */
-function validatePropertyValue(
-  toolName: string,
-  value: unknown,
-  propSchema: JsonSchemaProperty,
-  errors: string[],
-  path: string[]
-): void {
-  const fullPath = path.join('.')
+function matchesType(value: unknown, type: string): boolean {
+  if (type === 'null') return value === null
+  if (type === 'array') return Array.isArray(value)
+  if (type === 'object') return value !== null && typeof value === 'object' && !Array.isArray(value)
+  if (type === 'number') return typeof value === 'number' && Number.isFinite(value)
+  if (type === 'integer') return typeof value === 'number' && Number.isInteger(value)
+  return typeof value === type
+}
 
-  // Null is technically an object but we treat it as a missing value
-  if (value === null) {
+function validateValue(toolName: string, value: unknown, schema: JsonSchema | boolean, errors: string[], path: string, depth: number): void {
+  if (typeof schema === 'boolean') {
+    if (!schema) errors.push(`${toolName}: "${path || 'arguments'}" is not allowed by the schema`)
     return
   }
-
-  const expectedType = propSchema.type
-
-  if (expectedType) {
-    const actualType = Array.isArray(value) ? 'array' : typeof value
-
-    // "number" type — allow both number and integer
-    if (expectedType === 'number' || expectedType === 'integer') {
-      if (actualType !== 'number') {
-        errors.push(`${toolName}: "${fullPath}" expected ${expectedType}, got ${actualType}`)
-        return
+  if (depth > 64) {
+    errors.push(`${toolName}: "${path}" exceeds supported nesting depth`)
+    return
+  }
+  const types = typeof schema.type === 'string' ? [schema.type] : schema.type
+  if (types && !types.some(type => matchesType(value, type))) {
+    const actual = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
+    errors.push(`${toolName}: "${path || 'arguments'}" expected ${types.join(' or ')}, got ${actual}`)
+    return
+  }
+  if (schema.enum && !schema.enum.some(option => isDeepStrictEqual(value, option))) {
+    errors.push(`${toolName}: "${path}" must be one of [${schema.enum.map(option => JSON.stringify(option)).join(', ')}]`)
+  }
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    const object = value as Record<string, unknown>
+    for (const key of schema.required ?? []) {
+      if (!Object.hasOwn(object, key) || object[key] === undefined) {
+        errors.push(`${toolName}: missing required property "${key}"${path ? ` in "${path}"` : ''}`)
       }
-    } else if (expectedType === 'array') {
-      if (!Array.isArray(value)) {
-        errors.push(`${toolName}: "${fullPath}" expected array, got ${actualType}`)
-        return
+    }
+    for (const [key, child] of Object.entries(schema.properties ?? {})) {
+      if (Object.hasOwn(object, key) && object[key] !== undefined) {
+        validateValue(toolName, object[key], child, errors, path ? `${path}.${key}` : key, depth + 1)
       }
-    } else if (expectedType === 'object') {
-      if (actualType !== 'object' || Array.isArray(value)) {
-        errors.push(
-          `${toolName}: "${fullPath}" expected object, got ${Array.isArray(value) ? 'array' : actualType}`
-        )
-        return
-      }
-    } else {
-      // string, boolean
-      if (actualType !== expectedType) {
-        errors.push(`${toolName}: "${fullPath}" expected ${expectedType}, got ${actualType}`)
-        return
+    }
+    if (schema.additionalProperties === false) {
+      for (const key of Object.keys(object)) {
+        if (!Object.hasOwn(schema.properties ?? {}, key)) errors.push(`${toolName}: ${path ? `"${path}" ` : ''}unexpected property "${key}"`)
       }
     }
   }
-
-  // Enum constraint
-  if (propSchema.enum && Array.isArray(propSchema.enum) && propSchema.enum.length > 0) {
-    if (!propSchema.enum.includes(value)) {
-      const preview = propSchema.enum.map((e) => JSON.stringify(e)).join(', ')
-      errors.push(
-        `${toolName}: "${fullPath}" must be one of [${preview}], got ${JSON.stringify(value)}`
-      )
-    }
-  }
-
-  // Nested object properties
-  if (propSchema.properties && typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const objValue = value as Record<string, unknown>
-    for (const [nestedKey, nestedSchema] of Object.entries(propSchema.properties)) {
-      const nestedValue = objValue[nestedKey]
-      if (nestedValue === undefined) continue
-      validatePropertyValue(toolName, nestedValue, nestedSchema, errors, [
-        ...path,
-        nestedKey
-      ])
-    }
-    // Additional properties on nested objects
-    if (propSchema.additionalProperties === false) {
-      const known = new Set(Object.keys(propSchema.properties))
-      for (const nestedKey of Object.keys(objValue)) {
-        if (!known.has(nestedKey) && objValue[nestedKey] !== undefined) {
-          errors.push(`${toolName}: "${fullPath}" unexpected property "${nestedKey}"`)
-        }
-      }
-    }
-  }
-
-  // Array items validation
-  if (propSchema.items && Array.isArray(value)) {
-    const arr = value as unknown[]
-    for (let i = 0; i < arr.length; i++) {
-      const item = arr[i]
-      if (item === undefined || item === null) continue
-      const itemType = propSchema.items.type
-      const actualItemType = Array.isArray(item) ? 'array' : typeof item
-      if (itemType && actualItemType !== itemType) {
-        errors.push(
-          `${toolName}: "${fullPath}[${i}]" expected ${itemType}, got ${actualItemType}`
-        )
-      }
-    }
+  if (Array.isArray(value) && schema.items) {
+    for (let i = 0; i < value.length; i++) validateValue(toolName, value[i], schema.items, errors, `${path}[${i}]`, depth + 1)
   }
 }

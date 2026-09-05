@@ -24,7 +24,7 @@ export function PRDiffView({ owner, repo, pr, onSendHunk }: Props) {
     setFiles([])
     setError(null)
     void Promise.all([
-      githubClient.compare(owner, repo, pr.base.ref, pr.head.ref),
+      githubClient.compare(owner, repo, pr.base.sha ?? pr.base.ref, pr.head.sha ?? pr.head.label ?? pr.head.ref),
       githubClient.getPullRequestFiles(owner, repo, pr.number)
     ]).then(([compare, changedFiles]) => {
       if (cancelled) return
@@ -34,11 +34,11 @@ export function PRDiffView({ owner, repo, pr, onSendHunk }: Props) {
       }
       setData(compare.data)
       if (changedFiles.success) setFiles(changedFiles.data)
-    })
+    }).catch(() => { if (!cancelled) setError('Could not load the pull request diff.') })
     return () => {
       cancelled = true
     }
-  }, [owner, repo, pr.number, pr.head.ref, pr.base.ref])
+  }, [owner, repo, pr.number, pr.head.ref, pr.base.ref, pr.head.sha, pr.base.sha, pr.head.label])
 
   if (error) return <p className="px-2 py-2 text-[11px] text-[var(--error)]">{error}</p>
   if (!data)

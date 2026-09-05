@@ -72,13 +72,17 @@ async function main() {
       console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, realKeyPersistence: true, localProviderAuthentication: true, dialogCompleted: true, plaintextConsent: 'granted in isolated fixture profile' }))
       return
     }
-    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts')) {
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs')) {
       await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()
         const saved = await window.api.settings.saveProviderKey(provider, 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
       }, process.argv.includes('--shortcuts') ? 'fixture-provider' : 'deepseek')
       await page.reload()
+    }
+    if (process.argv.includes('--prs')) {
+      await require('./pull-requests.cjs')(app, page)
+      return
     }
     if (process.argv.includes('--shortcuts')) {
       await page.getByTitle('Switch model', { exact: true }).click()

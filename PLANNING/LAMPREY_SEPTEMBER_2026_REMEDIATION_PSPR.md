@@ -113,7 +113,7 @@ Depends on C. Result: repaired existing surfaces are reachable and usable.
 | [x] SR-21 | Correct modal-first Escape behavior and shortcut labels (SA-13) | With modal+stream active Escape dismisses modal without aborting turn; next intended cancellation works; labels match implemented shortcuts |
 | [x] SR-22 | Handle API-key modal bridge failures (SA-14) | Browser without bridge, rejected IPC, failure envelope and packaged success show usable states without unhandled promises |
 | [x] SR-23 | Make settings reflect acknowledged persistence (SA-30) | Failure envelope/rejection restores acknowledged values/theme and displays error; overlapping requests cannot roll newer success backward |
-| [ ] SR-24 | Reconnect the existing pull-request panel (SA-17) | User navigates from app entry to panel; fixture repository supports list/diff/checks; approval-sensitive comment submission tested without sending unsolicited messages; structural test alone insufficient |
+| [x] SR-24 | Reconnect the existing pull-request panel (SA-17) | User navigates from app entry to panel; fixture repository supports list/diff/checks; approval-sensitive comment submission tested without sending unsolicited messages; structural test alone insufficient |
 | [ ] SR-25 | Narrow hot store subscriptions (SA-12) | Streaming profiler/counters show unrelated Sidebar/settings/picker renders reduced; selected state changes still update correctly; no new state layer |
 | [ ] SR-26 | Clean up Sidebar resize lifecycle (SA-21) | Mouse release, lost focus and unmount during drag remove listeners/reset cursor; resizing still works |
 

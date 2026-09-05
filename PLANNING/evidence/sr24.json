@@ -1,0 +1,16 @@
+{
+  "prompt": "SR-24",
+  "title": "Reconnect the existing pull-request panel from GitHub settings",
+  "verification": "Production build and 50 existing GitHub/PR tests passed. Real Electron app-entry navigation through Settings > GitHub > Browse pull requests reached fixture list, commit-based diff and checks. No submission occurred until Post review was clicked. Rejected IPC preserved the draft and enabled retry; successful retry cleared it. Invalid inline line was blocked before IPC; valid line and RIGHT side reached the fixture. No renderer page errors; graceful quit passed.",
+  "notes": "Reuses all four existing PR components. GitHub responses/submissions were controlled at the main-process IPC boundary; no external comment or review was sent. Reconnection also fixes the composer's stuck posting state, invalid line parsing and stale descriptive comments; list/diff/check rejection paths now surface errors. Compare prefers exact PR SHAs, avoiding ambiguous fork branch names. SR-23 committed and pushed at 62d175fb58d746f3f157795daa2d8e15e15e5e05; full suite passed 3008 tests.",
+  "files": [
+    "src/components/settings/GitHubSettings.tsx",
+    "src/components/github/PullRequestsPanel.tsx",
+    "src/components/github/InlineCommentComposer.tsx",
+    "src/components/github/PRDiffView.tsx",
+    "src/components/github/PRStatusChecks.tsx",
+    "scripts/acceptance/pull-requests.cjs",
+    "scripts/acceptance/shell-link.cjs",
+    "PLANNING/evidence/sr23.json"
+  ]
+}

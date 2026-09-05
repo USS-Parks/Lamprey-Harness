@@ -4,10 +4,10 @@ import { toast } from '@/stores/toast-store'
 
 // F3 — minimal "post a review with inline comments" composer.
 //
-// One body field for the overall review, plus a draggable list of
+// One body field for the overall review, plus editable
 // inline comment rows (path / line / body). Submit calls F2's
 // createPullRequestReview with the configured `event` (APPROVE,
-// REQUEST_CHANGES, COMMENT). On success the composer collapses; the
+// REQUEST_CHANGES, COMMENT). On success the draft clears; the
 // parent panel re-fetches review comments to surface the new ones.
 
 interface Props {
@@ -54,7 +54,12 @@ export function InlineCommentComposer({ owner, repo, number, onPosted }: Props) 
   const canPost = body.trim().length > 0 || comments.some((c) => c.body.trim() && c.path.trim())
 
   const handlePost = async () => {
-    if (!canPost) return
+    if (!canPost || posting) return
+    if (comments.some((comment) => comment.body.trim() && comment.path.trim() &&
+      (!/^\d+$/.test(comment.line.trim()) || !Number.isSafeInteger(Number(comment.line)) || Number(comment.line) < 1))) {
+      toast.error('Each inline comment needs a positive whole-number line.')
+      return
+    }
     setPosting(true)
     const payload = {
       owner,
@@ -67,19 +72,25 @@ export function InlineCommentComposer({ owner, repo, number, onPosted }: Props) 
         .map((c) => ({
           path: c.path.trim(),
           body: c.body.trim(),
-          line: c.line.trim() ? Math.max(1, parseInt(c.line, 10)) : undefined
+          line: Number(c.line),
+          side: 'RIGHT' as const
         }))
     }
-    const res = await githubClient.createPullRequestReview(payload)
-    setPosting(false)
-    if (!res.success) {
-      toast.error(`Post review failed: ${res.error}`)
-      return
+    try {
+      const res = await githubClient.createPullRequestReview(payload)
+      if (!res.success) {
+        toast.error(`Post review failed: ${res.error}`)
+        return
+      }
+      toast.success('Review posted.')
+      setBody('')
+      setComments([])
+      onPosted?.()
+    } catch {
+      toast.error('Post review failed. Your draft is preserved; try again.')
+    } finally {
+      setPosting(false)
     }
-    toast.success('Review posted.')
-    setBody('')
-    setComments([])
-    onPosted?.()
   }
 
   return (

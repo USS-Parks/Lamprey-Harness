@@ -7,5 +7,6 @@
     "src/stores/settings-store.ts",
     "src/stores/settings-store.test.ts",
     "PLANNING/evidence/sr22.json"
-  ]
+  ],
+  "commit": "62d175fb58d746f3f157795daa2d8e15e15e5e05"
 }

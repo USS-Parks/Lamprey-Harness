@@ -76,6 +76,7 @@ export function PullRequestsPanel() {
         }
         setPrs(next)
       })
+      .catch(() => { if (!cancelled) { setPrs([]); setError('Could not load pull requests. Try selecting the repository again.') } })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
@@ -97,6 +98,7 @@ export function PullRequestsPanel() {
         if (cancelled) return
         if (res.success) setComments(res.data)
       })
+      .catch(() => { if (!cancelled) setError('Could not load review comments.') })
     return () => {
       cancelled = true
     }
@@ -145,6 +147,7 @@ export function PullRequestsPanel() {
           Pull requests
         </span>
         <select
+          aria-label="Pull request repository"
           value={selectedRepo ? `${selectedRepo.owner}/${selectedRepo.repo}` : ''}
           onChange={(e) => {
             const [owner, repo] = e.target.value.split('/')
@@ -282,6 +285,7 @@ export function PullRequestsPanel() {
                         .then((res) => {
                           if (res.success) setComments(res.data)
                         })
+                        .catch(() => setError('Review posted, but comments could not be refreshed.'))
                     }}
                   />
                 </div>

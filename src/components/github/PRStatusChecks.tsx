@@ -36,15 +36,20 @@ export function PRStatusChecks({ owner, repo, number }: Props) {
 
     const refresh = async () => {
       setLoading(true)
-      const res = await githubClient.getPullRequestStatus(owner, repo, number)
-      if (cancelled) return
-      if (res.success) {
-        setSummary(res.data)
-        setError(null)
-      } else {
-        setError(res.error)
+      try {
+        const res = await githubClient.getPullRequestStatus(owner, repo, number)
+        if (cancelled) return
+        if (res.success) {
+          setSummary(res.data)
+          setError(null)
+        } else {
+          setError(res.error)
+        }
+      } catch {
+        if (!cancelled) setError('Could not refresh pull request checks.')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false)
     }
 
     void refresh()
@@ -69,7 +74,9 @@ export function PRStatusChecks({ owner, repo, number }: Props) {
     <div className="flex flex-col gap-1 px-2 py-1">
       <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
         <span className="uppercase tracking-wider">Overall</span>
-        <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${STATE_TONES[summary.overall] ?? STATE_TONES.neutral}`}>
+        <span
+          className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${STATE_TONES[summary.overall] ?? STATE_TONES.neutral}`}
+        >
           {summary.overall}
         </span>
         {loading && <span className="text-[10px]">refreshing…</span>}
@@ -80,10 +87,15 @@ export function PRStatusChecks({ owner, repo, number }: Props) {
             key={`${c.source}:${c.context}`}
             className="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-[11px] hover:bg-[var(--bg-tertiary)]"
           >
-            <span className="min-w-0 flex-1 truncate text-[var(--text-primary)]" title={c.description ?? c.context}>
+            <span
+              className="min-w-0 flex-1 truncate text-[var(--text-primary)]"
+              title={c.description ?? c.context}
+            >
               {c.context}
             </span>
-            <span className={`shrink-0 rounded border px-1 text-[10px] uppercase tracking-wider ${STATE_TONES[c.state] ?? STATE_TONES.neutral}`}>
+            <span
+              className={`shrink-0 rounded border px-1 text-[10px] uppercase tracking-wider ${STATE_TONES[c.state] ?? STATE_TONES.neutral}`}
+            >
               {c.state}
             </span>
             {c.targetUrl && (

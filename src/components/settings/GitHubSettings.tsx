@@ -4,6 +4,7 @@ import { useGitHubStore } from '@/stores/github-store'
 import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 import { github as githubClient } from '@/lib/ipc-client'
 import type { GitHubRepository } from '@/lib/github-types'
+import { PullRequestsPanel } from '@/components/github/PullRequestsPanel'
 
 // GitHub OAuth integration with GitHub App-ready architecture.
 //
@@ -28,6 +29,7 @@ export function GitHubSettings(): React.ReactElement {
   const [savingClient, setSavingClient] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [editingClient, setEditingClient] = useState(false)
+  const [browsingPullRequests, setBrowsingPullRequests] = useState(false)
 
   useEffect(() => {
     void refreshStatus()
@@ -109,6 +111,13 @@ export function GitHubSettings(): React.ReactElement {
     }
   }
 
+  if (browsingPullRequests) {
+    return <div className="flex h-full min-h-0 flex-col">
+      <button type="button" onClick={() => setBrowsingPullRequests(false)} className="mb-2 self-start text-sm text-[var(--accent)]">← GitHub settings</button>
+      <PullRequestsPanel />
+    </div>
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -146,6 +155,8 @@ export function GitHubSettings(): React.ReactElement {
           void refreshRepos()
         }}
       />
+
+      {status?.connected && <button type="button" onClick={() => setBrowsingPullRequests(true)} className="rounded border border-[var(--panel-border)] px-3 py-2 text-sm text-[var(--accent)]">Browse pull requests</button>}
 
       {status?.connected ? null : (
         <div className="space-y-3 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] p-3">

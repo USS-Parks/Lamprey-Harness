@@ -128,7 +128,7 @@ function PanelRow({
 
 export function EnvironmentPanel(): React.ReactElement {
   const setActiveTool = useUiStore((s) => s.setActiveTool)
-  const { snapshot, refresh } = useEnvironment()
+  const { snapshot, refresh, loading, error } = useEnvironment()
   const { sources, groups } = useSources()
 
   const workModeRef = useRef<HTMLButtonElement>(null)
@@ -136,7 +136,7 @@ export function EnvironmentPanel(): React.ReactElement {
   const prListRef = useRef<HTMLButtonElement>(null)
   const [workModeOpen, setWorkModeOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
-  const { committing, handleCommitOrPush, commitDialog, commitDisabled, commitLabel } = useEnvironmentGitAction(snapshot, refresh)
+  const { committing, handleCommitOrPush, commitDialog, commitDisabled, commitLabel } = useEnvironmentGitAction(snapshot, refresh, !loading && !error)
 
   // GitHub integration state — kept local because the picker/dialogs are
   // only opened from this panel.
@@ -230,6 +230,10 @@ export function EnvironmentPanel(): React.ReactElement {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-2">
       {commitDialog}
+      {error && <div role="alert" className="p-2 text-xs text-[var(--error)]">
+        Repository status unavailable; displayed values may be stale. {error}{' '}
+        <button type="button" disabled={loading} onClick={() => void refresh()} className="underline">Retry</button>
+      </div>}
       <PanelRow
         leading={<ChangesGlyph />}
         label="Changes"

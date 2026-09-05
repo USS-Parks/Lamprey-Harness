@@ -147,8 +147,6 @@ export function registerReviewHandlers(): void {
         if (!res.stdout && args?.path && !args?.staged) {
           const trackedCheck = await runGit(['ls-files', '--error-unmatch', args.path], cwd)
           if (trackedCheck.code !== 0) {
-            const content = await runGit(['ls-files', '-o', '--exclude-standard'], cwd) // noop, just to keep types
-            void content
             // Read file directly
             const fs = await import('fs/promises')
             const path = await import('path')

@@ -1,3 +1,4 @@
+/* global window */
 const { execFileSync } = require('node:child_process')
 const { mkdirSync, writeFileSync, unlinkSync } = require('node:fs')
 const { join } = require('node:path')
@@ -27,6 +28,18 @@ module.exports = async function checkEnvironmentGit(app, page, profile) {
       ? page.getByRole('region', { name: 'Environment', exact: true }).getByRole('button', { name: 'Commit', exact: true })
       : page.getByRole('button', { name: 'Commit', exact: true })
     await commit.waitFor({ state: 'visible' }).catch(async (error) => { console.log(await page.locator('body').innerText()); throw error })
+    const diff = await page.evaluate(path => window.api.review.diff({ path }), `${surface}.txt`)
+    assert(diff.success && diff.data.untracked)
+    assert.match(diff.data.diff, /\+Fixture change/)
+    await app.evaluate(({ BrowserWindow }, path) => {
+      process.chdir(path)
+      for (const win of BrowserWindow.getAllWindows()) win.webContents.send('review:changed')
+    }, profile)
+    await page.getByRole('alert').filter({ hasText: 'Repository status unavailable' }).first().waitFor()
+    assert(await commit.isDisabled())
+    await app.evaluate((_electron, repo) => process.chdir(repo), repo)
+    await page.getByRole('button', { name: 'Retry', exact: true }).first().click()
+    await page.getByRole('alert').filter({ hasText: 'Repository status unavailable' }).waitFor({ state: 'hidden' })
     const before = git('rev-parse', 'HEAD')
     await commit.click()
     const dialog = page.getByRole('dialog', { name: 'Commit changes', exact: true })
@@ -50,6 +63,6 @@ module.exports = async function checkEnvironmentGit(app, page, profile) {
     const remoteHead = execFileSync('git', ['--git-dir', remote, 'rev-parse', 'refs/heads/main'], { encoding: 'utf8' }).trim()
     assert.equal(remoteHead, git('rev-parse', 'HEAD'))
     assert.equal(git('status', '--porcelain'), '')
-    console.log(JSON.stringify({ surface, cancelledDialogPreservesHead: true, failedCommitPreservesDraft: true, realCommit: true, realPushToTemporaryLocalBareRepository: true, clean: true }))
+    console.log(JSON.stringify({ surface, realUntrackedDiff: true, refreshFailureDisablesActionAndRetryRecovers: true, cancelledDialogPreservesHead: true, failedCommitPreservesDraft: true, realCommit: true, realPushToTemporaryLocalBareRepository: true, clean: true }))
   }
 }

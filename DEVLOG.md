@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31I: Handle environment refresh errors and redundant Git work
+
+**Files changed:** `electron/ipc/review.ts`, `src/hooks/useEnvironment.ts`, `src/hooks/useEnvironmentGitAction.tsx`, `src/components/workspace/EnvironmentPanel.tsx`, `src/components/workspace/FloatingEnvironmentCard.tsx`, `scripts/acceptance/environment-refresh.cjs`, `scripts/acceptance/environment-git.cjs`, `PLANNING/evidence/sr31h.json`
+
+**Verification:** Real React/Chrome fixture verifies mount rejection, poll failure envelopes, retry recovery, stale response ordering, listener/timer cleanup and no unhandled errors. Both production Electron environment surfaces verified real Git failure warnings, disabled commit while unavailable, retry recovery, untracked diffs, cancelled and failed commits, successful commits and pushes to a temporary local bare remote. Both TypeScript projects and production build passed.
+
+**Notes:** Refresh failures preserve the last snapshot and label it potentially stale; newest request owns state. Commit/push uses the existing shared hook and is unavailable during refresh/error. Removed only the unused ls-files invocation before untracked file reading. SR-31H pushed at 3fee3cd33a92f3321b439714601d55fab5925934.
+
+**Commit:** see `PLANNING/evidence/sr31i.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31H: Repair dependencies and replace obsolete rebuild tooling
 
 **Files changed:** `package.json`, `package-lock.json`, `scripts/acceptance/dependency-runtime.cjs`, `PLANNING/evidence/sr31h-audit.py`, `PLANNING/evidence/sr31h-audit.json`, `PLANNING/evidence/SR31H_DEPENDENCIES.md`, `PLANNING/evidence/sr31g.json`

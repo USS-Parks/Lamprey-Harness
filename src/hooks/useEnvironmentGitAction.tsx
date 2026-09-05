@@ -5,7 +5,8 @@ import { toast } from '@/stores/toast-store'
 
 export function useEnvironmentGitAction(
   snapshot: EnvironmentSnapshot,
-  refresh: () => Promise<void>
+  refresh: () => Promise<void>,
+  statusReady = true
 ) {
   const [committing, setCommitting] = useState(false)
   const busy = useRef(false)
@@ -16,7 +17,7 @@ export function useEnvironmentGitAction(
     opener.current?.focus()
   }
   const run = async (action: 'commit' | 'push', cwd: string, message = '') => {
-    if (busy.current) return
+    if (busy.current || !statusReady) return
     if (!window.api?.review) {
       toast.error('Review API unavailable')
       return
@@ -34,7 +35,7 @@ export function useEnvironmentGitAction(
       }
       close()
       toast.success(action === 'commit' ? 'Committed' : 'Pushed')
-      await refresh().catch(() => toast.error('Git action succeeded, but repository status could not be refreshed.'))
+      await refresh()
     } catch {
       toast.error('Git action failed. Check the repository status before retrying.')
     } finally {
@@ -43,7 +44,7 @@ export function useEnvironmentGitAction(
     }
   }
   const handleCommitOrPush = () => {
-    if (busy.current) return
+    if (busy.current || !statusReady) return
     if (!window.api?.review) {
       toast.error('Review API unavailable')
       return
@@ -112,7 +113,7 @@ export function useEnvironmentGitAction(
             </button>
             <button
               type="submit"
-              disabled={committing || !draft.message.trim()}
+              disabled={committing || !statusReady || !draft.message.trim()}
               className="rounded bg-[var(--accent)] px-3 py-1 text-white disabled:opacity-50"
             >
               {committing ? 'Committing…' : 'Commit'}
@@ -126,7 +127,7 @@ export function useEnvironmentGitAction(
     committing,
     handleCommitOrPush,
     commitDialog,
-    commitDisabled: !snapshot.hasChanges && snapshot.ahead === 0,
+    commitDisabled: !statusReady || (!snapshot.hasChanges && snapshot.ahead === 0),
     commitLabel: snapshot.hasChanges
       ? 'Commit'
       : snapshot.ahead > 0

@@ -4,6 +4,7 @@ import type { EnvironmentSnapshot } from '@/lib/types'
 interface UseEnvironmentResult {
   snapshot: EnvironmentSnapshot
   loading: boolean
+  error: string | null
   refresh: () => Promise<void>
 }
 
@@ -35,20 +36,26 @@ interface ReviewSummary {
 // -replaced by git). Refreshes status + summary in parallel.
 export function useEnvironment(): UseEnvironmentResult {
   const [snapshot, setSnapshot] = useState<EnvironmentSnapshot>(EMPTY)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const mountedRef = useRef(true)
+  const requestRef = useRef(0)
 
   const refresh = useCallback(async () => {
-    if (!window.api?.review) return
+    if (!mountedRef.current) return
+    const request = ++requestRef.current
     setLoading(true)
     try {
+      if (!window.api?.review) throw new Error('Review API unavailable')
       const [statusRes, summaryRes] = await Promise.all([
         window.api.review.status({}),
         window.api.review.summary?.() ?? Promise.resolve({ success: false } as const)
       ])
-      if (!mountedRef.current) return
-      const status = statusRes.success ? (statusRes.data as ReviewStatus) : null
-      const summary = summaryRes.success ? (summaryRes.data as ReviewSummary) : null
+      if (!mountedRef.current || request !== requestRef.current) return
+      if (!statusRes.success) throw new Error(statusRes.error || 'Repository status unavailable')
+      if (!summaryRes.success) throw new Error('Repository summary unavailable')
+      const status = statusRes.data as ReviewStatus
+      const summary = summaryRes.data as ReviewSummary
       setSnapshot({
         branch: status?.branch ?? null,
         additions: summary?.additions ?? 0,
@@ -58,8 +65,13 @@ export function useEnvironment(): UseEnvironmentResult {
         behind: status?.behind ?? 0,
         cwd: status?.cwd ?? ''
       })
+      setError(null)
+    } catch (err) {
+      if (mountedRef.current && request === requestRef.current) {
+        setError(err instanceof Error ? err.message : 'Repository refresh failed')
+      }
     } finally {
-      if (mountedRef.current) setLoading(false)
+      if (mountedRef.current && request === requestRef.current) setLoading(false)
     }
   }, [])
 
@@ -74,10 +86,11 @@ export function useEnvironment(): UseEnvironmentResult {
     }, 15000)
     return () => {
       mountedRef.current = false
+      requestRef.current++
       window.clearInterval(id)
       unsubscribe?.()
     }
   }, [refresh])
 
-  return { snapshot, loading, refresh }
+  return { snapshot, loading, error, refresh }
 }

@@ -260,7 +260,7 @@ export function FloatingEnvironmentCard({
 }: FloatingEnvironmentCardProps): React.ReactElement | null {
   const openSettings = useUiStore((s) => s.openSettings)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
-  const { snapshot, refresh } = useEnvironment()
+  const { snapshot, refresh, loading, error } = useEnvironment()
   const { sources, groups } = useSources()
   const reduced = usePrefersReducedMotion()
 
@@ -339,7 +339,7 @@ export function FloatingEnvironmentCard({
   const branchRef = useRef<HTMLButtonElement>(null)
   const [workModeOpen, setWorkModeOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
-  const { committing, handleCommitOrPush, commitDialog, commitDisabled, commitLabel } = useEnvironmentGitAction(snapshot, refresh)
+  const { committing, handleCommitOrPush, commitDialog, commitDisabled, commitLabel } = useEnvironmentGitAction(snapshot, refresh, !loading && !error)
   const [headerCollapsed, setHeaderCollapsed] = useState(false)
 
   const duration = reduced ? 0 : ENV_CARD_TRANSITION_MS
@@ -402,6 +402,10 @@ export function FloatingEnvironmentCard({
         aria-label="Environment"
         aria-hidden={interactive ? undefined : true}
       >
+        {error && <div role="alert" className="p-2 text-xs text-[var(--error)]">
+          Repository status unavailable; displayed values may be stale. {error}{' '}
+          <button type="button" disabled={loading} onClick={() => void refresh()} className="underline">Retry</button>
+        </div>}
         {/* Header */}
         <div className="flex items-center gap-2 px-2.5 py-2">
           <button

@@ -430,44 +430,6 @@ export function isPersistenceReadOnlyMode(): boolean {
   return persistenceReadOnlyMode
 }
 
-/**
- * PS8 — run `fn` inside a single SQLite transaction on the cached DB
- * connection. better-sqlite3 transactions are synchronous; nothing
- * inside `fn` may await. A throw rolls back the transaction;
- * the throw propagates to the caller.
- *
- * Use for the small group-of-writes case where dropping the second
- * write while keeping the first would leave a half-row state — e.g.
- * the planner+coder metric pair on a shared message id, or a future
- * "save message + write stage metric" handshake. The cross-stage
- * relationship in the multi-agent pipeline is NOT transactional
- * (awaits between stages); this helper covers the within-stage
- * row+metric pair.
- *
- * Returns whatever `fn` returns.
- */
-export function transactional<T>(fn: () => T): T {
-  // JM-16 (DB-20) — resolve through getDb() instead of the cached variable.
-  // The old `if (!db) return fn()` silently degraded to NON-transactional
-  // execution in the pre-init window or after closeDb: callers relying on
-  // rollback semantics got partial writes with no signal. getDb() either
-  // opens/initializes the real handle or throws — the honest outcomes. Test
-  // environments without a DB take the catch: getDb's throw is classed as
-  // unavailability and fn runs directly, preserving the old test contract.
-  let target: Database.Database
-  try {
-    target = getDb()
-  } catch {
-    return fn()
-  }
-  let result!: T
-  const tx = target.transaction(() => {
-    result = fn()
-  })
-  tx()
-  return result
-}
-
 export function closeDb(opts?: { checkpoint?: boolean }): void {
   if (db) {
     // PS2 — TRUNCATE the WAL before closing so the next launch starts

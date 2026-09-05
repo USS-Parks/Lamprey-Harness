@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-13: Remove unused transaction fallback and close data milestone
+
+**Files changed:** `electron/services/database.ts`, `PLANNING/evidence/sr12.json`, `PLANNING/evidence/sr13-remove.py`, `PLANNING/evidence/sr-check.py`
+
+**Verification:** Production reference search found no callers. Full Vitest: 271 files passed/17 skipped, 2985 tests passed/172 skipped. Separate required native gate: all 20 files/167 tests passed with zero skips. Logs sr-milestone-b.log and sr-milestone-b-native.log. Commit hooks enforce lint/typecheck.
+
+**Notes:** Removed dormant helper and contradictory safety comment; retained actual SQLite transaction call sites. Normal Node suite ABI skips are not counted as native proof. SR-12 commit c1ddee3b7c22a654e704cd0983b5dc1a8e50e4a6. Milestones A and B locally accepted; final Linux CI/link case remains part of exact-head publication gate.
+
+**Commit:** see `PLANNING/evidence/sr13.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-12: Confine real filesystem targets across links and junctions
 
 **Files changed:** `electron/ipc/files.ts`, `electron/ipc/files.test.ts`, `PLANNING/evidence/sr11.json`

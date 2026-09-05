@@ -1,0 +1,22 @@
+[
+  {
+    "case": "healthy baseline",
+    "exit": 0,
+    "output": "npm notice run lamprey-harness@0.31.0 typecheck\nnpm notice run tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json\n"
+  },
+  {
+    "case": "electron deliberate type error",
+    "exit": 2,
+    "output": "electron/sr03-typecheck-fixture.ts(1,14): error TS2322: Type 'string' is not assignable to type 'number'.\nnpm notice run lamprey-harness@0.31.0 typecheck\nnpm notice run tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json\n"
+  },
+  {
+    "case": "src deliberate type error",
+    "exit": 2,
+    "output": "src/sr03-typecheck-fixture.ts(1,14): error TS2322: Type 'string' is not assignable to type 'number'.\nnpm notice run lamprey-harness@0.31.0 typecheck\nnpm notice run tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json\n"
+  },
+  {
+    "case": "fixtures removed",
+    "exit": 0,
+    "output": "npm notice run lamprey-harness@0.31.0 typecheck\nnpm notice run tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json\n"
+  }
+]

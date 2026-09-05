@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-03: Typecheck both real projects
+
+**Files changed:** `package.json`, `PLANNING/evidence/sr02.json`, `PLANNING/evidence/sr03-verification.json`, `PLANNING/evidence/sr03-verify.py`
+
+**Verification:** Public npm run typecheck: healthy exit 0; temporary Electron project error exit 2; temporary renderer project error exit 2; fixtures removed exit 0. Detailed outputs in sr03-verification.json. Lint and both projects additionally enforced by commit hooks.
+
+**Notes:** Replaced empty root-reference invocation with explicit node/web project commands. No compiler settings relaxed. SR-02 commit 61f6bc20634ed35d60651449ff21ed68fc7403e2.
+
+**Commit:** see `PLANNING/evidence/sr03.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-02: Fail native acceptance on missing or skipped proof
 
 **Files changed:** `scripts/test-native-db.cjs`, `scripts/test-native-db.test.cjs`, `electron/services/rag/store.test.ts`, `.github/workflows/ci.yml`, `PLANNING/evidence/sr01.json`

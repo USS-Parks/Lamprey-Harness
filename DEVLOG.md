@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-36: Prepare the verified 0.32.0 release candidate
+
+**Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.32.0.md`, `PLANNING/evidence/SR36_CANDIDATE.md`, `PLANNING/evidence/sr36-prepare.py`, `PLANNING/evidence/sr35.json`, `PLANNING/evidence/sr-close.py`
+
+**Verification:** Remote v0.32.0 tag absent and GitHub release not found at preparation. Package and lockfile versions agree at 0.32.0. Production build passed; dedicated native suite passed all 170 tests; full proof with required smokes passed lint, both TypeScript projects, 3007 default tests (175 explicitly accounted skips) and both bundle smokes. Release artifact contract and notes reviewed; actual produced hashes and hosted candidate gates remain mandatory before/during SR-37 publication.
+
+**Notes:** Candidate SHA is the commit introducing SR36_CANDIDATE.md and this receipt, resolved through git log. No tag or release created in SR-36. Current download links stay on v0.31.0 until publication. The helper's keep_tree_clean mode records a stable commit lookup instead of dirtying its own receipt after commit; publication rejects tracked changes. SR-35 pushed at 427b1a17e3be6e8c8d5806d3d80eebee81dd83ca. Full STS and Bucket authorization persists.
+
+**Commit:** the commit introducing `PLANNING/evidence/sr36.json`; resolve with `git log -1 --format=%H -- PLANNING/evidence/sr36.json`. This avoids a self-referential post-commit edit.
+
 ## 2026-09-05 — SR-35: Verify final Bucket bytes after the tag producer
 
 **Files changed:** `scripts/bucket.cjs`, `scripts/bucket.test.cjs`, `scripts/bucket.ps1`, `scripts/bucket-setup.ps1`, `.github/workflows/ci.yml`, `AGENTS.md`, `CLAUDE.md`, `openwiki/operations/ship-and-bucket.md`, `openwiki/quickstart.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr34.json`, `PLANNING/evidence/sr35-rewrite.py`, `PLANNING/evidence/sr35-wrapper.py`

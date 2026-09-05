@@ -18,7 +18,10 @@ entry = f"## 2026-09-05 — {prompt}: {receipt['title']}\n\n"
 entry += '**Files changed:** '+', '.join(f'`{p}`' for p in receipt['files'])+'\n\n'
 entry += '**Verification:** '+receipt['verification']+'\n\n'
 entry += '**Notes:** '+receipt['notes']+'\n\n'
-entry += f'**Commit:** see `{receipt_path.relative_to(root).as_posix()}` (SHA recorded immediately after commit).\n\n'
+if receipt.get('keep_tree_clean'):
+    entry += f'**Commit:** the commit introducing `{receipt_path.relative_to(root).as_posix()}`; resolve with `git log -1 --format=%H -- {receipt_path.relative_to(root).as_posix()}`. This avoids a self-referential post-commit edit.\n\n'
+else:
+    entry += f'**Commit:** see `{receipt_path.relative_to(root).as_posix()}` (SHA recorded immediately after commit).\n\n'
 current = devlog.read_text(encoding='utf-8')
 if current.startswith(f'## 2026-09-05 — {prompt}:'):
     current = current.split('\n\n', 5)[5]
@@ -28,6 +31,7 @@ subprocess.run(['git','add','--',*files],cwd=root,check=True)
 subprocess.run(['git','-c','core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol','diff','--cached','--check','--', ':!*.diff', ':!*.patch', ':!*-original.txt', ':!*-base.txt', ':!*-incoming.txt'],cwd=root,check=True)
 subprocess.run(['git','commit','-m',f"{prompt}: {receipt['title']}\n\nAuthored and reviewed by Basho Parks, copyright 2026"],cwd=root,check=True)
 receipt['commit'] = subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
-receipt_path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8',newline='\n')
+if not receipt.get('keep_tree_clean'):
+    receipt_path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8',newline='\n')
 print(receipt['commit'])
 subprocess.run(['git','push','origin','HEAD:main'],cwd=root,check=True)

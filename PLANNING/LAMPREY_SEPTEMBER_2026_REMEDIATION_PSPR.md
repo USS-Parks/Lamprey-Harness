@@ -152,11 +152,13 @@ SR-35 is a source repair. SR-36 is a reviewable release candidate. SR-37 require
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
 | [x] SR-35 | Serialize release producers and verify final artifacts (SA-18) | Isolated/dry-run fixture reproduces late overwrite and proves final verification catches it; no early asset-presence shortcut; manifest binds source/version/assets; no external upload needed for source test |
-| [ ] SR-36 | Prepare final release candidate for review | Proposed version 0.32.0 checked for availability/conflicts; changelog accurate; source gates rerun for release-script/version changes as needed; exact candidate SHA and reviewed artifact manifest; no publication yet |
+| [x] SR-36 | Prepare final release candidate for review | Proposed version 0.32.0 checked for availability/conflicts; changelog accurate; source gates rerun for release-script/version changes as needed; exact candidate SHA and reviewed artifact manifest; no publication yet |
 | [ ] SR-37 | Publish authorized source/tag and run Bucket | Exact remote SHA verified; current hosted CI/build pass; all producers completed; final GitHub/CDN bytes hash-match manifest; install/launch/update-metadata smoke; inaccessible CDN or mismatched bytes blocks completion |
 | [ ] SR-38 | Close published release and storage ledger | DEVLOG/plan/release body reflect actual receipts; TL-W4 historical status corrected only with relevant evidence; current release recorded separately; worktrees' owner/dirty/unpublished/size/blocker inventory current; clean scoped source state and all preserved user files accounted for |
 
 If SR-35 changes shared build/verification behavior, rerun affected SR-34 gates before SR-36; SR-34 is not a permanent certificate for later changes. Failed Bucket must produce an honest partial-publication recovery record, not a fabricated completion.
+
+SR-36 manifest clarification: before the tag producer runs, review the artifact contract (names, platforms, source/version binding and required digest/metadata checks). Actual binary hashes are captured from the completed producer and verified in SR-37. Do not invent pre-build hashes or treat this contract as a completed publication manifest. Candidate commits use a clean-tree ledger reference so Bucket can enforce committed source without a self-referential receipt edit.
 
 ## Finding-to-prompt map
 

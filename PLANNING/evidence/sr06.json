@@ -3,5 +3,11 @@
   "title": "Reject unregistered tools before MCP dispatch",
   "verification": "Real stdio authority fixture proves unknown tool rejection even when server accepts name, plan-mode mutation denial, denied approval, schema rejection and authorized dispatch. Dispatch plus existing validator suites: 33 passed. Lint/typecheck enforced by commit hooks.",
   "notes": "The malformed-schema acceptance test exposed additionalProperties:false being ignored without a properties map. Fixed that adjacent validator condition as required by this prompt's argument-validation gate; no new schema engine. SR-05 commit a645b8825c9290b4696403434fa600c840dd554d.",
-  "files": ["electron/services/chat-tool-dispatch.ts", "electron/services/chat-tool-dispatch.test.ts", "electron/services/tool-schema-validator.ts", "PLANNING/evidence/sr05.json"]
+  "files": [
+    "electron/services/chat-tool-dispatch.ts",
+    "electron/services/chat-tool-dispatch.test.ts",
+    "electron/services/tool-schema-validator.ts",
+    "PLANNING/evidence/sr05.json"
+  ],
+  "commit": "460bc6b1703713644a72e424c87163a2406ede80"
 }

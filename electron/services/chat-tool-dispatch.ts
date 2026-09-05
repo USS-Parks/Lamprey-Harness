@@ -2,7 +2,7 @@ import { isPlanModeActive } from './conversation-store'
 import { fireHooks } from './hooks-runner'
 import { mcpManager } from './mcp-manager'
 import { toolRegistry, isMutatingDescriptor } from './tool-registry'
-import { TOOL_SEARCH_TOOL_NAME } from './model-tool-surface'
+import { TOOL_SEARCH_TOOL, TOOL_SEARCH_TOOL_NAME } from './model-tool-surface'
 import { unlockTools, recordMalformedSearch } from './tool-unlock-state'
 import { partitionToolCallWindows, type ProviderToolCall } from './tool-call-windowing'
 import { permissionsService, descriptorNeedsApproval } from './permissions-store'
@@ -92,6 +92,12 @@ export async function resolveSingleToolCall(
     }
   }
 
+  if (!args || typeof args !== 'object' || Array.isArray(args)) {
+    return { callId: tc.id, result: JSON.stringify({
+      error: 'argument_validation_failed', details: ['Tool arguments must be a JSON object.']
+    }) }
+  }
+
   {
     const schemaReq = (
       toolRegistry.getById(toolName)?.inputSchema as { required?: string[] } | undefined
@@ -118,19 +124,18 @@ export async function resolveSingleToolCall(
     }
   }
 
-  if (toolName === TOOL_SEARCH_TOOL_NAME) {
-    return handleToolSearch(tc.id, conversationId, args)
-  }
-
   const descriptor = toolRegistry.getById(toolName)
-  if (!descriptor) {
+  const isSearch = toolName === TOOL_SEARCH_TOOL_NAME
+  if (!isSearch && !descriptor) {
     return { callId: tc.id, result: JSON.stringify({
       error: 'unknown_tool', tool: toolName,
       message: 'Tool is not registered. Discover an available tool before calling it.'
     }) }
   }
-  if (descriptor?.inputSchema) {
-    const validation = validateToolArguments(toolName, args, descriptor.inputSchema)
+  const schema = isSearch && TOOL_SEARCH_TOOL.type === 'function'
+    ? TOOL_SEARCH_TOOL.function.parameters : descriptor?.inputSchema
+  if (schema) {
+    const validation = validateToolArguments(toolName, args, schema)
     if (!validation.valid) {
       trace('resolveToolCall.validation-failed', {
         callId: tc.id,
@@ -149,6 +154,7 @@ export async function resolveSingleToolCall(
     }
     args = validation.parsed
   }
+  if (isSearch) return handleToolSearch(tc.id, conversationId, args)
 
   const startTime = Date.now()
   trace('resolveToolCall.enter', {

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-07: Validate meta-tool arguments before dispatch
+
+**Files changed:** `electron/services/chat-tool-dispatch.ts`, `electron/services/chat-tool-dispatch.test.ts`, `PLANNING/evidence/sr06.json`
+
+**Verification:** Dispatch, schema-validator and unlock-state suites: 52 passed. Null, arrays, numbers, booleans, strings and wrong query types return structured errors. Valid search uses the existing schema, returns discovered tools and unlocks actual conversation state. Lint/typecheck run through commit hooks.
+
+**Notes:** All parsed payloads must be objects; meta-tool schema validation now shares the existing validator before search handling. No new validation framework. SR-06 commit 460bc6b1703713644a72e424c87163a2406ede80.
+
+**Commit:** see `PLANNING/evidence/sr07.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-06: Reject unregistered tools before MCP dispatch
 
 **Files changed:** `electron/services/chat-tool-dispatch.ts`, `electron/services/chat-tool-dispatch.test.ts`, `electron/services/tool-schema-validator.ts`, `PLANNING/evidence/sr05.json`

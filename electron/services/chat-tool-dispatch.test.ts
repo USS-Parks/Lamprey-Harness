@@ -22,13 +22,15 @@ vi.mock('./tool-registry', () => ({
   isParallelizableDescriptor: () => false,
   toolRegistry: {
     getById: (id: string) => state.unknown ? undefined : ({ id, name: id, providerId: 'fixture', providerKind: 'mcp', risks: [], inputSchema: { type: 'object', additionalProperties: false } }),
-    recordCallStart: vi.fn(), recordCallEnd: (...args: unknown[]) => state.end(...args), hasHandler: () => false
+    recordCallStart: vi.fn(), recordCallEnd: (...args: unknown[]) => state.end(...args), hasHandler: () => false,
+    resolveToolSearch: () => [{ name: 'fixture__second', description: 'fixture write' }]
   }
 }))
 import { mcpManager, __setMcpCallTimeoutForTesting } from './mcp-manager'
 import { resolveSingleToolCall, resolveToolCallWindows } from './chat-tool-dispatch'
 import { TurnRuntimeRegistry } from './turn-runtime'
 import type { TurnId } from './turn-control-types'
+import { getUnlockedTools } from './tool-unlock-state'
 
 let client: Client | undefined
 afterEach(async () => {
@@ -54,6 +56,18 @@ async function observedCalls(): Promise<string[]> {
 }
 
 describe('tool dispatch authority and cancellation', () => {
+  it.each(['null','[]','42','true','"text"','{"query":42}'])('rejects malformed meta-tool payload %s', async (argumentsText) => {
+    const request = { id: 'search', function: { name: 'tool_search', arguments: argumentsText } }
+    const result = await resolveSingleToolCall(request,'search-invalid','model','.',new AbortController().signal)
+    expect(JSON.parse(result.result).error).toBe('argument_validation_failed')
+    expect(state.preHook).not.toHaveBeenCalled()
+  })
+  it('searches and unlocks tools through the valid meta-tool contract', async () => {
+    const request = { id: 'search', function: { name: 'tool_search', arguments: '{"query":"fixture"}' } }
+    const result = await resolveSingleToolCall(request,'search-valid','model','.',new AbortController().signal)
+    expect(JSON.parse(result.result).unlocked).toEqual(['fixture__second'])
+    expect(getUnlockedTools('search-valid')).toEqual(['fixture__second'])
+  })
   it('rejects descriptorless tools even when a connected server accepts their name', async () => {
     await connect()
     state.plan = true; state.unknown = true

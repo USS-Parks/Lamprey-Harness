@@ -82,7 +82,7 @@ Usable cut: core dispatch and local persistence respect their contracts. Depends
 | [x] SR-09 | Make manual compaction atomic and snapshot-safe (SA-05) | Real DB: message arriving during summary retained or replacement safely refused; insertion failure rolls back; successful result preserves intended history |
 | [x] SR-10 | Make backup restore validated and recoverable (SA-06) | Real temporary DB: invalid/unauthorized source causes no live moves; copy/move/reopen failures preserve recoverable original; sidecars coherent; successful reopen/integrity check |
 | [x] SR-11 | Preserve complete tool groups during compression (SA-07) | Actual selection plus native persistence tests cover multi-result blocks, pending blocks and budget boundaries; no orphan result/call after compaction |
-| [ ] SR-12 | Close link/junction escapes in workspace confinement (SA-08) | Real Windows junction/symlink fixtures reject external targets, permit legitimate workspace reads, handle nonexistent/error paths; generic untrusted IPC cannot escape |
+| [x] SR-12 | Close link/junction escapes in workspace confinement (SA-08) | Real Windows junction/symlink fixtures reject external targets, permit legitimate workspace reads, handle nonexistent/error paths; generic untrusted IPC cannot escape |
 | [ ] SR-13 | Remove the dormant misleading transaction fallback (SA-29) | Reconfirm no supported callers; delete helper/comment, or if a caller is established require real rollback/fail-closed proof; no mock-driven production bypass |
 
 ### Milestone C — MCP, providers and research behavior

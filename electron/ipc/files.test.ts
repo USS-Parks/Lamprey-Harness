@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { mkdtempSync } from 'fs'
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, realpathSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 
@@ -7,8 +7,9 @@ import { join, resolve } from 'path'
 // shell). We mock those with the minimal surface the module body touches —
 // only the pure helpers (parseProbeOutput + buildVSCodeLaunchPlan) are
 // exercised below.
+const handlers = vi.hoisted(() => ({} as Record<string, (...args: any[]) => any>))
 vi.mock('electron', () => ({
-  ipcMain: { handle: () => undefined },
+  ipcMain: { handle: (name: string, handler: (...args: any[]) => any) => { handlers[name] = handler } },
   dialog: {
     showOpenDialog: async () => ({ canceled: true, filePaths: [] })
   },
@@ -27,7 +28,8 @@ vi.mock('../services/workspace-state', () => ({
 import {
   buildVSCodeLaunchPlan,
   confineToWorkspace,
-  parseProbeOutput
+  parseProbeOutput,
+  registerFilesHandlers
 } from './files'
 
 describe('confineToWorkspace', () => {
@@ -58,6 +60,45 @@ describe('confineToWorkspace', () => {
   it('denies an absolute path outside the workspace', () => {
     expect(confineToWorkspace(resolve(root, '..', 'outside.txt'))).toBeNull()
     expect(confineToWorkspace('/etc/passwd')).toBeNull()
+  })
+  it('denies real directory-link escapes including nonexistent descendants', async () => {
+    const outside = mkdtempSync(join(tmpdir(),'lamprey-confine-outside-'))
+    writeFileSync(join(outside,'private.txt'),'outside fixture content')
+    const link = join(root,'escape-link')
+    symlinkSync(outside,link,process.platform === 'win32' ? 'junction' : 'dir')
+    expect(confineToWorkspace(join(link,'private.txt'))).toBeNull()
+    expect(confineToWorkspace(join(link,'not-created.txt'))).toBeNull()
+    registerFilesHandlers()
+    const reply = await handlers['files:readText']({},join(link,'private.txt'))
+    expect(reply.success).toBe(false)
+    expect(JSON.stringify(reply)).not.toContain('outside fixture content')
+  })
+  it('allows real internal directory links and ordinary double-dot-prefixed names', () => {
+    const internal = join(root,'internal')
+    mkdirSync(internal)
+    const link = join(root,'internal-link')
+    symlinkSync(internal,link,process.platform === 'win32' ? 'junction' : 'dir')
+    expect(confineToWorkspace(join(link,'future.txt'))).toBe(join(realpathSync(internal),'future.txt'))
+    expect(confineToWorkspace('..notes')).toBe(join(realpathSync(root),'..notes'))
+  })
+  it('rejects external and dangling links using the platform-supported link type', () => {
+    const outside = mkdtempSync(join(tmpdir(),'lamprey-filelink-outside-'))
+    writeFileSync(join(outside,'private.txt'),'fixture')
+    const external = join(root,'external-file-link')
+    const dangling = join(root,'dangling-file-link')
+    if (process.platform === 'win32') {
+      symlinkSync(outside,external,'junction')
+      symlinkSync(join(root,'missing-target'),dangling,'junction')
+    } else {
+      symlinkSync(join(outside,'private.txt'),external,'file')
+      symlinkSync(join(root,'missing-target'),dangling,'file')
+    }
+    expect(confineToWorkspace(external)).toBeNull()
+    expect(confineToWorkspace(dangling)).toBeNull()
+  })
+  it('fails closed when the workspace itself is unavailable', () => {
+    workspaceRoot.current = join(root,'absent-workspace')
+    try { expect(confineToWorkspace('.')).toBeNull() } finally { workspaceRoot.current = root }
   })
 })
 

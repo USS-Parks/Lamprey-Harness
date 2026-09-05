@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-12: Confine real filesystem targets across links and junctions
+
+**Files changed:** `electron/ipc/files.ts`, `electron/ipc/files.test.ts`, `PLANNING/evidence/sr11.json`
+
+**Verification:** Files IPC and security suites: 30 passed. Real Windows junctions exercise external targets, missing descendants, internal targets, dangling links and unavailable workspace. Actual read IPC denies external content. Ordinary double-dot-prefixed names remain valid. Lint/typecheck enforced by hooks.
+
+**Notes:** Canonicalizes existing ancestors and rejects dangling links/errors; returns canonical safe target. Windows account lacks file-symlink privilege (EPERM), so Windows tests use real junctions; the same committed test uses actual file symlinks on Linux. Linux branch evidence is required in final hosted CI, not claimed locally. SR-11 commit 5f6fb486d4df63ba46e86d436c732134e24fcd2b.
+
+**Commit:** see `PLANNING/evidence/sr12.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-11: Compress only complete tool-call result groups
 
 **Files changed:** `electron/services/context-compressor.ts`, `electron/services/context-compressor-native.test.ts`, `PLANNING/evidence/sr10.json`

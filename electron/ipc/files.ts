@@ -2,6 +2,7 @@ import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs/promises'
+import { lstatSync, realpathSync } from 'fs'
 import { processFiles } from '../services/file-handler'
 import {
   clearActiveWorkspace,
@@ -148,10 +149,36 @@ async function walkProject(rootPath: string): Promise<string[]> {
 export function confineToWorkspace(candidate: string): string | null {
   const root = path.resolve(getActiveWorkspace())
   const target = path.resolve(root, candidate)
-  const rel = path.relative(root, target)
-  if (rel === '') return target
-  if (rel.startsWith('..') || path.isAbsolute(rel)) return null
-  return target
+  const escapes = (from: string, to: string): boolean => {
+    const relative = path.relative(from, to)
+    return relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)
+  }
+  if (escapes(root, target)) return null
+  try {
+    const canonicalRoot = realpathSync(root)
+    let ancestor = target
+    const missing: string[] = []
+    for (;;) {
+      try {
+        const canonical = path.resolve(realpathSync(ancestor), ...missing)
+        return escapes(canonicalRoot, canonical) ? null : canonical
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') return null
+        try {
+          lstatSync(ancestor)
+          return null // A dangling link exists; do not treat it as an absent path.
+        } catch (missingError) {
+          if ((missingError as NodeJS.ErrnoException).code !== 'ENOENT') return null
+        }
+        const parent = path.dirname(ancestor)
+        if (parent === ancestor) return null
+        missing.unshift(path.basename(ancestor))
+        ancestor = parent
+      }
+    }
+  } catch {
+    return null
+  }
 }
 
 export const OUTSIDE_WORKSPACE_ERROR =

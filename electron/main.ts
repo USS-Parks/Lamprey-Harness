@@ -349,7 +349,9 @@ function createWindow(): void {
   // IPC handler's existing guard.
   mainWindow.webContents.setWindowOpenHandler((details) => {
     if (/^https?:\/\//i.test(details.url)) {
-      void shell.openExternal(details.url)
+      void openExternalReply(details.url, (href) => shell.openExternal(href)).then((result) => {
+        if (!result.success) console.error('[main] Cannot open external link:', result.error)
+      })
     }
     return { action: 'deny' }
   })
@@ -511,9 +513,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('ping', () => pingReply())
   ipcMain.handle('shell:openExternal', (_event, url: string) =>
-    openExternalReply(url, (href) => {
-      void shell.openExternal(href)
-    })
+    openExternalReply(url, (href) => shell.openExternal(href))
   )
 
   ipcMain.handle('update:restart', async () => {
@@ -739,11 +739,15 @@ app.on('will-quit', (event) => {
     event.preventDefault()
     if (!mcpDrainAttempted) {
       mcpDrainAttempted = true
-      void mcpManager.shutdown().catch((error) => {
-        console.error('[main] MCP shutdown failed:', error)
-      }).finally(() => {
-        mcpDrainComplete = true
-        app.quit()
+      // Resume outside Electron's will-quit dispatch. Starting an already-
+      // resolved promise chain inside that event can stall quit indefinitely.
+      setImmediate(() => {
+        void mcpManager.shutdown().catch((error) => {
+          console.error('[main] MCP shutdown failed:', error)
+        }).finally(() => {
+          mcpDrainComplete = true
+          app.quit()
+        })
       })
     }
     return

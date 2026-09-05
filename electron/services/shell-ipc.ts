@@ -6,13 +6,17 @@ export function pingReply(): ShellIpcEnvelope<'pong'> {
   return { success: true, data: 'pong' }
 }
 
-export function openExternalReply(
+export async function openExternalReply(
   url: unknown,
-  open: (href: string) => void
-): ShellIpcEnvelope<null> {
+  open: (href: string) => Promise<void>
+): Promise<ShellIpcEnvelope<null>> {
   if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
-    open(url)
-    return { success: true, data: null }
+    try {
+      await open(url)
+      return { success: true, data: null }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
   }
   return { success: false, error: 'URL must start with http:// or https://' }
 }

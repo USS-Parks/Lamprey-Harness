@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-18: Await external-link IPC and complete Electron teardown
+
+**Files changed:** `electron/services/shell-ipc.ts`, `electron/services/shell-ipc.test.ts`, `electron/main.ts`, `scripts/acceptance/electron-fixture.cjs`, `scripts/acceptance/shell-link.cjs`, `scripts/acceptance/stop-fixture.py`, `PLANNING/evidence/sr17.json`
+
+**Verification:** 5 focused IPC tests passed, including pending completion, rejected promise, synchronous failure and invalid schemes. Production build passed. Real Electron loaded out/main plus the packaged renderer/preload; window.api.artifact.openExternal returned success and a loopback HTTP receiver observed the OS browser request. After the quit scheduling correction, the same fixture emitted will-quit prevented=true then false, quit, and exited normally in 2.27 seconds. No native IPC or OS opener mock in this smoke.
+
+**Notes:** Failure envelopes now reflect OS promise rejection; renderer window-open events also consume failure. Live smoke found SR-14 teardown could stall inside will-quit: scheduling the async drain with setImmediate fixes graceful exit. This tightly bundled correction is recorded in the PSPR. The fixture hides app windows, suppresses global shortcuts, uses an isolated temporary profile and disables MCP/plugin startup; it opened a local browser test tab. Installer/update acceptance remains SR-37. Packaged skill/slash-loader unresolved require failures are separately queued as SR-18A. SR-17 pushed at 2cdee6aea54fbdd7c31e595ba3e6b6a37565d0e9; its Windows CI failed an existing shell echo test at 15 seconds, tracked for SR-31.
+
+**Commit:** see `PLANNING/evidence/sr18.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-17: Reject uncited research reports before artifact creation
 
 **Files changed:** `electron/services/research/synthesizer.ts`, `electron/services/research/synthesizer.test.ts`, `PLANNING/evidence/sr16.json`

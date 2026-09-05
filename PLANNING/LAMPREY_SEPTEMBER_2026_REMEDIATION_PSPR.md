@@ -67,7 +67,7 @@ Independently approvable result: current source reconciled and advertised checks
 | [x] SR-01 | Reuse/review PR #13 to make required getDb suites execute | Required affected suites execute against a real isolated SQLite DB; tests verify behavior, not an unconditional fallback; document adopted PR SHA |
 | [x] SR-02 | Make native verification fail when required proof is skipped (SA-16) | Healthy native run executes required suites; intentionally unavailable binding/required skips cause nonzero exit; classify or replace RAG placeholders; no false-green coverage claim |
 | [x] SR-03 | Repair the public typecheck command (SA-20) | Both actual projects pass; a temporary type error in either project makes the command fail; fixtures removed |
-| [ ] SR-04 | Repair pre-push range and hook execution behavior (SA-27) | Temporary Git repositories cover clean new branch, existing branch, deletion, docs-only, mixed/spaced paths, unavailable base; errors do not silently skip checks; executable modes correct |
+| [x] SR-04 | Repair pre-push range and hook execution behavior (SA-27) | Temporary Git repositories cover clean new branch, existing branch, deletion, docs-only, mixed/spaced paths, unavailable base; errors do not silently skip checks; executable modes correct |
 
 ### Milestone B — Tool authority and data integrity
 

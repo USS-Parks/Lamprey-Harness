@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-04: Scope pre-push checks over actual pushed commits
+
+**Files changed:** `scripts/hooks/pre-push`, `scripts/hooks/pre-commit`, `scripts/pre-push-gate.cjs`, `scripts/pre-push-gate.test.cjs`, `.github/workflows/ci.yml`, `PLANNING/evidence/sr03.json`
+
+**Verification:** Node test runner passed both hook-range and existing path-classifier suites. Isolated real Git histories covered clean new branch, docs-only, mixed product changes, existing branch, spaced paths, ref deletion, empty input, malformed input, unavailable existing base and no known remote baseline. Lint and both project checks enforced by commit hooks.
+
+**Notes:** Thin shell hook delegates to Node for NUL-delimited path handling and visible Git failures. New branches compare to known remote HEAD merge-base or conservatively check full tree. Both hook executable bits restored. No force pushes or remote mutation. SR-03 commit f7d6947d06df87456dadf99b582188caa0c543a1.
+
+**Commit:** see `PLANNING/evidence/sr04.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-03: Typecheck both real projects
 
 **Files changed:** `package.json`, `PLANNING/evidence/sr02.json`, `PLANNING/evidence/sr03-verification.json`, `PLANNING/evidence/sr03-verify.py`

@@ -77,22 +77,22 @@ export async function forkTaskAtTurn(
   try {
     result = transaction(() => {
       const child = createConversation(source.model, {
-      kind: worktree ? 'worktree' : 'local',
-      worktreePath: worktree?.path ?? null,
-      projectId: source.projectId ?? null,
-      forkedFromId: sourceConversationId,
-      forkedFromTurnId: turnId,
-      seedSourceKind: 'transcript-range',
-      seedBlob: {
-        sourceConversationId,
-        kind: 'transcript-range',
-        contentPreview: `Historical fork through turn ${turnId}`,
-        seedBytes: boundaryMessages.reduce(
-          (sum, message) => sum + Buffer.byteLength(message.content, 'utf8'),
-          0
-        )
-      }
-    })
+        kind: worktree ? 'worktree' : 'local',
+        worktreePath: worktree?.path ?? null,
+        projectId: source.projectId ?? null,
+        forkedFromId: sourceConversationId,
+        forkedFromTurnId: turnId,
+        seedSourceKind: 'transcript-range',
+        seedBlob: {
+          sourceConversationId,
+          kind: 'transcript-range',
+          contentPreview: `Historical fork through turn ${turnId}`,
+          seedBytes: boundaryMessages.reduce(
+            (sum, message) => sum + Buffer.byteLength(message.content, 'utf8'),
+            0
+          )
+        }
+      })
       for (const message of boundaryMessages) {
         saveMessage({
           id: randomUUID(),

@@ -18,6 +18,7 @@ vi.mock('../settings-helper', () => ({
 }))
 import { chatOnce, chatStream, resetProviderClients, resolveModel, setUserDataPathProvider } from './registry'
 import { registerModelHandlers } from '../../ipc/model'
+import { trace } from '../debug-trace'
 
 const servers: Server[] = []
 let revision = 0
@@ -59,6 +60,38 @@ afterEach(async () => {
 const invoke = (name: string, ...args: unknown[]) => fixture.handlers.get(name)!(null, ...args)
 
 describe('custom model destination authority', () => {
+  it.each(['rate-limit', 'broken-stream'])('cancels %s backoff without another HTTP request', async (failure) => {
+    let requests = 0
+    const server = createServer(async (request, response) => {
+      for await (const _chunk of request) { /* drain the request */ }
+      requests++
+      if (failure === 'rate-limit') {
+        response.writeHead(429, { 'Content-Type': 'application/json', 'x-should-retry': 'false' })
+        response.end(JSON.stringify({ error: { message: 'fixture rate limit' } }))
+      } else {
+        response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+        response.write('data: {"choices":[{"delta":{"content":"partial"},"index":0}]}\n\n')
+        setTimeout(() => response.destroy(), 30)
+      }
+    })
+    servers.push(server)
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    const port = (server.address() as { port: number }).port
+    settings({ customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${port}/v1` }], customModels: [{ id: 'retry-fixture', name: 'Fixture', provider: 'fixture-provider', contextWindow: 8192 }] })
+    vi.mocked(trace).mockClear()
+    const controller = new AbortController()
+    const callbacks = { onChunk: vi.fn(), onDone: vi.fn(), onError: vi.fn() }
+    const pending = chatStream([{ role: 'user', content: 'fixture' }], 'retry-fixture', undefined, callbacks, controller.signal)
+    await vi.waitFor(() => expect(vi.mocked(trace).mock.calls.some(call => call[0] === 'chatStream.catch.entered')).toBe(true))
+    const start = Date.now()
+    controller.abort()
+    await pending
+    expect(Date.now() - start).toBeLessThan(500)
+    expect(requests).toBe(1)
+    expect(callbacks.onDone).toHaveBeenCalledExactlyOnceWith(failure === 'broken-stream' ? 'partial [cancelled]' : ' [cancelled]', undefined, undefined)
+    expect(callbacks.onError).not.toHaveBeenCalled()
+  })
+
   it('sends only to the configured receiver and refuses removed or unknown destinations', async () => {
     const intended = await receiver()
     const unintended = await receiver()

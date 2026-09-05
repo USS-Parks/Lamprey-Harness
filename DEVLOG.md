@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31B: Cancel provider retry waits promptly
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/model-destination.test.ts`, `electron/services/fork-task.ts`, `PLANNING/evidence/sr31a.json`
+
+**Verification:** 63 provider tests passed. The real OpenAI SDK used a local HTTP receiver for both a 429 and a broken SSE stream. Cancellation during backoff settled within 500 ms, emitted exactly one cancellation completion, preserved streamed partial text and produced exactly one request. Production Electron build passed.
+
+**Notes:** Backoff timers now listen to the parent signal and remove their listener on settlement. Cancellation is checked before resetting buffers or starting another SDK attempt. Includes indentation-only correction to SR-31A's transaction body. SR-31A pushed at 87b9c2c14d77bd497fc695bc4d807a52ddb383e5.
+
+**Commit:** see `PLANNING/evidence/sr31b.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31A: Make historical fork writes atomic and report retained resources
 
 **Files changed:** `electron/services/fork-task.ts`, `electron/services/fork-task.test.ts`, `electron/services/fork-task-native.test.ts`, `PLANNING/evidence/sr31.json`

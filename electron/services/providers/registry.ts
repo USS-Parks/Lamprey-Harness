@@ -1288,7 +1288,30 @@ export async function chatStream(
     }
   }
 
+  const waitForRetry = (delay: number): Promise<void> => new Promise((resolve) => {
+    if (signal?.aborted) { resolve(); return }
+    const finish = (): void => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', finish)
+      resolve()
+    }
+    const timer = setTimeout(finish, delay)
+    signal?.addEventListener('abort', finish, { once: true })
+  })
+
   while (retries <= maxRetries) {
+    if (signal?.aborted) {
+      callbacks.onDone(fullContent + ' [cancelled]', undefined, fullReasoning || undefined)
+      emitModelRequestCompleted(desc, audit, {
+        streaming: true,
+        toolCount: offeredToolCount,
+        retryCount: retries,
+        durationMs: Date.now() - startedAt,
+        cancelled: true,
+        emittedToolCallCount: toolCallsAccumulator.size
+      })
+      return
+    }
     // T1 — Per-attempt controller. User-signal aborts route through this;
     // the inactivity timer also fires it. We use the `inactivityFired` flag
     // to disambiguate inactivity-abort from user-cancel in the catch.
@@ -1591,7 +1614,7 @@ export async function chatStream(
           retries++
           const delay = Math.pow(2, retries) * 1000
           trace('chatStream.retry.inactivity', { traceId, retries, backoffMs: delay })
-          await new Promise((r) => setTimeout(r, delay))
+          await waitForRetry(delay)
           continue
         }
         const stallErr = new StreamInactivityError(inactivityMs)
@@ -1640,14 +1663,14 @@ export async function chatStream(
       if (err?.status === 429 && retries < maxRetries) {
         retries++
         const delay = Math.pow(2, retries) * 1000
-        await new Promise((r) => setTimeout(r, delay))
+        await waitForRetry(delay)
         continue
       }
 
       if (retries < maxRetries && !err?.status) {
         retries++
         const delay = Math.pow(2, retries) * 1000
-        await new Promise((r) => setTimeout(r, delay))
+        await waitForRetry(delay)
         continue
       }
 

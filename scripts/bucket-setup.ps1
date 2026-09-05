@@ -49,10 +49,11 @@ if (Test-Path $configPath) {
   if (-not $cdnHost) { $cdnHost = "cdn.islandmountain.io" }
   Write-Host "  Cloudflare Zone ID = bottom-right of CF dashboard > islandmountain.io > Overview."
   $zoneId = Read-Host "    Zone ID (needed for cache purge; leave blank to skip)"
-  $ghRepo = Read-Host "  GitHub repo [USS-Parks/lamprey]"
-  if (-not $ghRepo) { $ghRepo = "USS-Parks/lamprey" }
+  $ghRepo = Read-Host "  GitHub repo [USS-Parks/Lamprey-Harness]"
+  if (-not $ghRepo) { $ghRepo = "USS-Parks/Lamprey-Harness" }
 
   $json = [ordered]@{
+    aws = [ordered]@{ profile = "r2" }
     r2 = [ordered]@{
       accountId = $accountId
       bucket = $bucketName

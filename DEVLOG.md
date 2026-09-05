@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-35: Verify final Bucket bytes after the tag producer
+
+**Files changed:** `scripts/bucket.cjs`, `scripts/bucket.test.cjs`, `scripts/bucket.ps1`, `scripts/bucket-setup.ps1`, `.github/workflows/ci.yml`, `AGENTS.md`, `CLAUDE.md`, `openwiki/operations/ship-and-bucket.md`, `openwiki/quickstart.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr34.json`, `PLANNING/evidence/sr35-rewrite.py`, `PLANNING/evidence/sr35-wrapper.py`
+
+**Verification:** Seven Bucket tests passed with real local HTTP downloads: late overwrite rejected after an early hash passed, producer ordering/failure, exact tag+SHA selection, six-file manifest, updater version/size/hash mismatch, HTTP failure and partial flag rejection. Combined verification-gate suite: 12 passed. ESLint passed. PowerShell wrapper dry run passed and correctly reported the existing v0.31.0 tag's different source. All 54 non-example wiki links resolve. No external upload or tag was performed for this source gate.
+
+**Notes:** SA-18 source repair replaces competing local/GitHub artifact writers with the completed exact tag workflow. Authoritative workflow artifacts are downloaded before mirror and final GitHub/CDN hashing; run attempt and release asset identity are rechecked. All six files, including updater metadata/blockmap, are mirrored. Failures record partial publication and exit nonzero. NoCrossPlatform is explicitly rejected; NoBuild compatibility never bypasses CI. Setup repo/profile defaults and generated release wiki claims corrected. SR-34 pushed at 5cefd0f0f57797c91790837fb2cdb053e2cf28e4. Actual Bucket remains SR-37.
+
+**Commit:** see `PLANNING/evidence/sr35.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-34: Record final source acceptance and finding ledger
 
 **Files changed:** `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr34b.json`, `PLANNING/evidence/sr34-verify.py`, `PLANNING/evidence/sr34-ledger.py`, `PLANNING/evidence/sr34-skip-ledger.py`, `PLANNING/evidence/sr34-wiki-links.py`, `PLANNING/evidence/sr-hosted.py`, `PLANNING/evidence/sr34-local.json`, `PLANNING/evidence/sr34-skips.json`, `PLANNING/evidence/sr34-final-local.json`, `PLANNING/evidence/sr34-final-skips.json`, `PLANNING/evidence/sr34-hosted.json`, `PLANNING/evidence/SR34_SOURCE_LEDGER.md`, `PLANNING/evidence/SR34_SKIPS.md`, `openwiki/domains/chat/settlement.md`, `openwiki/domains/tools/catalog.md`, `openwiki/domains/tools/mcp.md`

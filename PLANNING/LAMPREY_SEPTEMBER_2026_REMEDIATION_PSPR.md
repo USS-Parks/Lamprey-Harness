@@ -151,7 +151,7 @@ SR-35 is a source repair. SR-36 is a reviewable release candidate. SR-37 require
 
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
-| [ ] SR-35 | Serialize release producers and verify final artifacts (SA-18) | Isolated/dry-run fixture reproduces late overwrite and proves final verification catches it; no early asset-presence shortcut; manifest binds source/version/assets; no external upload needed for source test |
+| [x] SR-35 | Serialize release producers and verify final artifacts (SA-18) | Isolated/dry-run fixture reproduces late overwrite and proves final verification catches it; no early asset-presence shortcut; manifest binds source/version/assets; no external upload needed for source test |
 | [ ] SR-36 | Prepare final release candidate for review | Proposed version 0.32.0 checked for availability/conflicts; changelog accurate; source gates rerun for release-script/version changes as needed; exact candidate SHA and reviewed artifact manifest; no publication yet |
 | [ ] SR-37 | Publish authorized source/tag and run Bucket | Exact remote SHA verified; current hosted CI/build pass; all producers completed; final GitHub/CDN bytes hash-match manifest; install/launch/update-metadata smoke; inaccessible CDN or mismatched bytes blocks completion |
 | [ ] SR-38 | Close published release and storage ledger | DEVLOG/plan/release body reflect actual receipts; TL-W4 historical status corrected only with relevant evidence; current release recorded separately; worktrees' owner/dirty/unpublished/size/blocker inventory current; clean scoped source state and all preserved user files accounted for |

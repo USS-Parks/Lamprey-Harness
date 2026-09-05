@@ -324,4 +324,10 @@ All 41 findings have explicit [source dispositions and commit links](evidence/SR
 
 Source closeout also corrects six broken wiki architecture links and the provider registry's file/type attribution; all 56 non-example local wiki links resolve. Remaining generated release-wiki claims are reconciled with the Bucket implementation in SR-35. SA-18 remains open until that repair and final published-byte acceptance; installer publication is not claimed here.
 
+## SR-35 release producer repair
+
+SA-18's source repair now uses the completed exact tag workflow as the only producer. Bucket downloads that run's build artifacts, binds six hashes plus installer metadata to source/version/producer attempt, mirrors them, and hashes final GitHub/CDN downloads. It rejects changed producer attempts or release-asset identities during verification. The real HTTP fixture demonstrates an early hash passing before a late overwrite, then final verification rejecting the changed bytes. Full publication remains pending SR-37.
+
+The release wiki was replaced with instructions checked against the implementation: no invented credential file, Linux-built macOS claim, or auto-filled download table. Setup now defaults to the canonical repository and writes the same AWS profile it configures. The PowerShell entry point passes a read-only dry run; all 12 verification-gate tests pass, including seven Bucket cases. See [SR-35 receipt](evidence/sr35.json).
+
 Authored and reviewed by Basho Parks, copyright 2026

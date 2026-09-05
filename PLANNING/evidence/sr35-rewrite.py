@@ -1,4 +1,33 @@
----
+"""Replace obsolete Bucket orchestration and generated release instructions."""
+from pathlib import Path
+root = Path(__file__).resolve().parents[2]
+(root / 'scripts/bucket.ps1').write_text('''# Bucket: completed tag producer, followed by final GitHub/CDN byte verification.
+# -NoBuild is retained for compatibility; CI production is always required.
+# -NoCrossPlatform is rejected because it cannot complete the full ship gate.
+[CmdletBinding()]
+param([switch]$NoBuild, [switch]$NoTag, [switch]$NoCrossPlatform, [switch]$DryRun)
+$ErrorActionPreference = "Stop"
+$bucketArgs = @()
+if ($NoBuild) { $bucketArgs += "--no-build" }
+if ($NoTag) { $bucketArgs += "--no-tag" }
+if ($NoCrossPlatform) { $bucketArgs += "--no-cross-platform" }
+if ($DryRun) { $bucketArgs += "--dry-run" }
+& node (Join-Path $PSScriptRoot "bucket.cjs") @bucketArgs
+exit $LASTEXITCODE
+# Authored and reviewed by Basho Parks, copyright 2026
+''', encoding='utf-8', newline='\n')
+setup = root / 'scripts/bucket-setup.ps1'
+text = setup.read_text(encoding='utf-8').replace('USS-Parks/lamprey', 'USS-Parks/Lamprey-Harness')
+text = text.replace('$json = [ordered]@{', '$json = [ordered]@{\n    aws = [ordered]@{ profile = "r2" }', 1)
+setup.write_text(text, encoding='utf-8', newline='\n')
+for name in ['AGENTS.md', 'CLAUDE.md']:
+    p = root / name
+    text = p.read_text(encoding='utf-8')
+    old = 'It builds the canonical Windows artifacts when needed, tags and pushes `vX.Y.Z`, uploads the EXE and ZIP to R2, writes the GitHub release from `RELEASE_NOTES/vX.Y.Z.md`, waits for the tag workflow, mirrors the macOS DMG and Linux AppImage to R2, and purges each CDN URL.'
+    new = 'It requires committed source matching main, tags and pushes `vX.Y.Z`, waits for the exact successful tag workflow to finish all platform builds, downloads its six final assets, validates installer metadata, mirrors those bytes to R2, updates release notes, purges configured CDN URLs, and hashes final GitHub/CDN downloads. A mismatch or inaccessible download fails Bucket and records a partial receipt in `dist/bucket-vX.Y.Z-<source>/manifest.json`.'
+    assert old in text, name
+    p.write_text(text.replace(old, new), encoding='utf-8', newline='\n')
+(root / 'openwiki/operations/ship-and-bucket.md').write_text('''---
 title: Ship and release
 tags: [release, ship, bucket]
 resource: repo://scripts/bucket.ps1
@@ -22,7 +51,7 @@ Run `pwsh scripts/bucket.ps1` from the canonical checkout after the release cand
 1. Require tracked source to be clean and HEAD to match remote main. Reject an existing release tag pointing to different source.
 2. Create/push the tag if needed. The `build.yml` tag workflow is the sole artifact producer: Windows builds NSIS/ZIP, macOS builds its DMG, and Linux builds its AppImage.
 3. Wait for the workflow matching both tag and source SHA to finish successfully. Existing release assets never bypass this wait.
-4. Download the exact run's Windows, macOS and Linux workflow artifacts into `dist/bucket-vX.Y.Z-<source>/`. These build artifacts are authoritative; release assets are verified against them afterward. Capture source, version, producer attempt and SHA-256/size for each file. Check `latest.yml` version, installer name, size and SHA-512 against the EXE.
+4. Download all six final assets into `dist/bucket-vX.Y.Z-<source>/`. Capture source, version, producer and SHA-256/size for each file. Check `latest.yml` version, installer name, size and SHA-512 against the EXE.
 5. Update GitHub release notes and mirror all six files to R2. Purge the configured cache.
 6. Hash the final GitHub and CDN downloads against the captured bytes. Recheck the producer. Only then write a `verified` manifest and report success.
 
@@ -37,3 +66,7 @@ A failed step returns nonzero and records `status: partial` when the publication
 Keep the final manifest and installer launch/update-metadata smoke evidence with the release ledger. A successful build alone does not prove installation or runtime behavior. Builds remain unsigned under the project's existing non-goal; no signing claim is made.
 
 Authored and reviewed by Basho Parks, copyright 2026
+''', encoding='utf-8', newline='\n')
+p = root / 'openwiki/quickstart.md'
+text = p.read_text(encoding='utf-8').replace('(Windows only; builds all platforms, tags, uploads to CDN)', '(Windows orchestrator; waits for native platform CI builds and verifies final downloads)')
+p.write_text(text, encoding='utf-8', newline='\n')

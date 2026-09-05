@@ -119,4 +119,4 @@ jobs:
         run: npx electron scripts/test-native-db.cjs
 
       - name: Verification gate contracts
-        run: node --test scripts/test-native-db.test.cjs scripts/pre-push-gate.test.cjs scripts/pre-push-scope.test.cjs
+        run: node --test scripts/test-native-db.test.cjs scripts/pre-push-gate.test.cjs scripts/pre-push-scope.test.cjs scripts/bucket.test.cjs

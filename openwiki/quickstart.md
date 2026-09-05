@@ -163,7 +163,7 @@ Main Process
 
 1. **Version:** Bump `package.json`, `RELEASE_NOTES/vX.Y.Z.md`
 2. **Ship:** [operations/ship-and-bucket.md](operations/ship-and-bucket.md) — Bucket pipeline
-3. **Command:** `pwsh scripts\bucket.ps1` (Windows only; builds all platforms, tags, uploads to CDN)
+3. **Command:** `pwsh scripts\bucket.ps1` (Windows orchestrator; waits for native platform CI builds and verifies final downloads)
 4. **Verify:** Check `.github/workflows/build.yml` artifacts in Actions
 
 ---

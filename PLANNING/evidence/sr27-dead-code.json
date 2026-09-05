@@ -1,0 +1,202 @@
+{
+  "source": "609d54f99df055b9108aea832fff3631bc005c46",
+  "method": "TypeScript import preprocessing and renderer entry reachability, plus manual export/reference and dynamic-loader review. Test-only imports do not make production code reachable.",
+  "rows": [
+    {
+      "path": "src/components/artifacts/ResearchArtifact.tsx",
+      "lines": 84,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/chat/CitationChip.tsx",
+      "lines": 40,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/chat/ContextAttachBar.tsx",
+      "lines": 74,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/chat/PlanChecklist.tsx",
+      "lines": 80,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/chat/SourcePreviewPane.tsx",
+      "lines": 77,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/github/InlineCommentComposer.tsx",
+      "lines": 182,
+      "reachable": true,
+      "importers": [
+        "src/components/github/PullRequestsPanel.tsx"
+      ],
+      "disposition": "retained: SR-24 restored PR surface"
+    },
+    {
+      "path": "src/components/github/IssuesPanel.tsx",
+      "lines": 149,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/github/PRDiffView.tsx",
+      "lines": 125,
+      "reachable": true,
+      "importers": [
+        "src/components/github/PullRequestsPanel.tsx"
+      ],
+      "disposition": "retained: SR-24 restored PR surface"
+    },
+    {
+      "path": "src/components/github/PRStatusChecks.tsx",
+      "lines": 116,
+      "reachable": true,
+      "importers": [
+        "src/components/github/PullRequestsPanel.tsx"
+      ],
+      "disposition": "retained: SR-24 restored PR surface"
+    },
+    {
+      "path": "src/components/github/PullRequestsPanel.tsx",
+      "lines": 299,
+      "reachable": true,
+      "importers": [
+        "src/components/settings/GitHubSettings.tsx"
+      ],
+      "disposition": "retained: SR-24 restored PR surface"
+    },
+    {
+      "path": "src/components/layout/AddToolMenu.tsx",
+      "lines": 143,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/layout/SidebarFilterMenu.tsx",
+      "lines": 341,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/mcp/MCPStatusBar.tsx",
+      "lines": 115,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/model/ModelSwitcher.tsx",
+      "lines": 197,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/skills/SkillEditor.tsx",
+      "lines": 284,
+      "reachable": false,
+      "importers": [
+        "src/components/skills/SkillPanel.tsx"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/skills/SkillPanel.tsx",
+      "lines": 113,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/workflows/AgentChip.tsx",
+      "lines": 59,
+      "reachable": false,
+      "importers": [
+        "src/components/workflows/PhaseGroup.tsx"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/workflows/PhaseGroup.tsx",
+      "lines": 25,
+      "reachable": false,
+      "importers": [
+        "src/components/workflows/WorkflowRunCard.tsx"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/workflows/WorkflowRunCard.tsx",
+      "lines": 82,
+      "reachable": false,
+      "importers": [
+        "src/components/workflows/WorkflowsPanel.tsx"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/components/workflows/WorkflowsPanel.tsx",
+      "lines": 31,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/hooks/useIpc.ts",
+      "lines": 36,
+      "reachable": false,
+      "importers": [],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/lib/agent-run-routing.ts",
+      "lines": 17,
+      "reachable": false,
+      "importers": [
+        "src/lib/agent-run-routing.test.ts"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/lib/citation-parser.ts",
+      "lines": 88,
+      "reachable": false,
+      "importers": [
+        "src/lib/citation-parser.test.ts"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    },
+    {
+      "path": "src/lib/interleave-notices.ts",
+      "lines": 52,
+      "reachable": false,
+      "importers": [
+        "src/lib/interleave-notices.test.ts"
+      ],
+      "disposition": "remove: no renderer entry path, dynamic registration or public package export"
+    }
+  ],
+  "removedProductionLines": 2087,
+  "removedHelperTests": [
+    "src/lib/agent-run-routing.test.ts",
+    "src/lib/citation-parser.test.ts",
+    "src/lib/interleave-notices.test.ts"
+  ]
+}

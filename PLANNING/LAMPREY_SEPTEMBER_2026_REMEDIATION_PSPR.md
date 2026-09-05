@@ -123,7 +123,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
-| [ ] SR-27 | Remove proven renderer dead code excluding restored PR surface (SA-22) | Resolve all 20 candidate files against entry points/dynamic imports; delete only proven unused code; app build/navigation smoke; record actual LOC removed, not promised 2,087 |
+| [x] SR-27 | Remove proven renderer dead code excluding restored PR surface (SA-22) | Resolve all 20 candidate files against entry points/dynamic imports; delete only proven unused code; app build/navigation smoke; record actual LOC removed, not promised 2,087 |
 | [ ] SR-28 | Remove extraction leftovers and obsolete service wrapper (SA-22) | Recheck 49 advisory diagnostics, remove unused imports/obsolete wrapper as justified; intended exports and parity contracts retained; affected suites/typechecks pass |
 | [ ] SR-29 | Adjudicate near-duplicate environment handlers (SA-22) | Record actual overlap/error semantics; extract only a small proven common seam or document no-op; both surfaces retain behavior |
 | [ ] SR-30 | Make OpenWiki workflow configuration honest (SA-28) | Missing credentials no longer trigger scheduled doomed runs; manual/setup state clear; authenticated path remains available only when configured; no secret creation or paid run without authorization |

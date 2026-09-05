@@ -9,5 +9,6 @@
     "scripts/acceptance/resize.cjs",
     "scripts/acceptance/shell-link.cjs",
     "PLANNING/evidence/sr25.json"
-  ]
+  ],
+  "commit": "609d54f99df055b9108aea832fff3631bc005c46"
 }

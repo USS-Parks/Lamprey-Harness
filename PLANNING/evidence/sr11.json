@@ -1,0 +1,7 @@
+{
+  "prompt": "SR-11",
+  "title": "Compress only complete tool-call result groups",
+  "verification": "Native compressor and existing estimator suites: 14 passed. Budget boundaries preserve both results; incomplete, mismatched and duplicate groups remain untouched; actual compression transaction marks all three group rows and leaves no surviving orphan. Commit hooks enforce lint/typecheck.",
+  "notes": "Selection now reads tool_call_id and groups by declared call identity and contiguous results. No token-estimator change. SR-10 commit 5682c93b20a6a149afc05c857e1d97be6b9089a9.",
+  "files": ["electron/services/context-compressor.ts", "electron/services/context-compressor-native.test.ts", "PLANNING/evidence/sr10.json"]
+}

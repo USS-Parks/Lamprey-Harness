@@ -61,6 +61,7 @@ interface CompressorRow {
   created_at: number
   compressed_into: string | null
   tool_calls: string | null
+  tool_call_id: string | null
   reasoning: string | null
 }
 
@@ -106,7 +107,7 @@ function loadRawMessages(conversationId: string): CompressorRow[] {
   const db = getDb()
   return db
     .prepare(
-      `SELECT id, conversation_id, role, content, created_at, compressed_into, tool_calls, reasoning
+      `SELECT id, conversation_id, role, content, created_at, compressed_into, tool_calls, tool_call_id, reasoning
          FROM messages
         WHERE conversation_id = ?
         ORDER BY created_at ASC`
@@ -149,10 +150,8 @@ export function shouldCompress(
 /**
  * Select oldest non-compressed messages until the cumulative token
  * count meets or exceeds `targetPct` of the contextWindow. Returns the
- * selection in chronological order. At least the oldest message is
- * always returned (a one-message reduction is still a reduction);
- * callers should sanity-check the result against their own minimum
- * worthwhile selection.
+ * selection in chronological order without splitting call/result groups.
+ * Pending or malformed groups remain untouched.
  */
 export function selectMessagesToCompress(
   conversationId: string,
@@ -164,25 +163,31 @@ export function selectMessagesToCompress(
   const targetTokens = Math.floor(contextWindow * targetPct)
   let cumulative = 0
   const out: CompressorRow[] = []
-  for (const r of rows) {
-    out.push(r)
-    cumulative += estimateRowTokens(r)
-    if (cumulative >= targetTokens) break
-  }
-  // Avoid orphaning a tail-end tool/assistant pair: when the last
-  // selected message has role 'assistant' and the next existing
-  // message has role 'tool' (the response to its tool_calls), keep
-  // the pair together by extending the selection. The full safer
-  // policy is the windowing logic in tool-call-windowing.ts; for
-  // compression purposes, keeping the pair together is enough.
-  while (out.length < rows.length) {
-    const last = out[out.length - 1]
-    const next = rows[out.length]
-    if (last.role === 'assistant' && next?.role === 'tool') {
-      out.push(next)
-      continue
+  for (let index = 0; index < rows.length;) {
+    const row = rows[index]
+    if (row.role === 'tool') break
+    let end = index + 1
+    if (row.role === 'assistant') {
+      let calls: unknown
+      try { calls = row.tool_calls ? JSON.parse(row.tool_calls) : [] } catch { break }
+      if (!Array.isArray(calls) || calls.some((call) => !call || typeof call.id !== 'string')) break
+      const expected = new Set<string>(calls.map((call) => call.id))
+      if (expected.size !== calls.length) break
+      const received = new Set<string>()
+      while (end < rows.length && rows[end].role === 'tool') {
+        const callId = rows[end].tool_call_id
+        if (!callId || !expected.has(callId) || received.has(callId)) break
+        received.add(callId)
+        end++
+      }
+      // Leave pending, malformed or mismatched groups intact for the next turn.
+      if (received.size !== expected.size || rows[end]?.role === 'tool') break
     }
-    break
+    const group = rows.slice(index, end)
+    out.push(...group)
+    cumulative += group.reduce((sum, message) => sum + estimateRowTokens(message), 0)
+    if (cumulative >= targetTokens) break
+    index = end
   }
   return out
 }

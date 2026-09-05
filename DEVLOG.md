@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-11: Compress only complete tool-call result groups
+
+**Files changed:** `electron/services/context-compressor.ts`, `electron/services/context-compressor-native.test.ts`, `PLANNING/evidence/sr10.json`
+
+**Verification:** Native compressor and existing estimator suites: 14 passed. Budget boundaries preserve both results; incomplete, mismatched and duplicate groups remain untouched; actual compression transaction marks all three group rows and leaves no surviving orphan. Commit hooks enforce lint/typecheck.
+
+**Notes:** Selection now reads tool_call_id and groups by declared call identity and contiguous results. No token-estimator change. SR-10 commit 5682c93b20a6a149afc05c857e1d97be6b9089a9.
+
+**Commit:** see `PLANNING/evidence/sr11.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-10: Validate and stage database restore before switching live files
 
 **Files changed:** `electron/services/backup-runner.ts`, `electron/ipc/persistence.ts`, `electron/services/restore-safety.test.ts`, `PLANNING/evidence/sr09.json`

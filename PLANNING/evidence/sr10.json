@@ -3,5 +3,11 @@
   "title": "Validate and stage database restore before switching live files",
   "verification": "Required native gate: 19 files/162 tests passed, no skips. Nine new safety cases exercise invalid source without closing live handle, unauthorized parent, copy failure, live/sidecar/install move failures, reopen rollback, successful integrity-checked replacement and overlapping restore rejection. Existing backup tests pass. Commit hooks enforce lint/typecheck.",
   "notes": "Source/staged integrity checked before closing live DB. Synchronous switch preserves original DB/WAL/SHM; failure rolls back moves and reports any recovery failure with retained path. IPC no longer closes first. Tests use unencrypted isolated SQLite; no user database or stored passphrase was accessed. Existing encryption-aware source opener reused; no new claim of live SQLCipher certification. SR-09 commit 60e43d235e32e236c47205a234997005a7d573c5.",
-  "files": ["electron/services/backup-runner.ts", "electron/ipc/persistence.ts", "electron/services/restore-safety.test.ts", "PLANNING/evidence/sr09.json"]
+  "files": [
+    "electron/services/backup-runner.ts",
+    "electron/ipc/persistence.ts",
+    "electron/services/restore-safety.test.ts",
+    "PLANNING/evidence/sr09.json"
+  ],
+  "commit": "5682c93b20a6a149afc05c857e1d97be6b9089a9"
 }

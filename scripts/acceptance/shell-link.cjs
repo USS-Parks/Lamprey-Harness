@@ -34,6 +34,28 @@ async function main() {
     assert(page, 'Production renderer did not open')
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--plugins')) {
+      const result = await page.evaluate(async () => {
+        const id = 'lamprey-git-tools'
+        const snapshot = async () => ({
+          skills: (await window.api.skills.list()).data.filter((skill) => skill.pluginId === id).map((skill) => skill.id),
+          commands: (await window.api.slash.listAll()).data.filter((command) => command.pluginId === id).map((command) => command.name)
+        })
+        const before = await snapshot()
+        const enabled = await window.api.plugins.enable(id)
+        const afterEnable = await snapshot()
+        const disabled = await window.api.plugins.disable(id)
+        const afterDisable = await snapshot()
+        return { before, enabled, afterEnable, disabled, afterDisable }
+      })
+      assert.deepEqual(result.before, { skills: [], commands: [] })
+      assert.equal(result.enabled.success, true)
+      assert.deepEqual(result.afterEnable, { skills: ['lamprey-git-tools:git-status-recap'], commands: ['lamprey-git-tools:branch-ready'] })
+      assert.equal(result.disabled.success, true)
+      assert.deepEqual(result.afterDisable, { skills: [], commands: [] })
+      console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, plugins: result }))
+      return
+    }
     const url = `http://127.0.0.1:${server.address().port}/lamprey-link-smoke`
     const result = await page.evaluate((url) => window.api.artifact.openExternal(url), url)
     assert.deepEqual(result, { success: true, data: null })

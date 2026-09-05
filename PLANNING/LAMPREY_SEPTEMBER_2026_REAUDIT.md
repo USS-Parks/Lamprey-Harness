@@ -279,4 +279,10 @@ Recommended sequence: reconcile upstream and reuse existing work, make verificat
 
 This draft awaits the user's review and approval. The following is the repository's required attribution footer, not an execution approval.
 
+## Post-baseline findings from execution
+
+**SA-31 — Packaged plugin skill and slash-command contributions fail to load.** The SR-18 real Electron production-bundle smoke reported `Cannot find module './plugin-loader'` from both loaders. Their relative CommonJS requires survived bundling without a corresponding runtime file. This defeats plugin contribution scans and enable/disable subscriptions even though module-level unit tests pass. SR-18A replaces those requires with bundle-resolved imports and verifies a bundled plugin through actual renderer IPC. This is an addition to the original 30-finding baseline.
+
+**SR-14 verification correction:** manager-level shutdown tests passed, but the real application smoke exposed a `will-quit` stall when asynchronous teardown began directly inside the event. SR-18 schedules that drain with `setImmediate`; the production fixture then emitted both quit passes and exited normally. Source-level and manager-only evidence did not prove application shutdown.
+
 Authored and reviewed by Basho Parks, copyright 2026

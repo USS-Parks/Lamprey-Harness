@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { enabledPluginRoots, subscribeToPluginChanges } from './plugin-loader'
 import {
   existsSync,
   mkdirSync,
@@ -186,12 +187,8 @@ function removeByPath(filePath: string): void {
 }
 
 function rescanPluginCommands(): void {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pl = require('./plugin-loader') as {
-    enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
-  }
   pluginCommands.clear()
-  for (const { pluginId, rootPath } of pl.enabledPluginRoots()) {
+  for (const { pluginId, rootPath } of enabledPluginRoots()) {
     const dir = join(rootPath, 'slash-commands')
     if (!existsSync(dir)) continue
     let files: string[]
@@ -243,11 +240,7 @@ export function initializeSlashCommandLoader(): void {
   // Customize C11 — pick up plugin-sourced commands now and on every
   // enabled-state change.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pl = require('./plugin-loader') as {
-      subscribeToPluginChanges: (cb: () => void) => () => void
-    }
-    unsubscribePluginChanges = pl.subscribeToPluginChanges(rescanPluginCommands)
+    unsubscribePluginChanges = subscribeToPluginChanges(rescanPluginCommands)
     rescanPluginCommands()
   } catch (err) {
     console.error('[slash-loader] plugin subscription failed:', err)

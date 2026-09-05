@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { enabledPluginRoots, subscribeToPluginChanges } from './plugin-loader'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, copyFileSync } from 'fs'
 import { join, basename, dirname, resolve } from 'path'
 import matter from 'gray-matter'
@@ -204,16 +205,8 @@ function removeByPath(filePath: string): void {
 }
 
 function rescanPluginSkills(): void {
-  // Lazy require to avoid hard module load order. plugin-loader exports
-  // the subscription + enabled-roots helpers; both are safe to call at
-  // any time after initialize completes.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pl = require('./plugin-loader') as {
-    enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
-  }
-  const before = pluginSkills.size
   pluginSkills.clear()
-  for (const { pluginId, rootPath } of pl.enabledPluginRoots()) {
+  for (const { pluginId, rootPath } of enabledPluginRoots()) {
     const dir = join(rootPath, 'skills')
     if (!existsSync(dir)) continue
     let files: string[]
@@ -233,13 +226,7 @@ function rescanPluginSkills(): void {
       pluginSkills.set(namespaced.id, namespaced)
     }
   }
-  if (before !== pluginSkills.size) {
-    broadcastChange()
-  } else {
-    // No count change but ids may have shifted; broadcast anyway so the
-    // renderer sees the new contents.
-    broadcastChange()
-  }
+  broadcastChange()
 }
 
 export function initializeSkillLoader(): void {
@@ -272,11 +259,7 @@ export function initializeSkillLoader(): void {
   // Customize C11 — pick up plugin-sourced skills now and on every
   // enabled-state change broadcast by plugin-loader.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pl = require('./plugin-loader') as {
-      subscribeToPluginChanges: (cb: () => void) => () => void
-    }
-    unsubscribePluginChanges = pl.subscribeToPluginChanges(rescanPluginSkills)
+    unsubscribePluginChanges = subscribeToPluginChanges(rescanPluginSkills)
     rescanPluginSkills()
   } catch (err) {
     console.error('[skill-loader] plugin subscription failed:', err)

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-18A: Resolve plugin contributions in the production bundle
+
+**Files changed:** `electron/services/skill-loader.ts`, `electron/services/slash-commands.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr18.json`
+
+**Verification:** 16 loader tests passed; production build passed. Real Electron renderer IPC enabled lamprey-git-tools and observed skill lamprey-git-tools:git-status-recap plus slash command lamprey-git-tools:branch-ready, then disabled it and observed both disappear. No unresolved plugin-loader error; graceful quit completed. Lint and both TypeScript projects run in the commit hook.
+
+**Notes:** New SA-31 was observed during SR-18 live acceptance. Uses static imports at the existing plugin-loader seam; no module-load cycle exists. Removed an identical if/else broadcast branch. Reuses the isolated Electron acceptance fixture in --plugins mode, which does not open a browser tab. SR-18 pushed at 7dcccc5cdc8c208e7027470c9dad4decbc5a6491 after 3002 passing tests.
+
+**Commit:** see `PLANNING/evidence/sr18a.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-18: Await external-link IPC and complete Electron teardown
 
 **Files changed:** `electron/services/shell-ipc.ts`, `electron/services/shell-ipc.test.ts`, `electron/main.ts`, `scripts/acceptance/electron-fixture.cjs`, `scripts/acceptance/shell-link.cjs`, `scripts/acceptance/stop-fixture.py`, `PLANNING/evidence/sr17.json`

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-17: Reject uncited research reports before artifact creation
+
+**Files changed:** `electron/services/research/synthesizer.ts`, `electron/services/research/synthesizer.test.ts`, `PLANNING/evidence/sr16.json`
+
+**Verification:** Research synthesizer and orchestrator suites run, including empty/uncited/code-fence-only/bibliography-only citations, valid source references and fabricated references. Existing orchestrator failure path emits failed and rethrows before writing the report. Lint and both TypeScript projects run in the commit hook.
+
+**Notes:** A report with no usable body references raises MissingCitationError instead of returning a sourced-looking artifact with an empty bibliography. Removed the unused lastFabricated variable. This validates citation presence and pool membership, not factual truth or source entailment. SR-16 pushed at 2035e6b72932b3f2c254b0b4399b83fd8a2d9852 after 2996 passing tests. SR-14 Windows CI retry succeeded without changes; its intermittent PowerShell parser failure remains a reliability observation for SR-31.
+
+**Commit:** see `PLANNING/evidence/sr17.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-16: Reject unavailable model destinations before network dispatch
 
 **Files changed:** `electron/services/providers/registry.ts`, `electron/ipc/model.ts`, `electron/services/providers/model-destination.test.ts`, `electron/services/providers/registry.test.ts`, `electron/services/providers/supports-tools-audit.test.ts`, `electron/services/audit-closure-safety.test.ts`, `PLANNING/evidence/sr15.json`

@@ -16,6 +16,7 @@ vi.mock('../providers/registry', () => ({
 
 import {
   FabricatedCitationError,
+  MissingCitationError,
   _synthesizerInternals,
   extractCitationRefs,
   synthesizeReport,
@@ -186,6 +187,12 @@ describe('synthesizeReport — happy path', () => {
 })
 
 describe('synthesizeReport — strict citation validator', () => {
+  it.each(['', 'An uncited claim.', '```text\nClaim [1]\n```', 'Claim.\n\n## Sources\n[1] invented bibliography'])('rejects a body without usable citations: %j', async (body) => {
+    const input = mkInput({ accepted: [], singleSource: [mkCluster('c0', 'x', [1])], disputed: [] }, [mkSource(1, 'a.com')])
+    const callLlm = vi.fn(async () => body)
+    await expect(synthesizeReport(input, { callLlm })).rejects.toBeInstanceOf(MissingCitationError)
+    expect(callLlm).toHaveBeenCalledOnce()
+  })
   it('throws FabricatedCitationError when the model cites an index not in the pool', async () => {
     const sources = [mkSource(1, 'a.com'), mkSource(2, 'b.com')]
     const claimSet: ClaimSet = {

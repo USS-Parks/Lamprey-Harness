@@ -57,6 +57,13 @@ export class FabricatedCitationError extends Error {
   }
 }
 
+export class MissingCitationError extends Error {
+  constructor() {
+    super('Research report contains no usable source citations. No verified report was produced.')
+    this.name = 'MissingCitationError'
+  }
+}
+
 const SYSTEM_PROMPT = `You write a sourced markdown research report.
 
 Inputs you are given:
@@ -102,14 +109,13 @@ export async function synthesizeReport(
   ]
 
   let body = ''
-  let lastFabricated: number[] = []
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     body = await call(messages, model)
     body = stripBibliographyIfPresent(body).trim()
     const refs = extractCitationRefs(body)
+    if (refs.length === 0) throw new MissingCitationError()
     const fabricated = refs.filter((n) => !validIndices.has(n))
     if (fabricated.length === 0) break
-    lastFabricated = fabricated
     if (attempt === MAX_RETRIES) {
       throw new FabricatedCitationError(fabricated)
     }
@@ -118,7 +124,6 @@ export async function synthesizeReport(
       content: `Your previous report cited indices ${fabricated.join(', ')} which are NOT in the source pool. Regenerate using ONLY indices from the SOURCE POOL listed earlier.`
     })
   }
-  void lastFabricated
 
   // Build bibliography deterministically (URLs straight from sources;
   // never from the model). Ordered by first appearance in the body so

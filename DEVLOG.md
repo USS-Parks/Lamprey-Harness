@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-01: Run real native getDb suites
+
+**Files changed:** `electron/services/database.ts`, `electron/services/conversation-store.ts`, `electron/services/sessions-search.test.ts`, `electron/services/loop-store.test.ts`, `electron/services/loop-runner.test.ts`, `electron/services/backup-runner.test.ts`, `.github/workflows/ci.yml`, `PLANNING/evidence/sr00.json`, `PLANNING/evidence/sr01-reuse.py`, `PLANNING/evidence/sr-native.py`
+
+**Verification:** Electron-as-node native run: 17 files passed, 150 tests passed, zero skipped. Pre-commit executes lint and both TypeScript project gates. Reviewed PR #13 at 1ad3618548af500a01d0358651d69a1cabf32b34; no blanket copying of its DEVLOG claim.
+
+**Notes:** Reused PR test userData seam, FTS SQL correction and three native fixtures. Windows execution exposed backup fixture handles left open: teardown closes cached DB; restore fixture closes it before corruption to match existing IPC caller contract. Product restore repair remains SR-10. SR-00 commit d70c1a02cdc0c83d1d1766d04ffa351bd33d6e4e.
+
+**Commit:** see `PLANNING/evidence/sr01.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-00: Reconcile approved remediation baseline
 
 **Files changed:** `PLANNING/README.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md`, `PLANNING/evidence/SEPTEMBER_AUDIT_EVIDENCE.md`, `PLANNING/evidence/september-audit-inspect.py`, `PLANNING/evidence/september-audit-probes.cjs`, `PLANNING/evidence/september-audit-probes.json`, `PLANNING/evidence/september-audit-probes-upstream.json`, `PLANNING/evidence/september-audit-provenance.json`, `PLANNING/evidence/september-audit-release.json`, `PLANNING/evidence/september-audit-remote.json`, `PLANNING/evidence/september-audit-scan.json`, `PLANNING/evidence/september-audit-upstream.diff`, `PLANNING/evidence/september-audit-worktrees.json`, `PLANNING/evidence/sr00-preservation.json`, `PLANNING/evidence/sr00-owned-planning.patch`, `PLANNING/evidence/sr00-planning-readme-original.txt`, `PLANNING/evidence/sr00-readme-base.txt`, `PLANNING/evidence/sr00-readme-incoming.txt`, `PLANNING/evidence/sr00-reconcile.py`, `PLANNING/evidence/sr-close.py`

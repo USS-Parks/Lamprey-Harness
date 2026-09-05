@@ -518,7 +518,7 @@ export function backfillSessionsFts(force = false): { rebuilt: boolean; rows: nu
   try {
     db.exec('DELETE FROM sessions_fts')
     const convs = db
-      .prepare('SELECT id, title FROM conversations WHERE title IS NOT NULL AND title <> ""')
+      .prepare("SELECT id, title FROM conversations WHERE title IS NOT NULL AND title <> ''")
       .all() as { id: string; title: string }[]
     for (const c of convs) ftsUpsertConversation(c.id, c.title)
     const msgs = db

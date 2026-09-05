@@ -3,6 +3,7 @@ import BetterSqlite3 from 'better-sqlite3'
 import { mkdirSync, mkdtempSync, rmSync, existsSync, statSync, writeFileSync, utimesSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { __setUserDataForTests, closeDb } from './database'
 
 let appPathForTest = '.'
 
@@ -38,6 +39,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'lamprey-ps5-'))
     appPathForTest = tmpDir
+    __setUserDataForTests(tmpDir)
     dbPath = join(tmpDir, 'lamprey.db')
     backupDir = join(tmpDir, 'backups')
 
@@ -51,6 +53,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
   })
 
   afterEach(() => {
+    __setUserDataForTests(null)
     rmSync(tmpDir, { recursive: true, force: true })
   })
 
@@ -122,6 +125,7 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('backup-runner (PS5)', () => {
 
   it('restoreFromBackup moves current DB aside + copies backup into place', async () => {
     const backup = await createBackup(dbPath, backupDir, 'baseline')
+    closeDb()
 
     // Corrupt the live DB.
     writeFileSync(dbPath, Buffer.alloc(128, 0xff))

@@ -18,7 +18,10 @@ vi.mock('electron', () => ({
 }))
 
 import * as convStore from './conversation-store'
-import { __resetDbForTests, getDb } from './database'
+import { __resetDbForTests, __setUserDataForTests, getDb } from './database'
+
+mkdirSync(TEST_USER_DATA, { recursive: true })
+__setUserDataForTests(TEST_USER_DATA)
 
 function nativeOk(): boolean {
   try {
@@ -38,7 +41,7 @@ beforeEach(() => {
 })
 
 afterAll(() => {
-  __resetDbForTests()
+  __setUserDataForTests(null)
   if (existsSync(TEST_USER_DATA)) {
     rmSync(TEST_USER_DATA, { recursive: true, force: true })
   }

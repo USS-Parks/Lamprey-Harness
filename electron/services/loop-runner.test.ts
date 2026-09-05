@@ -10,9 +10,25 @@ vi.mock('electron', () => ({
   BrowserWindow: { getAllWindows: () => [] }
 }))
 
+// Master toggle is locked in loop-safety.test.ts. This file needs
+// loops on so schedule/fire hit the real DB.
+vi.mock('./loop-config', () => ({
+  readLoopConfig: () => ({
+    enabled: true,
+    maxIterations: 25,
+    maxWallclockMs: 1_800_000,
+    tokenBudget: 500_000,
+    maxConcurrent: 1,
+    minIntervalSeconds: 30
+  })
+}))
+
 import { createConversation, getMessages } from './conversation-store'
-import { __resetDbForTests, getDb } from './database'
+import { __resetDbForTests, __setUserDataForTests, getDb } from './database'
 import { cancelWakeup, fireDueWakeups, listWakeups, scheduleWakeup } from './loop-runner'
+
+mkdirSync(TEST_USER_DATA, { recursive: true })
+__setUserDataForTests(TEST_USER_DATA)
 
 function nativeOk(): boolean {
   try {
@@ -32,7 +48,7 @@ beforeEach(() => {
 })
 
 afterAll(() => {
-  __resetDbForTests()
+  __setUserDataForTests(null)
   if (existsSync(TEST_USER_DATA)) {
     rmSync(TEST_USER_DATA, { recursive: true, force: true })
   }

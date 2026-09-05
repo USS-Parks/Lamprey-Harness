@@ -1,8 +1,6 @@
 import { randomUUID } from 'crypto'
 import {
-  DEFAULT_EMBEDDER_ID,
-  EMBEDDING_CATALOG,
-  getEmbedder,
+  DEFAULT_EMBEDDER_ID, getEmbedder,
   type EmbedderInfo
 } from './catalog'
 import { boundedJsonPreview, recordEvent } from '../../event-log'

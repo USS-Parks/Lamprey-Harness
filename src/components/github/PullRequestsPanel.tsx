@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { github as githubClient } from '@/lib/ipc-client'
 import { useGitHubStore } from '@/stores/github-store'
 import { useChatStore } from '@/stores/chat-store'
@@ -103,8 +103,6 @@ export function PullRequestsPanel() {
       cancelled = true
     }
   }, [selectedRepo, openNumber])
-
-  const openPr = useMemo(() => prs.find((p) => p.number === openNumber) ?? null, [prs, openNumber])
 
   const chatAboutPr = async (pr: GitHubPullRequest, file?: GitHubPullRequestFile) => {
     if (!selectedRepo || !activeConversationId) {

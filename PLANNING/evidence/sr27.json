@@ -30,5 +30,6 @@
     "src/lib/agent-run-routing.test.ts",
     "src/lib/citation-parser.test.ts",
     "src/lib/interleave-notices.test.ts"
-  ]
+  ],
+  "commit": "62a463537f553087013f5e12749239e72f8d4bda"
 }

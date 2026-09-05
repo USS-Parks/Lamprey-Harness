@@ -1,9 +1,7 @@
 import { app, safeStorage } from 'electron'
 import { join, dirname } from 'path'
 import {
-  existsSync,
-  copyFileSync,
-  renameSync,
+  existsSync, renameSync,
   unlinkSync,
   writeFileSync,
   readFileSync,

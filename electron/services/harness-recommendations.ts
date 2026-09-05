@@ -1,4 +1,4 @@
-import { listFailures, type FailureLedgerKind, type FailureLedgerRecord } from './failure-ledger'
+import { listFailures } from './failure-ledger'
 import { listProofReceipts } from './proof-receipts'
 import type { Database } from 'better-sqlite3'
 import { randomUUID } from 'crypto'

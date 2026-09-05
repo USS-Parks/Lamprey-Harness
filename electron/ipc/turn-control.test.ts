@@ -350,7 +350,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
   })
 
   it('queues deterministically without an active runtime and enforces channel mode', () => {
-    const { actions, events } = makeHarness()
+    const { actions } = makeHarness()
     expect(actions.queue(submission('queue'))).toMatchObject({
       success: true,
       data: { followUp: { status: 'queued', position: 0 } }

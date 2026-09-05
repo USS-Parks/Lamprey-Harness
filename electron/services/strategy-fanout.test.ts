@@ -67,7 +67,7 @@ describe('runFanout', () => {
   })
 
   it('a single usable candidate wins without paying for a judge', async () => {
-    const runCandidate = vi.fn(async (_t, m, i) =>
+    const runCandidate = vi.fn(async (_t, _m, i) =>
       i === 0
         ? { output: 'good', tokensEst: 10, wallMs: 5 }
         : { output: '', tokensEst: 5, wallMs: 5, error: 'model failed' }

@@ -13,11 +13,7 @@ import { boundedJsonPreview, recordEvent } from './event-log'
 import { readLoopConfig } from './loop-config'
 import { wakeGoalFromAutomation } from './goal-automation-loop-bridge'
 import {
-  describeCron,
-  nextFireAfter,
-  nextRunAfterSettlement,
-  parseCron,
-  retryAt,
+  nextRunAfterSettlement, retryAt,
   triggerKey,
   type AutomationTriggerKind
 } from './automation-trigger'

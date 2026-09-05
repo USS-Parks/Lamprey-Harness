@@ -2,16 +2,7 @@ import { EventEmitter } from 'events'
 import { randomUUID, createHash } from 'crypto'
 import { stat } from 'fs/promises'
 import { extname } from 'path'
-
-// Hard cap on the source buffer for a single ingest file. Anything bigger is
-// almost always a misclick on a video / archive / dataset dump that should be
-// split into smaller files before ingest. The loader layer has its own
-// per-format caps (25 MB for text; PDF parser memory is unbounded by default,
-// which is why we cap at THIS layer before reading); this is the wider
-// backstop that protects the embedder + chunker from OOM.
-const MAX_INGEST_BYTES = 500 * 1024 * 1024
 import {
-  countChunksForDocument,
   deleteChunksForDocument,
   findDocumentByHash,
   getCollection,
@@ -24,6 +15,14 @@ import {
 import { chunk as chunkText, type ChunkInput, type ChunkSourceKind } from './chunker'
 import { loadDocument, loadFromBuffer } from './loaders'
 import { boundedJsonPreview, recordEvent } from '../event-log'
+
+// Hard cap on the source buffer for a single ingest file. Anything bigger is
+// almost always a misclick on a video / archive / dataset dump that should be
+// split into smaller files before ingest. The loader layer has its own
+// per-format caps (25 MB for text; PDF parser memory is unbounded by default,
+// which is why we cap at THIS layer before reading); this is the wider
+// backstop that protects the embedder + chunker from OOM.
+const MAX_INGEST_BYTES = 500 * 1024 * 1024
 
 // Ingest orchestrator. Ties loaders → chunker → embeddings → storage with
 // progress events and cancellation. Per LAMPREY_RAG_PLAN.md §3 STEP 1.

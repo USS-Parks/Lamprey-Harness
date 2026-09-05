@@ -1,5 +1,5 @@
 import { extname } from 'path'
-import { isSupportedTextExtension, loadFromBuffer, loadText } from './text'
+import { isSupportedTextExtension, loadText } from './text'
 import { loadPdf } from './pdf'
 import { loadDocx } from './docx'
 

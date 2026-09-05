@@ -58,16 +58,3 @@ export function buildOpenRouterChatExtras(
 
   return extras
 }
-
-/** @deprecated TL-B2 name; TL-B3 folded prefs into buildOpenRouterChatExtras. */
-export function buildOpenRouterFallbackExtras(
-  apiModelId: string,
-  fallbacks: string[]
-): Record<string, unknown> {
-  return buildOpenRouterChatExtras(apiModelId, {
-    fallbacks,
-    sort: 'default',
-    order: [],
-    ignore: []
-  })
-}

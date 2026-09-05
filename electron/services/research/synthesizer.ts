@@ -1,7 +1,7 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import { chatOnce } from '../providers/registry'
 import { readDeepResearchSettings } from './adapter-cascade'
-import type { ClaimSet, ClaimCluster, DisputeGroup } from './corroborator'
+import type { ClaimSet } from './corroborator'
 import type { CuratedSource } from './collector'
 import { slugify } from './slugify'
 

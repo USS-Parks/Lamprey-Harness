@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import BetterSqlite3, { type Database } from 'better-sqlite3'
 import { applyFailureLedgerSchema } from './failure-ledger-schema'
 import {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useProjectsStore } from '@/stores/projects-store'
 import { useChatStore } from '@/stores/chat-store'
-import { useUiStore } from '@/stores/ui-store'
 import type { Project } from '@/lib/types'
 
 interface Props {

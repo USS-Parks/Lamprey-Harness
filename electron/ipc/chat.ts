@@ -1,7 +1,5 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain } from 'electron'
 import { randomUUID } from 'crypto'
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
 import { filterOrchestrationTools } from '../services/orchestration-tools'
 import {
   filterBrowserDeveloperTools,
@@ -27,8 +25,6 @@ import {
   resolveToolCallWindows,
   type ResolvedToolCall
 } from '../services/chat-tool-dispatch'
-
-export { resolveSingleToolCall }
 import { emitTurnStarted } from '../services/turn-lifecycle-events'
 import {
   createQueuedFollowUpDispatchDependencies,
@@ -50,25 +46,21 @@ import {
 import { buildSystemPrompt } from '../services/system-prompt-builder'
 import { readAgentsMd } from '../services/agents-md-loader'
 import { fireHooks } from '../services/hooks-runner'
-import { mcpManager } from '../services/mcp-manager'
 import { listSkills, getSkillContent } from '../services/skill-loader'
 import {
   buildApiMessagesFromStoredMessages,
   modelEchoesReasoningContent
 } from '../services/chat-history'
 import { readSettings } from '../services/settings-helper'
-import { toolRegistry, isMutatingDescriptor } from '../services/tool-registry'
-import { TOOL_SEARCH_TOOL_NAME } from '../services/model-tool-surface'
+import { toolRegistry } from '../services/tool-registry'
 import {
   activateLazySurface,
   isLazyActive,
-  isSurfaceDowngraded,
-  unlockTools,
-  getUnlockedTools,
-  recordMalformedSearch
+  isSurfaceDowngraded, getUnlockedTools
 } from '../services/tool-unlock-state'
 import { maybeSpillToolResult, DEFAULT_SPILL_THRESHOLD } from '../services/tool-result-spill'
-import { partitionToolCallWindows, type ProviderToolCall } from '../services/tool-call-windowing'
+
+export { resolveSingleToolCall }
 // SP-4 — ghost-reply guard (D5): persist a system notice when a turn fails
 // before any visible reply row landed.
 import {
@@ -81,25 +73,16 @@ import {
   TOOL_ROUND_CAP_MESSAGE,
   ToolRoundCapError
 } from '../services/tool-round-cap-error'
-import { permissionsService, descriptorNeedsApproval } from '../services/permissions-store'
-import { inferPhaseFromDescriptor, type AgentRunPhase } from '../services/agent-run-phase'
+import { type AgentRunPhase } from '../services/agent-run-phase'
 import { getActiveWorkspace } from '../services/workspace-state'
-import { classifyToolResult } from '../services/tool-result-status'
-import { validateToolArguments } from '../services/tool-schema-validator'
-import { detectEmptyParams } from '../services/empty-params-guard'
-import { inspectShellCommand } from '../services/dangerous-command-policy'
 import { parseFallbackToolCalls, FALLBACK_TOOL_INSTRUCTION } from '../services/fallback-tool-parser'
 import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
-import { dispatchNativeTool } from '../services/native-dispatch'
 import { emitChatEvent } from '../services/chat-events'
 import { readDeepResearchSettings } from '../services/research/adapter-cascade'
 import { trace } from '../services/debug-trace'
 import { routeChatTurn } from '../services/research/intent'
 import {
-  runDeepResearch,
-  FabricatedCitationError,
-  DeepResearchCancelledError,
-  NoSourcesError
+  runDeepResearch, NoSourcesError
 } from '../services/research'
 // UB-5 (Unburdening Phase, 2026-06-10) — the final-response composer is
 // excised: the reply the user reads is the model's own reply, always. The
@@ -107,7 +90,6 @@ import {
 // the agentic-coding config (mode + skills, no composer) to its own module.
 import { concatReasoningTrail } from '../services/reasoning-trail'
 import { loadAgenticCodingConfig } from '../services/agentic-coding-config'
-import { getAskUserRuntime } from '../services/ask-user-runtime'
 import {
   turnRuntimeRegistry,
   type SettledTurnStatus,

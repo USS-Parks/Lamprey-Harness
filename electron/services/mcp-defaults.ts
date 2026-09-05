@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'

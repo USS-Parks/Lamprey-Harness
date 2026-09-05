@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { AskUserRuntime, type AskUserAwaitingEvent } from './ask-user-runtime'
 
 function makeRuntime() {

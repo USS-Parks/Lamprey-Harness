@@ -489,7 +489,6 @@ export function Sidebar() {
 
   const projects = useProjectsStore((s) => s.projects)
   const loadProjects = useProjectsStore((s) => s.loadProjects)
-  const createProject = useProjectsStore((s) => s.createProject)
   const renameProject = useProjectsStore((s) => s.renameProject)
   const pinProject = useProjectsStore((s) => s.pinProject)
   const archiveProject = useProjectsStore((s) => s.archiveProject)

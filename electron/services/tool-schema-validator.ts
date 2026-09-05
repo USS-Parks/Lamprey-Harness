@@ -153,7 +153,7 @@ export function validateToolArguments(
       const value = parsed[key]
       if (value === undefined) continue // Not provided — required check above catches if needed
 
-      validatePropertyValue(toolName, key, value, propSchema, errors, [key])
+      validatePropertyValue(toolName, value, propSchema, errors, [key])
     }
   }
 
@@ -198,7 +198,6 @@ export function validateToolArguments(
  */
 function validatePropertyValue(
   toolName: string,
-  key: string,
   value: unknown,
   propSchema: JsonSchemaProperty,
   errors: string[],
@@ -259,7 +258,7 @@ function validatePropertyValue(
     for (const [nestedKey, nestedSchema] of Object.entries(propSchema.properties)) {
       const nestedValue = objValue[nestedKey]
       if (nestedValue === undefined) continue
-      validatePropertyValue(toolName, nestedKey, nestedValue, nestedSchema, errors, [
+      validatePropertyValue(toolName, nestedValue, nestedSchema, errors, [
         ...path,
         nestedKey
       ])

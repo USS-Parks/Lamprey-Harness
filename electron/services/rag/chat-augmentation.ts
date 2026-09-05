@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { app } from 'electron'
 import { listAttachments } from './store'
-import { retrieveWithMeta, persistRetrieval, type RetrievedChunk } from './retrieve'
+import { retrieveWithMeta, type RetrievedChunk } from './retrieve'
 import { rerank, type RerankMode } from './rerank'
 import { rewriteQuery, fuseAcrossVariants } from './multi-query'
 import { buildContext, type ContextBuildOutput } from './context-builder'

@@ -311,7 +311,7 @@ export function subscribeFilterChanges(cb: () => void): () => void {
  * spinning up chokidar.
  */
 export const __filterLoaderTest = {
-  loadOneFromString: (path: string, contents: string): { filter?: Filter; error?: string } => {
+  loadOneFromString: (_path: string, contents: string): { filter?: Filter; error?: string } => {
     try {
       const parsed = yaml.load(contents)
       const result = validateFilter(parsed)

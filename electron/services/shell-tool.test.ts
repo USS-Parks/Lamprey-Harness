@@ -266,7 +266,7 @@ describe('persistent session cwd', () => {
     const convId = 'conv-2'
     const cdCmd = IS_WIN_T ? 'Set-Location ..' : 'cd ..'
 
-    const r = await executeShellCommand({ command: cdCmd }, root, convId)
+    await executeShellCommand({ command: cdCmd }, root, convId)
     // The in-shell cd succeeds (returns 0), but the escape attempt is
     // detected after the fact and the session cwd is NOT updated.
     expect(getSessionCwd(convId)).toBeNull()

@@ -3,7 +3,7 @@ import {
   type WebSearchOpts,
   type ImageSearchOpts
 } from './web-search-adapters'
-import { safeFetch, UnsafeUrlError } from './url-safety'
+import { safeFetch } from './url-safety'
 
 // Web/current-information tool executors. Pure - no electron imports. The
 // registry wiring lives in web-tool-pack.ts. Permission gating is

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import BetterSqlite3 from 'better-sqlite3'
-import { mkdirSync, mkdtempSync, rmSync, existsSync, statSync, writeFileSync, utimesSync } from 'fs'
+import { mkdirSync, mkdtempSync, rmSync, existsSync, writeFileSync, utimesSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { __setUserDataForTests, closeDb } from './database'

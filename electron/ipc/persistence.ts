@@ -22,8 +22,7 @@ import {
   getEncryptionStatus,
   enableEncryption,
   disableEncryption,
-  changePassphrase,
-  type EncryptionStatus
+  changePassphrase
 } from '../services/db-encryption'
 
 // Persistence Phase / PS4 (+ PS5 + PS10) — read-write IPC for the

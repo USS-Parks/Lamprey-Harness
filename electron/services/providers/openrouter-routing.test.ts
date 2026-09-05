@@ -4,8 +4,7 @@ import { join } from 'path'
 import {
   parseOpenRouterFallbacks,
   parseOpenRouterSort,
-  buildOpenRouterChatExtras,
-  buildOpenRouterFallbackExtras
+  buildOpenRouterChatExtras
 } from './openrouter-routing'
 import { MODEL_CATALOG } from './catalog'
 
@@ -30,18 +29,26 @@ describe('parseOpenRouterFallbacks (TL-B2)', () => {
   })
 })
 
-describe('buildOpenRouterFallbackExtras (TL-B2)', () => {
+describe('OpenRouter fallback request fields (TL-B2)', () => {
   it('omits models when the fallback list is empty (K4 no-op)', () => {
-    expect(buildOpenRouterFallbackExtras('anthropic/claude-sonnet-4', [])).toEqual({})
+    expect(
+      buildOpenRouterChatExtras('anthropic/claude-sonnet-4', {
+        fallbacks: [],
+        sort: 'default',
+        order: [],
+        ignore: []
+      })
+    ).toEqual({})
   })
 
   it('emits models, skipping the primary id if it appears in the list', () => {
     expect(
-      buildOpenRouterFallbackExtras('anthropic/claude-sonnet-4', [
-        'anthropic/claude-sonnet-4',
-        'openai/gpt-4o-mini',
-        'google/gemini-flash-1.5'
-      ])
+      buildOpenRouterChatExtras('anthropic/claude-sonnet-4', {
+        fallbacks: ['anthropic/claude-sonnet-4', 'openai/gpt-4o-mini', 'google/gemini-flash-1.5'],
+        sort: 'default',
+        order: [],
+        ignore: []
+      })
     ).toEqual({ models: ['openai/gpt-4o-mini', 'google/gemini-flash-1.5'] })
   })
 })

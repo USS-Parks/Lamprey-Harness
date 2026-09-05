@@ -8,5 +8,6 @@
     "src/components/layout/StatusLine.tsx",
     "scripts/acceptance/shell-link.cjs",
     "PLANNING/evidence/sr31f.json"
-  ]
+  ],
+  "commit": "d38997da5f04c3bcbcdc970c49d6fb0d0ad4dea2"
 }

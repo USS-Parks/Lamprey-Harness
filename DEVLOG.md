@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31H: Repair dependencies and replace obsolete rebuild tooling
+
+**Files changed:** `package.json`, `package-lock.json`, `scripts/acceptance/dependency-runtime.cjs`, `PLANNING/evidence/sr31h-audit.py`, `PLANNING/evidence/sr31h-audit.json`, `PLANNING/evidence/SR31H_DEPENDENCIES.md`, `PLANNING/evidence/sr31g.json`
+
+**Verification:** npm audit reports zero vulnerabilities, down from 27 affected entries. Installed graph validates patched sharp 0.35.4, adm-zip 0.6.0 and tar 7.5.22. Real Transformers image decode/resize and ONNX installer archive APIs passed. Maintained Electron rebuild completed. All 169 native database tests in 21 files passed with zero skips. Production build passed.
+
+**Notes:** Compatible lock updates plus scoped upstream-pin overrides; no forced audit downgrade. Dependency rationale and reachability are recorded in SR31H_DEPENDENCIES.md. Node minimum aligns with @electron/rebuild. SR-31G pushed at d38997da5f04c3bcbcdc970c49d6fb0d0ad4dea2.
+
+**Commit:** see `PLANNING/evidence/sr31h.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31G: Wire workflow provider execution and status navigation
 
 **Files changed:** `electron/ipc/workflows.ts`, `src/components/layout/StatusLine.tsx`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr31f.json`

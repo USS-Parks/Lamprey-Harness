@@ -176,8 +176,8 @@ export function validateToolArguments(
   }
 
   // Additional properties check
-  if (schemaObj?.additionalProperties === false && schemaObj?.properties) {
-    const knownKeys = new Set(Object.keys(schemaObj.properties))
+  if (schemaObj?.additionalProperties === false) {
+    const knownKeys = new Set(Object.keys(schemaObj.properties ?? {}))
     for (const key of Object.keys(parsed)) {
       if (!knownKeys.has(key) && parsed[key] !== undefined) {
         errors.push(`${toolName}: unexpected property "${key}"`)

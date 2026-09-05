@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-06: Reject unregistered tools before MCP dispatch
+
+**Files changed:** `electron/services/chat-tool-dispatch.ts`, `electron/services/chat-tool-dispatch.test.ts`, `electron/services/tool-schema-validator.ts`, `PLANNING/evidence/sr05.json`
+
+**Verification:** Real stdio authority fixture proves unknown tool rejection even when server accepts name, plan-mode mutation denial, denied approval, schema rejection and authorized dispatch. Dispatch plus existing validator suites: 33 passed. Lint/typecheck enforced by commit hooks.
+
+**Notes:** The malformed-schema acceptance test exposed additionalProperties:false being ignored without a properties map. Fixed that adjacent validator condition as required by this prompt's argument-validation gate; no new schema engine. SR-05 commit a645b8825c9290b4696403434fa600c840dd554d.
+
+**Commit:** see `PLANNING/evidence/sr06.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-05: Stop tool dispatch across cancellation boundaries
 
 **Files changed:** `electron/services/chat-tool-dispatch.ts`, `electron/services/mcp-manager.ts`, `electron/ipc/chat.ts`, `electron/services/chat-tool-dispatch.test.ts`, `electron/services/fixtures/mcp-tool-server.cjs`, `PLANNING/evidence/sr04.json`

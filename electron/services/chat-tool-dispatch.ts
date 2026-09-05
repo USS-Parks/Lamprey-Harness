@@ -123,6 +123,12 @@ export async function resolveSingleToolCall(
   }
 
   const descriptor = toolRegistry.getById(toolName)
+  if (!descriptor) {
+    return { callId: tc.id, result: JSON.stringify({
+      error: 'unknown_tool', tool: toolName,
+      message: 'Tool is not registered. Discover an available tool before calling it.'
+    }) }
+  }
   if (descriptor?.inputSchema) {
     const validation = validateToolArguments(toolName, args, descriptor.inputSchema)
     if (!validation.valid) {

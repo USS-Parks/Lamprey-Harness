@@ -3,5 +3,13 @@
   "title": "Stop tool dispatch across cancellation boundaries",
   "verification": "Real local stdio MCP server exercised through actual manager and dispatch: abort during first call prevents second; late old settlement leaves replacement runtime active; no stale tool-result event. Abort after approval and pre-tool hook prevents execution. Existing manager/interruption plus new dispatch suites: 27 tests passed across three files. Commit hooks enforce lint/typecheck.",
   "notes": "Signal forwarded into SDK call options; dispatch rechecks before entry, after asynchronous authority/hooks, before post hooks, at windows and before persisted results. Cancellation records a terminal tool error without promising rollback of already-issued effects. SR-04 commit 118655156d0ec80e1cd2152bee5d1ce08a97ad27.",
-  "files": ["electron/services/chat-tool-dispatch.ts", "electron/services/mcp-manager.ts", "electron/ipc/chat.ts", "electron/services/chat-tool-dispatch.test.ts", "electron/services/fixtures/mcp-tool-server.cjs", "PLANNING/evidence/sr04.json"]
+  "files": [
+    "electron/services/chat-tool-dispatch.ts",
+    "electron/services/mcp-manager.ts",
+    "electron/ipc/chat.ts",
+    "electron/services/chat-tool-dispatch.test.ts",
+    "electron/services/fixtures/mcp-tool-server.cjs",
+    "PLANNING/evidence/sr04.json"
+  ],
+  "commit": "a645b8825c9290b4696403434fa600c840dd554d"
 }

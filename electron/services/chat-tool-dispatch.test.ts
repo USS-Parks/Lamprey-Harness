@@ -21,7 +21,7 @@ vi.mock('./tool-registry', () => ({
   isMutatingDescriptor: (descriptor: unknown) => !!descriptor,
   isParallelizableDescriptor: () => false,
   toolRegistry: {
-    getById: (id: string) => state.unknown ? undefined : ({ id, name: id, providerId: 'fixture', providerKind: 'mcp', risks: [], inputSchema: { type: 'object' } }),
+    getById: (id: string) => state.unknown ? undefined : ({ id, name: id, providerId: 'fixture', providerKind: 'mcp', risks: [], inputSchema: { type: 'object', additionalProperties: false } }),
     recordCallStart: vi.fn(), recordCallEnd: (...args: unknown[]) => state.end(...args), hasHandler: () => false
   }
 }))
@@ -54,6 +54,31 @@ async function observedCalls(): Promise<string[]> {
 }
 
 describe('tool dispatch authority and cancellation', () => {
+  it('rejects descriptorless tools even when a connected server accepts their name', async () => {
+    await connect()
+    state.plan = true; state.unknown = true
+    const result = await resolveSingleToolCall(call('second'),'c','model','.',new AbortController().signal)
+    expect(JSON.parse(result.result).error).toBe('unknown_tool')
+    expect(await observedCalls()).toEqual([])
+    expect(state.preHook).not.toHaveBeenCalled()
+  })
+  it('enforces plan mode and denied approval for registered tools', async () => {
+    await connect()
+    state.plan = true
+    expect((await resolveSingleToolCall(call('second'),'c','model','.',new AbortController().signal)).result).toContain('plan mode')
+    state.plan = false; state.needsApproval = true
+    state.approval.mockResolvedValueOnce({ decision: 'deny', source: 'test' })
+    expect((await resolveSingleToolCall(call('second'),'c','model','.',new AbortController().signal)).result).toContain('denied')
+    expect(await observedCalls()).toEqual([])
+  })
+  it('validates registered tool arguments and permits authorized calls', async () => {
+    await connect()
+    const invalid = call('second'); invalid.function.arguments = '{"extra":true}'
+    expect(JSON.parse((await resolveSingleToolCall(invalid,'c','model','.',new AbortController().signal)).result).error).toBe('argument_validation_failed')
+    expect(await observedCalls()).toEqual([])
+    await resolveSingleToolCall(call('second'),'c','model','.',new AbortController().signal)
+    expect(await observedCalls()).toEqual(['second'])
+  })
   it('stops the next real stdio operation and preserves replacement turn ownership', async () => {
     await connect()
     const registry = new TurnRuntimeRegistry({ createTurn: () => null, settleTurn: () => true })

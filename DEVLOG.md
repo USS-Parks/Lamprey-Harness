@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-23: Roll back failed settings writes without losing newer choices
+
+**Files changed:** `src/stores/settings-store.ts`, `src/stores/settings-store.test.ts`, `PLANNING/evidence/sr22.json`
+
+**Verification:** Six behavioral store tests passed: failure envelopes, rejected IPC, theme rollback/error notification, serialized overlapping choices, two overlapping failures, separate-field preservation, subsequent recovery and stale-load protection. Production build passed. Real Electron settings navigation and persisted Light/Dark interaction passed at 800x600 and 1280x800 with graceful quit.
+
+**Notes:** Reuses the existing settings store and toast surface. A serialized write queue retains acknowledged settings plus pending patches, so removal of a failed patch cannot undo a newer choice. IPC rejections are handled for existing fire-and-forget callers. SR-22 was pushed at 35cfa86e3a5ad36e9c9a329e922821f2a73b822d. SR-21 GitHub CI and Pages passed; Build remained in progress when checked.
+
+**Commit:** see `PLANNING/evidence/sr23.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-22: Handle API-key dialog bridge and consent failures
 
 **Files changed:** `src/components/settings/ApiKeyModal.tsx`, `scripts/acceptance/api-key.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr21.json`

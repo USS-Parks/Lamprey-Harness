@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { AppSettings } from '@/lib/types'
 import { DEFAULT_PRESET_ID, DEFAULT_THEME_MODE, getPreset } from '@/styles/theme-presets'
 import { applyThemePreset } from '@/styles/apply-theme'
+import { toast } from './toast-store'
 
 const defaultSettings: AppSettings = {
   theme: 'dark',
@@ -75,34 +76,67 @@ interface SettingsState {
   toggleThemeMode: () => Promise<void>
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
-  settings: defaultSettings,
-  loaded: false,
-
-  loadSettings: async () => {
-    const result = await window.api.settings.get()
-    if (result.success) {
-      const merged: AppSettings = { ...defaultSettings, ...(result.data as Partial<AppSettings>) }
-      set({ settings: merged, loaded: true })
-      applyThemePreset(getPreset(merged.themePreset), merged.themeMode)
+export const useSettingsStore = create<SettingsState>((set, get) => {
+  let confirmed = defaultSettings
+  let writes = Promise.resolve()
+  let revision = 0
+  const pending: Partial<AppSettings>[] = []
+  const display = (settings: AppSettings) => {
+    const previous = get().settings
+    set({ settings })
+    if (
+      settings.themePreset !== previous.themePreset ||
+      settings.themeMode !== previous.themeMode
+    ) {
+      applyThemePreset(getPreset(settings.themePreset), settings.themeMode)
     }
-  },
-
-  updateSettings: async (partial: Partial<AppSettings>) => {
-    const current = get().settings
-    const updated = { ...current, ...partial }
-    set({ settings: updated })
-    const presetChanged = partial.themePreset && partial.themePreset !== current.themePreset
-    const modeChanged = partial.themeMode && partial.themeMode !== current.themeMode
-    if (presetChanged || modeChanged) {
-      applyThemePreset(getPreset(updated.themePreset), updated.themeMode)
-    }
-    await window.api.settings.set(partial as Record<string, unknown>)
-  },
-
-  toggleThemeMode: async () => {
-    const current = get().settings.themeMode
-    const next = current === 'dark' ? 'light' : 'dark'
-    await get().updateSettings({ themeMode: next })
   }
-}))
+  return {
+    settings: defaultSettings,
+    loaded: false,
+
+    loadSettings: async () => {
+      await writes
+      const started = revision
+      try {
+        const result = await window.api.settings.get()
+        if (!result.success) throw new Error(result.error || 'Could not load settings.')
+        if (started !== revision) return
+        confirmed = { ...defaultSettings, ...(result.data as Partial<AppSettings>) }
+        set({ settings: confirmed, loaded: true })
+        applyThemePreset(getPreset(confirmed.themePreset), confirmed.themeMode)
+      } catch {
+        toast.error('Could not load settings. Try reopening Settings.')
+      }
+    },
+
+    updateSettings: (partial: Partial<AppSettings>) => {
+      const patch = { ...partial }
+      if (pending.length === 0) confirmed = get().settings
+      revision++
+      pending.push(patch)
+      display({ ...get().settings, ...patch })
+      // Persist in interaction order. A failed write removes only its patch;
+      // later optimistic choices remain visible until their own writes settle.
+      writes = writes.then(async () => {
+        try {
+          const result = await window.api.settings.set(patch as Record<string, unknown>)
+          if (!result.success) throw new Error(result.error || 'Write failed.')
+          confirmed = { ...confirmed, ...patch }
+        } catch {
+          toast.error('Could not save settings. Unsaved changes were reverted.')
+        } finally {
+          pending.shift()
+          display(pending.reduce<AppSettings>((settings, next) => ({ ...settings, ...next }), confirmed))
+        }
+      })
+      return writes
+    },
+
+    toggleThemeMode: async () => {
+      const current = get().settings.themeMode
+      const next = current === 'dark' ? 'light' : 'dark'
+      await get().updateSettings({ themeMode: next })
+    }
+  }
+})

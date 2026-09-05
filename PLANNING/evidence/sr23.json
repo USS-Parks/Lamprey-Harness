@@ -1,0 +1,11 @@
+{
+  "prompt": "SR-23",
+  "title": "Roll back failed settings writes without losing newer choices",
+  "verification": "Six behavioral store tests passed: failure envelopes, rejected IPC, theme rollback/error notification, serialized overlapping choices, two overlapping failures, separate-field preservation, subsequent recovery and stale-load protection. Production build passed. Real Electron settings navigation and persisted Light/Dark interaction passed at 800x600 and 1280x800 with graceful quit.",
+  "notes": "Reuses the existing settings store and toast surface. A serialized write queue retains acknowledged settings plus pending patches, so removal of a failed patch cannot undo a newer choice. IPC rejections are handled for existing fire-and-forget callers. SR-22 was pushed at 35cfa86e3a5ad36e9c9a329e922821f2a73b822d. SR-21 GitHub CI and Pages passed; Build remained in progress when checked.",
+  "files": [
+    "src/stores/settings-store.ts",
+    "src/stores/settings-store.test.ts",
+    "PLANNING/evidence/sr22.json"
+  ]
+}

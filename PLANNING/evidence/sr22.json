@@ -8,5 +8,6 @@
     "scripts/acceptance/api-key.cjs",
     "scripts/acceptance/shell-link.cjs",
     "PLANNING/evidence/sr21.json"
-  ]
+  ],
+  "commit": "35cfa86e3a5ad36e9c9a329e922821f2a73b822d"
 }

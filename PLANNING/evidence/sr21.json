@@ -9,5 +9,6 @@
     "src/components/layout/Sidebar.tsx",
     "scripts/acceptance/shell-link.cjs",
     "PLANNING/evidence/sr20.json"
-  ]
+  ],
+  "commit": "c95530ba3ba6b0ae2b1f9fde2b0251f90233de78"
 }

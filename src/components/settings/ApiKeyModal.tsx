@@ -19,17 +19,26 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
   const [key, setKey] = useState('')
   const [testing, setTesting] = useState(false)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [attempt, setAttempt] = useState(0)
   // SEC-10: when safeStorage is unavailable the key persists as plaintext.
   // null = still checking; false = MUST confirm before save.
   const [encrypted, setEncrypted] = useState<boolean | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+    setEncrypted(null)
+    setLoadError('')
     void (async () => {
-      const [list, enc] = await Promise.all([
-        window.api.settings.listProviderKeys(),
-        window.api.settings.isEncryptionAvailable()
-      ])
-      if (list.success) {
+      try {
+        if (!window.api?.settings) throw new Error('Open Lamprey desktop to connect a provider. The desktop bridge is unavailable.')
+        const [list, enc] = await Promise.all([
+          window.api.settings.listProviderKeys(),
+          window.api.settings.isEncryptionAvailable()
+        ])
+        if (cancelled) return
+        if (!list.success) throw new Error(list.error || 'Could not load providers.')
+        if (!enc.success) throw new Error(enc.error || 'Could not check key storage.')
         const items = list.data as ProviderEntry[]
         setProviders(items)
         if (defaultProvider && items.some((p) => p.id === defaultProvider)) {
@@ -38,22 +47,25 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           const firstMissing = items.find((p) => !p.hasKey)
           if (firstMissing) setSelected(firstMissing.id)
         }
+        setEncrypted(Boolean(enc.data))
+      } catch (cause) {
+        if (!cancelled) setLoadError(cause instanceof Error ? cause.message : 'Could not load provider settings. Try again.')
       }
-      setEncrypted(enc.success ? Boolean(enc.data) : false)
     })()
-  }, [defaultProvider])
+    return () => { cancelled = true }
+  }, [defaultProvider, attempt])
 
   const handleSubmit = async () => {
-    if (!key.trim()) return
+    if (!key.trim() || testing || encrypted === null || loadError) return
     // SEC-10: shared consent gate. Confirms once per session when encryption
     // is unavailable and records consent in the main process so background
     // callers (mcp-manager token refresh, etc.) inherit the decision.
-    const ok = await ensurePlaintextConsentIfNeeded()
-    if (!ok) return
     setTesting(true)
     setError('')
 
     try {
+      const ok = await ensurePlaintextConsentIfNeeded()
+      if (!ok) return
       const save = await window.api.settings.saveProviderKey(selected, key.trim())
       if (!save.success) {
         setError(save.error || 'Failed to save key.')
@@ -87,7 +99,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="relative w-[460px] rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-6">
+      <div role="dialog" aria-modal="true" aria-labelledby="api-key-heading" className="relative w-[460px] rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-6">
         {!required && onDismiss && (
           <button
             onClick={onDismiss}
@@ -101,7 +113,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
             </svg>
           </button>
         )}
-        <h2 className="font-mono text-lg font-semibold text-[var(--text-primary)]">
+        <h2 id="api-key-heading" className="font-mono text-lg font-semibold text-[var(--text-primary)]">
           {scoped && currentProvider ? `Add a ${currentProvider.label} API key` : 'Welcome to the Lamprey Harness'}
         </h2>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
@@ -109,6 +121,11 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           dashboard; we authenticate against the provider's published API endpoint before unlocking
           its models.
         </p>
+
+        {loadError && <div role="alert" className="mt-3 text-sm text-[var(--error)]">
+          <p>{loadError}</p>
+          <button type="button" onClick={() => setAttempt((value) => value + 1)} className="mt-2 underline">Retry loading providers</button>
+        </div>}
 
         {encrypted === false && (
           <div
@@ -126,6 +143,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         <label className="mt-4 block">
           <span className="text-[12px] uppercase tracking-wider text-[var(--text-muted)]">Provider</span>
           <select
+            disabled={testing || encrypted === null}
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
             className="mt-1 w-full rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-2 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
@@ -152,9 +170,14 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         {currentProvider && (
           <a
             href={currentProvider.docsUrl}
-            onClick={(e) => {
+            onClick={async (e) => {
               e.preventDefault()
-              window.api?.artifact?.openExternal?.(currentProvider.docsUrl)
+              try {
+                const result = await window.api?.artifact?.openExternal?.(currentProvider.docsUrl)
+                if (!result?.success) setError(result?.error || 'Could not open the provider website.')
+              } catch {
+                setError('Could not open the provider website. Try again.')
+              }
             }}
             className="mt-2 inline-block font-mono text-[12px] text-[var(--accent)] hover:underline"
           >
@@ -162,18 +185,18 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           </a>
         )}
 
-        {error && <p className="mt-2 text-xs text-[var(--error)]">{error}</p>}
+        {error && <p role="alert" className="mt-2 text-xs text-[var(--error)]">{error}</p>}
 
         <button
           onClick={handleSubmit}
-          disabled={!key.trim() || testing}
+          disabled={!key.trim() || testing || encrypted === null || !!loadError || !currentProvider}
           className="mt-4 w-full rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
         >
           {testing ? 'Validating...' : 'Connect'}
         </button>
 
         <p className="mt-3 text-[12px] text-[var(--text-muted)]">
-          {encrypted === false
+          {encrypted === null ? 'Key storage has not been checked. Saving is disabled until the check succeeds.' : encrypted === false
             ? 'Keys are written to a 0600-mode file in your userData directory. Without OS-level encryption available, they are stored as plaintext. They never leave this device except to call the provider\'s own API.'
             : 'Keys are encrypted with OS-level storage (Electron safeStorage) and never leave this device except to call the provider\'s own API.'}
         </p>

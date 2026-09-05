@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-22: Handle API-key dialog bridge and consent failures
+
+**Files changed:** `src/components/settings/ApiKeyModal.tsx`, `scripts/acceptance/api-key.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr21.json`
+
+**Verification:** Headless Chrome rendered the actual component and passed missing bridge, rejected IPC, failure envelope, rejected consent check and successful submission cases without page errors. Failure states disable saving and expose retry. Production build passed. Built Electron app saved an isolated fixture credential through real IPC, authenticated to a local HTTP provider and dismissed the modal on success; graceful quit passed. Plaintext consent was explicitly granted only in the temporary fixture profile.
+
+**Notes:** Initialization catches failures, ignores late results after unmount, and does not claim encryption before checking it. Consent is inside the submission try/finally; repeated submission is gated while testing. Provider website failures are surfaced. Browser tests stub the bridge deliberately; the separate Electron test covers the real bridge and key persistence. Installer acceptance remains SR-37.
+
+**Commit:** see `PLANNING/evidence/sr22.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-21: Give dialogs priority over the Escape cancellation shortcut
 
 **Files changed:** `src/hooks/useKeyboardShortcuts.ts`, `src/components/settings/SettingsDialog.tsx`, `src/components/layout/Sidebar.tsx`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr20.json`

@@ -17,6 +17,13 @@ async function main() {
   let received = false
   let streamClosed = 0
   const server = createServer((request, response) => {
+    if (process.argv.includes('--keys') && request.url === '/v1/models') {
+      assert.equal(request.headers.authorization, 'Bearer fixture-key')
+      received = true
+      response.setHeader('Content-Type', 'application/json')
+      response.end(JSON.stringify({ object: 'list', data: [{ id: 'fixture-stream', object: 'model' }] }))
+      return
+    }
     if (process.argv.includes('--shortcuts') && request.url === '/v1/chat/completions') {
       console.log('Fixture received chat completion request')
       request.resume()
@@ -30,7 +37,7 @@ async function main() {
     response.end('<title>Lamprey link check</title><p>Lamprey external-link check passed. You can close this tab.</p>')
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  if (process.argv.includes('--shortcuts')) {
+  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys')) {
     writeFileSync(join(profile, 'settings.json'), JSON.stringify({
       defaultModel: 'fixture-stream',
       customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1` }],
@@ -51,6 +58,20 @@ async function main() {
     page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--keys')) {
+      const dialog = page.getByRole('dialog', { name: 'Welcome to the Lamprey Harness' })
+      await dialog.waitFor()
+      await dialog.getByRole('combobox').selectOption('fixture-provider')
+      await page.evaluate(() => window.api.settings.grantPlaintextConsent())
+      await dialog.locator('input[type="password"]').fill('fixture-key')
+      await dialog.getByRole('button', { name: 'Connect', exact: true }).click()
+      await dialog.waitFor({ state: 'hidden' })
+      assert(received)
+      const keys = await page.evaluate(() => window.api.settings.listProviderKeys())
+      assert(keys.success && keys.data.some((entry) => entry.id === 'fixture-provider' && entry.hasKey))
+      console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, realKeyPersistence: true, localProviderAuthentication: true, dialogCompleted: true, plaintextConsent: 'granted in isolated fixture profile' }))
+      return
+    }
     if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts')) {
       await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()

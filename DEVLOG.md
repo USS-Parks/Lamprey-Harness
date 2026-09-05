@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-08: Preserve invalid MCP configuration and write atomically
+
+**Files changed:** `electron/services/mcp-manager.ts`, `electron/services/mcp-config.test.ts`, `PLANNING/evidence/sr07.json`
+
+**Verification:** MCP config/manager/default suites: 31 passed. Temporary files prove malformed JSON, invalid shapes and unreadable paths are not replaced; absent files initialize; valid files round-trip; duplicate IDs reject; injected rename failure retains prior bytes. Commit hooks enforce lint/typecheck.
+
+**Notes:** Reused writeJsonAtomic. Load failure no longer overwrites user content or latches manager initialized. Shape validation covers required server fields, transport/auth, args/env and duplicate identities. SR-07 commit 5c8d30f56e88844bdaf5b31936edc6cb25376d29.
+
+**Commit:** see `PLANNING/evidence/sr08.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-07: Validate meta-tool arguments before dispatch
 
 **Files changed:** `electron/services/chat-tool-dispatch.ts`, `electron/services/chat-tool-dispatch.test.ts`, `PLANNING/evidence/sr06.json`

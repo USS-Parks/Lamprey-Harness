@@ -3,5 +3,10 @@
   "title": "Validate meta-tool arguments before dispatch",
   "verification": "Dispatch, schema-validator and unlock-state suites: 52 passed. Null, arrays, numbers, booleans, strings and wrong query types return structured errors. Valid search uses the existing schema, returns discovered tools and unlocks actual conversation state. Lint/typecheck run through commit hooks.",
   "notes": "All parsed payloads must be objects; meta-tool schema validation now shares the existing validator before search handling. No new validation framework. SR-06 commit 460bc6b1703713644a72e424c87163a2406ede80.",
-  "files": ["electron/services/chat-tool-dispatch.ts", "electron/services/chat-tool-dispatch.test.ts", "PLANNING/evidence/sr06.json"]
+  "files": [
+    "electron/services/chat-tool-dispatch.ts",
+    "electron/services/chat-tool-dispatch.test.ts",
+    "PLANNING/evidence/sr06.json"
+  ],
+  "commit": "5c8d30f56e88844bdaf5b31936edc6cb25376d29"
 }

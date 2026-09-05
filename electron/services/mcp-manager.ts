@@ -12,7 +12,7 @@ import {
   ResourceListChangedNotificationSchema,
   ResourceUpdatedNotificationSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import * as keychain from './keychain'
@@ -23,6 +23,7 @@ import {
   requestMcpUrlElicitationConsent
 } from './mcp-hosted-session'
 import { DEFAULT_APP_SETTINGS } from './default-app-settings'
+import { writeJsonAtomic } from './atomic-json'
 
 // T2 — Per-call MCP timeout. The SDK has built-in `RequestOptions.timeout`
 // support (it throws McpError with code RequestTimeout on expiry). We pass
@@ -295,24 +296,41 @@ function getDefaultConfigs(): McpServerConfig[] {
   ]
 }
 
-function loadConfigs(): McpServerConfig[] {
-  const configPath = getConfigPath()
-  if (!existsSync(configPath)) {
-    const defaults = getDefaultConfigs()
-    writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8')
-    return defaults
-  }
-  try {
-    return JSON.parse(readFileSync(configPath, 'utf-8'))
-  } catch {
-    const defaults = getDefaultConfigs()
-    writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8')
-    return defaults
+function validateConfigs(value: unknown): asserts value is McpServerConfig[] {
+  if (!Array.isArray(value)) throw new Error('MCP configuration must be an array')
+  const ids = new Set<string>()
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id.trim() ||
+        ids.has(item.id) || typeof item.name !== 'string' || !item.name.trim() ||
+        !['sse', 'stdio', 'streamable-http'].includes(item.transport) ||
+        !['none', 'oauth', 'google-oauth'].includes(item.auth) || typeof item.enabled !== 'boolean' ||
+        (item.transport === 'stdio' ? typeof item.command !== 'string' || !item.command.trim() : typeof item.url !== 'string' || !item.url.trim()) ||
+        (item.args !== undefined && (!Array.isArray(item.args) || item.args.some((arg: unknown) => typeof arg !== 'string'))) ||
+        (item.env !== undefined && (!item.env || typeof item.env !== 'object' || Array.isArray(item.env) || Object.values(item.env).some((value) => typeof value !== 'string')))) {
+      throw new Error('Invalid or duplicate MCP server configuration; original file preserved')
+    }
+    ids.add(item.id)
   }
 }
 
-function saveConfigs(configs: McpServerConfig[]): void {
-  writeFileSync(getConfigPath(), JSON.stringify(configs, null, 2), 'utf-8')
+export function loadConfigs(configPath = getConfigPath()): McpServerConfig[] {
+  let raw: string
+  try {
+    raw = readFileSync(configPath, 'utf-8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    const defaults = getDefaultConfigs()
+    saveConfigs(defaults, configPath)
+    return defaults
+  }
+  const parsed: unknown = JSON.parse(raw)
+  validateConfigs(parsed)
+  return parsed
+}
+
+export function saveConfigs(configs: McpServerConfig[], configPath = getConfigPath()): void {
+  validateConfigs(configs)
+  writeJsonAtomic(configPath, configs)
 }
 
 export class McpManager {
@@ -331,9 +349,8 @@ export class McpManager {
 
   async initialize(): Promise<void> {
     if (this.initialized) return
-    this.initialized = true
-
     const configs = loadConfigs()
+    this.initialized = true
     for (const config of configs) {
       this.servers.set(config.id, {
         config,

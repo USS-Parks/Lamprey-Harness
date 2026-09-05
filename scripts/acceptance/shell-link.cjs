@@ -101,6 +101,31 @@ async function main() {
     page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--rag')) {
+      const result = await page.evaluate(() => window.api.rag.embedder.setActive('bge-small-en-v1.5'))
+      assert(result.success, result.error)
+      const collection = await page.evaluate(() => window.api.rag.collection.create({ name: 'Fixture knowledge', embedderId: 'bge-small-en-v1.5' }))
+      assert(collection.success, collection.error)
+      const id = collection.data.id
+      const ingest = await page.evaluate(id => window.api.rag.document.ingest(id, [{ name: 'fixture.txt', text: 'The lighthouse keeper stores the brass telescope in the northern tower.' }]), id)
+      assert(ingest.success, ingest.error)
+      const deadline = Date.now() + 60000
+      let ready = false
+      while (!ready && Date.now() < deadline) {
+        const docs = await page.evaluate(id => window.api.rag.document.list(id), id)
+        assert(docs.success, docs.error)
+        assert(!docs.data.some(doc => doc.status === 'error'), JSON.stringify(docs.data))
+        ready = docs.data.some(doc => doc.status === 'ready' && doc.chunkCount > 0)
+        if (!ready) await new Promise(resolve => setTimeout(resolve, 50))
+      }
+      assert(ready, 'RAG ingest did not finish with indexed chunks')
+      const query = await page.evaluate(id => window.api.rag.query.run({ query: 'Where is the brass telescope?', collectionIds: [id] }), id)
+      assert(query.success, query.error)
+      assert(query.data.vecHits > 0, JSON.stringify(query.data))
+      assert(query.data.results.some(chunk => chunk.text.includes('northern tower')))
+      console.log(JSON.stringify({ productionWorkerLoaded: true, realQuantizedModel: true, ingestReady: true, vectorHits: query.data.vecHits, retrievedFixtureText: true }))
+      return
+    }
     if (process.argv.includes('--workflows')) {
       await page.getByTitle('Switch model', { exact: true }).waitFor()
       const saved = await page.evaluate(async () => {

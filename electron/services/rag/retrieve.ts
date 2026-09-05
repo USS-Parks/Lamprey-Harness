@@ -268,7 +268,7 @@ function runVectorLeg(
           ORDER BY distance
           LIMIT ?`
       )
-      .all(Buffer.from(queryVec.buffer), k, ...collectionIds, k) as VecLegRow[]
+      .all(Buffer.from(queryVec.buffer, queryVec.byteOffset, queryVec.byteLength), k, ...collectionIds, k) as VecLegRow[]
     return rows
   } catch (err) {
     console.warn('[rag-retrieve] vector leg failed:', err)

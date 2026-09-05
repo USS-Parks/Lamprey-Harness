@@ -140,6 +140,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 | [x] SR-32 | Reconcile documentation and verification claims (SA-19) | Review/reuse PR #12/#14; current count/status/source/installer claims cite receipts; historical corrections explicit; prior user planning text preserved; TL-W4 stays open without publication proof |
 | [x] SR-33 | Produce bounded storage/retirement manifest (SA-23) | Recheck dirty/unpublished state, exact remote ancestry and bytes; enumerate removable artifacts/worktrees and retention purposes; no deletion without explicit authorization; keep shared junction semantics clear |
 | [x] SR-34A | Stabilize Windows process-test scheduling before acceptance | Same full suite and coverage floors pass with one Windows worker; parser assertion exposes failure reason; no product timeout or fail-closed weakening; hosted outcome assessed in SR-34 |
+| [x] SR-34B | Package the real RAG worker and replace fake network proof (SA-41) | Reproduce missing worker through production IPC; emit worker; real quantized embedding vector assertions and production ingest/query pass; no empty opt-in acceptance body |
 | [ ] SR-34 | Run final source acceptance and close the finding ledger | Gate 8 passes on exact candidate; all SA IDs linked to repair or explicit approved disposition; rerun source probes at final source; no P1 silently deferred; DEVLOG/commits/skip ledger reconciled |
 
 Milestone E approval does not by itself authorize deletion of the four worktrees or old dist artifacts. After SR-33, any cleanup request must identify exact paths and preservation evidence. If authorized, recheck immediately, remove only the listed retired worktrees/artifacts, prune metadata and record reclaimed bytes. If not authorized, retain and disclose cleanup debt.
@@ -181,6 +182,7 @@ If SR-35 changes shared build/verification behavior, rerun affected SR-34 gates 
 | SA-35 | SR-31C | SA-36 | SR-31D |
 | SA-37 | SR-31E | SA-38 | SR-31F |
 | SA-39 | SR-31G | SA-40 | SR-31H |
+| SA-41 | SR-34B | | |
 
 ## Defaults, overrides and completion
 

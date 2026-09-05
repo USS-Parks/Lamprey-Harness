@@ -310,4 +310,10 @@ PR #12's provider-count correction is reused after checking the 33-provider pari
 
 Package metadata now points to the canonical Lamprey-Harness repository. README credential storage copy now distinguishes local safeStorage encryption from consented plaintext fallback. The installed/downloaded release remains v0.31.0 at this checkpoint; source repairs are not yet an installer release. TL-W4 stays open without final GitHub/local/CDN byte proof. Existing parked provider/playbook gates and unsigned-build non-goal remain explicit. User-owned planning files are preserved.
 
+## SR-34B production RAG correction
+
+**SA-41 — P1 — Production embedding and vector retrieval were not executable despite passing unit tests.** The production build omitted `worker.js`, so the actual embedder IPC failed with `Cannot find module './worker.js'`. After adding its build entry, document ingestion exposed an unbundled `require('./vec-loader')`, then a sqlite-vec integer-primary-key binding error. Vector serialization also ignored typed-array offsets and lengths. The opt-in network test was an empty body and proved none of this.
+
+SR-34B emits the worker, uses a static vec-loader import, binds vector row IDs as BigInt, and serializes exactly the vector view in insertion and retrieval. The worker explicitly selects the catalog's quantized q8 model. The replacement network test downloads and executes the real worker and checks finite, normalized 384-dimensional output. A native regression fails before the vector fix and passes afterward, including an offset view. All 170 native tests execute. The rebuilt Electron application now downloads the real model, ingests an isolated document to ready, and retrieves its text with one vector hit. This raises the ledger to 41 findings; final release acceptance remains open. See [SR-34B receipt](evidence/sr34b.json).
+
 Authored and reviewed by Basho Parks, copyright 2026

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-34B: Repair production RAG worker and vector storage
+
+**Files changed:** `electron.vite.config.ts`, `electron/services/rag/embeddings/service.test.ts`, `electron/services/rag/embeddings/worker.ts`, `electron/services/rag/store.ts`, `electron/services/rag/retrieve.ts`, `electron/services/rag/vector-store-native.test.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr34b-network.py`, `PLANNING/evidence/sr34a.json`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`
+
+**Verification:** Production build and both TypeScript projects pass. Dedicated native database gate: 22 files, 170 tests passed with zero skips. Real network worker suite: 13 passed, including downloaded q8 model yielding finite normalized 384-dimensional vectors. Actual rebuilt Electron IPC downloaded model, ingested a document to ready and retrieved its text with one vector hit. Native offset-view regression was red before the fix and green afterward.
+
+**Notes:** SA-41 records missing worker output, unbundled vec-loader require, SQLite integer binding and typed-array view serialization defects. Replaced the empty opt-in network test with executable coverage. All runtime acceptance used disposable isolated profiles; no user data changed. SR-34A pushed at cb0ba600cd90ca7a0a93e9bfcc1937f391cc169b; its hosted CI 33984938273 passed. Final source certification follows this prompt.
+
+**Commit:** see `PLANNING/evidence/sr34b.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-34A: Serialize Windows CI test workers and expose parser failures
 
 **Files changed:** `.github/workflows/ci.yml`, `electron/services/dangerous-command-policy.test.ts`, `PLANNING/evidence/sr33.json`

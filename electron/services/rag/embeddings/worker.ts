@@ -67,7 +67,8 @@ async function ensurePipeline(modelRef: string): Promise<PipelineFn> {
     const { pipeline, env } = (await import('@huggingface/transformers')) as unknown as {
       pipeline: (
         task: string,
-        modelRef: string
+        modelRef: string,
+        options: { dtype: 'q8' }
       ) => Promise<(texts: string[], opts: { pooling: 'mean'; normalize: boolean }) => Promise<{ data: Float32Array; dims: number[] }>>
       env: { cacheDir: string }
     }
@@ -78,7 +79,8 @@ async function ensurePipeline(modelRef: string): Promise<PipelineFn> {
     if (data?.userDataPath) {
       env.cacheDir = join(data.userDataPath, 'models', 'transformers')
     }
-    const pipe = await pipeline('feature-extraction', modelRef)
+    // The catalogue's download sizes describe the quantized models.
+    const pipe = await pipeline('feature-extraction', modelRef, { dtype: 'q8' })
     return async (texts: string[], options) => {
       const out = await pipe(texts, options)
       // transformers.js Tensor → { data, dims } shape.

@@ -3,5 +3,10 @@
   "title": "Serialize Windows CI test workers and expose parser failures",
   "verification": "Same full coverage command with maxWorkers=1 passed locally on Windows: 3007 passed, 174 skipped; 272 files passed, 18 skipped. Coverage statements 34.51%, branches 30.47%, functions 27.82%, lines 35.81%, all existing floors passed. No test removed, skipped, retried or relaxed by this change.",
   "notes": "Hosted runs 33984062387 and 33984347616 failed the real PowerShell safe-command assertion with uninspectable, matching an earlier intermittent failure. Their assertion output hid the reason; the updated assertion exposes it. Serialize Windows test files to remove competing test workers during real process-startup checks. Production parser timeout and fail-closed behavior unchanged. Hosted confirmation remains mandatory in SR-34; this is not a claim of a proven parser defect repair. SR-33 pushed at 89675c843e91040ed087d63c07a4d4f0dc00ba75.",
-  "files": [".github/workflows/ci.yml", "electron/services/dangerous-command-policy.test.ts", "PLANNING/evidence/sr33.json"]
+  "files": [
+    ".github/workflows/ci.yml",
+    "electron/services/dangerous-command-policy.test.ts",
+    "PLANNING/evidence/sr33.json"
+  ],
+  "commit": "cb0ba600cd90ca7a0a93e9bfcc1937f391cc169b"
 }

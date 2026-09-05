@@ -54,7 +54,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'electron/main.ts'),
-          cli: resolve(__dirname, 'electron/cli.ts')
+          cli: resolve(__dirname, 'electron/cli.ts'),
+          worker: resolve(__dirname, 'electron/services/rag/embeddings/worker.ts')
         },
         external: ['better-sqlite3']
       }

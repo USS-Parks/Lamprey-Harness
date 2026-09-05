@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { Worker } from 'node:worker_threads'
 
 // The embeddings service is exercised via an injected fake worker so the
 // test runs without spawning a real worker_thread or downloading the
@@ -227,14 +231,20 @@ describe('EmbeddingsService — fake worker', () => {
 const runNet = process.env.LAMPREY_RUN_EMBED_NETWORK === '1'
 describe.skipIf(!runNet)('EmbeddingsService — real worker (network)', () => {
   it('downloads bge-small and produces 384-dim normalized vectors', async () => {
-    // Intentionally skipped by default. Setting LAMPREY_RUN_EMBED_NETWORK=1
-    // exercises the real model download + first inference (~60s on a cold
-    // cache). Place-holder body — when run, the developer asserts:
-    //   const svc = new EmbeddingsService(realUserDataPath)
-    //   await svc.setActive(DEFAULT_EMBEDDER_ID)
-    //   const [v] = await svc.embed(['hello world'])
-    //   expect(v.length).toBe(384)
-    //   const norm = Math.sqrt([...v].reduce((s,x)=>s+x*x,0))
-    //   expect(Math.abs(norm - 1)).toBeLessThan(1e-3)
-  })
+    const userDataPath = mkdtempSync(join(tmpdir(), 'lamprey-embedding-test-'))
+    const svc = new EmbeddingsService(userDataPath, init => new Worker(
+      resolve('out/main/worker.js'), { workerData: init }
+    ))
+    try {
+      await svc.setActive(DEFAULT_EMBEDDER_ID)
+      const [vector] = await svc.embed(['hello world'])
+      expect(vector).toHaveLength(384)
+      expect([...vector].every(Number.isFinite)).toBe(true)
+      const norm = Math.sqrt([...vector].reduce((sum, value) => sum + value * value, 0))
+      expect(Math.abs(norm - 1)).toBeLessThan(1e-3)
+    } finally {
+      await svc.dispose()
+      rmSync(userDataPath, { recursive: true, force: true })
+    }
+  }, 180_000)
 })

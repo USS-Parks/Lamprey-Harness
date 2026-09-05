@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { getDb } from '../database'
 import { isDbUnavailableError } from '../db-error-class'
+import { isVecAvailable } from './vec-loader'
 
 // rag_collections CRUD. The store owns id generation, timestamping, and the
 // row ↔ object conversion. Per the persistence-boundary doc, IPC handlers
@@ -686,10 +687,6 @@ export function insertChunks(
   if (dbAvailable()) {
     try {
       const db = getDb()
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { isVecAvailable } = require('./vec-loader') as {
-        isVecAvailable: () => boolean
-      }
       const writeVec = !!vectors && isVecAvailable()
       const insertChunk = db.prepare(
         `INSERT INTO rag_chunks
@@ -725,7 +722,8 @@ export function insertChunks(
           const rowid = Number(result.lastInsertRowid)
           rowids.push(rowid)
           if (insertVec && vectors) {
-            insertVec.run(rowid, Buffer.from(vectors[i].buffer))
+            const vector = vectors[i]
+            insertVec.run(BigInt(result.lastInsertRowid), Buffer.from(vector.buffer, vector.byteOffset, vector.byteLength))
           }
         }
         return rowids

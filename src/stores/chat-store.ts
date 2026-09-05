@@ -775,10 +775,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setModel: async (model: string) => {
     const state = get()
-    const previousModel = state.activeModel
-    if (previousModel === model) return
+    try {
+      await useModelStore.getState().setActiveModel(model)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not switch model.')
+      return
+    }
+    if (get().activeConversationId !== state.activeConversationId) return
     set({ activeModel: model })
-    void window.api.model.setActive(model)
 
     const activeId = state.activeConversationId
     const realMessageCount = state.messages.filter(
@@ -786,16 +790,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
     ).length
 
     if (activeId && realMessageCount > 0) {
-      const info = useModelStore.getState().models.find((m) => m.id === model)
-      const modelName = info?.name ?? model
-      const marker = `— Switched to ${modelName} —`
-      const result = await window.api.conversation.appendSystem(activeId, marker)
-      if (result.success && result.data) {
-        const msg = result.data as Message
-        set((s) => ({ messages: [...s.messages, msg] }))
+      try {
+        const saved = await window.api.conversation.setModel(activeId, model)
+        if (!saved.success) throw new Error(saved.error || 'Could not save the conversation model.')
+        const info = useModelStore.getState().models.find((m) => m.id === model)
+        const modelName = info?.name ?? model
+        const marker = `— Switched to ${modelName} —`
+        const result = await window.api.conversation.appendSystem(activeId, marker)
+        if (!result.success) throw new Error(result.error || 'Could not save the model-switch marker.')
+        if (result.data && get().activeConversationId === activeId) {
+          const msg = result.data as Message
+          set((s) => ({ messages: [...s.messages, msg] }))
+        }
+        await get().loadConversations()
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Could not update conversation model history.')
       }
-      await window.api.conversation.setModel(activeId, model)
-      await get().loadConversations()
     }
   },
 

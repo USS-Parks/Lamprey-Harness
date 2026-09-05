@@ -44,6 +44,8 @@ import type { ToolApprovalRequest } from '@/lib/types'
 
 function App(): React.ReactElement {
   const [needsApiKey, setNeedsApiKey] = useState<boolean | null>(null)
+  const [initializationError, setInitializationError] = useState('')
+  const [initializationAttempt, setInitializationAttempt] = useState(0)
   const [artifactOpen, setArtifactOpen] = useState(false)
   const [artifactType, setArtifactType] = useState<string | null>(null)
   const [artifactSource, setArtifactSource] = useState<string | null>(null)
@@ -387,31 +389,42 @@ function App(): React.ReactElement {
   }, [])
 
   useEffect(() => {
+    let disposed = false
+    setNeedsApiKey(null)
+    setInitializationError('')
     const init = async () => {
-      if (!window.api) {
-        setNeedsApiKey(true)
-        return
-      }
-      // Considered "configured" if ANY provider key is present.
+      if (!window.api) throw new Error('Open Lamprey desktop. The desktop bridge is unavailable.')
       const providerList = await window.api.settings.listProviderKeys()
+      let needsKey: boolean
       if (providerList.success) {
         const providers = providerList.data as ProviderEntry[]
         useProvidersStore.getState().setProviders(providers)
-        const anyKey = providers.some((p) => p.hasKey)
-        setNeedsApiKey(!anyKey)
+        needsKey = !providers.some((p) => p.hasKey)
       } else {
         const fallback = await window.api.settings.hasApiKey()
-        setNeedsApiKey(fallback.success ? !fallback.data : true)
+        if (!fallback.success) throw new Error(fallback.error || 'Could not load provider configuration.')
+        needsKey = !fallback.data
       }
       await Promise.all([loadConversations(), loadModels(), loadSettings()])
+      if (disposed) return
+      if (!useSettingsStore.getState().loaded) throw new Error('Could not load settings. Try again.')
+      const { activeModel, models } = useModelStore.getState()
+      if (!useChatStore.getState().activeConversationId) useChatStore.setState({ activeModel })
+      const provider = models.find(model => model.id === activeModel)?.provider
+      if (useProvidersStore.getState().byId(provider ?? '')?.keyOptional) needsKey = false
+      setNeedsApiKey(needsKey)
     }
-    init()
-  }, [])
+    void init().catch(error => { if (!disposed) setInitializationError(error instanceof Error ? error.message : 'Could not initialize Lamprey.') })
+    return () => { disposed = true }
+  }, [initializationAttempt])
 
   if (needsApiKey === null) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[var(--bg-primary)]">
-        <div className="font-mono text-sm text-[var(--text-muted)]">Loading...</div>
+        {initializationError ? <div role="alert" className="max-w-md p-4 text-sm text-[var(--text-primary)]">
+          <p>{initializationError}</p>
+          <button className="mt-3 rounded bg-[var(--accent)] px-3 py-2 text-white" onClick={() => setInitializationAttempt(attempt => attempt + 1)}>Retry</button>
+        </div> : <div className="font-mono text-sm text-[var(--text-muted)]">Loading...</div>}
       </div>
     )
   }
@@ -420,6 +433,7 @@ function App(): React.ReactElement {
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]">
       {needsApiKey && (
         <ApiKeyModal
+          onUseLocal={() => { setNeedsApiKey(false); openSettings('models') }}
           onComplete={() => {
             setNeedsApiKey(false)
           }}

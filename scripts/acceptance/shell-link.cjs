@@ -20,6 +20,15 @@ async function main() {
   let shutdownRequests = 0
   let childStarted = false
   const server = createServer(async (request, response) => {
+    if (process.argv.includes('--startup') && request.url === '/v1/chat/completions') {
+      let body = ''
+      for await (const chunk of request) body += chunk
+      assert.equal(JSON.parse(body).model, 'fixture-stream')
+      received = true
+      response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+      response.end('data: {"choices":[{"index":0,"delta":{"content":"Startup fixture passed"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+      return
+    }
     if (process.argv.includes('--shutdown') && request.url === '/v1/chat/completions') {
       let body = ''
       for await (const chunk of request) body += chunk
@@ -55,12 +64,12 @@ async function main() {
     response.end('<title>Lamprey link check</title><p>Lamprey external-link check passed. You can close this tab.</p>')
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys') || process.argv.includes('--shutdown')) {
+  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys') || process.argv.includes('--shutdown') || process.argv.includes('--startup')) {
     writeFileSync(join(profile, 'settings.json'), JSON.stringify({
       defaultModel: 'fixture-stream',
       toolSurface: 'full',
       orchestrationEnabled: process.argv.includes('--shutdown'),
-      customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1` }],
+      customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: !process.argv.includes('--startup') }],
       customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 8192, supportsTools: process.argv.includes('--shutdown') }]
     }))
   }
@@ -78,6 +87,42 @@ async function main() {
     page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--startup')) {
+      await page.getByTitle('Switch model', { exact: true }).waitFor()
+      assert.match(await page.getByTitle('Switch model', { exact: true }).innerText(), /Fixture/)
+      await app.evaluate(({ ipcMain }) => {
+        let first = true
+        ipcMain.removeHandler('model:getActive')
+        ipcMain.handle('model:getActive', () => {
+          if (first) { first = false; throw new Error('fixture startup failure') }
+          return new Promise(resolve => { globalThis.releaseStartup = () => resolve({ success: true, data: 'fixture-stream' }) })
+        })
+      })
+      await page.reload()
+      await page.getByRole('alert').filter({ hasText: 'fixture startup failure' }).waitFor()
+      assert.equal(await page.locator('textarea').count(), 0)
+      await page.getByRole('button', { name: 'Retry', exact: true }).click()
+      await page.getByText('Loading...', { exact: true }).waitFor()
+      assert.equal(await page.locator('textarea').count(), 0)
+      await app.evaluate(() => globalThis.releaseStartup())
+      await page.getByTitle('Switch model', { exact: true }).waitFor()
+      assert.match(await page.getByTitle('Switch model', { exact: true }).innerText(), /Fixture/)
+      const keys = await page.evaluate(() => window.api.settings.listProviderKeys())
+      assert(keys.success && !keys.data.some(provider => provider.hasKey))
+      await page.locator('textarea').first().fill('Say hello.')
+      await page.locator('textarea').first().press('Enter')
+      await page.getByText('Startup fixture passed', { exact: true }).waitFor()
+      assert(received)
+      console.log(JSON.stringify({ startupRejectAndRetry: true, delayedModelBlocksComposer: true, savedModelUsedWithoutSelection: true, keylessLocalProviderRequest: true, storedKeys: 0 }))
+      return
+    }
+    if (process.argv.includes('--local-setup')) {
+      await page.getByRole('button', { name: 'Set up a local model', exact: true }).click()
+      await page.getByRole('dialog', { name: 'Settings', exact: true }).waitFor()
+      assert.equal(await page.getByRole('tab', { name: 'Models', exact: true }).getAttribute('aria-selected'), 'true')
+      console.log('Fresh keyless install can reach Models settings without adding a cloud key')
+      return
+    }
     if (process.argv.includes('--prompt-probe')) {
       const result = await page.evaluate(() => {
         try { window.prompt('Acceptance fixture prompt'); return 'supported' } catch (error) { return error.message }

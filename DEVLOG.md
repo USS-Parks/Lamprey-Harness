@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31E: Initialize chat from acknowledged model and provider state
+
+**Files changed:** `src/App.tsx`, `src/components/settings/ApiKeyModal.tsx`, `src/components/chat/ChatInput.tsx`, `src/stores/providers-store.ts`, `src/stores/model-store.ts`, `src/stores/model-store.test.ts`, `src/stores/chat-store.ts`, `vitest.config.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr31d.json`
+
+**Verification:** Real Electron: failed model initialization shows Retry; delayed retry has no composer; saved model is selected without a picker click; keyless local provider receives the first request with zero stored keys. Fresh install reaches Models settings via local setup. Key-required fixture provider still completes real key persistence and local authentication. Twelve focused model/settings tests passed, including rejection/envelope rollback and rapid selection order. Final production build and web TypeScript with unused checks passed.
+
+**Notes:** Startup now waits for initialization and copies the acknowledged default into chat state. Model writes are serialized and displayed only after acknowledgement; failed selection preserves the prior model. Provider readiness distinguishes optional keys from stored credentials and subscribes to changing readiness. Added the production @ source alias to Vitest so real chat-store behavior can be tested. SR-31D pushed at e054c06dc3ff8e22c7657e86c579b694d0a917a3.
+
+**Commit:** see `PLANNING/evidence/sr31e.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31D: Drain turns and subagents before closing the database
 
 **Files changed:** `electron/main.ts`, `electron/services/turn-runtime.ts`, `electron/services/turn-runtime.test.ts`, `electron/services/subagent-runner.ts`, `electron/services/subagent-runner.test.ts`, `electron/services/permissions-store.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/SR31_ADJUDICATION.md`, `PLANNING/evidence/sr31c.json`

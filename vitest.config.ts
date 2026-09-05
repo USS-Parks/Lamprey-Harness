@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config'
+import { resolve } from 'node:path'
 
 // Prompt 12: coverage is enabled with a low floor (baseline minus 2pp) as a
 // regression guard, NOT a quality target. The threshold catches "someone
@@ -9,6 +10,7 @@ import { defineConfig } from 'vitest/config'
 // test environment is node-only — jsdom-backed renderer tests are the
 // scope of Prompt 5 of the audit-remediation roster.
 export default defineConfig({
+  resolve: { alias: { '@': resolve(__dirname, 'src') } },
   test: {
     include: ['electron/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
     environment: 'node',

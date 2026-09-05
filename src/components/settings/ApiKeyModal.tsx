@@ -7,13 +7,14 @@ interface ApiKeyModalProps {
   onDismiss?: () => void
   defaultProvider?: string
   required?: boolean
+  onUseLocal?: () => void
 }
 
 interface ProviderEntry extends ProviderInfo {
   hasKey: boolean
 }
 
-export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required = true }: ApiKeyModalProps) {
+export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required = true, onUseLocal }: ApiKeyModalProps) {
   const [providers, setProviders] = useState<ProviderEntry[]>([])
   const [selected, setSelected] = useState<string>(defaultProvider ?? 'deepseek')
   const [key, setKey] = useState('')
@@ -194,6 +195,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         >
           {testing ? 'Validating...' : 'Connect'}
         </button>
+        {onUseLocal && <button onClick={onUseLocal} disabled={testing} className="mt-3 w-full text-sm text-[var(--accent)]">Set up a local model</button>}
 
         <p className="mt-3 text-[12px] text-[var(--text-muted)]">
           {encrypted === null ? 'Key storage has not been checked. Saving is disabled until the check succeeds.' : encrypted === false

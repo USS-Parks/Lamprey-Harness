@@ -2,7 +2,7 @@
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
-import { useProvidersStore } from '@/stores/providers-store'
+import { canUseProvider, useProvidersStore } from '@/stores/providers-store'
 import { useUiStore, type PermissionsMode } from '@/stores/ui-store'
 import { toast } from '@/stores/toast-store'
 import { ApiKeyModal } from '@/components/settings/ApiKeyModal'
@@ -255,7 +255,7 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   const activeModel = useChatStore((s) => s.activeModel)
   const setModel = useChatStore((s) => s.setModel)
   const allModels = useModelStore((s) => s.models)
-  const hasKey = useProvidersStore((s) => s.hasKey)
+  const providerEntries = useProvidersStore((s) => s.providers)
   const providersLoaded = useProvidersStore((s) => s.loaded)
   const refreshProviders = useProvidersStore((s) => s.refresh)
   const [open, setOpen] = useState(false)
@@ -376,7 +376,7 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   ]
   const models = allModels.length > 0 ? allModels : fallback
   const active = models.find((m) => m.id === activeModel) ?? models[0]
-  const activeLocked = providersLoaded && !hasKey(active.provider)
+  const activeLocked = providersLoaded && !canUseProvider(providerEntries, active.provider)
 
   useEffect(() => {
     if (!open) return
@@ -409,7 +409,7 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
           className="scrollbar-visible absolute bottom-full right-0 z-30 mb-1 max-h-[min(70vh,36rem)] w-72 overflow-y-auto overscroll-contain rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-xl"
         >
           {models.map((m) => {
-            const locked = providersLoaded && !hasKey(m.provider)
+            const locked = providersLoaded && !canUseProvider(providerEntries, m.provider)
             return (
               <button
                 key={m.id}
@@ -803,7 +803,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const seedMemoryDescription = useUiStore((s) => s.seedMemoryDescription)
   const openSettings = useUiStore((s) => s.openSettings)
   const refreshProviders = useProvidersStore((s) => s.refresh)
-  const hasKey = useProvidersStore((s) => s.hasKey)
   const providersLoaded = useProvidersStore((s) => s.loaded)
   const activeModel = useChatStore((s) => s.activeModel)
   const activeTurn = useChatStore((s) => s.activeTurn)
@@ -814,7 +813,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const allModels = useModelStore((s) => s.models)
   const activeModelInfo = allModels.find((m) => m.id === activeModel)
   const activeProvider = activeModelInfo?.provider
-  const activeProviderHasKey = activeProvider ? !providersLoaded || hasKey(activeProvider) : true
+  const activeProviderConfigured = useProvidersStore((s) => s.canUse(activeProvider))
+  const activeProviderHasKey = activeProvider ? !providersLoaded || activeProviderConfigured : true
 
   useEffect(() => {
     if (textareaRef.current) {

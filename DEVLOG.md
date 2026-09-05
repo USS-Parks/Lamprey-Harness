@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-15: Preserve tool parameter names during schema normalization
+
+**Files changed:** `electron/services/providers/schema-normalizer.ts`, `electron/services/providers/schema-normalizer.test.ts`, `PLANNING/evidence/sr14.json`
+
+**Verification:** Schema normalization suite covers keyword-shaped names, required lists, nested properties, items, additionalProperties, immutable inputs and literal default/enum objects; genuine structural schema keywords still reject core and non-core tools. Existing tool registry suite also run. Lint and both TypeScript projects run in the commit hook.
+
+**Notes:** Traversal now follows schema positions, not arbitrary JSON object keys. No provider-specific capability claims added. SR-14 pushed to main at c5d9f4911306c63ad167a6f1ac7eb7fea38d1ebd after full pre-push gate: 2989 tests passed; native suites retain their separate executed receipt.
+
+**Commit:** see `PLANNING/evidence/sr15.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-14: Keep plugin MCP servers addressable and drain their lifecycle
 
 **Files changed:** `electron/services/mcp-manager.ts`, `electron/services/mcp-manager.test.ts`, `electron/services/mcp-plugin-lifecycle.test.ts`, `electron/services/fixtures/mcp-tool-server.cjs`, `electron/main.ts`, `PLANNING/evidence/sr13.json`, `PLANNING/evidence/sr-close.py`

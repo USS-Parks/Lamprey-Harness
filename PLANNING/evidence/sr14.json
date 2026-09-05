@@ -11,5 +11,6 @@
     "electron/main.ts",
     "PLANNING/evidence/sr13.json",
     "PLANNING/evidence/sr-close.py"
-  ]
+  ],
+  "commit": "c5d9f4911306c63ad167a6f1ac7eb7fea38d1ebd"
 }

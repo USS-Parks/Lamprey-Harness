@@ -81,6 +81,36 @@ const coreTool = {
 }
 
 describe('normalizeToolsForProvider', () => {
+  it('preserves keyword-shaped property names and literal values at every object depth', () => {
+    const properties = Object.fromEntries(['if', 'not', '$ref', 'oneOf', '__proto__'].map((name) => [name, { type: 'string', $id: 'strip-me' }]))
+    const nested = { type: 'object', properties, required: Object.keys(properties), additionalProperties: false }
+    const schema = {
+      type: 'object', properties: { ...properties, nested, rows: { type: 'array', items: nested } },
+      required: Object.keys(properties), default: { $ref: 'literal', if: { not: 'data' } },
+      enum: [{ oneOf: 'literal' }], additionalProperties: nested
+    }
+    const original = structuredClone(schema)
+    const result = normalizeToolsForProvider([{ ...simpleTool, inputSchema: schema }], 'deepseek')
+    expect(result.warnings).toEqual([])
+    const params = result.tools[0].function.parameters as any
+    for (const object of [params, params.properties.nested, params.properties.rows.items, params.additionalProperties]) {
+      for (const name of Object.keys(properties)) expect(object.properties[name]).toEqual({ type: 'string' })
+      expect(object.required).toEqual(Object.keys(properties))
+    }
+    expect(params.default).toEqual(schema.default)
+    expect(params.enum).toEqual(schema.enum)
+    expect(schema).toEqual(original)
+  })
+
+  it.each([
+    { properties: { x: { $ref: '#/defs/x' } } },
+    { items: { oneOf: [{ type: 'string' }] } },
+    { items: [{ anyOf: [{ type: 'string' }] }] },
+    { additionalProperties: { allOf: [{ type: 'string' }] } }
+  ])('rejects real structural keywords in schema positions: %j', (inputSchema) => {
+    expect(normalizeToolsForProvider([{ ...simpleTool, inputSchema }], 'deepseek').tools).toEqual([])
+    expect(() => normalizeToolsForProvider([{ ...coreTool, inputSchema }], 'deepseek')).toThrow(/unsupported JSON Schema keyword/)
+  })
   it('passes through simple valid tools', () => {
     const result = normalizeToolsForProvider([simpleTool], 'deepseek')
     expect(result.tools).toHaveLength(1)

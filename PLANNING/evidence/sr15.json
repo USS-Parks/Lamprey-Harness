@@ -1,0 +1,7 @@
+{
+  "prompt": "SR-15",
+  "title": "Preserve tool parameter names during schema normalization",
+  "verification": "Schema normalization suite covers keyword-shaped names, required lists, nested properties, items, additionalProperties, immutable inputs and literal default/enum objects; genuine structural schema keywords still reject core and non-core tools. Existing tool registry suite also run. Lint and both TypeScript projects run in the commit hook.",
+  "notes": "Traversal now follows schema positions, not arbitrary JSON object keys. No provider-specific capability claims added. SR-14 pushed to main at c5d9f4911306c63ad167a6f1ac7eb7fea38d1ebd after full pre-push gate: 2989 tests passed; native suites retain their separate executed receipt.",
+  "files": ["electron/services/providers/schema-normalizer.ts", "electron/services/providers/schema-normalizer.test.ts", "PLANNING/evidence/sr14.json"]
+}

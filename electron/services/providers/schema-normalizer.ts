@@ -83,10 +83,10 @@ export interface NormalizerResult {
 }
 
 /**
- * Check if a schema object contains unsupported structural keywords
- * at any depth. Returns the first offending keyword found, or null.
+ * Visit schema positions only. Property names and literal/default values
+ * are data, even when they happen to be JSON Schema keywords.
  */
-function findStructuralUnsupported(schema: unknown, path: string): string | null {
+function findStructuralUnsupported(schema: unknown): string | null {
   if (!schema || typeof schema !== 'object') return null
   const obj = schema as Record<string, unknown>
   for (const key of Object.keys(obj)) {
@@ -94,24 +94,17 @@ function findStructuralUnsupported(schema: unknown, path: string): string | null
     // Recurse into properties and items
     if (key === 'properties' && obj.properties && typeof obj.properties === 'object') {
       const props = obj.properties as Record<string, unknown>
-      for (const [propName, propSchema] of Object.entries(props)) {
-        const found = findStructuralUnsupported(propSchema, `${path}.properties.${propName}`)
+      for (const propSchema of Object.values(props)) {
+        const found = findStructuralUnsupported(propSchema)
         if (found) return found
       }
     }
-    if (key === 'items' && obj.items && typeof obj.items === 'object') {
-      const found = findStructuralUnsupported(obj.items, `${path}.items`)
-      if (found) return found
-    }
-    // Recurse into nested objects that aren't standard schema keywords
-    if (
-      typeof obj[key] === 'object' &&
-      obj[key] !== null &&
-      !Array.isArray(obj[key]) &&
-      !['properties', 'items', 'enum'].includes(key)
-    ) {
-      const found = findStructuralUnsupported(obj[key], `${path}.${key}`)
-      if (found) return found
+    if (key === 'items' || key === 'additionalProperties') {
+      const children = Array.isArray(obj[key]) ? obj[key] : [obj[key]]
+      for (const child of children) {
+        const found = findStructuralUnsupported(child)
+        if (found) return found
+      }
     }
   }
   return null
@@ -127,21 +120,21 @@ function stripUnsupportedKeywords(schema: Record<string, unknown>): Record<strin
     if (UNSUPPORTED_SCHEMA_KEYWORDS.has(key) && !STRUCTURAL_UNSUPPORTED.has(key)) {
       continue // Strip non-structural unsupported keys
     }
-    if (
-      typeof value === 'object' &&
-      value !== null &&
-      !Array.isArray(value) &&
-      key !== 'enum' // Don't recurse into enum arrays
-    ) {
-      cleaned[key] = stripUnsupportedKeywords(value as Record<string, unknown>)
-    } else if (Array.isArray(value)) {
-      // For arrays (like enum), just copy
-      cleaned[key] = value
+    if (key === 'properties' && value && typeof value === 'object' && !Array.isArray(value)) {
+      cleaned[key] = Object.fromEntries(Object.entries(value).map(([name, child]) => [name, cleanChild(child)]))
+    } else if (key === 'items' || key === 'additionalProperties') {
+      cleaned[key] = Array.isArray(value) ? value.map(cleanChild) : cleanChild(value)
     } else {
       cleaned[key] = value
     }
   }
   return cleaned
+}
+
+function cleanChild(value: unknown): unknown {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? stripUnsupportedKeywords(value as Record<string, unknown>)
+    : value
 }
 
 /**
@@ -163,7 +156,7 @@ export function normalizeToolsForProvider(
 
   for (const tool of tools) {
     const inputSchema = tool.inputSchema as Record<string, unknown> | undefined
-    if (!inputSchema || typeof inputSchema !== 'object') {
+    if (!inputSchema || typeof inputSchema !== 'object' || Array.isArray(inputSchema)) {
       const isCore = CORE_TOOL_NAMES.has(tool.name)
       if (isCore) {
         throw new Error(
@@ -177,7 +170,7 @@ export function normalizeToolsForProvider(
     }
 
     // Check for structural unsupported keywords
-    const structural = findStructuralUnsupported(inputSchema, '')
+    const structural = findStructuralUnsupported(inputSchema)
     if (structural) {
       const isCore = CORE_TOOL_NAMES.has(tool.name)
       if (isCore) {

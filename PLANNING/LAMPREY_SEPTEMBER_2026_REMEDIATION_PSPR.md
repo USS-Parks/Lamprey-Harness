@@ -94,7 +94,7 @@ Depends on B. Result: existing integration features use consistent registration 
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
 | [x] SR-14 | Unify plugin MCP lifecycle lookup and teardown (SA-03) | Real stdio plugin: discover/call/reconnect/disable/re-enable/uninstall/quit; authorization completion resolves correct owner; processes and subscriptions drain once |
-| [ ] SR-15 | Preserve property names during schema normalization (SA-09) | Keyword-like field names survive; true unsupported keywords transformed only in schema positions; nested/required/provider tests pass |
+| [x] SR-15 | Preserve property names during schema normalization (SA-09) | Keyword-like field names survive; true unsupported keywords transformed only in schema positions; nested/required/provider tests pass |
 | [ ] SR-16 | Make missing provider identity an explicit error (SA-10) | Removing custom endpoint cannot dispatch to DeepSeek/another host; picker and dispatch agree; stale IDs and collisions handled visibly; local HTTP capture fixture proves selected destination |
 | [ ] SR-17 | Enforce evidence-backed research output contract (SA-24) | Provided sources plus zero references rejected or produce explicit insufficient-evidence outcome; valid references accepted; fabricated references still rejected; no claim that syntax proves truth |
 | [ ] SR-18 | Await external-link completion in IPC (SA-25) | Promise rejection returns failure envelope with no unhandled rejection; success waits for completion; packaged valid link smoke performed |

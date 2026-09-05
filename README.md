@@ -15,7 +15,7 @@
 
 Lamprey is a local-first desktop coding harness for the model provider you already use. It combines a Codex-style workspace with streaming chat, reasoning traces, skills, MCP servers, research, durable queues, optional loops and sub-agent orchestration, a file tree, browser, git review, and terminal. Thirty-three providers are built in, local Ollama and LM Studio work without keys, and custom OpenAI-compatible endpoints can be added from Settings.
 
-Conversations and control state live in SQLite on your machine. API keys stay in the operating-system keychain. Lamprey sends requests only to the providers and connectors you configure.
+Conversations and control state live in SQLite on your machine. API keys are stored locally, encrypted with Electron safeStorage when available; plaintext storage requires explicit consent. Lamprey sends requests only to the providers and connectors you configure.
 
 ---
 

@@ -1,12 +1,12 @@
 # Lamprey whole-repository re-audit — 5 September 2026
 
-Status: audit delivered; remediation NOT executed or approved. Companion: [remediation PSPR](LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md).
+Status: full STS and Bucket authorized on 5 September 2026. Source remediation is complete through SR-31I; final source acceptance and publication remain open. Companion: [remediation PSPR](LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md).
 
-## Conclusion
+## Original audit conclusion (before execution)
 
 Lamprey has real correctness and verification defects beneath a passing lint/typecheck/unit-test baseline. The most consequential findings concern post-cancellation tool execution, descriptorless MCP dispatch, database replacement and compaction, filesystem confinement, and a native-database gate that returns success with almost everything skipped. The release process can verify one artifact version and subsequently publish another.
 
-This report records 30 actionable findings, including maintenance and documentation findings, with severity and evidence distinguished below. It does not assert that every line is wrong, that every issue originated recently, or that an automated audit can establish the absence of all remaining bugs. No product fixes, dependency changes, builds, commits, pushes, releases, or deletions were performed. Audit helpers and evidence were added under `PLANNING/evidence/`.
+The original audit recorded 30 actionable findings, including maintenance and documentation findings, with severity and evidence distinguished below. It does not assert that every line is wrong, that every issue originated recently, or that an automated audit can establish the absence of all remaining bugs. At that audit-only checkpoint, no product fixes, dependency changes, builds, commits, pushes, releases, or deletions had been performed. Audit helpers and evidence were added under `PLANNING/evidence/`.
 
 ## Scope and immutable baselines
 
@@ -20,7 +20,7 @@ This report records 30 actionable findings, including maintenance and documentat
 
 Git history establishes code provenance, not which model authored every line. The [provenance receipt](evidence/september-audit-provenance.json) follows moved code for SA-01 through SA-19. Much of the dangerous logic predates August; the recent extraction or audit did not eliminate it. SA-16, SA-18 and SA-27 directly involve August verification/release work; SA-25 and SA-26 concern the new upstream changes. Language such as “AI artifacts” is evaluated as dead wiring, unsupported claims, fake assurance, unnecessary indirection and contradictory comments, not guessed model attribution.
 
-## Verification actually performed
+## Original audit verification (before execution)
 
 | Check | Result | Limit |
 |---|---|---|
@@ -277,7 +277,7 @@ The four node_modules entries are junctions into canonical dependencies and are 
 
 Recommended sequence: reconcile upstream and reuse existing work, make verification trustworthy, repair authority/data paths, restore user-visible behavior, remove proven debris, then validate and publish. The companion PSPR defines independently approvable milestones and explicit release/cleanup boundaries. The audit is complete as a bounded review; remediation, live acceptance and Bucket are not complete.
 
-This draft awaits the user's review and approval. The following is the repository's required attribution footer, not an execution approval.
+The user subsequently approved the full STS roster and Bucket, including per-prompt commits and pushes to main. The original audit evidence above remains a historical baseline.
 
 ## Post-baseline findings from execution
 
@@ -286,5 +286,28 @@ This draft awaits the user's review and approval. The following is the repositor
 **SR-14 verification correction:** manager-level shutdown tests passed, but the real application smoke exposed a `will-quit` stall when asynchronous teardown began directly inside the event. SR-18 schedules that drain with `setImmediate`; the production fixture then emitted both quit passes and exited normally. Source-level and manager-only evidence did not prove application shutdown.
 
 **SA-32 — Both environment Commit controls call unsupported `window.prompt`.** SR-29's real production Electron probe returns `prompt() is not supported.` Both handlers therefore fail before collecting a commit message. They also leave busy state stuck on rejected IPC. The bounded SR-29 repair shares their equivalent commit/push behavior, uses an in-app commit-message dialog, preserves drafts on failure, and binds the operation to the displayed repository path. Real Electron commits and pushes to a temporary local bare remote passed from both floating and docked surfaces, including cancellation and failed-hook retry. No hosted repository was used by this acceptance test.
+
+## SR-32 execution reconciliation
+
+The full ledger now contains 40 numbered findings. SA-31/32 were discovered during live acceptance; SA-33 through SA-40 are documented with original source evidence in [SR-31 adjudication](evidence/SR31_ADJUDICATION.md). Each row below links its completed source-repair receipt. Final source certification (SR-34), release serialization (SR-35), Bucket (SR-37) and published closeout (SR-38) remain open at this checkpoint.
+
+| Added finding | Repair | Evidence |
+|---|---|---|
+| SA-33: fork creation lacks atomicity and reliable cleanup | SR-31A | Native rollback and cleanup-failure tests; [receipt](evidence/sr31a.json) |
+| SA-34: provider retry delays cancellation | SR-31B | Actual HTTP failure/backoff cancellation; [receipt](evidence/sr31b.json) |
+| SA-35: browser lifecycle and listener ownership | SR-31C | Chrome race fixture and real Electron view visibility; [receipt](evidence/sr31c.json) |
+| SA-36: quit does not drain normal turns/subagents | SR-31D | SQLite inspected after real shutdown, before restart recovery; [receipt](evidence/sr31d.json) |
+| SA-37: startup/model persistence can use the wrong model | SR-31E | Delayed/rejected startup, keyless local setup and actual local provider; [receipt](evidence/sr31e.json) |
+| SA-38: recursive supported tool-schema subset is not enforced | SR-31F | Invalid calls never reach real stdio receiver; [receipt](evidence/sr31f.json) |
+| SA-39: workflow status and provider runner are unwired | SR-31G | Palette launch, status navigation and local provider completion; [receipt](evidence/sr31g.json) |
+| SA-40: vulnerable dependency graph | SR-31H | Zero npm advisories after repairs, real image/archive and native DB checks; [receipt](evidence/sr31h.json) |
+
+SR-31I additionally removes a confirmed redundant Git invocation and handles environment refresh failures with stale-state disclosure, retry, request ordering and lifecycle cleanup. Both production environment surfaces passed real temporary Git commit/push acceptance; [receipt](evidence/sr31i.json).
+
+Current local baseline: 3,007 default tests passed, 174 skipped; all 169 dedicated native database tests in 21 files executed with zero skips. The default suite is not a substitute for that native gate. Production builds and focused real Electron acceptance have run during remediation. A Windows hosted PowerShell AST test intermittently returns uninspectable; CI run 33984062387 failed on that assertion. Final hosted acceptance remains pending, not green by inference from local tests.
+
+PR #12's provider-count correction is reused after checking the 33-provider parity test and registry. PR #14's CJP-WRAP correction is reused against CJ26_AFTER's COMPLETE ledger. PR #13's native-DB work was reused in SR-01 and hardened in SR-02. These are content reuse records, not claims that the original PRs were merged. Historical provider counts and original audit receipts remain intact.
+
+Package metadata now points to the canonical Lamprey-Harness repository. README credential storage copy now distinguishes local safeStorage encryption from consented plaintext fallback. The installed/downloaded release remains v0.31.0 at this checkpoint; source repairs are not yet an installer release. TL-W4 stays open without final GitHub/local/CDN byte proof. Existing parked provider/playbook gates and unsigned-build non-goal remain explicit. User-owned planning files are preserved.
 
 Authored and reviewed by Basho Parks, copyright 2026

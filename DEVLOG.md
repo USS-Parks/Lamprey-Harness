@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-32: Reconcile audit and current documentation claims
+
+**Files changed:** `AGENTS.md`, `CLAUDE.md`, `README.md`, `package.json`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr32-reconcile.py`, `PLANNING/evidence/sr31i.json`
+
+**Verification:** Eight provider parity tests and three operability safety documentation tests passed. Reviewed PR #12 and #14 against the current registry and CJ26_AFTER COMPLETE ledger; reused their corrections. Reviewed package URL diff and source-versus-installer statements. Report now records all 40 numbered findings and SR-31I maintenance evidence while retaining original audit baselines.
+
+**Notes:** Current-state docs point to active remediation; historical provider counts remain intact. README describes safeStorage and consented plaintext accurately. TL-W4 and final hosted/publication gates remain open. Original PRs remain open; content reuse does not imply merge. User planning files preserved. SR-31I pushed at 8b6989956e2641c6a690ce9f2826b929e134a9ef.
+
+**Commit:** see `PLANNING/evidence/sr32.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31I: Handle environment refresh errors and redundant Git work
 
 **Files changed:** `electron/ipc/review.ts`, `src/hooks/useEnvironment.ts`, `src/hooks/useEnvironmentGitAction.tsx`, `src/components/workspace/EnvironmentPanel.tsx`, `src/components/workspace/FloatingEnvironmentCard.tsx`, `scripts/acceptance/environment-refresh.cjs`, `scripts/acceptance/environment-git.cjs`, `PLANNING/evidence/sr31h.json`

@@ -137,7 +137,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 | [x] SR-31G | Restore workflow status navigation and existing runner wiring (SA-39) | Rendered status click opens the existing palette; production workflow IPC runs against a local fixture provider |
 | [x] SR-31H | Remediate dependency advisories with reachability evidence (SA-40) | Compatible updates, lock/native/build checks and current advisory dispositions |
 | [x] SR-31I | Remove redundant review work and handle environment refresh errors | Existing boundary checks, rejected refresh recovery and lifecycle cleanup |
-| [ ] SR-32 | Reconcile documentation and verification claims (SA-19) | Review/reuse PR #12/#14; current count/status/source/installer claims cite receipts; historical corrections explicit; prior user planning text preserved; TL-W4 stays open without publication proof |
+| [x] SR-32 | Reconcile documentation and verification claims (SA-19) | Review/reuse PR #12/#14; current count/status/source/installer claims cite receipts; historical corrections explicit; prior user planning text preserved; TL-W4 stays open without publication proof |
 | [ ] SR-33 | Produce bounded storage/retirement manifest (SA-23) | Recheck dirty/unpublished state, exact remote ancestry and bytes; enumerate removable artifacts/worktrees and retention purposes; no deletion without explicit authorization; keep shared junction semantics clear |
 | [ ] SR-34 | Run final source acceptance and close the finding ledger | Gate 8 passes on exact candidate; all SA IDs linked to repair or explicit approved disposition; rerun source probes at final source; no P1 silently deferred; DEVLOG/commits/skip ledger reconciled |
 
@@ -175,6 +175,11 @@ If SR-35 changes shared build/verification behavior, rerun affected SR-34 gates 
 | SA-13 | SR-21 | SA-28 | SR-30 |
 | SA-14 | SR-22 | SA-29 | SR-13 |
 | SA-15 | SR-07 | SA-30 | SR-23 |
+| SA-31 | SR-18A | SA-32 | SR-29 |
+| SA-33 | SR-31A | SA-34 | SR-31B |
+| SA-35 | SR-31C | SA-36 | SR-31D |
+| SA-37 | SR-31E | SA-38 | SR-31F |
+| SA-39 | SR-31G | SA-40 | SR-31H |
 
 ## Defaults, overrides and completion
 
@@ -186,7 +191,7 @@ If SR-35 changes shared build/verification behavior, rerun affected SR-34 gates 
 - Additional defects discovered during STS are recorded with evidence and a focused proposed prompt. Do not expand into an unreviewed broad rewrite.
 - Cleanup requires its own explicit concrete authorization. If retained, disclose purpose and size at closeout; never hide storage debt.
 
-Final completion means all approved prompts have passing gates and commit-linked ledger entries; all 30 findings have evidence-backed dispositions; final source and live acceptance limitations are explicit; publication, if approved, has matching final hashes and exact remote SHA; user files are preserved; retained worktree/build-output debt is disclosed. “Tests pass,” “release exists,” or “plan written” alone cannot satisfy those criteria.
+Final completion means all approved prompts have passing gates and commit-linked ledger entries; all 40 numbered findings and SR-31I maintenance candidates have evidence-backed dispositions; final source and live acceptance limitations are explicit; publication, if approved, has matching final hashes and exact remote SHA; user files are preserved; retained worktree/build-output debt is disclosed. “Tests pass,” “release exists,” or “plan written” alone cannot satisfy those criteria.
 
 Full STS and Bucket authorized by the user on 5 September 2026. Per-prompt receipts under `PLANNING/evidence/sr*.json` record checks and commit SHAs. Destructive cleanup remains subject to the explicit path-specific approval rule.
 

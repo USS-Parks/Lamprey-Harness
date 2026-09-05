@@ -1,0 +1,15 @@
+{
+  "source": "dc67b05de22e79170d20baea0d0d2af5f12d965a",
+  "version": "0.32.0",
+  "artifactStage": "local-working-tree",
+  "portableInstall": false,
+  "nsisVersionMetadata": null,
+  "stockExecutableAndAsar": true,
+  "isolatedProfile": true,
+  "rendererIPC": true,
+  "packagedEmbeddingWorker": true,
+  "vectorRetrieval": true,
+  "asarSha256": "e6b0bb3c6951446c8ba1e3f66882108c84b2bf37e5a47d345fff573375392010",
+  "updaterMetadata": "Not exercised by unpacked working-tree build",
+  "limitation": "NSIS wizard installation and platform GUI launches on macOS/Linux were not performed."
+}

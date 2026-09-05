@@ -3,10 +3,8 @@ import type Database from 'better-sqlite3'
 // sqlite-vec loader. Wraps the `load()` export from the npm package in a
 // try/catch so the app boots even if the native binary is unavailable on
 // this target (a particularly old glibc, a corp-locked /tmp, an arch we
-// don't ship a binary for). The RAG IPC handlers consult `isVecAvailable()`
-// and return a clear error to the renderer when retrieval is requested
-// without the extension loaded — the user sees a banner explaining what's
-// missing rather than a silent failure.
+// don't ship a binary for). The embedder catalog exposes availability and
+// the load error; retrieval can still use its lexical leg without vectors.
 
 let vecAvailable = false
 let vecLoadError: string | null = null
@@ -25,9 +23,13 @@ export function loadSqliteVec(db: Database.Database): void {
     // only consumer and it handles the failure path explicitly.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const sqliteVec = require('sqlite-vec') as {
-      load: (db: Database.Database) => void
+      getLoadablePath: () => string
     }
-    sqliteVec.load(db)
+    // Electron resolves unpacked modules through the logical ASAR path, but
+    // SQLite's native loader cannot read that virtual filesystem. The packager
+    // places the native library beside the archive; pass that physical path.
+    const extensionPath = sqliteVec.getLoadablePath().replace(/\.asar([\\/])/, '.asar.unpacked$1')
+    db.loadExtension(extensionPath)
     // Sanity probe — confirms the extension is actually present, not just
     // that load() didn't throw on a broken stub.
     const row = db.prepare('SELECT vec_version() AS v').get() as

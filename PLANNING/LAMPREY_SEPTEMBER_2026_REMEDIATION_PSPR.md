@@ -153,6 +153,7 @@ SR-35 is a source repair. SR-36 is a reviewable release candidate. SR-37 require
 |---|---|---|
 | [x] SR-35 | Serialize release producers and verify final artifacts (SA-18) | Isolated/dry-run fixture reproduces late overwrite and proves final verification catches it; no early asset-presence shortcut; manifest binds source/version/assets; no external upload needed for source test |
 | [x] SR-36 | Prepare final release candidate for review | Proposed version 0.32.0 checked for availability/conflicts; changelog accurate; source gates rerun for release-script/version changes as needed; exact candidate SHA and reviewed artifact manifest; no publication yet |
+| [x] SR-36A | Correct SQLite-vec loading from the packaged application (SA-41) | Real stock-package failure reproduced before tagging; physical unpacked extension path loads; actual packaged embedding, ingestion and vector retrieval pass; native/source gates pass; revised candidate committed and pushed |
 | [ ] SR-37 | Publish authorized source/tag and run Bucket | Exact remote SHA verified; current hosted CI/build pass; all producers completed; final GitHub/CDN bytes hash-match manifest; install/launch/update-metadata smoke; inaccessible CDN or mismatched bytes blocks completion |
 | [ ] SR-38 | Close published release and storage ledger | DEVLOG/plan/release body reflect actual receipts; TL-W4 historical status corrected only with relevant evidence; current release recorded separately; worktrees' owner/dirty/unpublished/size/blocker inventory current; clean scoped source state and all preserved user files accounted for |
 
@@ -184,7 +185,7 @@ SR-36 manifest clarification: before the tag producer runs, review the artifact 
 | SA-35 | SR-31C | SA-36 | SR-31D |
 | SA-37 | SR-31E | SA-38 | SR-31F |
 | SA-39 | SR-31G | SA-40 | SR-31H |
-| SA-41 | SR-34B | | |
+| SA-41 | SR-34B, SR-36A | | |
 
 ## Defaults, overrides and completion
 

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-36A: Load SQLite-vec from the packaged native path
+
+**Files changed:** `electron/services/rag/vec-loader.ts`, `scripts/acceptance/package-bootstrap.cjs`, `scripts/acceptance/package-debugger.cjs`, `scripts/acceptance/package.cjs`, `scripts/acceptance/candidate-package.cjs`, `PLANNING/evidence/sr36a-package.cjs`, `PLANNING/evidence/sr36a-unpacked.json`, `PLANNING/evidence/SR36_CANDIDATE.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr37-source-hosted.json`
+
+**Verification:** The original candidate's stock executable and unchanged ASAR reproduced sqlite-vec UNAVAILABLE and vecHits:0. A fresh electron-builder --win --dir package with the fix passed isolated stock-executable startup, unchanged ASAR identity, real quantized embedding worker, document ingestion and vector retrieval (sr36a-unpacked.json; sr36a-packaged.log exit 0). Dedicated native suite: 170 passed across 22 files. Lint passed. Commit hooks require both TypeScript projects; push hooks require full proof and bundle smokes.
+
+**Notes:** Extends SA-41 with a packaged-only native DLL path defect. No tag or release created. Prior hosted candidate dc67b05 is rejected for publication despite green CI. Acceptance pauses the stock main entry to isolate userData before executing application code, verifies that mechanism using an inert disposable probe, and restores the original ASAR before real acceptance. Worker inspector flags are removed to match ordinary launch. NSIS wizard installation and macOS/Linux GUI launches are not claimed. Full Bucket authorization persists.
+
+**Commit:** the commit introducing `PLANNING/evidence/sr36a.json`; resolve with `git log -1 --format=%H -- PLANNING/evidence/sr36a.json`. This avoids a self-referential post-commit edit.
+
 ## 2026-09-05 — SR-36: Prepare the verified 0.32.0 release candidate
 
 **Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.32.0.md`, `PLANNING/evidence/SR36_CANDIDATE.md`, `PLANNING/evidence/sr36-prepare.py`, `PLANNING/evidence/sr35.json`, `PLANNING/evidence/sr-close.py`

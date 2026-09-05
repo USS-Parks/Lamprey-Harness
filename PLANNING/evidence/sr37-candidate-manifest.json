@@ -1,0 +1,46 @@
+{
+  "version": "0.32.0",
+  "tag": "v0.32.0",
+  "source": "dc67b05de22e79170d20baea0d0d2af5f12d965a",
+  "producer": {
+    "conclusion": "success",
+    "databaseId": 33987047415,
+    "headBranch": "main",
+    "headSha": "dc67b05de22e79170d20baea0d0d2af5f12d965a",
+    "status": "completed"
+  },
+  "assets": [
+    {
+      "name": "Lamprey-x64.exe",
+      "size": 301943135,
+      "sha256": "ad72c903f9017f12a46297f2fc3cc2c66584c6c7ec92efc07072b88ce0e33470"
+    },
+    {
+      "name": "Lamprey-x64.exe.blockmap",
+      "size": 313570,
+      "sha256": "f54e0e77c1baf3828a4802ea513778a27f770392c16d95b3092bfd69b7406563"
+    },
+    {
+      "name": "Lamprey-x64.zip",
+      "size": 403204493,
+      "sha256": "1580597617c835ebef459df05aa397ac6dc2c77e84968862db18632efa26ec1b"
+    },
+    {
+      "name": "latest.yml",
+      "size": 328,
+      "sha256": "c480905f0f451807317a58e28aa1097e48733c6cf8fcb294e868bd16caa7c251"
+    },
+    {
+      "name": "Lamprey-arm64.dmg",
+      "size": 328792458,
+      "sha256": "7678508242f1141f5697aabfade592a46050ac0d6bad19a7147b6f5e90cae8cf"
+    },
+    {
+      "name": "Lamprey-x86_64.AppImage",
+      "size": 540442156,
+      "sha256": "0bdf4cef90aa513943ecb77c52efa93eca72645770cc1c28c6efb7d259c913aa"
+    }
+  ],
+  "status": "rejected",
+  "rejection": "Stock package could not load sqlite-vec and returned vecHits:0. Repaired by SR-36A; these hashes are not publication evidence."
+}

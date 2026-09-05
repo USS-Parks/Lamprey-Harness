@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-36B: Bound slow release downloads without weakening hashes
+
+**Files changed:** `scripts/bucket.cjs`, `PLANNING/evidence/sr37-candidate-manifest.json`, `PLANNING/evidence/SR36_CANDIDATE.md`
+
+**Verification:** The downloaded candidate manifest records a 540,442,156-byte Linux AppImage, the largest release asset. An actual 8 MiB HTTP range transfer returned 206 in 10,177 ms (about 0.82 MB/s), making the previous 600-second full-download cap insufficient at that measured rate. Full-byte hash verification remains mandatory. New limits: 30-second connection, 60 seconds below 1 KiB/s, 1,800-second total transfer. All seven Bucket regressions pass, including real HTTP bytes, late overwrite and HTTP 403 rejection. Commit/push hooks run lint, both TypeScript projects, full proof and bundle smokes.
+
+**Notes:** SR-36A is pushed at cecde6b2900e2b1c9ffa0b8227309f2c76f126b5. Its first pre-push run failed on a Vitest worker crash after 3004 tests; a fresh unchanged run passed all 3007 tests and required smokes, allowing the push. Historical candidate dc67b05 finished downloading and failed the expected packaged vecHits gate; its manifest is retained as rejected evidence, not release proof. No tag has been created. This commit becomes the source candidate for authorized Bucket; it changes release transfer policy and progress reporting only.
+
+**Commit:** the commit introducing `PLANNING/evidence/sr36b.json`; resolve with `git log -1 --format=%H -- PLANNING/evidence/sr36b.json`. This avoids a self-referential post-commit edit.
+
 ## 2026-09-05 — SR-36A: Load SQLite-vec from the packaged native path
 
 **Files changed:** `electron/services/rag/vec-loader.ts`, `scripts/acceptance/package-bootstrap.cjs`, `scripts/acceptance/package-debugger.cjs`, `scripts/acceptance/package.cjs`, `scripts/acceptance/candidate-package.cjs`, `PLANNING/evidence/sr36a-package.cjs`, `PLANNING/evidence/sr36a-unpacked.json`, `PLANNING/evidence/SR36_CANDIDATE.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr37-source-hosted.json`

@@ -28,7 +28,9 @@ async function hashFile(file, algorithm = 'sha256', encoding = 'hex') {
 
 function hashUrl(url) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.platform === 'win32' ? 'curl.exe' : 'curl', ['--fail', '--location', '--silent', '--show-error', '--max-time', '600', url], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+    // The largest release asset is over 500 MB. Bound stalled connections and
+    // total time separately so a healthy ~0.8 MB/s transfer can finish.
+    const child = spawn(process.platform === 'win32' ? 'curl.exe' : 'curl', ['--fail', '--location', '--silent', '--show-error', '--connect-timeout', '30', '--speed-limit', '1024', '--speed-time', '60', '--max-time', '1800', url], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
     const hash = createHash('sha256')
     let size = 0, error = ''
     child.stdout.on('data', chunk => { hash.update(chunk); size += chunk.length })
@@ -154,6 +156,7 @@ async function main(argv = process.argv.slice(2)) {
         const download = await fsp.mkdtemp(path.join(folder, 'producer-'))
         try {
           for (const name of ['lamprey-windows', 'lamprey-macos', 'lamprey-linux']) {
+            console.log(`Downloading completed producer ${producer.databaseId}: ${name}`)
             await gh('run', 'download', String(producer.databaseId), '--repo', repo, '--name', name, '--dir', download)
           }
           for (const name of ARTIFACTS) await fsp.copyFile(path.join(download, name), path.join(folder, name))

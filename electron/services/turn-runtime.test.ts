@@ -41,6 +41,20 @@ function steer(id: string, targetAgentRunId: string | null = null) {
 }
 
 describe('TurnRuntimeRegistry', () => {
+  it('blocks admission and waits for cancelled turns to settle during shutdown', async () => {
+    const { registry, settled } = harness()
+    const runtime = registry.register({ conversationId: 'closing', correlationId: 'shutdown' })
+    let drained = false
+    const pending = registry.shutdown().then(() => { drained = true })
+    expect(runtime.signal.aborted).toBe(true)
+    await Promise.resolve()
+    expect(drained).toBe(false)
+    expect(() => registry.register({ conversationId: 'new', correlationId: 'new' })).toThrow('shutting down')
+    registry.settle(runtime, 'cancelled')
+    await pending
+    expect(settled).toHaveLength(1)
+    expect(drained).toBe(true)
+  })
   it('registers one persisted running identity per conversation', () => {
     const { registry, created } = harness()
     const runtime = registry.register({

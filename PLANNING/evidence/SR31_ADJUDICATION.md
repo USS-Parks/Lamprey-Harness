@@ -17,4 +17,8 @@ Reviewed against SR-30 source `52b4800e1489c73175f46d0a2f954eb17beec1e3`. These 
 
 The existing R1-R4/provider-capability live playbooks remain parked under their earlier explicit dispositions. They do not replace any of these acceptance gates. The intermittent Windows CI failures remain an open verification issue for SR-34; a rerun is not a demonstrated product repair.
 
+SR-31D live follow-up: quitting at a pending tool approval initially exhausted the grace period because aborting the turn did not resolve the approval promise. The same shutdown repair now denies pending approvals and cancels pending ask-user requests before draining. Real Electron verified both pending approval (no child request) and allowed local child (cancelled parent, aborted child), inspecting SQLite before startup recovery could alter it.
+
+SR-31G follow-up evidence: `setWorkflowChatRunner` has no production caller (`rg` finds only its definition and explanatory strings in `electron/ipc/workflows.ts`). The existing workflow IPC therefore cannot execute from the palette. Expand SR-31G's existing navigation repair to wire the existing provider runner and prove a local fixture workflow executes; do not claim success from palette opening alone.
+
 Authored and reviewed by Basho Parks, copyright 2026

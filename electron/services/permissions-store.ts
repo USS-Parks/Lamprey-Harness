@@ -379,6 +379,10 @@ class PermissionsService {
       resolver({ callId, decision: 'deny', scope: 'once' })
     }
   }
+
+  cancelAllPending(): void {
+    for (const callId of [...this.pending.keys()]) this.cancelPending(callId)
+  }
 }
 
 export const permissionsService = new PermissionsService()

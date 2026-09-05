@@ -13,6 +13,7 @@ vi.mock('@electron-toolkit/utils', () => ({
 import {
   __resetLiveHandlesForTests,
   getLiveHandle,
+  shutdownSubagents,
   forkAgent,
   resolveAllowedTools,
   validateAgainstSchema,
@@ -32,6 +33,21 @@ import {
 import { beforeEach } from 'vitest'
 
 beforeEach(() => __resetLiveHandlesForTests())
+it('drains live forks and refuses new admission during shutdown', async () => {
+  let started!: () => void
+  const ready = new Promise<void>(resolve => { started = resolve })
+  const deps = makeDeps({ loadType: builtinResolver(), runner: ({ signal }) => new Promise((_resolve, reject) => {
+    signal!.addEventListener('abort', () => { setTimeout(() => reject(new Error('fixture stopped')), 10) }, { once: true })
+    started()
+  }) })
+  const handle = forkAgent({ prompt: 'fixture', agentType: 'general' }, deps)
+  const outcome = handle.promise.catch(error => error)
+  await ready
+  await shutdownSubagents()
+  expect(await outcome).toBeInstanceOf(SubagentAbortError)
+  expect(getLiveHandle(handle.runId)).toBeUndefined()
+  expect(() => forkAgent({ prompt: 'new', agentType: 'general' }, deps)).toThrow('shutting down')
+})
 import { BUILT_IN_SUBAGENT_TYPES, type SubagentTypeDef } from './subagent-types'
 import type { WorktreeManager, FinalizeResult, WorktreeContext } from './worktree-runner'
 import { TurnRuntimeRegistry } from './turn-runtime'

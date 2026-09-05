@@ -422,6 +422,14 @@ export function validateAgainstSchema(value: unknown, schema: JsonSchemaLike): v
 // Entries are removed on settle (success, error, or abort) via promise.finally.
 
 const liveHandles = new Map<string, ForkAgentHandle>()
+let shuttingDown = false
+
+export async function shutdownSubagents(): Promise<void> {
+  shuttingDown = true
+  const handles = [...liveHandles.values()]
+  for (const handle of handles) handle.abort('application-shutdown')
+  await Promise.allSettled(handles.map(handle => handle.promise))
+}
 
 export function getLiveHandle(runId: string): ForkAgentHandle | undefined {
   return liveHandles.get(runId)
@@ -434,6 +442,7 @@ export function listLiveHandleIds(): string[] {
 // Test seam — tests reset the registry between cases.
 export function __resetLiveHandlesForTests(): void {
   liveHandles.clear()
+  shuttingDown = false
 }
 
 // ---------------------------------------------------------------------------
@@ -450,6 +459,7 @@ export function forkAgent<T = string | Record<string, unknown>>(
   opts: ForkAgentOptions,
   deps: ForkAgentDeps
 ): ForkAgentHandle<T> {
+  if (shuttingDown) throw new Error('subagent: application is shutting down')
   const genId = deps.genId ?? randomUUID
   const clock = deps.clock ?? (() => Date.now())
   const loadType = deps.loadType ?? getSubagentType

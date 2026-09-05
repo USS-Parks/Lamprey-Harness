@@ -27,6 +27,10 @@ import {
   abortAllLoopIterations
 } from './services/loop-controller'
 import { mcpManager } from './services/mcp-manager'
+import { turnRuntimeRegistry } from './services/turn-runtime'
+import { shutdownSubagents } from './services/subagent-runner'
+import { permissionsService } from './services/permissions-store'
+import { getAskUserRuntime } from './services/ask-user-runtime'
 import { ensureNodeReplDefaultServer } from './services/node-repl-default-server'
 import { initializeSkillLoader, shutdownSkillLoader } from './services/skill-loader'
 import { initializePluginLoader, shutdownPluginLoader } from './services/plugin-loader'
@@ -716,24 +720,32 @@ let mcpDrainAttempted = false
 let mcpDrainComplete = false
 
 app.on('will-quit', (event) => {
-  // JM-7 (LP-24) — an in-flight loop/wake-up turn used to race closeDb():
-  // its completion callbacks hit a closed handle (noisy errors, orphaned
-  // 'running' rows). Abort the turns, give the drain a short window, then
-  // quit for real. One attempt only — the second will-quit falls through.
+  // Stop admission and drain turns, forks and scheduled work before closing
+  // the database. A non-cooperative operation gets a bounded grace period.
   if (!loopDrainAttempted) {
     loopDrainAttempted = true
     const pending = [getInFlightLoopWork(), getInFlightWakeupWork()].filter(
       (p): p is Promise<void> => p != null
     )
-    if (pending.length > 0) {
-      abortAllLoopIterations()
-      event.preventDefault()
-      const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3000))
-      void Promise.race([Promise.allSettled(pending).then(() => undefined), timeout]).then(() =>
+    stopAutomations()
+    stopLoopWakeups()
+    stopLoopController()
+    abortAllLoopIterations()
+    pending.push(turnRuntimeRegistry.shutdown(), shutdownSubagents())
+    permissionsService.cancelAllPending()
+    getAskUserRuntime()?.cancelAll()
+    event.preventDefault()
+    setImmediate(() => {
+      const timer = setTimeout(() => {
+        console.error('[main] Shutdown drain exceeded 3000 ms; unfinished operations will be interrupted by exit')
         app.quit()
-      )
-      return
-    }
+      }, 3000)
+      void Promise.allSettled(pending).then(() => {
+        clearTimeout(timer)
+        app.quit()
+      })
+    })
+    return
   }
   if (!mcpDrainComplete) {
     event.preventDefault()

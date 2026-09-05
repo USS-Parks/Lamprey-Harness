@@ -5,6 +5,7 @@ const { tmpdir } = require('node:os')
 const { join, resolve } = require('node:path')
 const { createServer } = require('node:http')
 const assert = require('node:assert/strict')
+const { execFileSync } = require('node:child_process')
 
 async function main() {
   const profile = mkdtempSync(join(tmpdir(), 'lamprey-acceptance-'))
@@ -16,7 +17,24 @@ async function main() {
   writeFileSync(join(profile, 'plugins.json'), JSON.stringify(plugins))
   let received = false
   let streamClosed = 0
-  const server = createServer((request, response) => {
+  let shutdownRequests = 0
+  let childStarted = false
+  const server = createServer(async (request, response) => {
+    if (process.argv.includes('--shutdown') && request.url === '/v1/chat/completions') {
+      let body = ''
+      for await (const chunk of request) body += chunk
+      const input = JSON.parse(body)
+      shutdownRequests++
+      console.log('Shutdown fixture request', JSON.stringify({ model: input.model, stream: input.stream }))
+      if (input.stream) {
+        response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+        response.end(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: 'shutdown-child', type: 'function', function: { name: 'multi_agent_run', arguments: JSON.stringify({ tasks: [{ role: 'reader', prompt: 'Fixture child waits for cancellation', context: 'local shutdown test' }] }) } }] }, finish_reason: 'tool_calls' }] })}\n\ndata: [DONE]\n\n`)
+      } else {
+        childStarted = true
+        response.on('close', () => { streamClosed++ })
+      }
+      return
+    }
     if (process.argv.includes('--keys') && request.url === '/v1/models') {
       assert.equal(request.headers.authorization, 'Bearer fixture-key')
       received = true
@@ -37,11 +55,13 @@ async function main() {
     response.end('<title>Lamprey link check</title><p>Lamprey external-link check passed. You can close this tab.</p>')
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys')) {
+  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys') || process.argv.includes('--shutdown')) {
     writeFileSync(join(profile, 'settings.json'), JSON.stringify({
       defaultModel: 'fixture-stream',
+      toolSurface: 'full',
+      orchestrationEnabled: process.argv.includes('--shutdown'),
       customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1` }],
-      customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 8192, supportsTools: false }]
+      customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 8192, supportsTools: process.argv.includes('--shutdown') }]
     }))
   }
   let app
@@ -80,13 +100,38 @@ async function main() {
       console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, realKeyPersistence: true, localProviderAuthentication: true, dialogCompleted: true, plaintextConsent: 'granted in isolated fixture profile' }))
       return
     }
-    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize') || process.argv.includes('--environment-git') || process.argv.includes('--browser')) {
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize') || process.argv.includes('--environment-git') || process.argv.includes('--browser') || process.argv.includes('--shutdown')) {
       await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()
         const saved = await window.api.settings.saveProviderKey(provider, 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
-      }, process.argv.includes('--shortcuts') ? 'fixture-provider' : 'deepseek')
+      }, process.argv.includes('--shortcuts') || process.argv.includes('--shutdown') ? 'fixture-provider' : 'deepseek')
       await page.reload()
+    }
+    if (process.argv.includes('--shutdown')) {
+      await page.getByTitle('Switch model', { exact: true }).click()
+      await page.getByRole('menuitemradio', { name: /Fixture/ }).click()
+      await page.locator('textarea').first().fill('Run the local shutdown fixture.')
+      await page.locator('textarea').first().press('Enter')
+      await page.getByRole('button', { name: 'Allow', exact: true }).waitFor()
+      const pendingApproval = process.argv.includes('--pending-approval')
+      if (!pendingApproval) await page.getByRole('button', { name: 'Allow', exact: true }).click()
+      const deadline = Date.now() + 15000
+      while (!pendingApproval && !childStarted && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50))
+      assert(pendingApproval || childStarted, 'Production multi_agent_run did not reach the local child receiver')
+      const closing = app
+      app = null
+      await closing.close()
+      const result = JSON.parse(execFileSync(require('electron'), ['-e', `const db=new(require('better-sqlite3'))(process.argv[1],{readonly:true});console.log(JSON.stringify({turns:db.prepare('SELECT status FROM conversation_turns').all(),agents:db.prepare('SELECT status FROM agent_runs').all()}));db.close()`, join(profile, 'lamprey.db')], { cwd: process.cwd(), env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' }))
+      assert(result.turns.some(row => row.status === 'cancelled'))
+      if (!pendingApproval) assert(result.agents.some(row => row.status === 'aborted'))
+      else assert.equal(result.agents.length, 0)
+      assert(!result.turns.some(row => row.status === 'running'))
+      assert(!result.agents.some(row => row.status === 'running'))
+      assert.equal(shutdownRequests, pendingApproval ? 1 : 2)
+      assert.equal(streamClosed, pendingApproval ? 0 : 1)
+      console.log(JSON.stringify({ productionShutdown: true, persistedBeforeReopen: result, requests: shutdownRequests, cancelledChildConnection: streamClosed }))
+      return
     }
     if (process.argv.includes('--browser')) {
       const created = await page.evaluate(url => window.api.browser.newTab({ url }), `http://127.0.0.1:${server.address().port}/browser-fixture`)

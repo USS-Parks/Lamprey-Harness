@@ -76,6 +76,8 @@ export class TurnRuntime {
   #settledAgentRunIds = new Set<string>()
   #steerInbox: PendingSteer[] = []
   #waiters = new Set<WakeWaiter>()
+  #resolveSettled!: () => void
+  readonly settled = new Promise<void>((resolve) => { this.#resolveSettled = resolve })
 
   constructor(
     input: Required<Pick<RegisterTurnRuntimeInput, 'conversationId' | 'correlationId'>> & {
@@ -263,6 +265,7 @@ export class TurnRuntime {
     if (this.#status !== 'running') return false
     this.#status = status
     this.#wake('settled', null)
+    this.#resolveSettled()
     return true
   }
 
@@ -294,12 +297,14 @@ export class TurnRuntime {
 export class TurnRuntimeRegistry {
   #runtimes = new Map<string, TurnRuntime>()
   #persistence: TurnRuntimePersistence | null
+  #shuttingDown = false
 
   constructor(persistence: TurnRuntimePersistence | null = null) {
     this.#persistence = persistence
   }
 
   register(input: RegisterTurnRuntimeInput): TurnRuntime {
+    if (this.#shuttingDown) throw new Error('turn-runtime: application is shutting down')
     const existing = this.lookupActive(input.conversationId)
     if (existing) {
       throw new Error(
@@ -343,6 +348,13 @@ export class TurnRuntimeRegistry {
     if (!runtime || (expectedTurnId !== undefined && runtime.turnId !== expectedTurnId)) return null
     runtime.abort()
     return runtime
+  }
+
+  shutdown(): Promise<void> {
+    this.#shuttingDown = true
+    const pending = [...this.#runtimes.values()]
+    for (const runtime of pending) runtime.abort()
+    return Promise.all(pending.map(runtime => runtime.settled)).then(() => undefined)
   }
 
   settle(

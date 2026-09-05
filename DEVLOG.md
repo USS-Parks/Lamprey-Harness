@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31D: Drain turns and subagents before closing the database
+
+**Files changed:** `electron/main.ts`, `electron/services/turn-runtime.ts`, `electron/services/turn-runtime.test.ts`, `electron/services/subagent-runner.ts`, `electron/services/subagent-runner.test.ts`, `electron/services/permissions-store.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/SR31_ADJUDICATION.md`, `PLANNING/evidence/sr31c.json`
+
+**Verification:** 94 approval/turn/subagent tests passed; loop shutdown wiring checks passed in the earlier 75-test focused run. Production build and Node TypeScript passed. Real Electron parent plus tool-created child used only a local HTTP provider. Quit persisted parent cancelled and child aborted, closed the child connection, and made no extra request. A separate quit-at-approval run persisted cancellation with no child rows or request. SQLite was read directly after exit, before any app restart/recovery. Neither final run hit the 3000 ms grace period.
+
+**Notes:** Stop scheduled admission, block new turn/fork admission, abort live work, deny pending approvals and cancel ask-user prompts before draining and closing SQLite. Non-cooperative work retains the bounded grace period with an explicit interruption warning. Initial fixture failure exposed the pending-approval gap and was not counted as acceptance. An initial pre-launch process failure was likewise a non-result. SR-31C pushed at c39dd8a5b02531cafaeb8de1b88ce0a73e18dbae.
+
+**Commit:** see `PLANNING/evidence/sr31d.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31C: Guard browser lifecycle and own event subscriptions
 
 **Files changed:** `electron/preload.ts`, `src/components/tools/panels/BrowserPanel.tsx`, `scripts/acceptance/browser-lifecycle.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr31b.json`

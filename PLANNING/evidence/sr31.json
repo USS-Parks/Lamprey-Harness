@@ -1,0 +1,7 @@
+{
+  "prompt": "SR-31",
+  "title": "Record remaining findings and focused repair gates",
+  "verification": "Reviewed fork persistence, provider retry, browser subscriptions, quit/drain, startup/model state, tool schema recursion and workflow navigation against SR-30 source. Ran npm audit against current registry data and preserved normalized package/advisory evidence: 27 affected entries, including inherited dependency findings. No claim of runtime exploitability from audit counts alone.",
+  "notes": "SR31_ADJUDICATION.md supplies source-backed dispositions and SR-31A through SR-31I are inserted before SR-32 under the user's full audit/STS authorization. Source acceptance remains blocked on these focused repairs; no finding is silently deferred. SR-30 pushed at 52b4800e1489c73175f46d0a2f954eb17beec1e3.",
+  "files": ["PLANNING/evidence/SR31_ADJUDICATION.md", "PLANNING/evidence/sr31-advisories.cjs", "PLANNING/evidence/sr31-advisories.json", "PLANNING/evidence/sr30.json"]
+}

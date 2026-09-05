@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31: Record remaining findings and focused repair gates
+
+**Files changed:** `PLANNING/evidence/SR31_ADJUDICATION.md`, `PLANNING/evidence/sr31-advisories.cjs`, `PLANNING/evidence/sr31-advisories.json`, `PLANNING/evidence/sr30.json`
+
+**Verification:** Reviewed fork persistence, provider retry, browser subscriptions, quit/drain, startup/model state, tool schema recursion and workflow navigation against SR-30 source. Ran npm audit against current registry data and preserved normalized package/advisory evidence: 27 affected entries, including inherited dependency findings. No claim of runtime exploitability from audit counts alone.
+
+**Notes:** SR31_ADJUDICATION.md supplies source-backed dispositions and SR-31A through SR-31I are inserted before SR-32 under the user's full audit/STS authorization. Source acceptance remains blocked on these focused repairs; no finding is silently deferred. SR-30 pushed at 52b4800e1489c73175f46d0a2f954eb17beec1e3.
+
+**Commit:** see `PLANNING/evidence/sr31.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-30: Make OpenWiki updates manual with an early credential guard
 
 **Files changed:** `.github/workflows/openwiki-update.yml`, `openwiki/operations/wiki-updates.md`, `openwiki/operations/index.md`, `PLANNING/evidence/sr30-check.cjs`, `PLANNING/evidence/sr29.json`

@@ -1,4 +1,4 @@
-/* global window */ // page.evaluate callbacks execute in the renderer.
+/* global window, document, DataTransfer, DragEvent */ // Renderer callbacks.
 const { _electron: electron } = require('playwright')
 const { mkdtempSync, writeFileSync, readdirSync, readFileSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
@@ -34,6 +34,45 @@ async function main() {
     assert(page, 'Production renderer did not open')
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--attachments')) {
+      const externalPath = join(profile, 'outside-project.txt')
+      writeFileSync(externalPath, 'External attachment acceptance fixture.')
+      await page.evaluate(async () => {
+        await window.api.settings.grantPlaintextConsent()
+        const saved = await window.api.settings.saveProviderKey('deepseek', 'fixture-only-not-a-real-key')
+        if (!saved.success) throw new Error(saved.error)
+      })
+      await page.reload()
+      const picker = page.getByTitle('Attach a file to your prompt')
+      await picker.waitFor({ state: 'visible' })
+      const denied = await page.evaluate((path) => window.api.files.process([path]), externalPath)
+      assert.equal(denied.success, false)
+      assert.match(denied.error, /outside the active workspace/)
+      await page.evaluate(() => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.id = 'acceptance-drop-source'
+        document.body.append(input)
+      })
+      await page.locator('#acceptance-drop-source').setInputFiles(externalPath)
+      await page.evaluate(() => {
+        const input = document.querySelector('#acceptance-drop-source')
+        const transfer = new DataTransfer()
+        transfer.items.add(input.files[0])
+        window.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true }))
+        input.remove()
+      })
+      await page.getByText(/Use Add file to select files outside this project/).waitFor({ state: 'visible', timeout: 10000 })
+      // The native chooser response is the controlled fixture boundary;
+      // renderer, preload, picker handler and file processing are real.
+      await app.evaluate(({ dialog }, path) => {
+        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] })
+      }, externalPath)
+      await picker.click()
+      await page.getByText('outside-project.txt', { exact: true }).waitFor({ state: 'visible', timeout: 10000 })
+      console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, externalDropFallback: true, forgedPathDenied: true, pickerAttachmentVisible: true, nativeChooserResponse: 'controlled fixture path' }))
+      return
+    }
     if (process.argv.includes('--plugins')) {
       const result = await page.evaluate(async () => {
         const id = 'lamprey-git-tools'

@@ -48,24 +48,25 @@ export function FileDropZone() {
       const files = e.dataTransfer?.files
       if (!files || files.length === 0) return
 
-      const paths: string[] = []
-      for (let i = 0; i < files.length; i++) {
-        const path = window.api.files.getPathForFile(files[i])
-        if (path) paths.push(path)
-      }
-      if (paths.length === 0) {
-        toast.error('Could not resolve dropped file paths.')
-        return
-      }
-
       setProcessing(true)
       try {
+        const paths: string[] = []
+        for (let i = 0; i < files.length; i++) {
+          const path = window.api.files.getPathForFile(files[i])
+          if (path) paths.push(path)
+        }
+        if (paths.length !== files.length) {
+          toast.error('Could not read the dropped file paths. Use Add file to select these files.', 8000)
+          return
+        }
         const result = await window.api.files.process(paths)
         if (result.success) {
           addAttachments(result.data as ProcessedFile[])
         } else {
-          toast.error(`File processing failed: ${result.error}`)
+          toast.error(`${result.error} Use Add file to select files outside this project.`, 8000)
         }
+      } catch (error) {
+        toast.error(`Could not attach dropped files: ${error instanceof Error ? error.message : String(error)}. Use Add file to select them.`, 8000)
       } finally {
         setProcessing(false)
       }

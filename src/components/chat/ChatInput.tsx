@@ -1243,6 +1243,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       const result = await window.api.files.openPicker()
       if (result.success) addAttachments(result.data as ProcessedFile[])
       else if (result.error) toast.error(`File picker failed: ${result.error}`)
+    } catch (error) {
+      toast.error(`File picker failed: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setProcessing(false)
     }

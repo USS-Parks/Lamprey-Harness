@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-19: Explain external attachment selection and contain picker failures
+
+**Files changed:** `src/components/chat/FileDropZone.tsx`, `src/components/chat/ChatInput.tsx`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr18a.json`
+
+**Verification:** 19 filesystem IPC tests passed; production build passed. Real Electron app entry received a DataTransfer backed by an actual external fixture file, displayed Add file guidance, rejected direct generic path IPC, and showed the attachment after clicking the existing picker button. Native chooser response was controlled to that fixture path; renderer/preload/IPC/file processing were real. Graceful app quit passed. Lint and both TypeScript projects run in the commit hook.
+
+**Notes:** Confinement remains unchanged. Dropped-path lookup and processing rejections now show a useful fallback and reset processing state. Mixed unresolved drops no longer silently omit files. Existing picker now catches rejected IPC. No production files or real provider credentials used; a synthetic key was saved only in the temporary acceptance profile. SR-18A pushed at 8917d20f8bf28152c037a361528372eb3ca918fc.
+
+**Commit:** see `PLANNING/evidence/sr19.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-18A: Resolve plugin contributions in the production bundle
 
 **Files changed:** `electron/services/skill-loader.ts`, `electron/services/slash-commands.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr18.json`

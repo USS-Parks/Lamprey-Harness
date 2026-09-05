@@ -3,5 +3,10 @@
   "title": "Preserve invalid MCP configuration and write atomically",
   "verification": "MCP config/manager/default suites: 31 passed. Temporary files prove malformed JSON, invalid shapes and unreadable paths are not replaced; absent files initialize; valid files round-trip; duplicate IDs reject; injected rename failure retains prior bytes. Commit hooks enforce lint/typecheck.",
   "notes": "Reused writeJsonAtomic. Load failure no longer overwrites user content or latches manager initialized. Shape validation covers required server fields, transport/auth, args/env and duplicate identities. SR-07 commit 5c8d30f56e88844bdaf5b31936edc6cb25376d29.",
-  "files": ["electron/services/mcp-manager.ts", "electron/services/mcp-config.test.ts", "PLANNING/evidence/sr07.json"]
+  "files": [
+    "electron/services/mcp-manager.ts",
+    "electron/services/mcp-config.test.ts",
+    "PLANNING/evidence/sr07.json"
+  ],
+  "commit": "28d891c29b90c4fc98b2ccfccbd48c3d2c31e73f"
 }

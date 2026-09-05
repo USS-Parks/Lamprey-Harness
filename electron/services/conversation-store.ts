@@ -460,6 +460,25 @@ export function clearConversationMessages(conversationId: string): void {
   })(conversationId)
 }
 
+export function replaceMessagesWithSummary(
+  conversationId: string,
+  expectedMessages: ReturnType<typeof getMessages>,
+  summary: string
+): void {
+  if (!summary.trim()) throw new Error('Cannot compact to an empty summary')
+  const db = getDb()
+  db.transaction(() => {
+    if (JSON.stringify(getMessages(conversationId)) !== JSON.stringify(expectedMessages)) {
+      throw new Error('Conversation changed while summarizing. Retry compaction after the active turn finishes.')
+    }
+    clearConversationMessages(conversationId)
+    saveMessage({
+      id: randomUUID(), conversationId, role: 'system',
+      content: `## Conversation compacted at ${new Date().toISOString()}\n\n${summary}`
+    })
+  }).immediate()
+}
+
 function ftsDeleteMessage(messageId: string): void {
   const db = getDb()
   try {

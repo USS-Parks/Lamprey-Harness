@@ -517,14 +517,7 @@ export function registerConversationHandlers(): void {
       if (!summary?.trim()) {
         return { success: false, error: 'Summarizer returned empty output.' }
       }
-      // Replace messages with a single system marker holding the summary.
-      store.clearConversationMessages(id)
-      store.saveMessage({
-        id: randomUUID(),
-        conversationId: id,
-        role: 'system',
-        content: `## Conversation compacted at ${new Date().toISOString()}\n\n${summary}`
-      })
+      store.replaceMessagesWithSummary(id, msgs, summary)
       return { success: true, data: { summary } }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'compact failed' }

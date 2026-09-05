@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-09: Replace compacted messages atomically against a stable snapshot
+
+**Files changed:** `electron/services/conversation-store.ts`, `electron/ipc/conversation.ts`, `electron/services/conversation-compaction.test.ts`, `PLANNING/evidence/sr08.json`
+
+**Verification:** Required native gate: 18 files, 153 tests passed, zero skipped. New real SQLite tests prove stale snapshot refusal preserves intervening message, insert-trigger failure rolls back messages and FTS, and successful replacement yields summary. Commit hooks enforce lint/typecheck.
+
+**Notes:** Model await remains outside transaction. IPC passes original snapshot to existing store; immediate transaction compares current messages before deleting and inserting. Empty summary rejected. SR-08 commit 28d891c29b90c4fc98b2ccfccbd48c3d2c31e73f.
+
+**Commit:** see `PLANNING/evidence/sr09.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-08: Preserve invalid MCP configuration and write atomically
 
 **Files changed:** `electron/services/mcp-manager.ts`, `electron/services/mcp-config.test.ts`, `PLANNING/evidence/sr07.json`

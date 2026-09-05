@@ -3,6 +3,7 @@ import { useModelStore } from '@/stores/model-store'
 import { useWorkflowsStore } from '@/stores/workflows-store'
 import { useRagStore } from '@/stores/rag-store'
 import { useChatStore } from '@/stores/chat-store'
+import { useUiStore } from '@/stores/ui-store'
 import { contextPercent, contextTone, type ContextTone } from '@/lib/context-meter'
 
 // H6 — Persistent status line at the bottom of the main window.
@@ -255,12 +256,7 @@ export function StatusLine() {
             tone="workflow"
             label={text || activeWorkflow.name}
             title={`Workflow ${activeWorkflow.name} running (${activeWorkflow.runId})`}
-            onClick={() => {
-              // The WorkflowsPanel mounts a palette; a future iteration can
-              // route to a dedicated sidebar entry. For now we surface the
-              // palette via the same Ctrl+K keystroke H2 wired up.
-              window.dispatchEvent(new CustomEvent('workflows:openPalette'))
-            }}
+            onClick={() => useUiStore.getState().openWorkflowPalette()}
           />
         )
       }

@@ -134,7 +134,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 | [x] SR-31D | Drain regular turns and subagents before database close (SA-36) | Real Electron active-stream/subagent shutdown proof with bounded timeout accounting |
 | [x] SR-31E | Gate startup and model selection on acknowledged state (SA-37) | Delayed/rejected startup and selection recovery; keyless local setup remains usable |
 | [x] SR-31F | Enforce the documented recursive tool-schema subset (SA-38) | Recursive negative cases and live dispatch non-invocation proof |
-| [ ] SR-31G | Restore workflow status navigation and existing runner wiring (SA-39) | Rendered status click opens the existing palette; production workflow IPC runs against a local fixture provider |
+| [x] SR-31G | Restore workflow status navigation and existing runner wiring (SA-39) | Rendered status click opens the existing palette; production workflow IPC runs against a local fixture provider |
 | [ ] SR-31H | Remediate dependency advisories with reachability evidence (SA-40) | Compatible updates, lock/native/build checks and current advisory dispositions |
 | [ ] SR-31I | Remove redundant review work and handle environment refresh errors | Existing boundary checks, rejected refresh recovery and lifecycle cleanup |
 | [ ] SR-32 | Reconcile documentation and verification claims (SA-19) | Review/reuse PR #12/#14; current count/status/source/installer claims cite receipts; historical corrections explicit; prior user planning text preserved; TL-W4 stays open without publication proof |

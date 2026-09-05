@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31G: Wire workflow provider execution and status navigation
+
+**Files changed:** `electron/ipc/workflows.ts`, `src/components/layout/StatusLine.tsx`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr31f.json`
+
+**Verification:** 39 workflow runner and store tests passed. Production build passed. Real Electron production bundle saved and launched a workflow from the palette, reopened the palette through the running status indicator, and completed through an isolated local HTTP provider. The receiver verified the configured model and zero tool capabilities; the real progress event carried the expected final result.
+
+**Notes:** Replaced an uncalled nullable runner setter with the existing chatOnce provider seam, preserving reasoning and audit correlation. Status navigation uses the existing UI store action. No external provider requests or credentials were used. SR-31F pushed at 37b937155b7adae9eaaca53969d4bb0b7e55eafd.
+
+**Commit:** see `PLANNING/evidence/sr31g.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31F: Enforce recursive tool argument types and required fields
 
 **Files changed:** `electron/services/tool-schema-validator.ts`, `electron/services/tool-schema-validator.test.ts`, `electron/services/chat-tool-dispatch.test.ts`, `PLANNING/evidence/sr31e.json`

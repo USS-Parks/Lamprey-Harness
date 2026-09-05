@@ -19,7 +19,21 @@ async function main() {
   let streamClosed = 0
   let shutdownRequests = 0
   let childStarted = false
+  let finishWorkflow
   const server = createServer(async (request, response) => {
+    if (process.argv.includes('--workflows') && request.url === '/v1/chat/completions') {
+      let body = ''
+      for await (const chunk of request) body += chunk
+      const input = JSON.parse(body)
+      assert.equal(input.model, 'fixture-stream')
+      assert(!input.tools?.length)
+      received = true
+      finishWorkflow = () => {
+        response.setHeader('Content-Type', 'application/json')
+        response.end(JSON.stringify({ choices: [{ message: { content: 'workflow fixture passed' }, finish_reason: 'stop' }] }))
+      }
+      return
+    }
     if (process.argv.includes('--startup') && request.url === '/v1/chat/completions') {
       let body = ''
       for await (const chunk of request) body += chunk
@@ -64,12 +78,12 @@ async function main() {
     response.end('<title>Lamprey link check</title><p>Lamprey external-link check passed. You can close this tab.</p>')
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys') || process.argv.includes('--shutdown') || process.argv.includes('--startup')) {
+  if (process.argv.includes('--shortcuts') || process.argv.includes('--keys') || process.argv.includes('--shutdown') || process.argv.includes('--startup') || process.argv.includes('--workflows')) {
     writeFileSync(join(profile, 'settings.json'), JSON.stringify({
       defaultModel: 'fixture-stream',
       toolSurface: 'full',
       orchestrationEnabled: process.argv.includes('--shutdown'),
-      customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: !process.argv.includes('--startup') }],
+      customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: !process.argv.includes('--startup') && !process.argv.includes('--workflows') }],
       customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 8192, supportsTools: process.argv.includes('--shutdown') }]
     }))
   }
@@ -87,6 +101,29 @@ async function main() {
     page.setDefaultTimeout(10000)
     console.log('Renderer:', page.url())
     await page.waitForFunction(() => !!window.api?.artifact?.openExternal, null, { timeout: 10000 })
+    if (process.argv.includes('--workflows')) {
+      await page.getByTitle('Switch model', { exact: true }).waitFor()
+      const saved = await page.evaluate(async () => {
+        window.workflowEvents = []
+        window.api.workflows.onProgress(event => window.workflowEvents.push(event))
+        return window.api.workflows.save({ script: "export const meta = { name: 'fixture-workflow', description: 'Local acceptance' }\nconst out = await agent('fixture workflow'); return out" })
+      })
+      assert(saved.success, saved.error)
+      await page.keyboard.press('Control+k')
+      await page.getByTestId('workflow-palette').getByRole('button', { name: /fixture-workflow/ }).click()
+      await page.getByTestId('workflow-palette').waitFor({ state: 'hidden' })
+      await page.getByTitle(/Workflow fixture-workflow running/).click()
+      await page.getByTestId('workflow-palette').waitFor()
+      const deadline = Date.now() + 10000
+      while (!finishWorkflow && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50))
+      assert(received && finishWorkflow, 'Workflow never reached the local provider')
+      finishWorkflow()
+      await page.waitForFunction(() => window.workflowEvents.some(event => event.kind === 'finished'))
+      const finished = await page.evaluate(() => window.workflowEvents.find(event => event.kind === 'finished'))
+      assert.equal(finished.finalResult, 'workflow fixture passed')
+      console.log(JSON.stringify({ productionWorkflowPalette: true, statusReopensPalette: true, localProviderCompletion: finished.finalResult, toolCapabilities: 0 }))
+      return
+    }
     if (process.argv.includes('--startup')) {
       await page.getByTitle('Switch model', { exact: true }).waitFor()
       assert.match(await page.getByTitle('Switch model', { exact: true }).innerText(), /Fixture/)

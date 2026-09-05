@@ -7,8 +7,7 @@ import {
 } from '../services/workflow-runner'
 import {
   forkAgent,
-  type ForkAgentDeps,
-  type ForkAgentRunner
+  type ForkAgentDeps
 } from '../services/subagent-runner'
 import { realAgentRunStore } from '../services/agent-run-store'
 import { broadcastAgentRunEvent } from './tasks'
@@ -20,6 +19,9 @@ import {
 } from '../services/workflow-library'
 import * as memStore from '../services/memory-store'
 import { getAskUserRuntime } from '../services/ask-user-runtime'
+import { chatOnce } from '../services/providers/registry'
+import { readSettings } from '../services/settings-helper'
+import { DEFAULT_APP_SETTINGS } from '../services/default-app-settings'
 
 // Track 1 / B1: workflows:* IPC + workflow:progress broadcast wiring.
 //
@@ -27,22 +29,7 @@ import { getAskUserRuntime } from '../services/ask-user-runtime'
 // journal on top (run journals to disk + resumeFromRunId). B3 wires the
 // renderer panel that subscribes to the broadcast. B4 ships the library.
 //
-// Production callers register a chat-provider-backed ForkAgentRunner via
-// setWorkflowChatRunner(). Until that's called (e.g., before the model
-// settings are loaded), runInline returns a structured error.
-
 const liveWorkflows = new Map<string, WorkflowRunHandle>()
-
-let chatRunner: ForkAgentRunner | null = null
-let defaultModel: string | null = null
-
-export function setWorkflowChatRunner(args: {
-  runner: ForkAgentRunner
-  defaultModel: string
-}): void {
-  chatRunner = args.runner
-  defaultModel = args.defaultModel
-}
 
 export function broadcastWorkflowProgress(event: WorkflowProgressEvent): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -51,14 +38,17 @@ export function broadcastWorkflowProgress(event: WorkflowProgressEvent): void {
 }
 
 function buildForkDeps(): ForkAgentDeps {
-  if (!chatRunner || !defaultModel) {
-    throw new Error(
-      'workflows: chat runner not yet registered; call setWorkflowChatRunner({runner, defaultModel}) at startup'
-    )
-  }
+  const configuredModel = readSettings().defaultModel
   return {
-    runner: chatRunner,
-    defaultModel,
+    // Workflow forks receive no parent tool capabilities. Reuse the same
+    // single-completion provider seam as tool-less multi_agent_run children.
+    runner: async (input) => {
+      const result = await chatOnce(input.messages, input.modelId, input.signal, {
+        purpose: 'sub-agent', role: input.agentType, correlationId: input.runId
+      })
+      return { output: result.content, reasoning: result.reasoning }
+    },
+    defaultModel: typeof configuredModel === 'string' ? configuredModel : DEFAULT_APP_SETTINGS.defaultModel,
     agentRunStore: realAgentRunStore,
     notify: broadcastAgentRunEvent
   }

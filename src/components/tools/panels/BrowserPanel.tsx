@@ -76,15 +76,21 @@ export function BrowserPanel() {
   const [annotationX, setAnnotationX] = useState('0')
   const [annotationY, setAnnotationY] = useState('0')
   const contentRef = useRef<HTMLDivElement>(null)
+  const mounted = useRef(false)
+  const statusRequest = useRef(0)
+  const [browserError, setBrowserError] = useState<string | null>(null)
 
   const refreshDeveloperStatus = useCallback(async (id?: string | null) => {
     if (!window.api?.browser?.developerStatus) return
-    const result = await window.api.browser.developerStatus(id ? { id } : undefined)
-    if (result.success) {
+    const request = ++statusRequest.current
+    try {
+      const result = await window.api.browser.developerStatus(id ? { id } : undefined)
+      if (!mounted.current || request !== statusRequest.current) return
+      if (!result.success) throw new Error(result.error ?? 'Unable to read Browser Developer status')
       setDeveloperStatus(result.data as DeveloperStatus)
       setDeveloperError(null)
-    } else {
-      setDeveloperError(result.error ?? 'Unable to read Browser Developer status')
+    } catch (error) {
+      if (mounted.current && request === statusRequest.current) setDeveloperError(String(error))
     }
   }, [])
 
@@ -96,7 +102,7 @@ export function BrowserPanel() {
       y: Math.round(r.top),
       width: Math.round(r.width),
       height: Math.round(r.height)
-    })
+    }).catch((error) => { if (mounted.current) setBrowserError(String(error)) })
   }, [])
 
   const runDeveloperAction = useCallback(async (
@@ -122,6 +128,8 @@ export function BrowserPanel() {
   useEffect(() => {
     if (!window.api?.browser) return
     const api = window.api.browser
+    let disposed = false
+    mounted.current = true
 
     const onUpdated = (e: TabInfo) => {
       setTabs((cur) => {
@@ -140,23 +148,27 @@ export function BrowserPanel() {
       setActiveId(e.id)
       setDraftDirty(false)
     }
-    api.onTabUpdated(onUpdated)
-    api.onTabClosed(onClosed)
-    api.onActiveTab(onActive)
+    const unsubscribe = [api.onTabUpdated(onUpdated), api.onTabClosed(onClosed), api.onActiveTab(onActive)]
 
     void (async () => {
       const list = await api.listTabs()
+      if (disposed) return
+      if (!list.success) throw new Error(list.error ?? 'Unable to read browser tabs')
       if (list.success) {
         const data = list.data as { tabs: TabInfo[]; activeTabId: string | null }
         setTabs(data.tabs)
         setActiveId(data.activeTabId)
         if (data.tabs.length === 0) {
-          await api.newTab({})
+          const created = await api.newTab({})
+          if (!created.success) throw new Error(created.error ?? 'Unable to create browser tab')
         }
       }
-      await api.setVisible({ visible: true })
+      if (disposed) return
+      const shown = await api.setVisible({ visible: true })
+      if (!shown.success) throw new Error(shown.error ?? 'Unable to show browser view')
+      if (disposed) return
       reportBounds()
-    })()
+    })().catch((error) => { if (!disposed) setBrowserError(String(error)) })
 
     const ro = new ResizeObserver(reportBounds)
     if (contentRef.current) ro.observe(contentRef.current)
@@ -164,18 +176,22 @@ export function BrowserPanel() {
     window.addEventListener('resize', onWinResize)
 
     return () => {
+      disposed = true
+      mounted.current = false
+      statusRequest.current++
       ro.disconnect()
       window.removeEventListener('resize', onWinResize)
-      api.offAll()
-      void api.setVisible({ visible: false })
+      unsubscribe.forEach((remove) => remove())
+      void api.setVisible({ visible: false }).catch((error) => console.error('[browser] Unable to hide view:', error))
     }
   }, [reportBounds])
 
   useEffect(() => {
+    setDeveloperStatus(null)
     if (!developerOpen) return
     void refreshDeveloperStatus(activeId)
     const timer = window.setInterval(() => void refreshDeveloperStatus(activeId), 1_000)
-    return () => window.clearInterval(timer)
+    return () => { window.clearInterval(timer); statusRequest.current++ }
   }, [activeId, developerOpen, refreshDeveloperStatus])
 
   // Keep address bar synced to the active tab's URL when the user isn't typing.
@@ -200,6 +216,7 @@ export function BrowserPanel() {
 
   return (
     <div className="flex flex-1 flex-col bg-[var(--bg-primary)]">
+      {browserError && <div role="alert" className="px-2 py-1 text-sm text-red-500">{browserError}</div>}
       {/* Tab strip */}
       <div className="flex items-stretch border-b border-[var(--panel-border)] bg-[var(--bg-secondary)]">
         <div className="flex min-w-0 flex-1 overflow-x-auto">

@@ -130,7 +130,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 | [x] SR-31 | Adjudicate remaining audit candidates before scope freeze | Inspect fork atomicity, retry/abort, browser subscriptions, quit/subagent drain and dependency advisories; each receives source-backed disposition; confirmed new defects become reviewed roster addenda, not silent extra implementation |
 | [x] SR-31A | Make historical fork persistence atomic (SA-33) | Native DB failure injection and worktree failure accounting; no partial child |
 | [x] SR-31B | Cancel provider retry waits promptly (SA-34) | Local HTTP retry/backoff cancellation settles promptly with no additional request |
-| [ ] SR-31C | Repair browser subscription and async lifecycle (SA-35) | Unmount/tab-switch/rejection fixtures and real Electron visibility proof |
+| [x] SR-31C | Repair browser subscription and async lifecycle (SA-35) | Unmount/tab-switch/rejection fixtures and real Electron visibility proof |
 | [ ] SR-31D | Drain regular turns and subagents before database close (SA-36) | Real Electron active-stream/subagent shutdown proof with bounded timeout accounting |
 | [ ] SR-31E | Gate startup and model selection on acknowledged state (SA-37) | Delayed/rejected startup and selection recovery; keyless local setup remains usable |
 | [ ] SR-31F | Enforce the documented recursive tool-schema subset (SA-38) | Recursive negative cases and live dispatch non-invocation proof |

@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31C: Guard browser lifecycle and own event subscriptions
+
+**Files changed:** `electron/preload.ts`, `src/components/tools/panels/BrowserPanel.tsx`, `scripts/acceptance/browser-lifecycle.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr31b.json`
+
+**Verification:** Actual BrowserPanel in Chrome passed delayed initialization after unmount, tab-switch stale responses, rejected polling and independent subscriber preservation with no unhandled rejection. Production Electron showed then hid its real WebContentsView through the panel UI; an independent listener registered through the real preload survived panel unmount. Production build and web TypeScript passed; final envelope checks reran the component fixture.
+
+**Notes:** Preload subscriptions now return individual removers using the existing chat subscription pattern. Initialization stops after disposal, status requests reject safely and only the latest request updates state. Timers/listeners are cleared on unmount. SR-31B pushed at 818c86961af44062d9893912fe23aa968af070fa.
+
+**Commit:** see `PLANNING/evidence/sr31c.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31B: Cancel provider retry waits promptly
 
 **Files changed:** `electron/services/providers/registry.ts`, `electron/services/providers/model-destination.test.ts`, `electron/services/fork-task.ts`, `PLANNING/evidence/sr31a.json`

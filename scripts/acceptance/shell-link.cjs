@@ -80,13 +80,35 @@ async function main() {
       console.log(JSON.stringify({ productionBundle: true, realElectronIpc: true, realKeyPersistence: true, localProviderAuthentication: true, dialogCompleted: true, plaintextConsent: 'granted in isolated fixture profile' }))
       return
     }
-    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize') || process.argv.includes('--environment-git')) {
+    if (process.argv.includes('--attachments') || process.argv.includes('--settings') || process.argv.includes('--shortcuts') || process.argv.includes('--prs') || process.argv.includes('--resize') || process.argv.includes('--environment-git') || process.argv.includes('--browser')) {
       await page.evaluate(async (provider) => {
         await window.api.settings.grantPlaintextConsent()
         const saved = await window.api.settings.saveProviderKey(provider, 'fixture-only-not-a-real-key')
         if (!saved.success) throw new Error(saved.error)
       }, process.argv.includes('--shortcuts') ? 'fixture-provider' : 'deepseek')
       await page.reload()
+    }
+    if (process.argv.includes('--browser')) {
+      const created = await page.evaluate(url => window.api.browser.newTab({ url }), `http://127.0.0.1:${server.address().port}/browser-fixture`)
+      assert(created.success)
+      await page.evaluate(() => {
+        window.browserOutsideEvents = 0
+        window.browserOutsideDispose = window.api.browser.onTabUpdated(() => { window.browserOutsideEvents++ })
+      })
+      await page.getByText('Browser', { exact: true }).click()
+      await page.getByPlaceholder('Search Google or type a URL').waitFor()
+      const visibleChildren = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter(w => w.webContents.getURL().includes('/renderer/')).flatMap(w => w.contentView.children).filter(v => v.getVisible()).length)
+      await page.waitForTimeout(100)
+      assert.equal(await visibleChildren(), 1)
+      await page.getByTitle('Close tool', { exact: true }).click()
+      await page.getByPlaceholder('Search Google or type a URL').waitFor({ state: 'hidden' })
+      assert.equal(await visibleChildren(), 0)
+      const before = await page.evaluate(() => window.browserOutsideEvents)
+      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('/renderer/')).webContents.send('browser:tabUpdated', { id: 'fixture-event' }))
+      await page.waitForFunction(before => window.browserOutsideEvents > before, before)
+      await page.evaluate(() => window.browserOutsideDispose())
+      console.log(JSON.stringify({ productionBrowserPanel: true, nativeViewShownThenHidden: true, independentPreloadListenerSurvivedUnmount: true }))
+      return
     }
     if (process.argv.includes('--environment-git')) {
       await require('./environment-git.cjs')(app, page, profile)

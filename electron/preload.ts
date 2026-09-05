@@ -1110,11 +1110,21 @@ const api = {
         canGoBack: boolean
         canGoForward: boolean
       }) => void
-    ) => ipcRenderer.on('browser:tabUpdated', (_, e) => cb(e)),
-    onTabClosed: (cb: (e: { id: string; activeTabId: string | null }) => void) =>
-      ipcRenderer.on('browser:tabClosed', (_, e) => cb(e)),
-    onActiveTab: (cb: (e: { id: string }) => void) =>
-      ipcRenderer.on('browser:activeTab', (_, e) => cb(e)),
+    ) => {
+      const handler = (_: unknown, e: Parameters<typeof cb>[0]): void => cb(e)
+      ipcRenderer.on('browser:tabUpdated', handler)
+      return () => ipcRenderer.removeListener('browser:tabUpdated', handler)
+    },
+    onTabClosed: (cb: (e: { id: string; activeTabId: string | null }) => void) => {
+      const handler = (_: unknown, e: Parameters<typeof cb>[0]): void => cb(e)
+      ipcRenderer.on('browser:tabClosed', handler)
+      return () => ipcRenderer.removeListener('browser:tabClosed', handler)
+    },
+    onActiveTab: (cb: (e: { id: string }) => void) => {
+      const handler = (_: unknown, e: Parameters<typeof cb>[0]): void => cb(e)
+      ipcRenderer.on('browser:activeTab', handler)
+      return () => ipcRenderer.removeListener('browser:activeTab', handler)
+    },
     offAll: () => {
       ;['browser:tabUpdated', 'browser:tabClosed', 'browser:activeTab'].forEach((ch) =>
         ipcRenderer.removeAllListeners(ch)

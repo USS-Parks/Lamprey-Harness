@@ -30,3 +30,4 @@ subprocess.run(['git','commit','-m',f"{prompt}: {receipt['title']}\n\nAuthored a
 receipt['commit'] = subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
 receipt_path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8',newline='\n')
 print(receipt['commit'])
+subprocess.run(['git','push','origin','HEAD:main'],cwd=root,check=True)

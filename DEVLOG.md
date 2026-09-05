@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-14: Keep plugin MCP servers addressable and drain their lifecycle
+
+**Files changed:** `electron/services/mcp-manager.ts`, `electron/services/mcp-manager.test.ts`, `electron/services/mcp-plugin-lifecycle.test.ts`, `electron/services/fixtures/mcp-tool-server.cjs`, `electron/main.ts`, `PLANNING/evidence/sr13.json`, `PLANNING/evidence/sr-close.py`
+
+**Verification:** 48 tests passed across five MCP/config/dispatch suites. Real SDK stdio children exercised discovery, call, reconnect, changed configuration, disable, re-enable, uninstall and shutdown during a pending handshake; every retired PID was confirmed exited. Hosted callback tests exercise persisted and plugin ownership through the real connect lookup with the network boundary stubbed. Both TypeScript projects and lint run in the commit hook.
+
+**Notes:** Reuses findServer without temporary adoption into the persisted map. Serializes plugin refresh, unsubscribes on shutdown, cancels pending connections and suppresses intentional-close restarts. App quit now waits for MCP teardown; full packaged UI acceptance remains SR-34. No hosted provider authentication claim. User directed push to main after each prompt; SR-00 through SR-13 pushed at d2fc581, CI and Pages passed, installer build still running at this receipt.
+
+**Commit:** see `PLANNING/evidence/sr14.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-13: Remove unused transaction fallback and close data milestone
 
 **Files changed:** `electron/services/database.ts`, `PLANNING/evidence/sr12.json`, `PLANNING/evidence/sr13-remove.py`, `PLANNING/evidence/sr-check.py`

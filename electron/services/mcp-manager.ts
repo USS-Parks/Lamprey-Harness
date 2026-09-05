@@ -247,6 +247,8 @@ export interface McpElicitationEvent {
 }
 
 interface ServerState {
+  connection?: Promise<void>
+  connectionAbort?: AbortController
   config: McpServerConfig
   status: ServerStatus
   error?: string
@@ -346,10 +348,13 @@ export class McpManager {
   // plugin enable/disable.
   private pluginServers = new Map<string, ServerState>()
   private unsubscribePluginChanges: (() => void) | null = null
+  private pluginRefresh: Promise<void> = Promise.resolve()
+  private stopping = false
 
   async initialize(): Promise<void> {
     if (this.initialized) return
     const configs = loadConfigs()
+    this.stopping = false
     this.initialized = true
     for (const config of configs) {
       this.servers.set(config.id, {
@@ -370,18 +375,14 @@ export class McpManager {
       }
     }
 
-    // Customize C11: subscribe to plugin enable/disable broadcasts so the
-    // plugin-owned server set stays in sync. The lazy require avoids a
-    // hard module-load order between plugin-loader and mcp-manager.
+    // Load after initialization to avoid a module-load cycle.
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pl = require('./plugin-loader') as {
-        subscribeToPluginChanges: (cb: () => void) => () => void
-      }
-      this.unsubscribePluginChanges = pl.subscribeToPluginChanges(() =>
-        this.refreshPluginConnectors()
-      )
-      this.refreshPluginConnectors()
+      const pl = await import('./plugin-loader')
+      if (this.stopping) return
+      this.unsubscribePluginChanges = pl.subscribeToPluginChanges(() => {
+        void this.refreshPluginConnectors()
+      })
+      await this.refreshPluginConnectors()
     } catch (err) {
       console.error('[mcp] plugin subscription failed:', (err as Error).message)
     }
@@ -390,17 +391,18 @@ export class McpManager {
   /** Customize C11: rebuild the plugin-owned server set from the current
    *  enabled plugins. Disconnects + drops any plugin server that's no
    *  longer enabled; adds any new ones. Persisted servers are untouched. */
-  private refreshPluginConnectors(): void {
-    let enabledRoots: { pluginId: string; rootPath: string }[]
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pl = require('./plugin-loader') as {
-        enabledPluginRoots: () => { pluginId: string; rootPath: string }[]
-      }
-      enabledRoots = pl.enabledPluginRoots()
-    } catch {
-      enabledRoots = []
-    }
+  private refreshPluginConnectors(): Promise<void> {
+    this.pluginRefresh = this.pluginRefresh.then(() => this.applyPluginConnectors()).catch((error) => {
+      console.error('[mcp] Plugin connector refresh failed:', error)
+    })
+    return this.pluginRefresh
+  }
+
+  private async applyPluginConnectors(): Promise<void> {
+    if (this.stopping) return
+    const { enabledPluginRoots } = await import('./plugin-loader')
+    if (this.stopping) return
+    const enabledRoots = enabledPluginRoots()
 
     const desired = new Map<string, McpServerConfig>()
     for (const { pluginId, rootPath } of enabledRoots) {
@@ -459,14 +461,15 @@ export class McpManager {
 
     // Disconnect + drop entries no longer present.
     for (const [id, state] of this.pluginServers) {
-      if (!desired.has(id)) {
-        void this.cleanupServer(state)
+      if (JSON.stringify(desired.get(id)) !== JSON.stringify(state.config)) {
+        await this.cleanupServer(state)
         this.pluginServers.delete(id)
       }
     }
 
     // Add new entries; preserve existing connections.
     for (const [id, cfg] of desired) {
+      if (this.stopping) return
       if (this.pluginServers.has(id)) continue
       const state: ServerState = {
         config: cfg,
@@ -478,26 +481,9 @@ export class McpManager {
       }
       this.pluginServers.set(id, state)
       // Attempt to connect; surface failures via the status callback.
-      this.connectPluginServer(id).catch((err) => {
+      void this.connectServer(id).catch((err) => {
         console.error(`[mcp] Failed to connect plugin server ${id}:`, err?.message)
       })
-    }
-  }
-
-  private async connectPluginServer(id: string): Promise<void> {
-    const state = this.pluginServers.get(id)
-    if (!state) return
-    // Reuse the same connect path as persistent servers by temporarily
-    // adopting the state into the main Map for the connect call, then
-    // popping it back out. Connect mutates state in place — that's fine.
-    this.servers.set(id, state)
-    try {
-      await this.connectServer(id)
-    } finally {
-      // Whether connect succeeded or not, the state lives in
-      // pluginServers as the canonical home. Remove from the main Map
-      // so list operations don't double-count.
-      this.servers.delete(id)
     }
   }
 
@@ -630,7 +616,7 @@ export class McpManager {
   }
 
   async disconnect(id: string): Promise<void> {
-    const state = this.servers.get(id)
+    const state = this.findServer(id)
     if (!state) return
 
     await this.cleanupServer(state)
@@ -640,7 +626,7 @@ export class McpManager {
   }
 
   async reconnect(id: string): Promise<void> {
-    const state = this.servers.get(id)
+    const state = this.findServer(id)
     if (!state) return
 
     await this.cleanupServer(state)
@@ -649,12 +635,12 @@ export class McpManager {
   }
 
   listTools(id: string): McpTool[] {
-    return this.servers.get(id)?.tools ?? []
+    return this.findServer(id)?.tools ?? []
   }
 
   getAllTools(): { serverId: string; tools: McpTool[] }[] {
     const result: { serverId: string; tools: McpTool[] }[] = []
-    for (const [id, state] of this.servers) {
+    for (const [id, state] of [...this.servers, ...this.pluginServers]) {
       if (state.status === 'connected' && state.tools.length > 0) {
         result.push({ serverId: id, tools: state.tools })
       }
@@ -827,7 +813,7 @@ export class McpManager {
 
   async callTool(serverId: string, toolName: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
     signal?.throwIfAborted()
-    const state = this.servers.get(serverId)
+    const state = this.findServer(serverId)
     if (!state || !state.client || state.status !== 'connected') {
       throw new Error(`MCP server '${serverId}' is not connected`)
     }
@@ -906,13 +892,18 @@ export class McpManager {
   }
 
   async shutdown(): Promise<void> {
-    for (const [, state] of this.servers) {
-      await this.cleanupServer(state)
-    }
+    this.stopping = true
+    this.unsubscribePluginChanges?.()
+    this.unsubscribePluginChanges = null
+    await this.pluginRefresh
+    await Promise.all([...this.servers.values(), ...this.pluginServers.values()].map((state) => this.cleanupServer(state)))
     this.servers.clear()
+    this.pluginServers.clear()
+    this.statusCallbacks = []
     this.resourceChangeCallbacks.clear()
     this.authStatusCallbacks.clear()
     this.elicitationCallbacks.clear()
+    this.initialized = false
   }
 
   private findServer(id: string): ServerState | undefined {
@@ -1081,8 +1072,22 @@ export class McpManager {
   }
 
   private async connectServer(id: string): Promise<void> {
-    const state = this.servers.get(id)
-    if (!state) return
+    const state = this.findServer(id)
+    if (!state || this.stopping) return
+    if (state.connection) return state.connection
+    if (state.status === 'connected') return
+    const controller = new AbortController()
+    state.connectionAbort = controller
+    state.connection = this.openServer(state, controller.signal)
+    try {
+      await state.connection
+    } finally {
+      state.connection = undefined
+    }
+  }
+
+  private async openServer(state: ServerState, signal: AbortSignal): Promise<void> {
+    const id = state.config.id
 
     state.status = 'connecting'
     state.error = undefined
@@ -1090,13 +1095,14 @@ export class McpManager {
 
     try {
       if (state.config.transport === 'sse') {
-        await this.connectSSE(state)
+        await this.connectSSE(state, signal)
       } else if (state.config.transport === 'streamable-http') {
-        await this.connectStreamableHttp(state)
+        await this.connectStreamableHttp(state, signal)
       } else {
-        await this.connectStdio(state)
+        await this.connectStdio(state, signal)
       }
     } catch (err: any) {
+      if (signal.aborted) return
       if (err instanceof UnauthorizedError) {
         state.status = 'disconnected'
         state.error = 'Authorization required — reconnect after approving the hosted session.'
@@ -1114,7 +1120,7 @@ export class McpManager {
     }
   }
 
-  private async connectSSE(state: ServerState): Promise<void> {
+  private async connectSSE(state: ServerState, signal: AbortSignal): Promise<void> {
     if (state.config.auth === 'google-oauth') {
       const accessToken = keychain.getKey('google-access-token')
       if (!accessToken) {
@@ -1127,7 +1133,8 @@ export class McpManager {
       const expiryStr = keychain.getKey('google-token-expiry')
       const FIVE_MINUTES = 5 * 60 * 1000
       if (expiryStr && Date.now() + FIVE_MINUTES > parseInt(expiryStr, 10)) {
-        const refreshed = await this.refreshGoogleToken()
+        const refreshed = await this.refreshGoogleToken(signal)
+        signal.throwIfAborted()
         if (!refreshed) {
           state.status = 'error'
           state.error = 'Token refresh failed'
@@ -1154,6 +1161,7 @@ export class McpManager {
       const client = this.createClient(state)
 
       transport.onerror = (err) => {
+        if (signal.aborted) return
         console.error(`[mcp] SSE error for ${state.config.id}:`, err.message)
         state.status = 'error'
         state.error = err.message
@@ -1167,7 +1175,7 @@ export class McpManager {
         }
       }
 
-      await this.connectWithRetry(state, client, transport)
+      await this.connectWithRetry(state, client, transport, signal)
     } else {
       const url = new URL(state.config.url!)
       const authProvider =
@@ -1178,17 +1186,18 @@ export class McpManager {
       const client = this.createClient(state)
 
       transport.onerror = (err) => {
+        if (signal.aborted) return
         console.error(`[mcp] SSE error for ${state.config.id}:`, err.message)
         state.status = 'error'
         state.error = err.message
         this.emitStatus(state.config.id, 'error', err.message)
       }
 
-      await this.connectWithRetry(state, client, transport)
+      await this.connectWithRetry(state, client, transport, signal)
     }
   }
 
-  private async connectStreamableHttp(state: ServerState): Promise<void> {
+  private async connectStreamableHttp(state: ServerState, signal: AbortSignal): Promise<void> {
     const authProvider =
       state.config.auth === 'oauth'
         ? (state.authProvider ??= new McpHostedOAuthProvider(state.config.id))
@@ -1205,6 +1214,7 @@ export class McpManager {
     const client = this.createClient(state)
 
     transport.onerror = (error) => {
+      if (signal.aborted) return
       const safeMessage = redactMcpAuthError(error.message)
       state.status = 'error'
       state.error = safeMessage
@@ -1220,10 +1230,10 @@ export class McpManager {
       }
     }
 
-    await this.connectWithRetry(state, client, transport)
+    await this.connectWithRetry(state, client, transport, signal)
   }
 
-  private async connectStdio(state: ServerState): Promise<void> {
+  private async connectStdio(state: ServerState, signal: AbortSignal): Promise<void> {
     const mergedEnv = {
       ...(process.env as Record<string, string>),
       ...(state.config.env ?? {})
@@ -1238,6 +1248,7 @@ export class McpManager {
     const client = this.createClient(state)
 
     transport.onerror = (err) => {
+      if (signal.aborted) return
       console.error(`[mcp] stdio error for ${state.config.id}:`, err.message)
       if (state.status === 'connected') {
         state.status = 'error'
@@ -1265,7 +1276,7 @@ export class McpManager {
       }
     }
 
-    await this.connectWithRetry(state, client, transport)
+    await this.connectWithRetry(state, client, transport, signal)
   }
 
   private createClient(state: ServerState): Client {
@@ -1315,19 +1326,26 @@ export class McpManager {
   private async connectWithRetry(
     state: ServerState,
     client: Client,
-    transport: SSEClientTransport | StdioClientTransport | StreamableHTTPClientTransport
+    transport: SSEClientTransport | StdioClientTransport | StreamableHTTPClientTransport,
+    signal: AbortSignal
   ): Promise<void> {
     let lastError: Error | null = null
+    signal.throwIfAborted()
+    state.client = client
+    state.transport = transport
 
     for (let attempt = 0; attempt < RETRY_DELAYS.length; attempt++) {
       try {
+        signal.throwIfAborted()
         await client.connect(transport)
+        signal.throwIfAborted()
 
         this.wireResourceNotifications(state.config.id, client)
 
         const capabilities = client.getServerCapabilities()
         if (capabilities?.tools) {
           const toolsResult = await client.listTools()
+          signal.throwIfAborted()
           state.tools = toolsResult.tools.map((t) => ({
             name: t.name,
             description: t.description,
@@ -1348,11 +1366,20 @@ export class McpManager {
         console.log(`[mcp] Connected to ${state.config.id} — ${state.tools.length} tools available`)
         return
       } catch (err: any) {
+        signal.throwIfAborted()
         lastError = err
         if (err instanceof UnauthorizedError) throw err
         console.warn(`[mcp] Connection attempt ${attempt + 1} for ${state.config.id} failed:`, err.message)
         if (attempt < RETRY_DELAYS.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]))
+          await new Promise<void>((resolve) => {
+            const done = () => {
+              clearTimeout(timer)
+              signal.removeEventListener('abort', done)
+              resolve()
+            }
+            const timer = setTimeout(done, RETRY_DELAYS[attempt])
+            signal.addEventListener('abort', done, { once: true })
+          })
         }
       }
     }
@@ -1360,7 +1387,7 @@ export class McpManager {
     throw lastError || new Error('Connection failed after retries')
   }
 
-  private async refreshGoogleToken(): Promise<boolean> {
+  private async refreshGoogleToken(signal?: AbortSignal): Promise<boolean> {
     const refreshToken = keychain.getKey('google-refresh-token')
     const clientId = keychain.getKey('google-client-id')
     const clientSecret = keychain.getKey('google-client-secret')
@@ -1372,6 +1399,7 @@ export class McpManager {
 
     try {
       const response = await fetch('https://oauth2.googleapis.com/token', {
+        signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -1398,16 +1426,18 @@ export class McpManager {
   }
 
   private async cleanupServer(state: ServerState): Promise<void> {
-    try {
-      if (state.transport) {
-        await state.transport.close()
-      }
-    } catch {
-      // ignore cleanup errors
-    }
+    state.connectionAbort?.abort()
+    state.status = 'disconnected'
+    const transport = state.transport
     state.client = null
     state.transport = null
     state.tools = []
+    try {
+      await transport?.close()
+    } catch (error) {
+      console.error(`[mcp] Failed to close ${state.config.id}:`, error)
+    }
+    await state.connection
   }
 
   private emitStatus(serverId: string, status: ServerStatus, error?: string): void {

@@ -2,6 +2,8 @@
 
 Status: APPROVED FOR FULL STS AND BUCKET on 5 September 2026. Execution started in this session. Original draft retained in Git history; checked rows below reflect verified execution.
 
+Authorization addendum, 5 September 2026: the user explicitly directed commit and push to the main repository after each completed prompt. Push each gated commit to `origin/main`; this supersedes any earlier hold-until-wrap publication default. Full STS and Bucket remain approved in this session.
+
 Source report: [September re-audit](LAMPREY_SEPTEMBER_2026_REAUDIT.md). Evidence: [receipt index](evidence/SEPTEMBER_AUDIT_EVIDENCE.md).
 
 ## Governance
@@ -91,7 +93,7 @@ Depends on B. Result: existing integration features use consistent registration 
 
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
-| [ ] SR-14 | Unify plugin MCP lifecycle lookup and teardown (SA-03) | Real stdio plugin: discover/call/reconnect/disable/re-enable/uninstall/quit; authorization completion resolves correct owner; processes and subscriptions drain once |
+| [x] SR-14 | Unify plugin MCP lifecycle lookup and teardown (SA-03) | Real stdio plugin: discover/call/reconnect/disable/re-enable/uninstall/quit; authorization completion resolves correct owner; processes and subscriptions drain once |
 | [ ] SR-15 | Preserve property names during schema normalization (SA-09) | Keyword-like field names survive; true unsupported keywords transformed only in schema positions; nested/required/provider tests pass |
 | [ ] SR-16 | Make missing provider identity an explicit error (SA-10) | Removing custom endpoint cannot dispatch to DeepSeek/another host; picker and dispatch agree; stale IDs and collisions handled visibly; local HTTP capture fixture proves selected destination |
 | [ ] SR-17 | Enforce evidence-backed research output contract (SA-24) | Provided sources plus zero references rejected or produce explicit insufficient-evidence outcome; valid references accepted; fabricated references still rejected; no claim that syntax proves truth |

@@ -712,6 +712,8 @@ app.on('window-all-closed', () => {
 })
 
 let loopDrainAttempted = false
+let mcpDrainAttempted = false
+let mcpDrainComplete = false
 
 app.on('will-quit', (event) => {
   // JM-7 (LP-24) — an in-flight loop/wake-up turn used to race closeDb():
@@ -733,6 +735,19 @@ app.on('will-quit', (event) => {
       return
     }
   }
+  if (!mcpDrainComplete) {
+    event.preventDefault()
+    if (!mcpDrainAttempted) {
+      mcpDrainAttempted = true
+      void mcpManager.shutdown().catch((error) => {
+        console.error('[main] MCP shutdown failed:', error)
+      }).finally(() => {
+        mcpDrainComplete = true
+        app.quit()
+      })
+    }
+    return
+  }
   if (boundsPersistTimer) {
     clearTimeout(boundsPersistTimer)
     boundsPersistTimer = null
@@ -750,7 +765,6 @@ app.on('will-quit', (event) => {
     stopBackupRunner()
     stopBackupRunner = null
   }
-  mcpManager.shutdown().catch(() => {})
   shutdownSkillLoader()
   shutdownPluginLoader()
   shutdownFilterLoader()

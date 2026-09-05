@@ -432,15 +432,21 @@ describe('McpManager hosted auth lifecycle (MR-3)', () => {
     ])
   })
 
-  it('validates callback state, exchanges the code, and reconnects', async () => {
+  it.each(['persisted', 'plugin'])('validates callback state and reconnects the %s owner', async (owner) => {
     authMocks.auth.mockResolvedValueOnce('AUTHORIZED')
     const mgr = new McpManager()
     const { provider, state } = seedHostedServer(mgr)
-    vi.spyOn(mgr as any, 'connectServer').mockImplementation(async () => {
+    if (owner === 'plugin') {
+      ;(mgr as any).servers.delete('hosted')
+      ;(mgr as any).pluginServers.set('hosted', state)
+    }
+    const open = vi.spyOn(mgr as any, 'openServer').mockImplementation(async (...args: unknown[]) => {
+      expect(args[0]).toBe(state)
       state.status = 'connected'
     })
 
     await mgr.completeHostedAuthorization('hosted', { code: 'code-1', state: 'expected' })
+    expect(open).toHaveBeenCalledOnce()
     expect(provider.validateCallbackState).toHaveBeenCalledWith('expected')
     expect(authMocks.auth).toHaveBeenCalledWith(
       provider,

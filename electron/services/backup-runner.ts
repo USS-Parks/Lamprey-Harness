@@ -1,15 +1,16 @@
-import Database from 'better-sqlite3'
 import { app } from 'electron'
-import { join, basename } from 'path'
+import { join, basename, dirname, resolve } from 'path'
+import { randomUUID } from 'crypto'
 import {
   existsSync,
   mkdirSync,
   readdirSync,
   renameSync,
   statSync,
-  unlinkSync
+  unlinkSync,
+  realpathSync
 } from 'fs'
-import { getDb, checkpoint, openReadonlyHandleAt } from './database'
+import { getDb, checkpoint, openReadonlyHandleAt, closeDb, isPersistenceReadOnlyMode, setPersistenceReadOnlyMode } from './database'
 import { recordEvent } from './event-log'
 
 // JM-18 (DB-11) — consecutive-failure tracking + injectable warning sink
@@ -33,10 +34,8 @@ export function setBackupWarningEmitter(fn: ((message: string) => void) | null):
 // shared lock so streaming writes proceed in between.
 //
 // Backups live at `userData/backups/lamprey-YYYY-MM-DD.db` (one per
-// day; same-day calls overwrite). Restore moves the corrupt DB aside
-// (renamed to .corrupt-<ts>) and copies the backup into place; the
-// caller is expected to relaunch the app afterwards because the live
-// `db` handle in database.ts will still point at the moved file.
+// day; same-day calls overwrite). Restore validates a staged copy before
+// switching the live handle and retains the original files for recovery.
 
 export interface BackupInfo {
   path: string
@@ -202,18 +201,9 @@ export function pruneOldBackups(
   return deleted
 }
 
-/**
- * PS5 — restore the DB from a named backup. Behavior:
- *   1. Validate the backup file exists + matches the naming pattern.
- *   2. Move the current DB to `<dbPath>.corrupt-<timestamp>` so the
- *      original is preserved for diagnosis.
- *   3. Copy (NOT rename, in case backupDir is on a different filesystem)
- *      the backup over to `dbPath`.
- *   4. Return the path of the moved-aside corrupt file so callers can
- *      show it to the user. The caller is responsible for relaunching
- *      the app — the cached `getDb()` handle still points at the old
- *      (moved) file.
- */
+/** Validates and stages the backup before closing the live DB, then switches
+ * synchronously. The original files remain available for recovery; failures
+ * during switching roll them back before returning an error. */
 export interface RestoreInfo {
   movedTo: string
   restoredFrom: string
@@ -233,45 +223,66 @@ export async function restoreFromBackup(
       `restoreFromBackup: not a recognized backup filename: ${name}`
     )
   }
-  const ts = new Date().toISOString().replace(/[:.]/g, '-')
-  const corruptPath = `${dbPath}.corrupt-${ts}`
-  // Step 1: move current DB aside. If the current DB doesn't exist
-  // (rare), skip — we're restoring into a fresh slot.
-  if (existsSync(dbPath)) {
-    try {
-      renameSync(dbPath, corruptPath)
-    } catch (err: any) {
-      throw new Error(
-        `restoreFromBackup: failed to move current DB aside: ${err?.message ?? err}`,
-        { cause: err }
-      )
-    }
-    // Also move the WAL + SHM aside so SQLite doesn't try to replay
-    // them against the restored file.
-    for (const suffix of ['-wal', '-shm']) {
-      const sidecar = `${dbPath}${suffix}`
-      if (existsSync(sidecar)) {
-        try {
-          renameSync(sidecar, `${corruptPath}${suffix}`)
-        } catch {
-          /* sidecar move failure is non-fatal */
-        }
-      }
-    }
+  const allowedDirectory = realpathSync(join(dirname(dbPath), 'backups'))
+  if (dirname(realpathSync(backupPath)) !== allowedDirectory) {
+    throw new Error('restoreFromBackup: backup is outside the application backup directory')
   }
-  // Step 2: copy backup into place. Use a fresh open + backup-API copy
-  // so a partially-written file is impossible.
-  const source = new Database(backupPath, { readonly: true, fileMustExist: true })
+  const key = resolve(dbPath)
+  if (activeRestores.has(key)) throw new Error('A database restore is already running')
+  activeRestores.add(key)
+  const ts = new Date().toISOString().replace(/[:.]/g, '-')
+  const corruptPath = `${dbPath}.corrupt-${ts}-${randomUUID().slice(0, 8)}`
+  const staged = `${dbPath}.restore-${randomUUID()}`
+  const oldReadOnly = isPersistenceReadOnlyMode()
   try {
-    await source.backup(dbPath, {
-      progress: () => BACKUP_STEP_PAGES
-    })
-  } finally {
+    const source = openReadonlyHandleAt(backupPath)
     try {
-      source.close()
-    } catch {
-      /* already closed */
+      if (source.pragma('integrity_check', { simple: true }) !== 'ok') throw new Error('Backup integrity check failed')
+      await source.backup(staged, { progress: () => BACKUP_STEP_PAGES })
+    } finally { source.close() }
+    const stagedDb = openReadonlyHandleAt(staged)
+    try {
+      if (stagedDb.pragma('integrity_check', { simple: true }) !== 'ok') throw new Error('Staged backup integrity check failed')
+    } finally { stagedDb.close() }
+
+    // All asynchronous work finished before closing the live handle. Keep the
+    // original database and every sidecar until the replacement opens successfully.
+    closeDb({ checkpoint: false })
+    const moved: Array<[string, string]> = []
+    let installed = false
+    try {
+      for (const suffix of ['', '-wal', '-shm']) {
+        const original = `${dbPath}${suffix}`
+        if (!existsSync(original)) continue
+        const preserved = `${corruptPath}${suffix}`
+        renameSync(original, preserved)
+        moved.push([original, preserved])
+      }
+      renameSync(staged, dbPath)
+      installed = true
+      setPersistenceReadOnlyMode(false)
+      getDb()
+    } catch (error) {
+      const recoveryErrors: unknown[] = []
+      try {
+        closeDb({ checkpoint: false })
+        if (installed) {
+          for (const suffix of ['', '-wal', '-shm']) {
+            if (existsSync(`${dbPath}${suffix}`)) renameSync(`${dbPath}${suffix}`, `${staged}.failed${suffix}`)
+          }
+        }
+        for (const [original, preserved] of moved.reverse()) renameSync(preserved, original)
+        setPersistenceReadOnlyMode(oldReadOnly)
+      } catch (recoveryError) { recoveryErrors.push(recoveryError) }
+      throw new AggregateError([error, ...recoveryErrors],
+        `Database restore failed. Original files retained at ${recoveryErrors.length ? corruptPath : dbPath}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error })
     }
+  } finally {
+    activeRestores.delete(key)
+    try {
+      if (existsSync(staged)) unlinkSync(staged)
+    } catch (error) { console.warn('[backup-runner] staged restore file retained:', staged, error) }
   }
   const result: RestoreInfo = {
     movedTo: corruptPath,
@@ -296,6 +307,8 @@ export async function restoreFromBackup(
   }
   return result
 }
+
+const activeRestores = new Set<string>()
 
 // Periodic runner — schedules `createBackup` once per day at startup
 // and on a 24h interval. Idempotent: same-day backup overwrites; second

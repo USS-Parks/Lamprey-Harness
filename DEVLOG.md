@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-10: Validate and stage database restore before switching live files
+
+**Files changed:** `electron/services/backup-runner.ts`, `electron/ipc/persistence.ts`, `electron/services/restore-safety.test.ts`, `PLANNING/evidence/sr09.json`
+
+**Verification:** Required native gate: 19 files/162 tests passed, no skips. Nine new safety cases exercise invalid source without closing live handle, unauthorized parent, copy failure, live/sidecar/install move failures, reopen rollback, successful integrity-checked replacement and overlapping restore rejection. Existing backup tests pass. Commit hooks enforce lint/typecheck.
+
+**Notes:** Source/staged integrity checked before closing live DB. Synchronous switch preserves original DB/WAL/SHM; failure rolls back moves and reports any recovery failure with retained path. IPC no longer closes first. Tests use unencrypted isolated SQLite; no user database or stored passphrase was accessed. Existing encryption-aware source opener reused; no new claim of live SQLCipher certification. SR-09 commit 60e43d235e32e236c47205a234997005a7d573c5.
+
+**Commit:** see `PLANNING/evidence/sr10.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-09: Replace compacted messages atomically against a stable snapshot
 
 **Files changed:** `electron/services/conversation-store.ts`, `electron/ipc/conversation.ts`, `electron/services/conversation-compaction.test.ts`, `PLANNING/evidence/sr08.json`

@@ -128,8 +128,6 @@ export function registerPersistenceHandlers(): void {
     }
     try {
       const dbPath = join(app.getPath('userData'), 'lamprey.db')
-      closeDb({ checkpoint: false })
-      setPersistenceReadOnlyMode(false)
       const info = await restoreFromBackup(dbPath, backupPath)
       return { success: true, data: info }
     } catch (err: any) {

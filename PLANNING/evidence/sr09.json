@@ -3,5 +3,11 @@
   "title": "Replace compacted messages atomically against a stable snapshot",
   "verification": "Required native gate: 18 files, 153 tests passed, zero skipped. New real SQLite tests prove stale snapshot refusal preserves intervening message, insert-trigger failure rolls back messages and FTS, and successful replacement yields summary. Commit hooks enforce lint/typecheck.",
   "notes": "Model await remains outside transaction. IPC passes original snapshot to existing store; immediate transaction compares current messages before deleting and inserting. Empty summary rejected. SR-08 commit 28d891c29b90c4fc98b2ccfccbd48c3d2c31e73f.",
-  "files": ["electron/services/conversation-store.ts", "electron/ipc/conversation.ts", "electron/services/conversation-compaction.test.ts", "PLANNING/evidence/sr08.json"]
+  "files": [
+    "electron/services/conversation-store.ts",
+    "electron/ipc/conversation.ts",
+    "electron/services/conversation-compaction.test.ts",
+    "PLANNING/evidence/sr08.json"
+  ],
+  "commit": "60e43d235e32e236c47205a234997005a7d573c5"
 }

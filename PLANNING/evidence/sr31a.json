@@ -1,0 +1,7 @@
+{
+  "prompt": "SR-31A",
+  "title": "Make historical fork writes atomic and report retained resources",
+  "verification": "Five focused fork tests passed. Real Electron-ABI SQLite executed all 21 required native suites: 169 tests passed, zero skips. Injected second-message and attachment-stage failures rolled back the child, copied messages and search rows while preserving source history; successful fork retained both messages. Node TypeScript passed.",
+  "notes": "Child creation, copying, attachment copying and title updates share one synchronous database transaction. Failed child creation now reaches worktree finalization; cleanup failure reports original error plus retained path/branch. No actual worktree was created or removed by these fixtures. SR-31 pushed at 1a41bc0633f66f822f53d12bb85fd7674c99f95c.",
+  "files": ["electron/services/fork-task.ts", "electron/services/fork-task.test.ts", "electron/services/fork-task-native.test.ts", "PLANNING/evidence/sr31.json"]
+}

@@ -128,7 +128,7 @@ Depends on D. Result: dead-code candidates adjudicated and source claims match e
 | [x] SR-29 | Adjudicate near-duplicate environment handlers (SA-22) | Record actual overlap/error semantics; extract only a small proven common seam or document no-op; both surfaces retain behavior |
 | [x] SR-30 | Make OpenWiki workflow configuration honest (SA-28) | Missing credentials no longer trigger scheduled doomed runs; manual/setup state clear; authenticated path remains available only when configured; no secret creation or paid run without authorization |
 | [x] SR-31 | Adjudicate remaining audit candidates before scope freeze | Inspect fork atomicity, retry/abort, browser subscriptions, quit/subagent drain and dependency advisories; each receives source-backed disposition; confirmed new defects become reviewed roster addenda, not silent extra implementation |
-| [ ] SR-31A | Make historical fork persistence atomic (SA-33) | Native DB failure injection and worktree failure accounting; no partial child |
+| [x] SR-31A | Make historical fork persistence atomic (SA-33) | Native DB failure injection and worktree failure accounting; no partial child |
 | [ ] SR-31B | Cancel provider retry waits promptly (SA-34) | Local HTTP retry/backoff cancellation settles promptly with no additional request |
 | [ ] SR-31C | Repair browser subscription and async lifecycle (SA-35) | Unmount/tab-switch/rejection fixtures and real Electron visibility proof |
 | [ ] SR-31D | Drain regular turns and subagents before database close (SA-36) | Real Electron active-stream/subagent shutdown proof with bounded timeout accounting |

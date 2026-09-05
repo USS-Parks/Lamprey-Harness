@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-31A: Make historical fork writes atomic and report retained resources
+
+**Files changed:** `electron/services/fork-task.ts`, `electron/services/fork-task.test.ts`, `electron/services/fork-task-native.test.ts`, `PLANNING/evidence/sr31.json`
+
+**Verification:** Five focused fork tests passed. Real Electron-ABI SQLite executed all 21 required native suites: 169 tests passed, zero skips. Injected second-message and attachment-stage failures rolled back the child, copied messages and search rows while preserving source history; successful fork retained both messages. Node TypeScript passed.
+
+**Notes:** Child creation, copying, attachment copying and title updates share one synchronous database transaction. Failed child creation now reaches worktree finalization; cleanup failure reports original error plus retained path/branch. No actual worktree was created or removed by these fixtures. SR-31 pushed at 1a41bc0633f66f822f53d12bb85fd7674c99f95c.
+
+**Commit:** see `PLANNING/evidence/sr31a.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-31: Record remaining findings and focused repair gates
 
 **Files changed:** `PLANNING/evidence/SR31_ADJUDICATION.md`, `PLANNING/evidence/sr31-advisories.cjs`, `PLANNING/evidence/sr31-advisories.json`, `PLANNING/evidence/sr30.json`

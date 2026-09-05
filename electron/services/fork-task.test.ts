@@ -20,7 +20,7 @@ function deps(overrides: Record<string, unknown> = {}): any {
     createConversation: vi.fn(() => ({ id: 'child' })),
     updateConversationTitle: vi.fn(),
     saveMessage: vi.fn(),
-    deleteConversation: vi.fn(),
+    transaction: <T>(write: () => T): T => write(),
     listTurns: vi.fn(() => [terminalTurn]),
     copyAttachments: vi.fn(() => 2),
     record: vi.fn(),
@@ -67,7 +67,7 @@ describe('fork_task at historical turn', () => {
   it('does not reuse the source worktree and can create an isolated one', async () => {
     const manager = {
       create: vi.fn(async () => ({ path: 'C:/isolated', branch: 'codex/fork-1' })),
-      finalize: vi.fn()
+      finalize: vi.fn(async () => ({ keep: false, removed: true }))
     }
     const d = deps({ worktreeManager: manager })
     const result = await forkTaskAtTurn(
@@ -84,7 +84,7 @@ describe('fork_task at historical turn', () => {
   it('removes partial resources when copying fails', async () => {
     const manager = {
       create: vi.fn(async () => ({ path: 'C:/isolated', branch: 'b' })),
-      finalize: vi.fn()
+      finalize: vi.fn(async () => ({ keep: false, removed: true }))
     }
     const d = deps({
       worktreeManager: manager,
@@ -95,7 +95,17 @@ describe('fork_task at historical turn', () => {
     await expect(
       forkTaskAtTurn({ sourceConversationId: 'source', turnId: 'turn-1', isolateWorktree: true }, d)
     ).rejects.toThrow('copy failed')
-    expect(d.deleteConversation).toHaveBeenCalledWith('child')
     expect(manager.finalize).toHaveBeenCalledWith({ path: 'C:/isolated', branch: 'b' })
+  })
+
+  it('finalizes the worktree even when child creation fails and reports cleanup failure', async () => {
+    const manager = {
+      create: vi.fn(async () => ({ path: 'C:/isolated', branch: 'b' })),
+      finalize: vi.fn(async () => ({ keep: true, warning: 'status unavailable' }))
+    }
+    const d = deps({ worktreeManager: manager, createConversation: () => { throw new Error('insert failed') } })
+    await expect(forkTaskAtTurn({ sourceConversationId: 'source', turnId: 'turn-1', isolateWorktree: true }, d))
+      .rejects.toThrow(/insert failed.*C:\/isolated.*status unavailable/)
+    expect(manager.finalize).toHaveBeenCalledOnce()
   })
 })

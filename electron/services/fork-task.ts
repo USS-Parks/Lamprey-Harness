@@ -5,6 +5,7 @@ import { copyAttachments } from './rag/store'
 import { recordEvent } from './event-log'
 import type { WorktreeManager } from './worktree-runner'
 import { notifyTaskChange } from './task-wait-signal'
+import { getDb } from './database'
 
 export interface ForkTaskAtTurnInput {
   sourceConversationId: string
@@ -30,7 +31,7 @@ export interface ForkTaskDependencies {
   createConversation?: typeof conversationStore.createConversation
   updateConversationTitle?: typeof conversationStore.updateConversationTitle
   saveMessage?: typeof conversationStore.saveMessage
-  deleteConversation?: typeof conversationStore.deleteConversation
+  transaction?: <T>(write: () => T) => T
   listTurns?: (conversationId: string) => ConversationTurnRecord[]
   copyAttachments?: typeof copyAttachments
   worktreeManager?: WorktreeManager | null
@@ -56,7 +57,7 @@ export async function forkTaskAtTurn(
   const createConversation = deps.createConversation ?? conversationStore.createConversation
   const updateTitle = deps.updateConversationTitle ?? conversationStore.updateConversationTitle
   const saveMessage = deps.saveMessage ?? conversationStore.saveMessage
-  const removeConversation = deps.deleteConversation ?? conversationStore.deleteConversation
+  const transaction = deps.transaction ?? (<T>(write: () => T): T => getDb().transaction(write)())
   const listTurns = deps.listTurns ?? ((id) => new TurnControlStore().listTurns(id))
   const source = getConversation(sourceConversationId)
   if (!source) throw new Error('fork_task: source task not found')
@@ -72,72 +73,84 @@ export async function forkTaskAtTurn(
   const forkId = deps.newId?.() ?? randomUUID()
   const worktree =
     input.isolateWorktree && deps.worktreeManager ? await deps.worktreeManager.create(forkId) : null
-  const child = createConversation(source.model, {
-    kind: worktree ? 'worktree' : 'local',
-    worktreePath: worktree?.path ?? null,
-    projectId: source.projectId ?? null,
-    forkedFromId: sourceConversationId,
-    forkedFromTurnId: turnId,
-    seedSourceKind: 'transcript-range',
-    seedBlob: {
-      sourceConversationId,
-      kind: 'transcript-range',
-      contentPreview: `Historical fork through turn ${turnId}`,
-      seedBytes: boundaryMessages.reduce(
-        (sum, message) => sum + Buffer.byteLength(message.content, 'utf8'),
-        0
-      )
-    }
-  })
+  let result: ForkTaskAtTurnResult
   try {
-    for (const message of boundaryMessages) {
-      saveMessage({
-        id: randomUUID(),
-        conversationId: child.id,
-        role: message.role,
-        content: message.content,
-        model: message.model,
-        toolCallId: message.toolCallId,
-        toolCalls: message.toolCalls,
-        reasoning: message.reasoning,
-        documents: message.documents,
-        stage: message.stage,
-        proofStatus: message.proofStatus
-      })
-    }
-    const copiedAttachmentCount =
-      input.includeRagAttachments === false
-        ? 0
-        : (deps.copyAttachments ?? copyAttachments)(sourceConversationId, child.id)
-    updateTitle(child.id, input.title?.trim() || `${source.title} (fork at turn)`)
-    const result: ForkTaskAtTurnResult = {
-      conversationId: child.id,
-      sourceConversationId,
-      sourceTurnId: turnId,
-      copiedMessageCount: boundaryMessages.length,
-      copiedAttachmentCount,
+    result = transaction(() => {
+      const child = createConversation(source.model, {
+      kind: worktree ? 'worktree' : 'local',
       worktreePath: worktree?.path ?? null,
-      branch: worktree?.branch ?? null
-    }
-    deps.record?.({
-      type: 'conversation.forked',
-      actorKind: 'model',
-      conversationId: child.id,
-      entityKind: 'conversation',
-      entityId: child.id,
-      payload: {
+      projectId: source.projectId ?? null,
+      forkedFromId: sourceConversationId,
+      forkedFromTurnId: turnId,
+      seedSourceKind: 'transcript-range',
+      seedBlob: {
+        sourceConversationId,
+        kind: 'transcript-range',
+        contentPreview: `Historical fork through turn ${turnId}`,
+        seedBytes: boundaryMessages.reduce(
+          (sum, message) => sum + Buffer.byteLength(message.content, 'utf8'),
+          0
+        )
+      }
+    })
+      for (const message of boundaryMessages) {
+        saveMessage({
+          id: randomUUID(),
+          conversationId: child.id,
+          role: message.role,
+          content: message.content,
+          model: message.model,
+          toolCallId: message.toolCallId,
+          toolCalls: message.toolCalls,
+          reasoning: message.reasoning,
+          documents: message.documents,
+          stage: message.stage,
+          proofStatus: message.proofStatus
+        })
+      }
+      const copiedAttachmentCount =
+        input.includeRagAttachments === false
+          ? 0
+          : (deps.copyAttachments ?? copyAttachments)(sourceConversationId, child.id)
+      updateTitle(child.id, input.title?.trim() || `${source.title} (fork at turn)`)
+      const result: ForkTaskAtTurnResult = {
+        conversationId: child.id,
         sourceConversationId,
         sourceTurnId: turnId,
         copiedMessageCount: boundaryMessages.length,
         copiedAttachmentCount,
-        historical: true
+        worktreePath: worktree?.path ?? null,
+        branch: worktree?.branch ?? null
       }
+      deps.record?.({
+        type: 'conversation.forked',
+        actorKind: 'model',
+        conversationId: child.id,
+        entityKind: 'conversation',
+        entityId: child.id,
+        payload: {
+          sourceConversationId,
+          sourceTurnId: turnId,
+          copiedMessageCount: boundaryMessages.length,
+          copiedAttachmentCount,
+          historical: true
+        }
+      })
+      return result
     })
-    notifyTaskChange({ conversationId: sourceConversationId, entityId: child.id, kind: 'fork' })
-    return result
   } catch (error) {
-    removeConversation(child.id)
-    if (worktree && deps.worktreeManager) await deps.worktreeManager.finalize(worktree)
+    if (worktree && deps.worktreeManager) {
+      try {
+        const cleanup = await deps.worktreeManager.finalize(worktree)
+        if (cleanup.keep || cleanup.warning) {
+          throw new Error(`Retained fork resource ${worktree.path} (${worktree.branch}): ${cleanup.warning ?? 'worktree has changes'}`, { cause: error })
+        }
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], `Fork failed: ${String(error)}; worktree cleanup at ${worktree.path} (${worktree.branch}): ${String(cleanupError)}`, { cause: cleanupError })
+      }
+    }
     throw error
   }
+  notifyTaskChange({ conversationId: sourceConversationId, entityId: result.conversationId, kind: 'fork' })
+  return result
 }

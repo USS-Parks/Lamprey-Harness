@@ -67,6 +67,7 @@ export async function resolveSingleToolCall(
   signal: AbortSignal,
   correlationId?: string
 ): Promise<ResolvedToolCall> {
+  signal.throwIfAborted()
   const toolName = tc.function.name
   let args: Record<string, unknown> = {}
   const rawArgs = tc.function.arguments
@@ -180,6 +181,14 @@ export async function resolveSingleToolCall(
 
   let result: string
   let explicitStatus: 'done' | 'error' | 'denied' | undefined
+  const checkCancelled = (): void => {
+    if (!signal.aborted) return
+    toolRegistry.recordCallEnd(tc.id, {
+      status: 'error', error: 'Tool call cancelled; already-issued effects may have completed.',
+      finishedAt: Date.now(), correlationId
+    })
+    signal.throwIfAborted()
+  }
 
   if (descriptor) {
     emitPhase(conversationId, inferPhaseFromDescriptor(descriptor))
@@ -232,6 +241,7 @@ export async function resolveSingleToolCall(
               : undefined
         })
       : { decision: 'allow' as const, source: 'none' }
+  checkCancelled()
   const approvalDecision = approvalOutcome.decision
   const approvalSource = blockedByPlanMode ? 'plan-mode' : approvalOutcome.source
 
@@ -249,6 +259,7 @@ export async function resolveSingleToolCall(
       args,
       cwd: workspacePath
     })
+    checkCancelled()
     if (preHook.blocked) {
       result = `Blocked by hook: ${preHook.blockReason ?? 'preToolUse refused'}`
       explicitStatus = 'denied'
@@ -265,6 +276,7 @@ export async function resolveSingleToolCall(
       )
       result = dispatched.result
       explicitStatus = dispatched.status
+      checkCancelled()
       if (toolName === 'update_plan' && dispatched.status === 'done') {
         try {
           const snapshot = JSON.parse(result)
@@ -278,7 +290,7 @@ export async function resolveSingleToolCall(
       const [serverId, ...nameParts] = toolName.split('__')
       const mcpToolName = nameParts.join('__')
       try {
-        const mcpResult = await mcpManager.callTool(serverId, mcpToolName, args)
+        const mcpResult = await mcpManager.callTool(serverId, mcpToolName, args, signal)
         result = typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult)
       } catch (err: any) {
         result = `Error: ${err.message}`
@@ -289,6 +301,7 @@ export async function resolveSingleToolCall(
   }
 
   if (result === undefined) result = ''
+  checkCancelled()
   await fireHooks('postToolUse', {
     conversationId,
     toolName,
@@ -296,6 +309,7 @@ export async function resolveSingleToolCall(
     result,
     cwd: workspacePath
   })
+  checkCancelled()
 
   const duration = Date.now() - startTime
   const finishedAt = startTime + duration
@@ -337,6 +351,7 @@ export async function resolveToolCallWindows(
   const resolved: ResolvedToolCall[] = new Array(calls.length)
   const windows = partitionToolCallWindows(calls, (id) => toolRegistry.getById(id))
   for (const win of windows) {
+    signal.throwIfAborted()
     if (win.kind === 'parallel') {
       const settled = await Promise.all(
         win.indices.map((idx) =>
@@ -364,5 +379,6 @@ export async function resolveToolCallWindows(
       )
     }
   }
+  signal.throwIfAborted()
   return resolved
 }

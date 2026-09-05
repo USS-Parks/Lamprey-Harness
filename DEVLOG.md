@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-05: Stop tool dispatch across cancellation boundaries
+
+**Files changed:** `electron/services/chat-tool-dispatch.ts`, `electron/services/mcp-manager.ts`, `electron/ipc/chat.ts`, `electron/services/chat-tool-dispatch.test.ts`, `electron/services/fixtures/mcp-tool-server.cjs`, `PLANNING/evidence/sr04.json`
+
+**Verification:** Real local stdio MCP server exercised through actual manager and dispatch: abort during first call prevents second; late old settlement leaves replacement runtime active; no stale tool-result event. Abort after approval and pre-tool hook prevents execution. Existing manager/interruption plus new dispatch suites: 27 tests passed across three files. Commit hooks enforce lint/typecheck.
+
+**Notes:** Signal forwarded into SDK call options; dispatch rechecks before entry, after asynchronous authority/hooks, before post hooks, at windows and before persisted results. Cancellation records a terminal tool error without promising rollback of already-issued effects. SR-04 commit 118655156d0ec80e1cd2152bee5d1ce08a97ad27.
+
+**Commit:** see `PLANNING/evidence/sr05.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-04: Scope pre-push checks over actual pushed commits
 
 **Files changed:** `scripts/hooks/pre-push`, `scripts/hooks/pre-commit`, `scripts/pre-push-gate.cjs`, `scripts/pre-push-gate.test.cjs`, `.github/workflows/ci.yml`, `PLANNING/evidence/sr03.json`

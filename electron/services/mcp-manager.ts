@@ -808,7 +808,8 @@ export class McpManager {
     return () => this.elicitationCallbacks.delete(cb)
   }
 
-  async callTool(serverId: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
+  async callTool(serverId: string, toolName: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+    signal?.throwIfAborted()
     const state = this.servers.get(serverId)
     if (!state || !state.client || state.status !== 'connected') {
       throw new Error(`MCP server '${serverId}' is not connected`)
@@ -835,8 +836,8 @@ export class McpManager {
         { name: toolName, arguments: args },
         undefined,
         timeoutMs > 0
-          ? { timeout: timeoutMs, resetTimeoutOnProgress: true }
-          : undefined
+          ? { timeout: timeoutMs, resetTimeoutOnProgress: true, signal }
+          : { signal }
       )
       trace('mcp.callTool.complete', {
         traceId,

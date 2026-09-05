@@ -75,7 +75,7 @@ Usable cut: core dispatch and local persistence respect their contracts. Depends
 
 | Status / ID | Focused objective | Acceptance gate |
 |---|---|---|
-| [ ] SR-05 | Stop post-cancellation tool scheduling and stale settlement (SA-01) | Isolated real MCP/tool process: abort during first operation prevents second from starting; replacement turn retains ownership; pending non-cancellable call handled honestly; no false rollback claim |
+| [x] SR-05 | Stop post-cancellation tool scheduling and stale settlement (SA-01) | Isolated real MCP/tool process: abort during first operation prevents second from starting; replacement turn retains ownership; pending non-cancellable call handled honestly; no false rollback claim |
 | [ ] SR-06 | Fail closed on missing tool descriptors (SA-02) | Unknown names rejected before MCP; real registered fixture works; plan-mode mutation and approval bypass attempts denied; valid read tools remain usable |
 | [ ] SR-07 | Validate meta-tool argument structure at ingress (SA-15) | null/array/primitive/malformed args return structured errors without dispatch; legitimate search/unlock round trip works |
 | [ ] SR-08 | Preserve MCP configuration on read/write failures (SA-04) | Temporary malformed/unreadable config retained byte-for-byte; absent config initializes; atomic replacement fault does not destroy prior usable config |

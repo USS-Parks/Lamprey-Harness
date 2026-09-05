@@ -1171,6 +1171,7 @@ export async function runChatRound(
               signal,
               correlationId
             )
+            signal.throwIfAborted()
 
             // HY3 — spill threshold (chars). Default DEFAULT_SPILL_THRESHOLD;
             // `toolResultSpill: false` or `toolResultSpillBytes: 0` disables it.

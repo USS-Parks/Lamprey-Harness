@@ -52,8 +52,7 @@ describe('FC-2 — supportsTools flag audit', () => {
     expect(g426b.supportsTools).toBe(true)
   })
 
-  it('resolveModel for unknown model falls back to supportsTools=false', () => {
-    const custom = resolveModel('custom-unknown-model')
-    expect(custom.supportsTools).toBe(false)
+  it('resolveModel rejects unknown models before exposing a tool surface', () => {
+    expect(() => resolveModel('custom-unknown-model')).toThrow(/Unknown model/)
   })
 })

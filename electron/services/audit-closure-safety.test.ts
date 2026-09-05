@@ -61,8 +61,8 @@ describe('AC-37 Audit Closure invariants', () => {
     expect(src).toMatch(/filterOrchestrationTools/)
   })
 
-  it('unknown model supportsTools is false', () => {
-    expect(resolveModel('ac-37-unknown-model-id').supportsTools).toBe(false)
+  it('unknown models fail before exposing tools or dispatching', () => {
+    expect(() => resolveModel('ac-37-unknown-model-id')).toThrow(/Unknown model/)
   })
 
   it('suppressDoneEvent is absent', () => {

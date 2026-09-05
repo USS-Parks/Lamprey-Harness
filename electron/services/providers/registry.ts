@@ -782,12 +782,9 @@ function readCustomModelDescriptors(): ModelDescriptor[] {
     const models: ModelDescriptor[] = []
     for (const m of arr as Array<Record<string, unknown>>) {
       if (!m || typeof m.id !== 'string' || !m.id) continue
-      // Custom providers are legal targets here — only a truly unknown
-      // provider string falls back to deepseek (the pre-expansion behavior
-      // silently coerced ANY non-built-in string, including valid custom
-      // endpoints, onto api.deepseek.com).
-      const provider =
-        typeof m.provider === 'string' && isKnownProvider(m.provider) ? m.provider : 'deepseek'
+      // Preserve the declared destination even if it has been removed.
+      // Resolution rejects unavailable providers before any request is sent.
+      const provider = typeof m.provider === 'string' ? m.provider : ''
       models.push({
         id: m.id,
         name: typeof m.name === 'string' && m.name ? m.name : m.id,
@@ -824,6 +821,11 @@ export const OPENROUTER_AUTO_DESCRIPTOR: ModelDescriptor = {
 }
 
 export function resolveModel(modelId: string): ModelDescriptor {
+  const custom = readCustomModelDescriptors().find((m) => m.id === modelId)
+  if (custom) {
+    requireKnownModelProvider(custom.provider)
+    return custom
+  }
   if (modelId === OPENROUTER_AUTO_ID || modelId === 'openrouter-auto') {
     return OPENROUTER_AUTO_DESCRIPTOR
   }
@@ -836,22 +838,14 @@ export function resolveModel(modelId: string): ModelDescriptor {
     if (mapped) return mapped
   }
 
-  // JM-11 (CC-7) — a user-defined Custom Model wins over the blind fallback.
-  const custom = readCustomModelDescriptors().find((m) => m.id === modelId)
-  if (custom) return custom
+  throw new Error(`Unknown model '${modelId}'. Select an available model or restore its custom configuration.`)
+}
 
-  // Unknown model id — assume DeepSeek, OpenAI-compatible.
-  return {
-    id: modelId,
-    name: modelId,
-    provider: 'deepseek',
-    apiModelId: modelId,
-    contextWindow: 65536,
-    supportsTools: false,
-    supportsVision: false,
-    tier: 'pro',
-    description: 'Custom model.'
+export function requireKnownModelProvider(provider: unknown): string {
+  if (typeof provider !== 'string' || !isKnownProvider(provider)) {
+    throw new Error(`Model provider '${String(provider ?? '')}' is unavailable. Restore the provider or select another model.`)
   }
+  return provider
 }
 
 export function getProviderForModel(modelId: string): string {

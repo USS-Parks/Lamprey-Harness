@@ -827,8 +827,7 @@ describe('reasoning token exhaustion guards (Fix A/B)', () => {
       expect(desc.supportsTools).toBe(false)
       expect(desc.supportsVision).toBe(true)
       // Unknown ids still fall through to the DeepSeek default.
-      expect(resolveModel('totally-unknown-model').provider).toBe('deepseek')
-      expect(resolveModel('totally-unknown-model').supportsTools).toBe(false)
+      expect(() => resolveModel('totally-unknown-model')).toThrow(/Unknown model/)
     } finally {
       setUserDataPathProvider(null)
     }

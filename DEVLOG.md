@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-16: Reject unavailable model destinations before network dispatch
+
+**Files changed:** `electron/services/providers/registry.ts`, `electron/ipc/model.ts`, `electron/services/providers/model-destination.test.ts`, `electron/services/providers/registry.test.ts`, `electron/services/providers/supports-tools-audit.test.ts`, `electron/services/audit-closure-safety.test.ts`, `PLANNING/evidence/sr15.json`
+
+**Verification:** 77 tests passed across registry, destination, capability, audit-safety and picker wiring suites. Real OpenAI SDK requests hit a loopback HTTP receiver. With a synthetic fallback key and a second receiver configured as DeepSeek, removed-provider and unknown-model requests produced zero unintended requests. Streaming rejection, model-list provenance, active selection and rejected add/set IPC were exercised. Lint and both TypeScript projects run in the commit hook.
+
+**Notes:** Preserves declared providers; missing destinations and unknown models fail closed. Custom overrides now agree between picker and dispatch. Keeps an unavailable saved selection visible instead of silently selecting another provider. Historical tests expecting blind DeepSeek fallback now require rejection. Hosted SR-14 Windows CI exposed an existing PowerShell AST safe-command failure; retry requested for diagnosis, tracked for SR-31. That retry cancelled SR-15 CI via workflow concurrency; later head must receive its own successful run. SR-15 pushed at 609be5695d228eda8a86fbeacb276b240410a5dd.
+
+**Commit:** see `PLANNING/evidence/sr16.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-15: Preserve tool parameter names during schema normalization
 
 **Files changed:** `electron/services/providers/schema-normalizer.ts`, `electron/services/providers/schema-normalizer.test.ts`, `PLANNING/evidence/sr14.json`

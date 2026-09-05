@@ -7,6 +7,7 @@ import {
   listAllProviders,
   listLiveModelIds,
   resolveModel,
+  requireKnownModelProvider,
   verifyCatalog
 } from '../services/providers/registry'
 import { readSettings as readSettingsShared, writeSettingsFile } from '../services/settings-helper'
@@ -68,7 +69,7 @@ function readCustomModels(): ModelInfo[] {
 function combinedModels(): ModelInfo[] {
   const customs = readCustomModels().map((m) => ({
     ...m,
-    provider: isKnownProvider(m.provider) ? m.provider : 'deepseek',
+    provider: m.provider,
     custom: true
   }))
   const customIds = new Set(customs.map((m) => m.id))
@@ -107,15 +108,19 @@ export function registerModelHandlers(): void {
   ipcMain.handle('model:getActive', async () => {
     const settings = readSettings()
     const preferred = (settings.defaultModel as string) || 'deepseek-v4-pro'
-    const resolved = resolveModel(preferred)
-    const available = combinedModels().some((model) => model.id === resolved.id)
-    return { success: true, data: available ? resolved.id : 'deepseek-v4-pro' }
+    try {
+      return { success: true, data: resolveModel(preferred).id }
+    } catch {
+      // Keep the stored selection visible; dispatch reports why it is
+      // unavailable instead of silently sending to a different provider.
+      return { success: true, data: preferred }
+    }
   })
 
   ipcMain.handle('model:setActive', async (_event, id) => {
     try {
       const settings = readSettings()
-      settings.defaultModel = id
+      settings.defaultModel = resolveModel(id).id
       writeSettings(settings)
       return { success: true, data: null }
     } catch (err: any) {
@@ -141,7 +146,7 @@ export function registerModelHandlers(): void {
           typeof model.apiModelId === 'string' && model.apiModelId.trim()
             ? model.apiModelId.trim()
             : model.id.trim(),
-        provider: isKnownProvider(model.provider) ? model.provider : 'deepseek',
+        provider: requireKnownModelProvider(model.provider),
         contextWindow:
           typeof model.contextWindow === 'number' && model.contextWindow > 0
             ? model.contextWindow

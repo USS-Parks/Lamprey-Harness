@@ -11,5 +11,6 @@
     "scripts/acceptance/shell-link.cjs",
     "PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md",
     "PLANNING/evidence/sr28.json"
-  ]
+  ],
+  "commit": "97f4d872ce536c9d0e4f8a42f30a72df88048e70"
 }

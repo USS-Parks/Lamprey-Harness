@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-30: Make OpenWiki updates manual with an early credential guard
+
+**Files changed:** `.github/workflows/openwiki-update.yml`, `openwiki/operations/wiki-updates.md`, `openwiki/operations/index.md`, `PLANNING/evidence/sr30-check.cjs`, `PLANNING/evidence/sr29.json`
+
+**Verification:** Parsed the workflow YAML and verified workflow_dispatch is the only trigger. Executed the actual guard script in Bash with empty and fixture credentials: missing credentials fail clearly, configured credentials pass without printing the key. No provider request, secret creation or paid workflow dispatch occurred.
+
+**Notes:** The credential check runs before checkout and dependency installation. Operations documentation explains configuration, manual execution and PR review. SR-29 committed and pushed at 97f4d872ce536c9d0e4f8a42f30a72df88048e70.
+
+**Commit:** see `PLANNING/evidence/sr30.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-29: Share commit and push actions across environment surfaces
 
 **Files changed:** `src/hooks/useEnvironmentGitAction.tsx`, `src/components/workspace/EnvironmentPanel.tsx`, `src/components/workspace/FloatingEnvironmentCard.tsx`, `scripts/acceptance/environment-git.cjs`, `scripts/acceptance/shell-link.cjs`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr28.json`

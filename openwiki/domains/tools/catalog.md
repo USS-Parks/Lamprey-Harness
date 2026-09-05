@@ -284,8 +284,8 @@ When a user's saved default model is no longer in the catalog, `resolveModel` ch
 
 | File | Purpose |
 |---|---|
-| `electron/services/providers/catalog.ts` | MODEL_CATALOG, RETIRED_MODEL_MAP, `PROVIDERS` array |
-| `electron/services/providers/registry.ts` | `resolveModel()`, `getProviderForModel()`, dispatch routing |
+| `electron/services/providers/catalog.ts` | MODEL_CATALOG, RETIRED_MODEL_MAP |
+| `electron/services/providers/registry.ts` | `PROVIDERS` record, `resolveModel()`, `getProviderForModel()`, dispatch routing |
 | `electron/services/providers/capability-tracker.ts` | `supportsTools` downgrade on mismatch |
 | `src/components/settings/ModelSettings.tsx` | Model menu UI, import flow |
 | `src/lib/types.ts` | Renderer-side ProviderId union (parity-locked) |
@@ -293,9 +293,7 @@ When a user's saved default model is no longer in the catalog, `resolveModel` ch
 
 ---
 
-<!-- openwiki: broken internal link [../architecture/function-calling.md] file "../architecture/function-calling.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [../architecture/overview.md] file "../architecture/overview.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-Further reading: [architecture/function-calling.md](../architecture/function-calling.md), [architecture/overview.md](../architecture/overview.md)
+Further reading: [architecture/function-calling.md](../../architecture/function-calling.md), [architecture/overview.md](../../architecture/overview.md)
 
 ---
 

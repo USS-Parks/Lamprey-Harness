@@ -1,0 +1,267 @@
+{
+  "source": "ae0ab1467fd62fc4b3d219a99eb120a19bc963c9",
+  "completed_at": "2026-09-05T19:06:54.097369+00:00",
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--reporter=json",
+        "--outputFile=C:\\Users\\17076\\AppData\\Local\\Temp\\lamprey-final-tests-unef6qh2\\results.json"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "native",
+      "command": [
+        "node",
+        "scripts/test-native-db.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "node-unused",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.node.json",
+        "--noUnusedLocals",
+        "--noUnusedParameters"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "web-unused",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.web.json",
+        "--noUnusedLocals",
+        "--noUnusedParameters"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "gate-contracts",
+      "command": [
+        "node",
+        "--test",
+        "scripts/test-native-db.test.cjs",
+        "scripts/pre-push-gate.test.cjs",
+        "scripts/pre-push-scope.test.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "build",
+      "command": [
+        "node",
+        "node_modules/electron-vite/bin/electron-vite.js",
+        "build"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-plugins",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--plugins"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-attachments",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--attachments"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-settings",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--settings"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-shortcuts",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--shortcuts"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-keys",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--keys"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-prs",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--prs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-resize",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--resize"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-environment-git",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--environment-git"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-browser",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--browser"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-shutdown",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--shutdown"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-startup",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--startup"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-local-setup",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--local-setup"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-workflows",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--workflows"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-rag",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--rag"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "electron-pending-approval",
+      "command": [
+        "node",
+        "scripts/acceptance/shell-link.cjs",
+        "--shutdown",
+        "--pending-approval"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "api-key",
+      "command": [
+        "node",
+        "scripts/acceptance/api-key.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "browser-lifecycle",
+      "command": [
+        "node",
+        "scripts/acceptance/browser-lifecycle.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "environment-refresh",
+      "command": [
+        "node",
+        "scripts/acceptance/environment-refresh.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "dependency-runtime",
+      "command": [
+        "node",
+        "scripts/acceptance/dependency-runtime.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "resize",
+      "command": [
+        "node",
+        "scripts/acceptance/resize.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "subscriptions",
+      "command": [
+        "node",
+        "scripts/acceptance/subscriptions.cjs"
+      ],
+      "exit": 0
+    },
+    {
+      "check": "proof",
+      "command": [
+        "npm.cmd",
+        "run",
+        "verify:proof",
+        "--",
+        "--no-tests",
+        "--require-smokes"
+      ],
+      "exit": 0
+    }
+  ]
+}

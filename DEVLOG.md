@@ -1,3 +1,13 @@
+## 2026-09-05 — SR-34: Record final source acceptance and finding ledger
+
+**Files changed:** `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`, `PLANNING/evidence/sr34b.json`, `PLANNING/evidence/sr34-verify.py`, `PLANNING/evidence/sr34-ledger.py`, `PLANNING/evidence/sr34-skip-ledger.py`, `PLANNING/evidence/sr34-wiki-links.py`, `PLANNING/evidence/sr-hosted.py`, `PLANNING/evidence/sr34-local.json`, `PLANNING/evidence/sr34-skips.json`, `PLANNING/evidence/sr34-final-local.json`, `PLANNING/evidence/sr34-final-skips.json`, `PLANNING/evidence/sr34-hosted.json`, `PLANNING/evidence/SR34_SOURCE_LEDGER.md`, `PLANNING/evidence/SR34_SKIPS.md`, `openwiki/domains/chat/settlement.md`, `openwiki/domains/tools/catalog.md`, `openwiki/domains/tools/mcp.md`
+
+**Verification:** Exact candidate ae0ab1467fd62fc4b3d219a99eb120a19bc963c9 passes full Vitest (3007 passed, 175 skipped), dedicated native suite (170 passed, zero skips), both TypeScript unused diagnostics, gate contracts, production build, 14 Electron modes plus pending-approval shutdown, six independent runtime/browser fixtures and proof with required smokes. All 56 non-example local wiki links resolve. Exact hosted outcomes recorded in sr34-hosted.json; complete local commands in sr34-final-local.json.
+
+**Notes:** All 41 findings mapped to repair receipts and commit SHAs. Every default skip classified. SA-18 explicitly remains open for SR-35/SR-37; documentation/storage publication closeout remains SR-38. Historical probe evidence preserved; current regression suites rerun all nine original probe targets. No new production behavior in this prompt. Corrected six wiki architecture links and provider registry attribution. Earlier pre-RAG final matrix retained as historical evidence, not the final candidate.
+
+**Commit:** see `PLANNING/evidence/sr34.json` (SHA recorded immediately after commit).
+
 ## 2026-09-05 — SR-34B: Repair production RAG worker and vector storage
 
 **Files changed:** `electron.vite.config.ts`, `electron/services/rag/embeddings/service.test.ts`, `electron/services/rag/embeddings/worker.ts`, `electron/services/rag/store.ts`, `electron/services/rag/retrieve.ts`, `electron/services/rag/vector-store-native.test.ts`, `scripts/acceptance/shell-link.cjs`, `PLANNING/evidence/sr34b-network.py`, `PLANNING/evidence/sr34a.json`, `PLANNING/LAMPREY_SEPTEMBER_2026_REAUDIT.md`

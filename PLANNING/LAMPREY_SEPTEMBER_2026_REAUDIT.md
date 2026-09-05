@@ -1,6 +1,6 @@
 # Lamprey whole-repository re-audit — 5 September 2026
 
-Status: full STS and Bucket authorized on 5 September 2026. Source remediation is complete through SR-31I; final source acceptance and publication remain open. Companion: [remediation PSPR](LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md).
+Status: full STS and Bucket authorized on 5 September 2026. Source remediation is complete through SR-34B; final source acceptance is recorded below. Release-pipeline repair and publication remain open. Companion: [remediation PSPR](LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md).
 
 ## Original audit conclusion (before execution)
 
@@ -315,5 +315,13 @@ Package metadata now points to the canonical Lamprey-Harness repository. README 
 **SA-41 — P1 — Production embedding and vector retrieval were not executable despite passing unit tests.** The production build omitted `worker.js`, so the actual embedder IPC failed with `Cannot find module './worker.js'`. After adding its build entry, document ingestion exposed an unbundled `require('./vec-loader')`, then a sqlite-vec integer-primary-key binding error. Vector serialization also ignored typed-array offsets and lengths. The opt-in network test was an empty body and proved none of this.
 
 SR-34B emits the worker, uses a static vec-loader import, binds vector row IDs as BigInt, and serializes exactly the vector view in insertion and retrieval. The worker explicitly selects the catalog's quantized q8 model. The replacement network test downloads and executes the real worker and checks finite, normalized 384-dimensional output. A native regression fails before the vector fix and passes afterward, including an offset view. All 170 native tests execute. The rebuilt Electron application now downloads the real model, ingests an isolated document to ready, and retrieves its text with one vector hit. This raises the ledger to 41 findings; final release acceptance remains open. See [SR-34B receipt](evidence/sr34b.json).
+
+## SR-34 source acceptance
+
+Candidate `ae0ab1467fd62fc4b3d219a99eb120a19bc963c9`: 3,007 default tests passed, zero failed; all 170 dedicated native tests executed. Both TypeScript projects also pass unused-local/parameter diagnostics. Build, verification-gate contracts, lint and proof with required bundle smokes pass. Fourteen production Electron modes plus pending-approval shutdown pass, followed by six independent runtime/browser fixtures. The [local matrix](evidence/sr34-final-local.json) records every command; [hosted receipt](evidence/sr34-hosted.json) records the exact candidate's CI/build/Pages outcomes.
+
+All 41 findings have explicit [source dispositions and commit links](evidence/SR34_SOURCE_LEDGER.md). The [skip ledger](evidence/SR34_SKIPS.md) accounts for all 175 default skips, including native tests executed separately, actual opt-in model inference, and retained platform limitations. This is evidence for the tested paths, not a claim that every possible defect has been eliminated.
+
+Source closeout also corrects six broken wiki architecture links and the provider registry's file/type attribution; all 56 non-example local wiki links resolve. Remaining generated release-wiki claims are reconciled with the Bucket implementation in SR-35. SA-18 remains open until that repair and final published-byte acceptance; installer publication is not claimed here.
 
 Authored and reviewed by Basho Parks, copyright 2026

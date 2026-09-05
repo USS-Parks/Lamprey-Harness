@@ -1,0 +1,322 @@
+{
+  "source": "cb0ba600cd90ca7a0a93e9bfcc1937f391cc169b",
+  "passed": 3007,
+  "failed": 0,
+  "pending": 174,
+  "skips": [
+    {
+      "file": "electron/services/artifact-edit-store.test.ts",
+      "tests": [
+        "VA-4 immutable artifact edit proposals previews an exact range without changing the current revision",
+        "VA-4 immutable artifact edit proposals accepts by appending a user-provenance revision and retaining the prior revision",
+        "VA-4 immutable artifact edit proposals rejects without adding a revision",
+        "VA-4 immutable artifact edit proposals marks a stale proposal conflicted and never overwrites the newer revision",
+        "VA-4 immutable artifact edit proposals rejects ranges outside the exact base revision"
+      ]
+    },
+    {
+      "file": "electron/services/artifact-store.test.ts",
+      "tests": [
+        "VA-1 artifact native store creates a provenance-bound artifact with an immutable first revision",
+        "VA-1 artifact native store rejects mismatched conversation/message provenance",
+        "VA-1 artifact native store links a turn-created artifact to the owning assistant message",
+        "VA-1 artifact native store appends revisions atomically, retains history, and rejects stale writers",
+        "VA-1 artifact native store binds annotations to exact revision ranges and actor provenance",
+        "VA-1 artifact native store retains revisions and immutable origin after transcript deletion",
+        "VA-1 artifact native store mirrors research files and ephemeral previews idempotently",
+        "VA-1 artifact native store gives new message documents the same deterministic editable artifact identity as backfill"
+      ]
+    },
+    {
+      "file": "electron/services/backup-runner.test.ts",
+      "tests": [
+        "backup-runner (PS5) createBackup creates a valid copy under YYYY-MM-DD filename",
+        "backup-runner (PS5) createBackup is idempotent within the same day (overwrites)",
+        "backup-runner (PS5) listBackups returns newest-first",
+        "backup-runner (PS5) listBackups returns empty array when backupDir does not exist",
+        "backup-runner (PS5) listBackups skips files that do not match the naming pattern",
+        "backup-runner (PS5) pruneOldBackups deletes files older than retentionDays",
+        "backup-runner (PS5) restoreFromBackup moves current DB aside + copies backup into place",
+        "backup-runner (PS5) restoreFromBackup refuses unrecognized backup filenames",
+        "backup-runner (PS5) restoreFromBackup refuses missing backup path"
+      ]
+    },
+    {
+      "file": "electron/services/context-compressor-native.test.ts",
+      "tests": [
+        "native tool-group compression selects every result when the budget ends inside a multi-tool block",
+        "native tool-group compression leaves a pending group intact while allowing earlier complete messages",
+        "native tool-group compression refuses an unmatched or duplicate result unrelated",
+        "native tool-group compression refuses an unmatched or duplicate result one",
+        "native tool-group compression persists compression without orphaning a surviving result"
+      ]
+    },
+    {
+      "file": "electron/services/conversation-compaction.test.ts",
+      "tests": [
+        "snapshot-safe compaction with native SQLite refuses a stale summary without erasing an intervening message",
+        "snapshot-safe compaction with native SQLite rolls back message and search deletion when summary insertion fails",
+        "snapshot-safe compaction with native SQLite atomically replaces an unchanged snapshot with its summary"
+      ]
+    },
+    {
+      "file": "electron/services/conversation-store-sanitize.test.ts",
+      "tests": [
+        "saveMessage \u2014 HX4 pseudo-XML sanitisation round-trip assistant row with <bash> pseudo-tags: content is fenced clean, content_raw retains the verbatim original",
+        "saveMessage \u2014 HX4 pseudo-XML sanitisation round-trip assistant row with no pseudo-tags: content_raw is NULL (no-op rewrite optimisation)",
+        "saveMessage \u2014 HX4 pseudo-XML sanitisation round-trip user row with text that looks like pseudo-XML is NOT sanitised; content_raw is NULL",
+        "saveMessage \u2014 HX4 pseudo-XML sanitisation round-trip system + tool rows pass through unchanged with content_raw NULL",
+        "saveMessage \u2014 HX4 pseudo-XML sanitisation round-trip idempotency at the DB layer: a round-tripped already-sanitised row stays unchanged on re-save"
+      ]
+    },
+    {
+      "file": "electron/services/dangerous-command-policy.test.ts",
+      "tests": [
+        "BD-4 dangerous command policy fails closed when the Windows PowerShell parser is unavailable on this runner"
+      ]
+    },
+    {
+      "file": "electron/services/database-checkpoint.test.ts",
+      "tests": [
+        "database checkpoint (PS2) returns ok:true and reports pages moved when WAL has content",
+        "database checkpoint (PS2) returns ok:false / zeroed result when called with no DB available",
+        "database checkpoint (PS2) is a no-op (ok:true, pages 0) on a freshly-opened DB with empty WAL",
+        "startPeriodicCheckpoint (PS2) rejects non-positive intervals",
+        "startPeriodicCheckpoint (PS2) returns a stop function that cancels the timer",
+        "startPeriodicCheckpoint (PS2) is idempotent \u2014 second start returns a working stop for the live timer"
+      ]
+    },
+    {
+      "file": "electron/services/database-integrity.test.ts",
+      "tests": [
+        "runIntegrityCheck (PS4) returns ok:true on a healthy DB",
+        "runIntegrityCheck (PS4) caches the last result for getLastIntegrityResult()",
+        "runIntegrityCheck (PS4) returns ok:false with descriptive payload when no DB is available",
+        "runIntegrityCheck (PS4) returns ok:false when the DB file is structurally invalid"
+      ]
+    },
+    {
+      "file": "electron/services/db-migrations.test.ts",
+      "tests": [
+        "db-migrations stamps a fresh DB at LATEST_VERSION using the real registry",
+        "db-migrations is a no-op on a DB already at LATEST_VERSION",
+        "db-migrations only runs migrations newer than the current user_version",
+        "db-migrations rolls back DDL + version bump when a migration throws",
+        "db-migrations refuses to run against a DB stamped higher than LATEST_VERSION (downgrade guard)",
+        "db-migrations aborts v1 baseline stamp if a required table is missing",
+        "db-migrations WC-4 \u2014 migration v16 adds messages.proof_status as nullable TEXT (idempotent)",
+        "db-migrations ST-2 \u2014 migration v21 creates the turn and follow-up ledgers",
+        "db-migrations TC-4 \u2014 migration v22 adds the historical fork turn backlink",
+        "db-migrations TC-5 \u2014 migration v23 adds recoverable task close metadata",
+        "db-migrations VA-1 \u2014 migration v24 adds artifact, revision, and annotation ledgers",
+        "db-migrations VA-3 \u2014 migration v25 adds message visualization attachments",
+        "db-migrations VA-4 - migration v26 adds immutable artifact edit proposals",
+        "db-migrations PR-1 - migration v27 adds immutable PR binding metadata",
+        "db-migrations PR-3 - migration v28 adds detached findings and idempotency receipts",
+        "db-migrations PR-4 - migration v29 adds editable patch proposals",
+        "db-migrations GA-2 - migration v30 adds typed triggers and durable automation runs",
+        "db-migrations GA-3 - migration v31 adds operational goal lifecycle fields",
+        "db-migrations AC-19 - migration v33 persists tool_search unlocks per conversation",
+        "db-migrations GA-4 - migration v32 adds persistent goal and automation loop bindings",
+        "db-migrations stops applying after a failure and reports the partial result via thrown error"
+      ]
+    },
+    {
+      "file": "electron/services/dev-server-manager.test.ts",
+      "tests": [
+        "dev-server-manager reflects a quick-exit child as exited",
+        "dev-server-manager marks a failed child as failed with the exit code"
+      ]
+    },
+    {
+      "file": "electron/services/failure-ledger.test.ts",
+      "tests": [
+        "failure ledger recordFailure inserts a new failure row",
+        "failure ledger recordFailure derives a stable fingerprint from kind + command + contractId + diffHash",
+        "failure ledger recordFailure increments count when the same fingerprint reoccurs",
+        "failure ledger recordFailure different kinds with same command produce different fingerprints",
+        "failure ledger recordFailure stores all linking fields",
+        "failure ledger recordFailure updates message on repeat when non-empty",
+        "failure ledger listFailures lists all failures sorted by last_seen_at desc",
+        "failure ledger listFailures filters by kind single value",
+        "failure ledger listFailures filters by kind array",
+        "failure ledger listFailures filters by contractId",
+        "failure ledger listFailures filters by conversationId",
+        "failure ledger listFailures respects limit",
+        "failure ledger listFailures supports ascending order",
+        "failure ledger getFailure / getFailureByFingerprint gets by id",
+        "failure ledger getFailure / getFailureByFingerprint returns null for unknown id",
+        "failure ledger getFailure / getFailureByFingerprint gets by fingerprint",
+        "failure ledger handleProofEvent creates a ledger row for proof.receipt.failed events",
+        "failure ledger handleProofEvent creates a ledger row for proof.gate.failed events",
+        "failure ledger handleProofEvent creates a ledger row for proof.gate.waived events",
+        "failure ledger handleProofEvent does nothing for unrecognized event types",
+        "failure ledger generateReplaySeed returns stored replay seed plus derived fields",
+        "failure ledger generateReplaySeed falls back to record fields when seed is empty"
+      ]
+    },
+    {
+      "file": "electron/services/fork-task-native.test.ts",
+      "tests": [
+        "atomic historical fork with native SQLite rolls back child, messages and search rows when the second copy fails",
+        "atomic historical fork with native SQLite commits a complete child and rolls back attachment-stage failures"
+      ]
+    },
+    {
+      "file": "electron/services/keychain.test.ts",
+      "tests": [
+        "keychain file permissions (SEC-3) persists keys.json with mode 0o600 on POSIX",
+        "keychain file permissions (SEC-3) upgrades a previously-loose 0o644 file to 0o600 on next write"
+      ]
+    },
+    {
+      "file": "electron/services/loop-runner.test.ts",
+      "tests": [
+        "G2 loop wake-ups schedules and fires due wake-ups as user messages",
+        "G2 loop wake-ups cancels pending wake-ups before they fire"
+      ]
+    },
+    {
+      "file": "electron/services/loop-store.test.ts",
+      "tests": [
+        "LP-2 loop-store CRUD fresh open stamps user_version to LATEST_VERSION",
+        "LP-2 loop-store CRUD creates, reads, updates, and lists loops",
+        "LP-2 loop-store CRUD lists only due running loops",
+        "LP-2 loop-store CRUD drains the backlog in position order and tracks counts",
+        "LP-2 loop-store CRUD reorders and removes backlog items",
+        "LP-2 loop-store CRUD records and finishes run audit rows",
+        "LP-2 loop-store CRUD deleteLoop cascades backlog + runs"
+      ]
+    },
+    {
+      "file": "electron/services/monitor-service.test.ts",
+      "tests": [
+        "F4 \u2014 background shell fires bg-exit with the exit code"
+      ]
+    },
+    {
+      "file": "electron/services/proof-receipts.test.ts",
+      "tests": [
+        "proof receipts inserts, lists, and gets proof receipts",
+        "proof receipts redacts secret-looking values before storing previews",
+        "proof receipts hashes and caps oversized output while retaining artifact previews",
+        "proof receipts finds only fresh passing proof for a contract",
+        "proof receipts keeps receipts append-only",
+        "proof receipts applies the schema idempotently and through migrations"
+      ]
+    },
+    {
+      "file": "electron/services/restore-safety.test.ts",
+      "tests": [
+        "recoverable restore with native SQLite rejects invalid SQLite without closing or moving the live database",
+        "recoverable restore with native SQLite rejects correctly named files outside the authorized backup directory",
+        "recoverable restore with native SQLite preserves the live database when staging fails",
+        "recoverable restore with native SQLite rolls back a live move failure",
+        "recoverable restore with native SQLite rolls back a sidecar move failure",
+        "recoverable restore with native SQLite rolls back a install move failure",
+        "recoverable restore with native SQLite restores the original file when the installed database cannot reopen",
+        "recoverable restore with native SQLite opens a valid replacement and retains the original file",
+        "recoverable restore with native SQLite rejects overlapping restores for the same database"
+      ]
+    },
+    {
+      "file": "electron/services/schema-init.test.ts",
+      "tests": [
+        "initLegacySchema (PS6) creates every expected ordinary table on a fresh DB",
+        "initLegacySchema (PS6) creates every expected FTS5 virtual table",
+        "initLegacySchema (PS6) creates every expected FTS sync trigger",
+        "initLegacySchema (PS6) applies every historical safeAddColumn to conversations",
+        "initLegacySchema (PS6) applies every historical safeAddColumn to messages",
+        "initLegacySchema (PS6) is idempotent \u2014 re-running on the same DB does not throw",
+        "initLegacySchema (PS6) hands a fresh legacy schema to all migrations including the turn ledger",
+        "initLegacySchema (PS6) preserves CASCADE FK from messages to conversations"
+      ]
+    },
+    {
+      "file": "electron/services/sessions-search.test.ts",
+      "tests": [
+        "E3 \u2014 sessions sidebar buckets + FTS search archive moves a conversation from Recent to Archived",
+        "E3 \u2014 sessions sidebar buckets + FTS search pinning moves a conversation to the Pinned bucket",
+        "E3 \u2014 sessions sidebar buckets + FTS search searchSessions finds verbatim phrases in message bodies",
+        "E3 \u2014 sessions sidebar buckets + FTS search listSessions({ query }) restricts the bucket to FTS hits",
+        "E3 \u2014 sessions sidebar buckets + FTS search FTS backfill repopulates the index after a wipe",
+        "E3 \u2014 sessions sidebar buckets + FTS search clearConversationMessages drops message rows + FTS entries"
+      ]
+    },
+    {
+      "file": "electron/services/turn-control-store.test.ts",
+      "tests": [
+        "TurnControlStore (native SQLite) round-trips a running turn and settles it exactly once",
+        "TurnControlStore (native SQLite) enforces one running turn per conversation",
+        "TurnControlStore (native SQLite) deduplicates client-message retries to the original row",
+        "TurnControlStore (native SQLite) assigns deterministic queue positions and reorders atomically",
+        "TurnControlStore (native SQLite) edits queued and recovered drafts but not delivered input",
+        "TurnControlStore (native SQLite) enforces the follow-up state machine and required terminal details",
+        "TurnControlStore (native SQLite) recovers orphaned turns and accepted steers while preserving Queue order",
+        "TurnControlStore (native SQLite) preserves input ordering through the versioned JSON envelope",
+        "TurnControlStore (native SQLite) cascades ledger rows when the conversation is deleted"
+      ]
+    },
+    {
+      "file": "electron/services/rag/embedder-meta.test.ts",
+      "tests": [
+        "embedder-meta (PS7) readEmbedderMeta returns null on an empty table",
+        "embedder-meta (PS7) stampEmbedderMeta + readEmbedderMeta round-trip",
+        "embedder-meta (PS7) stampEmbedderMeta upserts (second call overwrites the singleton row)",
+        "embedder-meta (PS7) stampEmbedderMeta refuses an unknown embedder id",
+        "embedder-meta (PS7) assertEmbedderDimensionMatch stamps on first call (fresh DB)",
+        "embedder-meta (PS7) assertEmbedderDimensionMatch returns catalogue entry when dims match",
+        "embedder-meta (PS7) assertEmbedderDimensionMatch throws on dimension mismatch with structured payload",
+        "embedder-meta (PS7) assertEmbedderDimensionMatch refuses an unknown configured embedder"
+      ]
+    },
+    {
+      "file": "electron/services/sandbox/darwin.test.ts",
+      "tests": [
+        "applyDarwinProfile (integration, darwin only) spawns through real sandbox-exec and prints stdout"
+      ]
+    },
+    {
+      "file": "electron/services/sandbox/linux.test.ts",
+      "tests": [
+        "applyLinuxProfile integration (linux only) produced argv actually spawns and runs the wrapped command"
+      ]
+    },
+    {
+      "file": "electron/services/snip/apply.test.ts",
+      "tests": [
+        "snip applySnip master switch off \u2192 pass-through with no DB writes",
+        "snip applySnip per-call bypass \u2192 pass-through but logs to snip_command_log",
+        "snip applySnip no matching filter \u2192 pass-through + command_log with null filter",
+        "snip applySnip failure exit code \u2192 pass-through (failure detail is the signal)",
+        "snip applySnip successful match \u2192 transforms stdout, records event, preserves exit code",
+        "snip applySnip filter that would grow output \u2192 fall back to raw, no event row",
+        "snip applySnip chain command \u2192 pass-through (matcher returns null for chains)"
+      ]
+    },
+    {
+      "file": "electron/services/snip/tracking.test.ts",
+      "tests": [
+        "snip tracking \u2014 recordEvent + getStats returns the empty-shape SnipStats on a fresh DB",
+        "snip tracking \u2014 recordEvent + getStats aggregates totals across 100 synthetic events",
+        "snip tracking \u2014 recordEvent + getStats orders topByTokens by tokens saved descending",
+        "snip tracking \u2014 sparkline returns exactly 14 entries with newest at index 13",
+        "snip tracking \u2014 sparkline zero-fills quiet days",
+        "snip tracking \u2014 sparkline drops events older than 14 days",
+        "snip tracking \u2014 getRecent returns newest-first, capped by limit",
+        "snip tracking \u2014 getRecent caps limit to a sane upper bound",
+        "snip tracking \u2014 getUnfilteredCommands returns top-K unmatched commands by total tokens, ignoring matched ones",
+        "snip tracking \u2014 getUnfilteredCommands respects the since window",
+        "snip tracking \u2014 clearAll wipes both tables",
+        "snip tracking \u2014 best-effort failure handling recordEvent does not throw when the DB is closed",
+        "snip tracking \u2014 best-effort failure handling getStats returns an empty payload on DB failure"
+      ]
+    },
+    {
+      "file": "electron/services/rag/embeddings/service.test.ts",
+      "tests": [
+        "EmbeddingsService \u2014 real worker (network) downloads bge-small and produces 384-dim normalized vectors"
+      ]
+    }
+  ]
+}

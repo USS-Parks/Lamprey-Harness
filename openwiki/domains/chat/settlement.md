@@ -355,9 +355,7 @@ Settlement events are recorded for audit:
 
 ---
 
-<!-- openwiki: broken internal link [../architecture/overview.md] file "../architecture/overview.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [../architecture/turn-control.md] file "../architecture/turn-control.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-Further reading: [architecture/overview.md](../architecture/overview.md), [architecture/turn-control.md](../architecture/turn-control.md)
+Further reading: [architecture/overview.md](../../architecture/overview.md), [architecture/turn-control.md](../../architecture/turn-control.md)
 
 ---
 

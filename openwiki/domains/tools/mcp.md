@@ -313,9 +313,7 @@ When an MCP server is installed (as a plugin), it ships a `plugin.json`:
 
 ---
 
-<!-- openwiki: broken internal link [../architecture/function-calling.md] file "../architecture/function-calling.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [../architecture/overview.md] file "../architecture/overview.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-Further reading: [architecture/function-calling.md](../architecture/function-calling.md), [architecture/overview.md](../architecture/overview.md)
+Further reading: [architecture/function-calling.md](../../architecture/function-calling.md), [architecture/overview.md](../../architecture/overview.md)
 
 ---
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useSessionsStore } from '@/stores/sessions-store'
 
 // E3 — search input for the Sessions sidebar.
@@ -9,9 +9,10 @@ import { useSessionsStore } from '@/stores/sessions-store'
 
 interface Props {
   placeholder?: string
+  inputRef?: RefObject<HTMLInputElement | null>
 }
 
-export function SessionSearchBar({ placeholder = 'Search sessions…' }: Props) {
+export function SessionSearchBar({ placeholder = 'Search tasks…', inputRef }: Props) {
   const setQuery = useSessionsStore((s) => s.setQuery)
   const liveQuery = useSessionsStore((s) => s.query)
   const loading = useSessionsStore((s) => s.loading)
@@ -38,12 +39,13 @@ export function SessionSearchBar({ placeholder = 'Search sessions…' }: Props) 
   return (
     <div className="relative px-2">
       <input
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1.5 pr-8 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
         type="search"
-        aria-label="Search sessions"
+        aria-label="Search tasks"
       />
       {value && (
         <button

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
 import { useChatStore } from '@/stores/chat-store'
+import { useProjectsStore } from '@/stores/projects-store'
 import { toast } from '@/stores/toast-store'
 
 interface Worktree {
@@ -11,6 +12,8 @@ interface Worktree {
 
 export function WorktreeManagerModal() {
   const visible = useUiStore((s) => s.worktreeModalOpen)
+  const projectId = useUiStore(s => s.worktreeModalProjectId)
+  const projectPath = useProjectsStore(s => s.projects.find(project => project.id === projectId)?.path)
   const close = useUiStore((s) => s.closeWorktreeModal)
   const [list, setList] = useState<Worktree[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +31,9 @@ export function WorktreeManagerModal() {
       return
     }
     setCwd(null)
-    const folder = await window.api.files.getWorkdir(owner)
+    const folder = projectId
+      ? { success: !!projectPath, data: projectPath ? { path: projectPath } : undefined, error: 'Project folder unavailable' }
+      : await window.api.files.getWorkdir(owner)
     if (!folder.success || !folder.data) { setError(folder.error ?? 'Task folder unavailable'); return }
     setCwd(folder.data.path)
     const res = await window.api.worktree.list({ cwd: folder.data.path })
@@ -37,7 +42,7 @@ export function WorktreeManagerModal() {
       return
     }
     setList(res.data as Worktree[])
-  }, [owner, contextRevision])
+  }, [owner, contextRevision, projectId, projectPath])
 
   useEffect(() => {
     if (visible) void refresh()
@@ -75,6 +80,7 @@ export function WorktreeManagerModal() {
         worktreePath: data.path
       })
       if (conv.success) {
+        if (projectId) await useProjectsStore.getState().assignConversation(conv.data.id, projectId)
         await useChatStore.getState().loadConversations()
         await useChatStore.getState().selectConversation(conv.data.id)
         close()

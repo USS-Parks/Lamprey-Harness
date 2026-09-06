@@ -1,0 +1,13 @@
+{
+  "prompt": "UX-22",
+  "sourceBase": "959055fb258f18b74ebaadd539104d08807b796a",
+  "status": "local-pass",
+  "evidence": [
+    "UX22_RUN4/TASK_DATA.json",
+    "UX22_RUN4/RUNTIME.json",
+    "UX22_RUN4/LIFECYCLE.json",
+    "UX22_BUILD3.log",
+    "UX22_PROOF_PUSH20.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX22.json"
+}

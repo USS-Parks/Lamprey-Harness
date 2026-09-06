@@ -367,7 +367,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1 plus actual temporary-profile persistence where changed; the same task never appears as unrelated duplicate records, legacy sessions remain discoverable, and reload retains project/task relationships.
 
 #### UX-22 — Render the simplified task sidebar
-- [ ] **Objective:** make projects, pins, recents and attention the primary navigation.
+- [x] **Objective:** make projects, pins, recents and attention the primary navigation.
 - **Work:** implement the approved hierarchy over UX-21 selectors; fold Sessions into the normal task list, retain New task/Search, and move Customize/Automations/Settings to compact stable access. Put worktree management under project actions.
 - **Seams/output:** Sidebar, project rows and current task actions.
 - **Gate:** G1/G2; new/select/rename/pin/unpin/archive/unarchive/fork/project selection remain reachable; focused tasks are revealed; keyboard and pointer paths work; empty and long project names are legible. No conversation deletion substituted for archive.

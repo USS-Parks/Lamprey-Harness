@@ -99,7 +99,7 @@ function readPinned(key = PINNED_KEY): string[] {
 function readCollapsed(): boolean {
   if (typeof window === 'undefined') return false
   const raw = window.localStorage?.getItem(COLLAPSED_KEY)
-  return raw === '1' || raw === 'true'
+  return raw === null || raw === '1' || raw === 'true'
 }
 
 function writeLocal(key: string, value: string): void {

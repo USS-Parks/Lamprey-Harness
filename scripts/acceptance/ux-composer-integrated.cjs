@@ -167,7 +167,7 @@ module.exports = async function integratedComposer({ page, app, ids, profile, re
   await send.waitFor()
   await input.fill('')
   const tasksBefore = await page.evaluate(async () => (await window.api.conversation.list()).data.map(task => task.id))
-  await page.getByRole('button', { name: 'New chat', exact: true }).first().click()
+  await page.getByRole('button', { name: 'New task', exact: true }).first().click()
   await page.waitForFunction(() => !document.querySelector('textarea[aria-label="Message Lamprey"]').disabled)
   await input.fill('New task draft retained after rejected creation send')
   await app.evaluate(({ ipcMain }) => {

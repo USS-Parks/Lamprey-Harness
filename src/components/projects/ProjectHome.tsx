@@ -47,7 +47,8 @@ export function ProjectHome({ projectId, onClose }: Props) {
       const newId = await createConversation()
       if (newId && projectId) {
         await window.api?.projects?.assignConversation(newId, projectId)
-        selectConversation(newId)
+        await useChatStore.getState().loadConversations()
+        await selectConversation(newId)
         onClose()
       }
     } finally {

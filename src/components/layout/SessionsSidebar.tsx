@@ -1,10 +1,11 @@
 import { partitionTaskRows, reconcileTaskRows, taskRunning } from '@/lib/task-navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useSessionsStore, type SessionEntry, type SessionsTab } from '@/stores/sessions-store'
 import { useChatStore } from '@/stores/chat-store'
 import { useProjectsStore } from '@/stores/projects-store'
 import { SessionSearchBar } from './SessionSearchBar'
 import { PopoverMenu } from '@/components/ui/PopoverMenu'
+import { toast } from '@/stores/toast-store'
 import { SessionDetailPane } from '@/components/sessions/SessionDetailPane'
 
 const TABS: { key: SessionsTab; label: string }[] = [
@@ -15,6 +16,8 @@ const TABS: { key: SessionsTab; label: string }[] = [
 
 interface SessionsSidebarProps {
   embedded?: boolean
+  searchRef?: RefObject<HTMLInputElement | null>
+  onSelected?: () => void
 }
 
 interface SessionGroup {
@@ -35,7 +38,7 @@ function formatWhen(ts: number): string {
   return new Date(ts).toLocaleDateString()
 }
 
-export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
+export function SessionsSidebar({ embedded = false, searchRef, onSelected }: SessionsSidebarProps) {
   const tab = useSessionsStore((s) => s.tab)
   const setTab = useSessionsStore((s) => s.setTab)
   const sessionEntries = useSessionsStore((s) => s.entries)
@@ -67,8 +70,9 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
 
   useEffect(() => {
     void loadProjects()
-    void loadFirstPage()
-  }, [loadFirstPage, loadProjects])
+  }, [loadProjects])
+
+  useEffect(() => { void loadFirstPage() }, [loadFirstPage, conversations])
 
   useEffect(() => {
     if (!window.api?.tasks?.onNotify) return
@@ -113,6 +117,7 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
     setSelectedId(id)
     clearUnread(id)
     await selectConversation(id)
+    onSelected?.()
   }
 
   const movePinned = (targetId: string) => {
@@ -134,12 +139,12 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
     >
       <div className="flex items-center justify-between px-3">
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-          Sessions
+          Tasks
         </span>
         <span className="font-mono text-[10px] text-[var(--text-muted)]">{entries.length}</span>
       </div>
 
-      <SessionSearchBar />
+      <SessionSearchBar inputRef={searchRef} />
 
       <div className="flex items-center gap-1 overflow-x-auto px-2">
         {TABS.map((t) => (
@@ -147,7 +152,7 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider transition-colors ${
+            className={`min-h-8 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider transition-colors ${
               tab === t.key
                 ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
                 : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
@@ -166,7 +171,7 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
         ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto px-1"
         role="listbox"
-        aria-label={`${tab} sessions`}
+        aria-label={`${tab} tasks`}
       >
         {entries.length === 0 && !loading ? (
           <p className="px-3 py-4 text-[12px] text-[var(--text-muted)]">
@@ -219,6 +224,7 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
         )}
       </div>
 
+      <details className="shrink-0 max-h-[30%] overflow-y-auto border-t border-[var(--panel-border)]"><summary className="min-h-8 cursor-pointer px-3 py-2 text-xs">Task details</summary>
       <SessionDetailPane
         session={selected}
         unreadCount={selected ? unreadAgentResults[selected.id] ?? 0 : 0}
@@ -229,6 +235,7 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
         }}
         onArchive={(id, archived) => archive(id, archived)}
       />
+      </details>
     </div>
   )
 }
@@ -317,9 +324,26 @@ function SessionRow({
   const pinned = (entry.pinnedAt ?? null) !== null
   const [menuOpen, setMenuOpen] = useState(false)
   const anchorRef = useRef<HTMLButtonElement | null>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const [renaming, setRenaming] = useState(false)
+  const [title, setTitle] = useState(entry.title)
+  const [saving, setSaving] = useState(false)
+  useEffect(() => { if (active) rowRef.current?.scrollIntoView({ block: 'nearest' }) }, [active])
+  const rename = async () => {
+    if (!title.trim() || saving) return
+    setSaving(true)
+    try {
+      const result = await window.api.conversation.updateTitle(entry.id, title.trim())
+      if (!result.success) throw new Error(result.error || 'Rename failed')
+      await Promise.all([useChatStore.getState().loadConversations(), useSessionsStore.getState().loadFirstPage()])
+      setRenaming(false)
+    } catch (error) { toast.error(String(error)) } finally { setSaving(false) }
+  }
 
   return (
     <div
+      ref={rowRef}
+      data-task-id={entry.id}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={(e) => {
@@ -343,9 +367,12 @@ function SessionRow({
           ::
         </span>
       )}
-      <button type="button" onClick={onSelect} className="min-w-0 flex-1 text-left" title={entry.title}>
+      {renaming ? <form className="flex min-w-0 flex-1" onSubmit={event => { event.preventDefault(); void rename() }}>
+        <input autoFocus aria-label="Rename task" value={title} onChange={event => setTitle(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setRenaming(false) }} className="min-w-0 flex-1 bg-[var(--bg-primary)]" />
+        <button type="submit" disabled={saving || !title.trim()} className="min-h-8 px-1">Save</button><button type="button" onClick={() => setRenaming(false)} className="min-h-8 px-1">Cancel</button>
+      </form> : <button type="button" onClick={onSelect} className="min-h-8 min-w-0 flex-1 text-left" title={entry.title || 'Untitled task'} aria-current={active ? 'page' : undefined}>
         <span className="flex items-center gap-1">
-          <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{running && <span aria-label="Running task">• </span>}{entry.title}</span>
+          <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{running && <span aria-label="Running task">• </span>}{entry.title || 'Untitled task'}</span>
           {unreadCount > 0 && (
             <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--bg-primary)]">
               {unreadCount}
@@ -355,15 +382,15 @@ function SessionRow({
         <span className="block text-[10px] text-[var(--text-muted)]">
           {entry.messageCount} msg · {formatWhen(entry.updatedAt)}
         </span>
-      </button>
+      </button>}
       <button
         type="button"
         onClick={() => onPin(!pinned)}
         title={pinned ? 'Unpin' : 'Pin'}
-        className={`rounded p-0.5 transition-colors ${
+        className={`min-h-8 min-w-6 rounded p-0.5 transition-colors ${
           pinned
             ? 'text-[var(--accent)]'
-            : 'opacity-0 text-[var(--text-muted)] group-hover:opacity-100 hover:text-[var(--accent)]'
+            : 'opacity-0 text-[var(--text-muted)] group-hover:opacity-100 focus-visible:opacity-100 hover:text-[var(--accent)]'
         }`}
       >
         <svg width="11" height="11" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -374,8 +401,8 @@ function SessionRow({
         ref={anchorRef}
         type="button"
         onClick={() => setMenuOpen(true)}
-        title="Session actions"
-        className="rounded p-0.5 opacity-0 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] group-hover:opacity-100"
+        title="Task actions" aria-label={`Task actions: ${entry.title}`}
+        className="min-h-8 min-w-6 rounded p-0.5 opacity-0 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] group-hover:opacity-100 focus-visible:opacity-100"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
           <circle cx="5" cy="12" r="1.6" />
@@ -389,10 +416,11 @@ function SessionRow({
         anchorRef={anchorRef}
         align="bottom-end"
         minWidth={160}
-        ariaLabel="Session actions"
+        ariaLabel="Task actions"
       >
         <MenuButton label="Resume here" onClick={onResume} onClose={() => setMenuOpen(false)} />
-        <MenuButton label="Duplicate" onClick={onDuplicate} onClose={() => setMenuOpen(false)} />
+        <MenuButton label="Rename" onClick={() => { setTitle(entry.title); setRenaming(true) }} onClose={() => setMenuOpen(false)} />
+        <MenuButton label="Fork task" onClick={onDuplicate} onClose={() => setMenuOpen(false)} />
         <MenuButton
           label={entry.archived ? 'Unarchive' : 'Archive'}
           onClick={() => onArchive(!entry.archived)}

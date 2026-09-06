@@ -251,8 +251,9 @@ interface UiState {
   openWorkflowPalette: () => void
   closeWorkflowPalette: () => void
   toggleWorkflowPalette: () => void
+  worktreeModalProjectId: string | null
   worktreeModalOpen: boolean
-  openWorktreeModal: () => void
+  openWorktreeModal: (projectId?: string) => void
   closeWorktreeModal: () => void
   planMode: boolean
   togglePlanMode: () => void
@@ -394,6 +395,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   requestedOpenFilePath: null,
   requestedOpenFileToken: 0,
   requestedOpenFileLine: undefined,
+  worktreeModalProjectId: null,
   worktreeModalOpen: false,
   planMode: false,
   convFilters: readConvFilters(),
@@ -544,8 +546,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   openWorkflowPalette: () => set({ workflowPaletteVisible: true }),
   closeWorkflowPalette: () => set({ workflowPaletteVisible: false }),
   toggleWorkflowPalette: () => set((s) => ({ workflowPaletteVisible: !s.workflowPaletteVisible })),
-  openWorktreeModal: () => set({ worktreeModalOpen: true }),
-  closeWorktreeModal: () => set({ worktreeModalOpen: false }),
+  openWorktreeModal: (projectId) => set({ worktreeModalOpen: true, worktreeModalProjectId: projectId ?? null }),
+  closeWorktreeModal: () => set({ worktreeModalOpen: false, worktreeModalProjectId: null }),
   togglePlanMode: () => set((s) => ({ planMode: !s.planMode })),
   setPlanMode: (v: boolean) => set({ planMode: v }),
   requestOpenFile: (path: string, line?: number) => {

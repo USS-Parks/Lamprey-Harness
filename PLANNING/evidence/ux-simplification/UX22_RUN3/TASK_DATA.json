@@ -1,0 +1,19 @@
+{
+  "primaryTaskActions": [
+    "new",
+    "rename",
+    "pin",
+    "unpin",
+    "archive",
+    "unarchive",
+    "fork"
+  ],
+  "projectSelection": true,
+  "projectOwnedWorktrees": true,
+  "collapsedSearchKeyboardFocus": true,
+  "realProjectAssignment": true,
+  "archivedAndPinnedMetadataSurvivesReload": true,
+  "forkLineageAndProjectPreserved": true,
+  "sameIdentityAcrossProjections": true,
+  "archivedTaskDiscoverable": true
+}

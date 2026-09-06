@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-task-id=\"92575c27-6f33-4da5-a2ca-7ed11414f4c0\"]') to be visible\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<button title=\"Restore\" aria-label=\"Restore\" class=\"flex h-9 w-11 items-center justify-center text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"1.5\" width=\"7\" height=\"7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"></rect><rect x=\"1.5\" y=\"3.5\" width=\"7\" height=\"7\" fill=\"var(--bg-secondary)\" stroke=\"currentColor\" stroke-width=\"1\"></rect></svg></but",
+    "draft": ""
+  }
+}

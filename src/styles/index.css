@@ -230,3 +230,13 @@ img.icon-asset-crisp {
 :is(button, a, [role="button"])[class~="bg-[var(--accent)]"] {
   color: var(--accent-foreground);
 }
+
+/* Honor motion preferences for CSS-driven UI as well as animated components. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

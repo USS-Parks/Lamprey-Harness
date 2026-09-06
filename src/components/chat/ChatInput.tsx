@@ -34,7 +34,6 @@ import type { ProcessedFile } from '@/lib/types'
 import defaultAccessIcon from '@assets/Lamprey Default Access Icon.png'
 import autoReviewIcon from '@assets/Lamprey Auto-Review Icon.png'
 import fullAccessIcon from '@assets/Lamprey Full Access Icon.png'
-import sendIcon from '@assets/Lamprey Prompt Enter Icon.png'
 
 interface ChatInputProps {
   onSend: (content: string) => void
@@ -925,7 +924,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             type="button"
             onClick={() => setFollowUpError(null)}
             aria-label="Dismiss follow-up error"
-            className="rounded px-1 hover:bg-[var(--bg-tertiary)]"
+            className="min-h-8 min-w-8 rounded px-1 hover:bg-[var(--bg-tertiary)]"
           >
             ×
           </button>
@@ -1017,7 +1016,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
                 disabled={!canSend || followUpSubmitting}
                 title={`${followUpLabel} this turn`}
                 aria-label={`${followUpLabel} this turn`}
-                className="flex h-9 min-w-[72px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] px-3 text-sm font-medium text-[var(--bg-primary)] transition-[background-color,opacity,transform] hover:scale-[1.03] hover:opacity-90 disabled:opacity-40 disabled:hover:scale-100"
+                className="flex h-9 min-w-[72px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] px-3 text-sm font-medium text-[var(--bg-primary)] transition-colors disabled:opacity-40"
               >
                 {followUpLabel}
               </button>
@@ -1049,7 +1048,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
                 onClick={onCancel}
                 title={activeTurn ? `Stop turn ${activeTurn.turnId}` : 'Stop current turn'}
                 aria-label="Stop current turn"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] transition-[background-color,color,transform] hover:scale-[1.03] hover:bg-[var(--error)] hover:text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] transition-colors hover:text-[var(--error)]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -1065,7 +1064,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               title="Open memory editor (Enter)"
               aria-label="Remember"
               data-mode="memory"
-              className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-[var(--bg-primary)] transition-all hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:hover:scale-100"
+              className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-[var(--bg-primary)] transition-colors disabled:opacity-50"
             >
               <svg
                 width="14"
@@ -1088,14 +1087,11 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               disabled={!canSend}
               title="Send (Enter)"
               aria-label="Send"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--accent)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-[var(--bg-tertiary)]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] transition-colors disabled:opacity-40"
             >
-              <img
-                src={sendIcon}
-                alt=""
-                aria-hidden
-                className="icon-asset-crisp h-6 w-6 object-contain"
-              />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 19V5m-6 6 6-6 6 6" />
+              </svg>
             </button>
           )}
           </div>

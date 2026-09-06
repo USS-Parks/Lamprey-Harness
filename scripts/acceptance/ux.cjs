@@ -152,6 +152,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--density-only')) {
+      const result = await require('./ux-density.cjs')({ page, app, ids, profile, output })
+      fs.writeFileSync(path.join(output, 'DENSITY.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'density-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['control-density'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--visual-only')) {
       const result = await require('./ux-visual.cjs')({ page, app, ids, output })
       fs.writeFileSync(path.join(output, 'VISUAL.json'), JSON.stringify(result, null, 2) + '\n')

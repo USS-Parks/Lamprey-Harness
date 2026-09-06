@@ -160,7 +160,7 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`min-h-8 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
+            className={`min-h-8 rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
               tab === t.key
                 ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
                 : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
@@ -405,7 +405,7 @@ function SessionRow({
         type="button"
         onClick={() => onPin(!pinned)}
         title={pinned ? 'Unpin' : 'Pin'}
-        className={`min-h-8 min-w-6 rounded p-0.5 transition-colors ${
+        className={`min-h-8 min-w-8 rounded p-0.5 transition-colors ${
           pinned
             ? 'text-[var(--accent)]'
             : 'opacity-0 text-[var(--text-muted)] group-hover:opacity-100 focus-visible:opacity-100 hover:text-[var(--accent)]'
@@ -420,7 +420,7 @@ function SessionRow({
         type="button"
         onClick={() => setMenuOpen(true)}
         title="Task actions" aria-label={`Task actions: ${entry.title}`}
-        className="min-h-8 min-w-6 rounded p-0.5 opacity-0 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] group-hover:opacity-100 focus-visible:opacity-100"
+        className="min-h-8 min-w-8 rounded p-0.5 opacity-0 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] group-hover:opacity-100 focus-visible:opacity-100"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
           <circle cx="5" cy="12" r="1.6" />
@@ -470,7 +470,7 @@ function MenuButton({
         onClose()
         onClick()
       }}
-      className={`block w-full px-3 py-1.5 text-left text-[12px] transition-colors ${
+      className={`block min-h-8 w-full rounded-md px-3 py-1.5 text-left text-xs transition-colors ${
         destructive
           ? 'text-[var(--error)] hover:bg-[var(--bg-tertiary)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'

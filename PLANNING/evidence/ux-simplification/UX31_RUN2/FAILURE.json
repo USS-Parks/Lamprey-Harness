@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('menu', { name: 'Branches', exact: true }).getByRole('menuitem').first() to be visible\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<input placeholder=\"Search branches\" class=\"flex-1 bg-transparent text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none\" type=\"text\" value=\"\">",
+    "draft": "UX31 control stability"
+  }
+}

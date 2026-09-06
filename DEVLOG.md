@@ -1,3 +1,13 @@
+## 2026-09-06 - UX-31: Control density and reduced motion
+
+Removed composer hover scaling, replaced the Send image with an accent-aware currentColor arrow, and normalized shared menu, task action, Activity and settings-close targets. CSS-driven animation/transition now respects reduced motion. No command, dispatch or permission behavior changed.
+
+Full build and final proof passed: lint, both TypeScript projects, 3,124 tests, both smokes; 176 explicit native ABI skips remain. UX31_KEYBOARD passes existing keyboard ownership and 24 viewport/theme/zoom cases. UX31_RUN4 measures 32-36px controls, real shared BranchPickerPopover MenuRow consumers and task menu rows, reduced-motion durations, real attachment persistence/removal, actual streaming/Stop, and stable action baselines through attachments/status and Review panel open/close. Profiles/servers/processes cleaned. RUN2's wrong Branches role selector and RUN3's toggle-shortcut assumption remain as failed fixture evidence; RUN4's explicit Review changes action is authoritative.
+
+Parent inspected the complete patch and reran checks. First fresh review (sol/high requested, runtime unobservable) returned fix-first for the two missing evidence clauses; both were added. Second fresh review (luna/high requested, runtime unobservable) returned ship. Review receipts preserve findings and corrections. Token usage was not exposed for parent or reviewers: API-equivalent costs and same-token comparisons are unavailable, not zero.
+
+Commit: introducing commit of UX31.json. UX-30 is all-green on GitHub (UX30_HOSTED.json). The user resumed with astra-advisor; the historical standby checkpoint was appended, not rewritten. UX32_INSPECTION.md records a separate read-only terra/high requested inspection of the next prompt. Unrelated September/site files remain preserved. UX-32 follows after this prompt publication.
+
 ## 2026-09-06 - UX-30: Theme consistency and restart checkpoint
 
 Unified the default shell around neutral surfaces and system typography while retaining all eight presets and the saved preset selection. Text, status colors and accent controls meet 4.5:1 against their supported surfaces in both modes. Filled buttons choose a contrasting foreground. Reduced shell uppercase/monospace decoration and removed phase identifiers from visible storage settings labels.

@@ -279,7 +279,7 @@ export function ActivityDashboard(): ReactElement {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="flex min-w-0 items-center gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-[var(--bg-tertiary)]"
+          className="flex min-h-8 min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-[var(--bg-tertiary)]"
           aria-expanded={!collapsed}
         >
           <svg
@@ -294,11 +294,11 @@ export function ActivityDashboard(): ReactElement {
           >
             <path d="M9 6l6 6-6 6" />
           </svg>
-          <span className="truncate text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+          <span className="truncate text-xs font-medium text-[var(--text-muted)]">
             Activity
           </span>
         </button>
-        <span className="rounded-full bg-[var(--bg-tertiary)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+        <span className="rounded-full bg-[var(--bg-tertiary)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
           {runningCount} live
         </span>
       </div>

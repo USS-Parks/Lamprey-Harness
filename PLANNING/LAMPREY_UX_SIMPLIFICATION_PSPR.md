@@ -427,7 +427,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1 and G4 visual/contrast inspection; light/dark presets remain legible, task content is visually primary, no hardcoded theme-breaking colors or hidden focus indicators. No screenshot-only tests for incidental pixel positions.
 
 #### UX-31 — Normalize control density and motion
-- [ ] **Objective:** make buttons, icons, tabs and menus consistent without sacrificing targets.
+- [x] **Objective:** make buttons, icons, tabs and menus consistent without sacrificing targets.
 - **Work:** standardize control heights, icon sizing, radii and menu spacing through existing styles; remove redundant hover scaling/glow and unnecessary layout animation. Keep brand artwork where meaningful and functional glyphs consistent. Remove only proven-unused presentation code.
 - **Seams/output:** shared controls plus redesigned toolbar/composer/sidebar/settings.
 - **Gate:** G1/G4; readable labels, adequate hit targets, stable alignment and reduced-motion behavior; no layout jump when status changes, attachments appear or a panel opens; no inactive/placeholder control reintroduced.

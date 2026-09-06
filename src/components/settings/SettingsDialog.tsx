@@ -136,7 +136,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             <button
               onClick={onClose}
               aria-label="Close settings"
-              className="rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+              className="flex min-h-8 min-w-8 items-center justify-center rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
             >
               <svg
                 width="14"

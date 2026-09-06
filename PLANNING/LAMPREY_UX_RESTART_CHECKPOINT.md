@@ -21,3 +21,7 @@ The preexisting tracked three-line website hold in PLANNING/LAMPREY_SEPTEMBER_20
 Five worktrees retained: canonical active UX lane plus prior AC-Add, AC-Delete, AC-Improve and AC-Wrap audit lanes. UX29_STORAGE.json records old lanes clean, no unpublished work, shared node_modules, output sizes approximately 0.49/0.52/0.50/61.41 MB. No removal authorization; those lanes stay preserved. Canonical generated sizes at that inventory: dist 29.73 GB, node_modules 1.40 GB, out 47.08 MB, coverage 38.47 MB. No duplicate tree was created. The current fixture is cleaned; no Bucket is running. Do not claim global repository cleanliness because the unrelated files are intentionally preserved.
 
 Authored and reviewed by Basho Parks, copyright 2026
+
+## Resume update - 2026-09-06
+
+The user subsequently requested UX-25 through UX-30 be merged to main. All six individual commits were pushed, ending at 71e64c0898c44ed7a3e17d555966a74eceefbceb. All three workflows and ten checks are now green (UX30_HOSTED.json). The user resumed the remaining approved roster using astra-advisor:orchestration; the standby above is historical and no longer active. UX-31 implementation and acceptance continue with fresh independent review. The original website hold and preserved unrelated files remain untouched.

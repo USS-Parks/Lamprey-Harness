@@ -1,0 +1,247 @@
+{
+  "measurements": [
+    {
+      "label": "Light Send",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(255, 255, 255)",
+      "background": "rgb(83, 109, 138)"
+    },
+    {
+      "label": "Light Send hover",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(255, 255, 255)",
+      "background": "rgb(83, 109, 138)"
+    },
+    {
+      "label": "Light Add",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light Working mode",
+      "width": 58.462501525878906,
+      "height": 32,
+      "bottom": 818.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light Add item Add files or photos\nCtrl/Cmd+U",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 631.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light Add item Slash commands",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 667.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light Add item Connectors",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 703.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light Add item Plugins",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 739.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light Add item Keyboard help",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 775.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(65, 74, 85)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Light attachment Send",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(255, 255, 255)",
+      "background": "rgb(83, 109, 138)"
+    },
+    {
+      "label": "Light Stop",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(180, 35, 24)",
+      "background": "rgb(249, 252, 255)"
+    },
+    {
+      "label": "Light Stop hover",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(180, 35, 24)",
+      "background": "rgb(249, 252, 255)"
+    },
+    {
+      "label": "Dark Send",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(17, 17, 17)",
+      "background": "rgb(150, 199, 250)"
+    },
+    {
+      "label": "Dark Send hover",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(17, 17, 17)",
+      "background": "rgb(150, 199, 250)"
+    },
+    {
+      "label": "Dark Add",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark Working mode",
+      "width": 58.462501525878906,
+      "height": 32,
+      "bottom": 818.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark Add item Add files or photos\nCtrl/Cmd+U",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 631.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark Add item Slash commands",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 667.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark Add item Connectors",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 703.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark Add item Plugins",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 739.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark Add item Keyboard help",
+      "width": 258.3999938964844,
+      "height": 36,
+      "bottom": 775.6000366210938,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(194, 199, 208)",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "label": "Dark attachment Send",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(17, 17, 17)",
+      "background": "rgb(150, 199, 250)"
+    },
+    {
+      "label": "Dark Stop",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(215, 121, 121)",
+      "background": "rgb(39, 44, 50)"
+    },
+    {
+      "label": "Dark Stop hover",
+      "width": 36,
+      "height": 36,
+      "bottom": 820.7999877929688,
+      "transform": "none",
+      "transition": "1e-05s",
+      "color": "rgb(215, 121, 121)",
+      "background": "rgb(39, 44, 50)"
+    }
+  ],
+  "reducedMotion": true,
+  "realAttachment": true,
+  "actualStreamAndStop": true
+}

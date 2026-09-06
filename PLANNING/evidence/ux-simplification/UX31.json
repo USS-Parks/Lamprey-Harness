@@ -1,0 +1,18 @@
+{
+  "prompt": "UX-31",
+  "sourceBase": "71e64c0898c44ed7a3e17d555966a74eceefbceb",
+  "status": "local-pass",
+  "testsPassed": 3124,
+  "nativeAbiSkips": 176,
+  "review": "ship",
+  "evidence": [
+    "UX31_BUILD.log",
+    "UX31_PROOF_FINAL.log",
+    "UX31_RUN4/DENSITY.json",
+    "UX31_RUN4/LIFECYCLE.json",
+    "UX31_KEYBOARD/KEYBOARD.json",
+    "UX31_REVIEW1.md",
+    "UX31_REVIEW2.md"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX31.json"
+}

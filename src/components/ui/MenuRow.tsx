@@ -116,7 +116,7 @@ export const MenuRow = forwardRef<HTMLButtonElement, MenuRowProps>(function Menu
         onSelect?.()
       }}
       title={title}
-      className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-[13px] transition-colors ${
+      className={`flex min-h-8 w-full items-center gap-3 rounded-md px-3 py-1.5 text-left text-[13px] transition-colors ${
         disabled
           ? 'cursor-not-allowed text-[var(--text-muted)] opacity-60'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] focus:bg-[var(--bg-tertiary)] focus:text-[var(--text-primary)] focus:outline-none'
@@ -134,7 +134,7 @@ export const MenuRow = forwardRef<HTMLButtonElement, MenuRowProps>(function Menu
         </span>
       )}
       {shortcut && (
-        <span className="font-mono text-[11px] text-[var(--text-muted)]">{shortcut}</span>
+        <span className="text-xs text-[var(--text-muted)]">{shortcut}</span>
       )}
       {finalTrailing}
     </button>
@@ -151,7 +151,7 @@ interface MenuSectionLabelProps {
 
 export function MenuSectionLabel({ children }: MenuSectionLabelProps): React.ReactElement {
   return (
-    <div className="px-3 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+    <div className="px-3 pb-1 pt-1.5 text-xs font-medium text-[var(--text-muted)]">
       {children}
     </div>
   )

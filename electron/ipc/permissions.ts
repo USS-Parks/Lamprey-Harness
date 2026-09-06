@@ -34,8 +34,8 @@ export function registerPermissionsHandlers(): void {
       if (!VALID_SCOPES.has(response.scope)) {
         return { success: false, error: `Invalid scope: ${response.scope}` }
       }
-      permissionsService.respond(response)
-      return { success: true, data: null }
+      const accepted = permissionsService.respond(response)
+      return accepted ? { success: true, data: null } : { success: false, error: 'This approval is no longer pending.' }
     } catch (err: any) {
       return {
         success: false,

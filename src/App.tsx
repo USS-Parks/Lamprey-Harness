@@ -218,7 +218,8 @@ function App(): React.ReactElement {
         enqueueApproval(req)
       }
     })
-    return unsubscribe
+    const resolved = window.api.tools.onApprovalResolved(event => useInlineApprovalsStore.getState().dismiss(event.callId))
+    return () => { unsubscribe(); resolved() }
   }, [pushInlineApproval, enqueueApproval])
 
   useEffect(() => {

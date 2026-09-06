@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react'
 
 export function SecurityBanner() {
+  const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const [unencrypted, setUnencrypted] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
     if (!window.api) return
     let cancelled = false
+    setError(null)
     window.api.settings.isEncryptionAvailable().then((result) => {
       if (cancelled) return
-      if (result.success && result.data === false) setUnencrypted(true)
-    })
+      if (!result.success) setError(result.error ?? 'Secret storage status is unavailable.')
+      else setUnencrypted(result.data === false)
+    }).catch(() => { if (!cancelled) setError('Secret storage status is unavailable.') })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
+  if (error) return <div role="alert" className="flex items-center gap-2 border-b border-[var(--warning)] p-2 text-xs">{error} <button className="min-h-8 underline" onClick={() => setAttempt(value => value + 1)}>Retry secret storage check</button></div>
   if (!unencrypted || dismissed) return null
 
   return (

@@ -283,3 +283,32 @@ describe('askUser — no timeout, explicit cancellation only', () => {
     ).not.toThrow()
   })
 })
+
+
+describe('turn-owned cancellation and stale decisions', () => {
+  it('cancels the exact pending approval and rejects a late persistent grant', async () => {
+    const req = makeReq({ conversationId: 'cancelled-owner' })
+    const controller = new AbortController()
+    const pending = permissionsService.requestApprovalDetailed(req, controller.signal)
+    controller.abort()
+    expect((await pending).decision).toBe('deny')
+    expect(permissionsService.respond({ callId: req.callId, decision: 'allow', scope: 'always' })).toBe(false)
+    expect(listPolicies()).toHaveLength(0)
+    expect(h.sent.some(event => event.channel === 'tools:approvalResolved' && (event.payload as { callId: string }).callId === req.callId)).toBe(true)
+  })
+  it('keeps another simultaneous request pending when one turn is cancelled', async () => {
+    const first = makeReq(); const second = makeReq()
+    const controller = new AbortController()
+    const a = permissionsService.requestApprovalDetailed(first, controller.signal)
+    const b = permissionsService.requestApprovalDetailed(second)
+    controller.abort(); expect((await a).decision).toBe('deny')
+    expect(permissionsService.respond({ callId: second.callId, decision: 'allow', scope: 'once' })).toBe(true)
+    expect((await b).decision).toBe('allow')
+  })
+  it('does not replace an existing pending resolver on duplicate request identity', async () => {
+    const req = makeReq(); const pending = permissionsService.requestApprovalDetailed(req)
+    await expect(permissionsService.requestApprovalDetailed(req)).rejects.toThrow('already pending')
+    permissionsService.respond({ callId: req.callId, decision: 'deny', scope: 'once' })
+    expect((await pending).decision).toBe('deny')
+  })
+})

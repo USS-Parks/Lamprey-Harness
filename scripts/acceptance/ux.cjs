@@ -55,7 +55,7 @@ async function main() {
         return
       }
       if (req.url !== '/v1/chat/completions') { res.writeHead(404); res.end(); return }
-      requests++
+      const requestNumber = ++requests
       let body = ''
       req.on('data', chunk => { body += chunk })
       req.on('end', () => {
@@ -69,9 +69,10 @@ async function main() {
         if (last?.role === 'user' && text?.includes('UX16 approval fixture')) {
           res.writeHead(200, { 'Content-Type': 'text/event-stream' })
           const args = { command: "Set-Content -LiteralPath './ux16-approved.txt' -Value 'Approved fixture write' -Encoding utf8", cwd: repo, shell: 'powershell' }
+          if (text.includes('UX20 concurrent')) args.command = "Set-Content -LiteralPath './ux20-not-approved.txt' -Value 'Must not execute' -Encoding utf8"
           if (text.includes('UX18 success')) args.command = "Write-Output ('history-content-' * 500 + 'UX18-END')"
           if (text.includes('UX18 failure')) args.command = "Write-Error 'UX18 controlled failure'; exit 7"
-          res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: `ux-approval-${requests}`, type: 'function', function: { name: 'shell_command', arguments: JSON.stringify(args) } }] }, finish_reason: null }] })}\n\n`)
+          res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: `ux-approval-${requestNumber}`, type: 'function', function: { name: 'shell_command', arguments: JSON.stringify(args) } }] }, finish_reason: null }] })}\n\n`)
           res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] })}\n\n`)
           res.end('data: [DONE]\n\n')
           return
@@ -144,6 +145,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--notices-only')) {
+      const result = await require('./ux-notices.cjs')({ page, app, ids, repo, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+      fs.writeFileSync(path.join(output, 'NOTICES.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'notices-approvals-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['notices-approvals'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--attention-only')) {
       const result = await require('./ux-attention.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
       fs.writeFileSync(path.join(output, 'ATTENTION.json'), JSON.stringify(result, null, 2) + '\n')
@@ -389,6 +397,9 @@ async function main() {
     const attention = await require('./ux-attention.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
     fs.writeFileSync(path.join(output, 'ATTENTION.json'), JSON.stringify(attention, null, 2) + '\n')
     record('task-attention')
+    const notices = await require('./ux-notices.cjs')({ page, app, ids, repo, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+    fs.writeFileSync(path.join(output, 'NOTICES.json'), JSON.stringify(notices, null, 2) + '\n')
+    record('notices-approvals')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

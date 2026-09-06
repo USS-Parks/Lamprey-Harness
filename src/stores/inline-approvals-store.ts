@@ -7,6 +7,7 @@ import type { ToolApprovalRequest } from '@/lib/types'
 
 interface InlineApprovalsState {
   queue: ToolApprovalRequest[]
+  settledIds: string[]
   modalQueue: ToolApprovalRequest[]
   pushModal: (request: ToolApprovalRequest) => void
   push: (request: ToolApprovalRequest) => void
@@ -16,18 +17,19 @@ interface InlineApprovalsState {
 
 export const useInlineApprovalsStore = create<InlineApprovalsState>((set) => ({
   queue: [],
+  settledIds: [],
   modalQueue: [],
-  pushModal: (request) => set(s => s.modalQueue.some(q => q.callId === request.callId) || s.queue.some(q => q.callId === request.callId) ? s : { modalQueue: [...s.modalQueue, request] }),
+  pushModal: (request) => set(s => s.settledIds.includes(request.callId) || s.modalQueue.some(q => q.callId === request.callId) || s.queue.some(q => q.callId === request.callId) ? s : { modalQueue: [...s.modalQueue, request] }),
   push: (request) =>
     set((s) =>
       // De-dupe defensively — the IPC fan-out has been seen to redeliver
       // events on listener re-attach; the chip is keyed on callId so a
       // double-push would render two of them.
-      s.queue.some((q) => q.callId === request.callId) || s.modalQueue.some(q => q.callId === request.callId)
+      s.settledIds.includes(request.callId) || s.queue.some((q) => q.callId === request.callId) || s.modalQueue.some(q => q.callId === request.callId)
         ? s
         : { queue: [...s.queue, request] }
     ),
   dismiss: (callId) =>
-    set((s) => ({ queue: s.queue.filter((q) => q.callId !== callId), modalQueue: s.modalQueue.filter(q => q.callId !== callId) })),
-  clear: () => set({ queue: [], modalQueue: [] })
+    set((s) => ({ settledIds: [...s.settledIds.filter(id => id !== callId), callId].slice(-1000), queue: s.queue.filter((q) => q.callId !== callId), modalQueue: s.modalQueue.filter(q => q.callId !== callId) })),
+  clear: () => set({ queue: [], modalQueue: [], settledIds: [] })
 }))

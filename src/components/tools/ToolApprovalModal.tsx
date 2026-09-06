@@ -14,8 +14,6 @@ interface ToolApprovalModalProps {
   onAllowed?: (request: ToolApprovalRequest) => void
 }
 
-const TIMEOUT_SECONDS = 30
-
 const RISK_LABEL: Record<ToolRisk, string> = {
   read: 'Read',
   write: 'Write',
@@ -33,27 +31,12 @@ const RISK_COLOR: Record<ToolRisk, string> = {
 }
 
 export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprovalModalProps) {
-  const [countdown, setCountdown] = useState(TIMEOUT_SECONDS)
   const [scope, setScope] = useState<ApprovalScope>('once')
   const dialogRef = useRef<HTMLDivElement>(null)
   const denyBtnRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    if (countdown <= 0) {
-      // Auto-deny — main process also has a 30s deny timeout, this is the
-      // visible counterpart so users see *why* the modal closed.
-      respond('deny', 'once')
-      return
-    }
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [countdown])
-
-  // JM-23 (RD-11) — a security modal must be reachable and dismissible by
-  // keyboard. Focus Deny on mount (the safe default), trap Tab inside the
-  // dialog, and map Esc → deny — before this, focus stayed in the chat
-  // textarea and a keyboard-only user couldn't reach Deny before the 30s
-  // auto-deny without tabbing across the whole app.
+  // Deny is the initial focus; decisions remain pending until answered or
+  // cancelled by their owning turn. Keep keyboard navigation inside the dialog.
   useEffect(() => {
     denyBtnRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
@@ -102,6 +85,7 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
       <div
         ref={dialogRef}
         role="dialog"
+        data-approval-id={request.callId}
         aria-modal="true"
         aria-labelledby="tool-approval-title"
         className="w-full max-w-md rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
@@ -159,7 +143,7 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
               <option value="always">Always (every workspace)</option>
             </select>
           </label>
-          <span className="text-[var(--text-muted)]">Auto-deny in {countdown}s</span>
+          <span className="text-[var(--text-muted)]">Waiting for your decision</span>
         </div>
 
         <div className="flex gap-3">

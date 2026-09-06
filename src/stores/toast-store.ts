@@ -10,6 +10,7 @@ export interface Toast {
 }
 
 interface ToastState {
+  history: Toast[]
   toasts: Toast[]
   show: (type: ToastType, message: string, duration?: number) => number
   dismiss: (id: number) => void
@@ -19,11 +20,14 @@ interface ToastState {
 let nextId = 1
 
 export const useToastStore = create<ToastState>((set, get) => ({
+  history: [],
   toasts: [],
 
   show: (type, message, duration = 4000) => {
+    const existing = get().toasts.find(item => item.type === type && item.message === message)
+    if (existing) return existing.id
     const id = nextId++
-    set((state) => ({ toasts: [...state.toasts, { id, type, message, duration }] }))
+    set((state) => ({ toasts: [...state.toasts, { id, type, message, duration }], history: [...state.history, { id, type, message, duration }].slice(-100) }))
     if (duration > 0) {
       window.setTimeout(() => get().dismiss(id), duration)
     }

@@ -1,3 +1,4 @@
+import { useToastStore } from '@/stores/toast-store'
 import { useEffect, useMemo, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useActivityStore } from '@/stores/activity-store'
@@ -5,6 +6,7 @@ import { useInlineApprovalsStore } from '@/stores/inline-approvals-store'
 import { useUiStore } from '@/stores/ui-store'
 import { taskAttention, type AttentionItem } from '@/lib/task-attention'
 export function TaskAttention() {
+  const noticeHistory = useToastStore(s => s.history)
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState<'all' | AttentionItem['kind']>('all')
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +62,7 @@ export function TaskAttention() {
         </button>)}
         {filtered.length === 0 && <p className="p-2 text-xs text-[var(--text-muted)]">Nothing in this view.</p>}
       </div>
+      {noticeHistory.length > 0 && <details><summary className="min-h-8 cursor-pointer text-xs">Recent notices</summary><ol className="max-h-48 overflow-auto text-xs">{noticeHistory.map(notice => <li key={notice.id} className="border-b border-[var(--panel-border)] py-2">{notice.type}: {notice.message}</li>)}</ol></details>}
       <div className="flex flex-wrap gap-1">{(['background', 'loop', 'agents'] as const).map(tool => <button key={tool} type="button" onClick={() => useUiStore.getState().setActiveTool(tool)} className="min-h-8 rounded px-2 text-xs underline">{tool === 'background' ? 'Background' : tool === 'loop' ? 'Loops' : 'Agents'}</button>)}</div>
     </div>}
   </section>

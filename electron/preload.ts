@@ -551,6 +551,11 @@ const api = {
       ipcRenderer.on('tools:approvalRequired', handler)
       return () => ipcRenderer.removeListener('tools:approvalRequired', handler)
     },
+    onApprovalResolved: (cb: (event: { callId: string }) => void): (() => void) => {
+      const handler = (_: unknown, event: { callId: string }): void => cb(event)
+      ipcRenderer.on('tools:approvalResolved', handler)
+      return () => ipcRenderer.removeListener('tools:approvalResolved', handler)
+    },
     respondToApproval: (response: {
       callId: string
       decision: 'allow' | 'deny'

@@ -1,0 +1,16 @@
+{
+  "holdPresentation": "Native window hidden during the idle timeout hold; visible before and after. No performance measurement.",
+  "holdInputs": [],
+  "holdResponses": [],
+  "twoConcurrentRealApprovals": true,
+  "pendingPastOld30SecondTimeout": true,
+  "cancellationSettlesOnlyOwner": true,
+  "latePersistentGrantRejected": true,
+  "staleEventDoesNotRevive": true,
+  "escapeDeniesFocusedRequestOnly": true,
+  "noWriteExecuted": true,
+  "repeatedEventOneToast": true,
+  "retainedTaskNotice": true,
+  "securityAndIntegrityWarningsRemainVisible": true,
+  "failedStatusReadsVisibleAndRetryable": true
+}

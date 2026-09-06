@@ -251,7 +251,7 @@ export async function resolveSingleToolCall(
             isDangerousShellBypass || isDangerousShellCommand || isFallbackMutating
               ? true
               : undefined
-        })
+        }, signal)
       : { decision: 'allow' as const, source: 'none' }
   checkCancelled()
   const approvalDecision = approvalOutcome.decision

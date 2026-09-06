@@ -12,8 +12,7 @@ import type {
 //   2 → Deny (scope: once)
 //   3 → Always allow this tool (scope: workspace)
 //   Esc → Deny (same as 2)
-// The first chip in the list auto-focuses on mount so the keystrokes
-// land without a click.
+// Keyboard decisions apply only while focus is inside this request.
 
 interface InlineApprovalChipProps {
   request: ToolApprovalRequest
@@ -58,7 +57,6 @@ export function InlineApprovalChip({
   }, [autoFocus])
 
   useEffect(() => {
-    if (!autoFocus) return
     const handler = (e: KeyboardEvent) => {
       // JM-23 (RD-5) — only handle keys when focus is INSIDE this chip. The
       // old handler claimed Escape/1/2/3 globally: an Escape meant to close a
@@ -90,7 +88,7 @@ export function InlineApprovalChip({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [autoFocus, request.callId, request.name])
+  }, [request.callId, request.name])
 
   const providerLabel =
     request.providerKind === 'mcp'

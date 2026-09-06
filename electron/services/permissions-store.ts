@@ -140,7 +140,8 @@ class PermissionsService {
     return outcome.decision
   }
 
-  async requestApprovalDetailed(req: ToolApprovalRequest): Promise<ApprovalOutcome> {
+  async requestApprovalDetailed(req: ToolApprovalRequest, signal?: AbortSignal): Promise<ApprovalOutcome> {
+    signal?.throwIfAborted()
     const workspacePath = (() => {
       try {
         return getActiveWorkspace()
@@ -172,7 +173,7 @@ class PermissionsService {
       }
     }
 
-    const userOutcome = await this.askUser(req, workspacePath)
+    const userOutcome = await this.askUser(req, workspacePath, signal)
     // Tag bypass outcomes distinctly so the audit log can filter them.
     const finalOutcome: ApprovalOutcome = isBypass
       ? { ...userOutcome, source: `${userOutcome.source}+sandbox-bypass` }
@@ -248,7 +249,8 @@ class PermissionsService {
 
   private async askUser(
     req: ToolApprovalRequest,
-    workspacePath: string | undefined
+    workspacePath: string | undefined,
+    signal?: AbortSignal
   ): Promise<ApprovalOutcome> {
     const mainWindow = BrowserWindow.getAllWindows()[0]
     // No active window → default deny (headless test runs, app shutdown
@@ -256,13 +258,16 @@ class PermissionsService {
     // 'no-window' rather than 'modal' for a non-event.
     if (!mainWindow) return { decision: 'deny', source: 'no-window' }
 
+    if (this.pending.has(req.callId)) throw new Error('Approval request is already pending')
     return new Promise<ApprovalOutcome>((resolve) => {
+      const cancel = () => this.cancelPending(req.callId)
       // No timeout. A pending approval stays pending until the user
       // definitively answers (or cancelPending fires). The user's complaint
       // was that a previous 30s auto-deny made the harness silently refuse
       // tool calls when they were briefly away from the keyboard — that
       // contract is now removed.
       this.pending.set(req.callId, (response) => {
+        signal?.removeEventListener('abort', cancel)
         const persistedId = this.persistAnswer(response, req, workspacePath)
         resolve({
           decision: response.decision,
@@ -270,6 +275,8 @@ class PermissionsService {
         })
       })
 
+      signal?.addEventListener('abort', cancel, { once: true })
+      if (signal?.aborted) { cancel(); return }
       mainWindow.webContents.send('tools:approvalRequired', req)
 
       // Backwards-compat shim — the prior modal listened to this event; any
@@ -322,12 +329,15 @@ class PermissionsService {
   }
 
   /** Renderer response to a pending approval request. */
-  respond(response: ToolApprovalResponse): void {
+  respond(response: ToolApprovalResponse): boolean {
     const resolver = this.pending.get(response.callId)
     if (resolver) {
       this.pending.delete(response.callId)
       resolver(response)
+      this.notifyResolved(response.callId)
+      return true
     }
+    return false
   }
 
   /** Backwards-compat for the legacy mcp.approveToolCall(callId, boolean) IPC. */
@@ -371,12 +381,17 @@ class PermissionsService {
     clearPoliciesForConversation(conversationId)
   }
 
+  private notifyResolved(callId: string): void {
+    for (const window of BrowserWindow.getAllWindows()) window.webContents.send('tools:approvalResolved', { callId })
+  }
+
   /** Cancel a pending request — used when a chat round is aborted. */
   cancelPending(callId: string): void {
     const resolver = this.pending.get(callId)
     if (resolver) {
       this.pending.delete(callId)
       resolver({ callId, decision: 'deny', scope: 'once' })
+      this.notifyResolved(callId)
     }
   }
 

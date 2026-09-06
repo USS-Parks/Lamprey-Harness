@@ -1,0 +1,16 @@
+{
+  "prompt": "UX-20",
+  "sourceBase": "ab0f36cf45a0b831ae32736f93b16c9ad337c878",
+  "status": "local-pass",
+  "fullTestsPassed": 3079,
+  "evidence": [
+    "UX20_RUN3/NOTICES.json",
+    "UX20_RUN4/NOTICES.json",
+    "UX20_RUN4/RUNTIME.json",
+    "UX20_RUN4/LIFECYCLE.json",
+    "UX20_BUILD2.log",
+    "UX20_PROOF_PUSH18.log",
+    "UX20_STORAGE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX20.json"
+}

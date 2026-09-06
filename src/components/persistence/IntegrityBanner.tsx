@@ -37,6 +37,8 @@ function formatTimestamp(ms: number): string {
 }
 
 export function IntegrityBanner(): React.ReactElement | null {
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState<PersistenceStatus | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [readOnlyMode, setReadOnlyMode] = useState(false)
@@ -45,25 +47,27 @@ export function IntegrityBanner(): React.ReactElement | null {
   useEffect(() => {
     if (!window.api?.persistence) return
     let cancelled = false
+    setLoadError(null)
     window.api.persistence
       .getStatus()
       .then((result: { success: boolean; data?: PersistenceStatus; error?: string }) => {
         if (cancelled) return
         if (result.success && result.data) {
           setStatus(result.data)
-        }
+        } else setLoadError(result.error ?? 'Database integrity status is unavailable.')
       })
       .catch(() => {
-        /* silent — banner just won't show */
+        if (!cancelled) setLoadError('Database integrity status is unavailable.')
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   // Hide when status is unknown, the check is ok, or the user opted
   // into read-only mode (the banner has already done its job — they
   // know).
+  if (loadError) return <div role="alert" className="flex items-center gap-2 border-b border-[var(--error)] p-2 text-xs">{loadError} <button className="min-h-8 underline" onClick={() => setAttempt(value => value + 1)}>Retry integrity check</button></div>
   if (!status || !status.lastIntegrity) return null
   if (status.lastIntegrity.ok) return null
   if (readOnlyMode) return null

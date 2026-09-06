@@ -353,7 +353,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; simultaneous task events dedupe by real identity, counts agree with details, selecting an item opens its owner, resolved approvals disappear correctly, and reading a failure does not mark it resolved. Existing loop/agent controls remain reachable.
 
 #### UX-20 — Consolidate notifications while preserving required decisions
-- [ ] **Objective:** eliminate duplicate notices without weakening approvals or recovery warnings.
+- [x] **Objective:** eliminate duplicate notices without weakening approvals or recovery warnings.
 - **Work:** give each event one primary presentation and a retained history/detail route. Reuse approval routing and queues; render task-local approvals inline where appropriate, retaining modal handling where context/authority requires it. Do not hide security/integrity failures as routine status.
 - **Seams/output:** App approval queue, inline approvals, AsyncEventToast, notices and security/integrity banners.
 - **Gate:** G1/G2/G3; multiple concurrent real fixture approvals remain visible, keyboard handling targets only the focused request, stale/expired requests cannot grant access, and one event does not create repeated toasts. Milestone D passes failure/attention/approval scenarios and storage closeout.

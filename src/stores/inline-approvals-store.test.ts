@@ -13,3 +13,11 @@ it('deduplicates across modal and inline routes and removes only the settled ide
   expect(useInlineApprovalsStore.getState().modalQueue).toEqual([])
   expect(useInlineApprovalsStore.getState().queue[0].callId).toBe('two')
 })
+
+it('does not revive a settled approval after duplicate event delivery', () => {
+  const store = useInlineApprovalsStore.getState()
+  store.push(request); store.dismiss(request.callId)
+  store.pushModal(request); store.push(request)
+  expect(useInlineApprovalsStore.getState().queue).toEqual([])
+  expect(useInlineApprovalsStore.getState().modalQueue).toEqual([])
+})

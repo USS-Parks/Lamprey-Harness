@@ -1,0 +1,7 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n",
+  "diagnostic": {
+    "activeElement": "<button aria-label=\"Add workspace tab\" aria-expanded=\"false\" class=\"h-8 w-8 shrink-0 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]\">+</button>",
+    "draft": ""
+  }
+}

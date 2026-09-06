@@ -24,6 +24,8 @@ export interface InlineNotice {
 interface InlineNoticesState {
   // Keyed by conversationId so notices don't leak between conversations.
   // Each conversation accumulates a small ring of recent notices.
+  seenIds: string[]
+  acceptEvent: (id: string) => boolean
   byConv: Record<string, InlineNotice[]>
   push: (notice: InlineNotice) => void
   forConversation: (conversationId: string) => InlineNotice[]
@@ -34,6 +36,12 @@ interface InlineNoticesState {
 const RING_SIZE = 50
 
 export const useInlineNoticesStore = create<InlineNoticesState>((set, get) => ({
+  seenIds: [],
+  acceptEvent: id => {
+    if (get().seenIds.includes(id)) return false
+    set(state => ({ seenIds: [...state.seenIds, id].slice(-1000) }))
+    return true
+  },
   byConv: {},
   push: (notice) =>
     set((s) => {

@@ -37,6 +37,8 @@ const PIN_ORDER_KEY = 'lamprey.sessions.pinOrder'
 interface SessionsState {
   tab: SessionsTab
   query: string
+  projectId: string | null | undefined
+  error: string | null
   entries: SessionEntry[]
   hits: SessionSearchHit[]
   loading: boolean
@@ -47,6 +49,7 @@ interface SessionsState {
 
   setTab: (tab: SessionsTab) => void
   setQuery: (query: string) => void
+  setProject: (projectId: string | null | undefined) => void
   loadFirstPage: () => Promise<void>
   loadMore: () => Promise<void>
   archive: (id: string, archived: boolean) => Promise<void>
@@ -63,6 +66,7 @@ function getApi():
       sessions?: {
         list: (opts: {
           tab: SessionsTab
+          projectId?: string | null
           query?: string
           limit?: number
           offset?: number
@@ -71,7 +75,8 @@ function getApi():
         setPinned: (id: string, pinned: boolean) => Promise<{ success: boolean; error?: string }>
         search: (
           query: string,
-          limit?: number
+          limit?: number,
+          opts?: { tab?: SessionsTab; projectId?: string | null }
         ) => Promise<{ success: boolean; data?: SessionSearchHit[]; error?: string }>
       }
       conversation?: {
@@ -118,6 +123,8 @@ function applyPinnedOrder(entries: SessionEntry[], order: string[]): SessionEntr
 export const useSessionsStore = create<SessionsState>((set, get) => ({
   tab: 'recent',
   query: '',
+  projectId: undefined,
+  error: null,
   entries: [],
   hits: [],
   loading: false,
@@ -128,81 +135,57 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
   setTab: (tab) => {
     if (get().tab === tab) return
-    set({ tab, page: 0, hasMore: true })
+    if (queryDebounce) clearTimeout(queryDebounce)
+    set({ tab })
     void get().loadFirstPage()
   },
-
-  setQuery: (query) => {
-    set({ query, page: 0, hasMore: true })
+  setProject: projectId => {
     if (queryDebounce) clearTimeout(queryDebounce)
-    queryDebounce = setTimeout(() => {
-      queryDebounce = null
-      void get().loadFirstPage()
-    }, QUERY_DEBOUNCE_MS)
+    set({ projectId })
+    void get().loadFirstPage()
   },
-
+  setQuery: query => {
+    ++loadSeq
+    set({ query, page: 0, hasMore: true, entries: [], hits: [], error: null, loading: true })
+    if (queryDebounce) clearTimeout(queryDebounce)
+    queryDebounce = setTimeout(() => { queryDebounce = null; void get().loadFirstPage() }, QUERY_DEBOUNCE_MS)
+  },
   loadFirstPage: async () => {
-    const api = getApi()?.sessions
-    if (!api) return
     const seq = ++loadSeq
-    set({ loading: true, page: 0 })
-    const { tab, query } = get()
-    const res = await api.list({ tab, query: query || undefined, limit: PAGE_SIZE, offset: 0 })
-    // JM-22 (RD-12) — a newer query started while this one was in flight;
-    // drop this stale resolution so it can't overwrite the newer results.
-    if (seq !== loadSeq) return
-    if (!res.success) {
-      toast.error(`Failed to load sessions: ${res.error}`)
-      set({ loading: false, entries: [], hasMore: false })
-      return
-    }
-    const rawEntries = (res.data as SessionEntry[]) ?? []
-    const entries = tab === 'pinned' ? applyPinnedOrder(rawEntries, get().pinOrder) : rawEntries
-    set({
-      loading: false,
-      entries,
-      page: 1,
-      hasMore: rawEntries.length === PAGE_SIZE
-    })
-
-    // Run an FTS pass in parallel so the hit-snippet UI (renderer-side
-    // typed-ahead surface) can show body matches alongside the bucket
-    // list. Skipped when the query is empty so we don't run a no-op
-    // search on every tab switch.
-    if (query.trim()) {
-      const hitsRes = await api.search(query.trim(), PAGE_SIZE)
+    const api = getApi()?.sessions
+    set({ loading: true, page: 0, entries: [], hits: [], error: null })
+    const { tab, query, projectId } = get()
+    try {
+      if (!api) throw new Error('Task search unavailable')
+      const [res, hitsRes] = await Promise.all([
+        api.list({ tab, query: query || undefined, projectId, limit: PAGE_SIZE, offset: 0 }),
+        query.trim() ? api.search(query.trim(), PAGE_SIZE, { tab, projectId }) : Promise.resolve({ success: true, data: [] })
+      ])
       if (seq !== loadSeq) return
-      if (hitsRes.success) set({ hits: (hitsRes.data as SessionSearchHit[]) ?? [] })
-    } else {
-      set({ hits: [] })
+      if (!res.success) throw new Error(res.error || 'Could not load tasks')
+      if (!hitsRes.success) throw new Error('Could not search task history')
+      const raw = res.data ?? []
+      set({ loading: false, entries: tab === 'pinned' ? applyPinnedOrder(raw, get().pinOrder) : raw, hits: hitsRes.data ?? [], page: 1, hasMore: raw.length === PAGE_SIZE })
+    } catch (error) {
+      if (seq === loadSeq) set({ loading: false, error: String(error), hasMore: false })
     }
   },
-
   loadMore: async () => {
     const api = getApi()?.sessions
-    if (!api) return
-    const { tab, query, page, loading, hasMore } = get()
-    if (loading || !hasMore) return
-    set({ loading: true })
-    const res = await api.list({
-      tab,
-      query: query || undefined,
-      limit: PAGE_SIZE,
-      offset: page * PAGE_SIZE
-    })
-    if (!res.success) {
-      toast.error(`Failed to load sessions: ${res.error}`)
-      set({ loading: false })
-      return
+    const { tab, query, projectId, page, loading, hasMore } = get()
+    if (!api || loading || !hasMore) return
+    const seq = loadSeq
+    set({ loading: true, error: null })
+    try {
+      const res = await api.list({ tab, query: query || undefined, projectId, limit: PAGE_SIZE, offset: page * PAGE_SIZE })
+      if (seq !== loadSeq) return
+      if (!res.success) throw new Error(res.error || 'Could not load more tasks')
+      const next = res.data ?? []
+      const rows = reconcileTaskRows([...get().entries, ...next])
+      set({ loading: false, entries: tab === 'pinned' ? applyPinnedOrder(rows, get().pinOrder) : rows, page: page + 1, hasMore: next.length === PAGE_SIZE })
+    } catch (error) {
+      if (seq === loadSeq) set({ loading: false, error: String(error) })
     }
-    const rawNext = (res.data as SessionEntry[]) ?? []
-    const next = tab === 'pinned' ? applyPinnedOrder(rawNext, get().pinOrder) : rawNext
-    set((state) => ({
-      loading: false,
-      entries: reconcileTaskRows([...state.entries, ...next]),
-      page: state.page + 1,
-      hasMore: rawNext.length === PAGE_SIZE
-    }))
   },
 
   archive: async (id, archived) => {
@@ -241,15 +224,9 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
     return (res.data as unknown as { conversationId: string }).conversationId
   },
 
-  deleteSession: async (id) => {
-    const api = getApi()?.conversation
-    if (!api) return
-    const res = await api.delete(id)
-    if (!res.success) {
-      toast.error(`Failed to delete: ${res.error}`)
-      return
-    }
-    await Promise.all([get().loadFirstPage(), useChatStore.getState().loadConversations()])
+  deleteSession: async id => {
+    await useChatStore.getState().deleteConversation(id)
+    await get().loadFirstPage()
   },
 
   markUnreadAgentResult: (conversationId) => {
@@ -271,10 +248,15 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
   },
 
   reorderPinned: (orderedIds) => {
-    writePinOrder(orderedIds)
+    const visible = new Set(orderedIds)
+    const queue = [...orderedIds]
+    const merged = get().pinOrder.map(id => visible.has(id) ? queue.shift()! : id)
+    merged.push(...queue)
+    const order = [...new Set(merged)]
+    writePinOrder(order)
     set((state) => ({
-      pinOrder: orderedIds,
-      entries: state.tab === 'pinned' ? applyPinnedOrder(state.entries, orderedIds) : state.entries
+      pinOrder: order,
+      entries: state.tab === 'pinned' ? applyPinnedOrder(state.entries, order) : state.entries
     }))
   }
 }))

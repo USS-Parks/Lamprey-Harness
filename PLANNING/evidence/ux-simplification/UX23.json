@@ -1,0 +1,15 @@
+{
+  "prompt": "UX-23",
+  "sourceBase": "0974c43a9275eee536e5f2dd66b591b38e76ff16",
+  "status": "local-pass",
+  "fullTestsPassed": 3090,
+  "evidence": [
+    "UX23_RUN2/NAVIGATION.json",
+    "UX23_RUN2/RUNTIME.json",
+    "UX23_RUN2/LIFECYCLE.json",
+    "UX23_NATIVE.log",
+    "UX23_PROOF_PUSH21_RETRY.log",
+    "UX23_TARGETED3.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX23.json"
+}

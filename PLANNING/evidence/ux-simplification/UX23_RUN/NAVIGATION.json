@@ -1,0 +1,11 @@
+{
+  "realHistoricalSearch": true,
+  "projectAndArchiveFilters": true,
+  "staleQueryRejected": true,
+  "rapidSameTaskReturnRejectsOldRead": true,
+  "separateDraftsRetained": true,
+  "deletedHistoryTargetSkipped": true,
+  "backForward": true,
+  "failedReadEmptyAndRetry": true,
+  "keyboardPinOrderSurvivesReload": true
+}

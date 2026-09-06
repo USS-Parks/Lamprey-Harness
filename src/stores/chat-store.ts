@@ -69,6 +69,8 @@ interface ChatState {
   conversations: Conversation[]
   activeConversationId: string | null
   messages: Message[]
+  messagesLoading: boolean
+  messagesError: string | null
   /** Conversation-keyed source of truth. The legacy visible stream fields
    * below are only the projection for activeConversationId. */
   turnControlByConversation: FollowUpStateByConversation
@@ -189,10 +191,14 @@ function errorMessage(err: unknown, fallback: string): string {
   return fallback
 }
 
+let selectionGeneration = 0
+
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   activeConversationId: null,
   messages: [],
+  messagesLoading: false,
+  messagesError: null,
   turnControlByConversation: {},
   activeTurn: null,
   followUps: [],
@@ -217,11 +223,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const result = await window.api.conversation.list()
     if (result.success) {
       set({ conversations: result.data })
+      useNavHistoryStore.getState().retain(result.data.map((conversation: Conversation) => conversation.id))
     }
   },
 
   selectConversation: async (id: string) => {
-    if (get().activeConversationId === id) return
+    if (get().activeConversationId === id && !get().messagesError) return
+    const generation = ++selectionGeneration
     useNavHistoryStore.getState().push(id)
     // JM-21 (RD-1) — clear ALL streaming state on switch. selectConversation
     // used to reset only toolCalls/runPhase, so switching mid-stream left the
@@ -231,6 +239,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const cachedTurnControl = getConversationFollowUpState(get().turnControlByConversation, id)
     set({
       activeConversationId: id,
+      messages: [],
+      messagesLoading: true,
+      messagesError: null,
       activeTurn: cachedTurnControl.activeTurn,
       followUps: cachedTurnControl.followUps,
       toolCalls: [],
@@ -248,19 +259,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingVitals: null
     })
     const turnHydration = get().hydrateTurnControl(id)
-    const result = await window.api.conversation.getMessages(id)
-    // JM-21 (RD-3) — staleness guard. Rapid A→B switching can let A's slower
-    // getMessages resolve last; without this bail, B would render A's messages.
-    if (get().activeConversationId !== id) return
-    if (result.success) {
-      set({
-        messages: result.data,
-        // Rehydrate the tool-activity chip from history so reopening a
-        // previously-finished conversation still shows what work the model
-        // did, not an empty chip. Live events from a new turn will append
-        // to this list via addToolCall.
-        toolCalls: mergeToolHistory(hydrateToolHistory(result.data, []), get().toolCalls)
-      })
+    try {
+      const [result, record] = await Promise.all([window.api.conversation.getMessages(id), window.api.conversation.get(id)])
+      if (generation !== selectionGeneration || get().activeConversationId !== id) return
+      if (!record.success) throw new Error(record.error || 'Task no longer exists')
+      if (!result.success) throw new Error(result.error || 'Could not load task messages')
+      set({ messages: result.data, messagesLoading: false, toolCalls: mergeToolHistory(hydrateToolHistory(result.data, []), get().toolCalls) })
+    } catch (error) {
+      if (generation !== selectionGeneration || get().activeConversationId !== id) return
+      set({ messages: [], messagesLoading: false, messagesError: errorMessage(error, 'Could not load task messages'), toolHistoryLoading: false })
+      return
     }
     const conv = get().conversations.find((c) => c.id === id)
     if (conv) {
@@ -533,11 +541,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
           set(state => ({ conversations: [conv, ...state.conversations] }))
           return conv.id
         }
+        ++selectionGeneration
         useNavHistoryStore.getState().push(conv.id)
         set((state) => ({
           conversations: [conv, ...state.conversations],
           activeConversationId: conv.id,
           messages: [],
+          messagesLoading: false,
+          messagesError: null,
           activeTurn: null,
           followUps: [],
           isStreaming: false,
@@ -606,8 +617,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       toast.error(res.error ?? 'Could not delete conversation')
       return
     }
+    useNavHistoryStore.getState().retain(get().conversations.filter(conversation => conversation.id !== id).map(conversation => conversation.id))
     useComposerStore.getState().forget(id)
     const wasActive = get().activeConversationId === id
+    if (wasActive) ++selectionGeneration
     turnHydrationGenerations.delete(id)
     set((state) => ({
       turnControlByConversation: Object.fromEntries(
@@ -618,6 +631,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       conversations: state.conversations.filter((c) => c.id !== id),
       activeConversationId: wasActive ? null : state.activeConversationId,
       messages: wasActive ? [] : state.messages,
+      messagesLoading: wasActive ? false : state.messagesLoading,
+      messagesError: wasActive ? null : state.messagesError,
       activeTurn: wasActive ? null : state.activeTurn,
       followUps: wasActive ? [] : state.followUps,
       isStreaming: wasActive ? false : state.isStreaming,
@@ -1082,3 +1097,17 @@ useChatStore.subscribe((state, previous) => {
   if (state.activeConversationId === previous.activeConversationId) return
   projectComposerAttachments()
 })
+
+let historyNavigationPending = false
+export async function navigateTaskHistory(direction: 'back' | 'forward'): Promise<void> {
+  if (historyNavigationPending) return
+  historyNavigationPending = true
+  const history = useNavHistoryStore.getState()
+  try {
+    await useChatStore.getState().loadConversations()
+    history.startReplay()
+    const id = direction === 'back' ? history.goBack() : history.goForward()
+    if (id) await useChatStore.getState().selectConversation(id)
+  } catch (error) { toast.error(errorMessage(error, 'Could not navigate task history')) }
+  finally { history.endReplay(); historyNavigationPending = false }
+}

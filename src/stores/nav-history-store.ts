@@ -15,6 +15,7 @@ interface NavHistoryState {
   goForward: () => string | null
   startReplay: () => void
   endReplay: () => void
+  retain: (ids: string[]) => void
   clear: () => void
 }
 
@@ -54,6 +55,13 @@ export const useNavHistoryStore = create<NavHistoryState>((set, get) => ({
     return stack[nextIndex]
   },
 
+  retain: ids => {
+    const valid = new Set(ids)
+    const { stack, index } = get()
+    const before = stack.slice(0, index + 1).filter(id => valid.has(id))
+    const next = stack.filter(id => valid.has(id))
+    set({ stack: next, index: Math.min(before.length - 1, next.length - 1) })
+  },
   startReplay: () => set({ replaying: true }),
   endReplay: () => set({ replaying: false }),
   clear: () => set({ stack: [], index: -1, replaying: false })

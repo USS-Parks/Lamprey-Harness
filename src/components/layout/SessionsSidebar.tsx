@@ -47,6 +47,9 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
   const entries = useMemo(() => reconcileTaskRows(sessionEntries, conversations), [sessionEntries, conversations])
   const hits = useSessionsStore((s) => s.hits)
   const query = useSessionsStore((s) => s.query)
+  const projectFilter = useSessionsStore(s => s.projectId)
+  const setProjectFilter = useSessionsStore(s => s.setProject)
+  const error = useSessionsStore(s => s.error)
   const loading = useSessionsStore((s) => s.loading)
   const hasMore = useSessionsStore((s) => s.hasMore)
   const unreadAgentResults = useSessionsStore((s) => s.unreadAgentResults)
@@ -145,6 +148,11 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
       </div>
 
       <SessionSearchBar inputRef={searchRef} />
+      <select aria-label="Filter tasks by project" className="mx-2 min-h-8 min-w-0 rounded bg-[var(--bg-primary)] px-2 text-xs" value={projectFilter === undefined ? '__all__' : projectFilter ?? '__unassigned__'} onChange={event => setProjectFilter(event.target.value === '__all__' ? undefined : event.target.value === '__unassigned__' ? null : event.target.value)}>
+        <option value="__all__">All projects</option><option value="__unassigned__">Unassigned</option>
+        {projects.map(project => <option key={project.id} value={project.id}>{project.name || 'Untitled project'}</option>)}
+      </select>
+      {error && <div role="alert" className="px-3 text-xs text-[var(--error)]">{error}<button className="min-h-8 px-2" onClick={() => void loadFirstPage()}>Retry task search</button></div>}
 
       <div className="flex items-center gap-1 overflow-x-auto px-2">
         {TABS.map((t) => (
@@ -210,6 +218,14 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
                           if (confirm(`Delete "${entry.title || 'this session'}"?`)) void deleteSession(entry.id)
                         }}
                         onPin={(pinned) => setPinned(entry.id, pinned)}
+                        onMove={tab === 'pinned' ? direction => {
+                          const ids = entries.map(row => row.id)
+                          const index = ids.indexOf(entry.id)
+                          const next = index + direction
+                          if (next < 0 || next >= ids.length) return
+                          ids.splice(next, 0, ids.splice(index, 1)[0])
+                          reorderPinned(ids)
+                        } : undefined}
                       />
                     </li>
                   ))}
@@ -302,6 +318,7 @@ interface SessionRowProps {
   onArchive: (archived: boolean) => void
   onDelete: () => void
   onPin: (pinned: boolean) => void
+  onMove?: (direction: -1 | 1) => void
 }
 
 function SessionRow({
@@ -319,7 +336,8 @@ function SessionRow({
   onDuplicate,
   onArchive,
   onDelete,
-  onPin
+  onPin,
+  onMove
 }: SessionRowProps) {
   const pinned = (entry.pinnedAt ?? null) !== null
   const [menuOpen, setMenuOpen] = useState(false)
@@ -426,6 +444,7 @@ function SessionRow({
           onClick={() => onArchive(!entry.archived)}
           onClose={() => setMenuOpen(false)}
         />
+        {onMove && <><MenuButton label="Move pin up" onClick={() => onMove(-1)} onClose={() => setMenuOpen(false)} /><MenuButton label="Move pin down" onClick={() => onMove(1)} onClose={() => setMenuOpen(false)} /></>}
         <MenuButton label="Delete" destructive onClick={onDelete} onClose={() => setMenuOpen(false)} />
       </PopoverMenu>
     </div>

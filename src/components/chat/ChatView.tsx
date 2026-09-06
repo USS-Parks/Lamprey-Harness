@@ -26,6 +26,8 @@ export function ChatView({ modalApprovals = [] }: { modalApprovals?: ToolApprova
   // subscribed to the ENTIRE store, so streamingVitals heartbeats (every ~2s)
   // and every tool-call update re-rendered the whole chat tree. Each selector
   // below re-renders ChatView only when THAT slice changes.
+  const messagesLoading = useChatStore(s => s.messagesLoading)
+  const messagesError = useChatStore(s => s.messagesError)
   const messages = useChatStore((s) => s.messages)
   const isStreaming = useChatStore((s) => s.isStreaming)
   const streamingContent = useChatStore((s) => s.streamingContent)
@@ -60,6 +62,8 @@ export function ChatView({ modalApprovals = [] }: { modalApprovals?: ToolApprova
       <ChapterQuickJumper conversationId={activeConversationId} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
+        {messagesLoading && <p role="status" className="px-6 py-2 text-xs text-[var(--text-muted)]">Loading task…</p>}
+        {messagesError && <div role="alert" className="px-6 py-2 text-sm text-[var(--error)]">{messagesError}<button className="min-h-8 px-2 underline" onClick={() => { if (activeConversationId) void useChatStore.getState().selectConversation(activeConversationId) }}>Retry task</button></div>}
         {!activeConversationId ? (
           <WelcomeScreen />
         ) : (

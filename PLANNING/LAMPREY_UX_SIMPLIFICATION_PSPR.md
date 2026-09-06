@@ -373,7 +373,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; new/select/rename/pin/unpin/archive/unarchive/fork/project selection remain reachable; focused tasks are revealed; keyboard and pointer paths work; empty and long project names are legible. No conversation deletion substituted for archive.
 
 #### UX-23 — Preserve task search, ordering and navigation history
-- [ ] **Objective:** make finding and returning to work reliable after sidebar consolidation.
+- [x] **Objective:** make finding and returning to work reliable after sidebar consolidation.
 - **Work:** adapt existing search/filters and back/forward navigation to the unified list. Retain historical search coverage, persisted pins/order and appropriate archived-task search. Prevent overlapping searches or task switches from showing stale results.
 - **Seams/output:** SessionsSidebar, SessionSearchBar, current search IPC/store and navigation history.
 - **Gate:** G1/G2 with real seeded task history; recent/archived/project/filter searches, reload, back/forward, deleted-target recovery and fast query changes behave consistently without losing drafts or changing running task ownership.

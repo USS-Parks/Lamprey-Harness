@@ -298,7 +298,7 @@ export function registerConversationHandlers(): void {
     'sessions:list',
     async (
       _event,
-      opts?: { tab?: 'recent' | 'pinned' | 'archived'; query?: string; limit?: number; offset?: number }
+      opts?: { tab?: 'recent' | 'pinned' | 'archived'; projectId?: string | null; query?: string; limit?: number; offset?: number }
     ) => {
       try {
         return { success: true, data: store.listSessions(opts) }
@@ -326,10 +326,10 @@ export function registerConversationHandlers(): void {
     }
   })
 
-  ipcMain.handle('sessions:search', async (_event, query: string, limit?: number) => {
+  ipcMain.handle('sessions:search', async (_event, query: string, limit?: number, opts?: { tab?: 'recent' | 'pinned' | 'archived'; projectId?: string | null }) => {
     try {
       const lim = typeof limit === 'number' && limit > 0 ? Math.min(limit, 200) : 50
-      return { success: true, data: store.searchSessions(query, lim) }
+      return { success: true, data: store.searchSessions(query, lim, opts) }
     } catch (err: any) {
       return { success: false, error: err.message }
     }

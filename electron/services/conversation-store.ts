@@ -258,6 +258,7 @@ export function listConversations() {
 export type SessionsTab = 'recent' | 'pinned' | 'archived'
 
 export interface ListSessionsOptions {
+  projectId?: string | null
   tab?: SessionsTab
   query?: string
   limit?: number
@@ -284,7 +285,7 @@ export function listSessions(opts: ListSessionsOptions = {}) {
             ORDER BY rank
             LIMIT ?`
         )
-        .all(opts.query.trim(), 500) as { conversation_id: string }[]
+        .all(literalSessionQuery(opts.query), 500) as { conversation_id: string }[]
       ids = matches.map((m) => m.conversation_id)
     } catch (err) {
       // Malformed FTS query — fall back to a LIKE scan on titles only.
@@ -320,6 +321,10 @@ export function listSessions(opts: ListSessionsOptions = {}) {
     const placeholders = ids.map(() => '?').join(',')
     sql += ` AND id IN (${placeholders})`
     params.push(...ids)
+  }
+  if (opts.projectId !== undefined) {
+    sql += ' AND project_id IS ?'
+    params.push(opts.projectId)
   }
   sql += ` ORDER BY ${order} LIMIT ? OFFSET ?`
   params.push(limit, offset)
@@ -370,19 +375,31 @@ export interface SessionSearchHit {
   rank: number
 }
 
-export function searchSessions(query: string, limit = 50): SessionSearchHit[] {
-  // JM-18 (DB-8) — quote each token (the rag/retrieve.ts strategy) so
-  // user-typed FTS5 operators/quotes (`don"t`, `C++ AND rust`) match as
-  // literals instead of throwing a syntax error the catch turned into a
-  // silent empty result.
-  const q = query
+function literalSessionQuery(query: string): string {
+  return query
     .trim()
     .split(/\s+/)
     .map((t) => t.trim())
     .filter(Boolean)
     .map((t) => `"${t.replace(/"/g, '""')}"`)
     .join(' ')
+}
+
+export function searchSessions(query: string, limit = 50, opts: Pick<ListSessionsOptions, 'tab' | 'projectId'> = {}): SessionSearchHit[] {
+  // JM-18 (DB-8) — quote each token (the rag/retrieve.ts strategy) so
+  // user-typed FTS5 operators/quotes (`don"t`, `C++ AND rust`) match as
+  // literals instead of throwing a syntax error the catch turned into a
+  // silent empty result.
+  const q = literalSessionQuery(query)
   if (!q) return []
+  const filters: string[] = []
+  const params: (string | number | null)[] = [q]
+  if (opts.tab === 'recent') filters.push('archived = 0 AND pinned_at IS NULL')
+  if (opts.tab === 'archived') filters.push('archived = 1')
+  if (opts.tab === 'pinned') filters.push('pinned_at IS NOT NULL')
+  if (opts.projectId !== undefined) { filters.push('project_id IS ?'); params.push(opts.projectId) }
+  const filter = filters.length ? ` AND conversation_id IN (SELECT id FROM conversations WHERE ${filters.join(' AND ')})` : ''
+  params.push(limit)
   const db = getDb()
   try {
     const rows = db
@@ -391,11 +408,11 @@ export function searchSessions(query: string, limit = 50): SessionSearchHit[] {
                 snippet(sessions_fts, 4, char(1), char(2), '…', 24) AS snippet,
                 rank
            FROM sessions_fts
-          WHERE sessions_fts MATCH ?
+          WHERE sessions_fts MATCH ?${filter}
           ORDER BY rank
           LIMIT ?`
       )
-      .all(q, limit) as any[]
+      .all(...params) as any[]
     return rows.map((r) => ({
       conversationId: r.conversation_id,
       source: r.source,
@@ -404,8 +421,7 @@ export function searchSessions(query: string, limit = 50): SessionSearchHit[] {
       rank: r.rank
     }))
   } catch (err) {
-    console.warn('[conversation-store] FTS search failed:', (err as Error).message)
-    return []
+    throw new Error(`Task history search failed: ${(err as Error).message}`, { cause: err })
   }
 }
 

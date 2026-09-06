@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useUiStore } from '@/stores/ui-store'
-import { useChatStore } from '@/stores/chat-store'
+import { useNavHistoryStore } from '@/stores/nav-history-store'
+import { useChatStore, navigateTaskHistory } from '@/stores/chat-store'
 import { toast } from '@/stores/toast-store'
 import lampreyLogo from '@assets/Lamprey Desktop Icon-1.png'
 
@@ -121,32 +122,10 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
   const rightPanelWidth = useUiStore((s) => s.rightPanelWidth)
   const requestSearchFocus = useUiStore((s) => s.requestSearchFocus)
   const createConversation = useChatStore((s) => s.createConversation)
-  const conversations = useChatStore((s) => s.conversations)
-  const activeConversationId = useChatStore((s) => s.activeConversationId)
-  const selectConversation = useChatStore((s) => s.selectConversation)
-
-  // Index into the conversation list (sorted as the store returns them).
-  // null when nothing is selected yet — back goes to the first, forward to
-  // the most recent.
-  const activeIdx = conversations.findIndex((c) => c.id === activeConversationId)
-  const canGoBack = conversations.length > 0 && activeIdx !== 0
-  const canGoForward =
-    conversations.length > 0 && activeIdx !== -1 && activeIdx < conversations.length - 1
-
-  const goBack = () => {
-    if (!conversations.length) return
-    const next = activeIdx <= 0 ? 0 : activeIdx - 1
-    void selectConversation(conversations[next].id)
-  }
-  const goForward = () => {
-    if (!conversations.length) return
-    if (activeIdx === -1) {
-      void selectConversation(conversations[conversations.length - 1].id)
-      return
-    }
-    const next = Math.min(conversations.length - 1, activeIdx + 1)
-    void selectConversation(conversations[next].id)
-  }
+  const canGoBack = useNavHistoryStore(s => s.index > 0)
+  const canGoForward = useNavHistoryStore(s => s.index >= 0 && s.index < s.stack.length - 1)
+  const goBack = () => void navigateTaskHistory('back')
+  const goForward = () => void navigateTaskHistory('forward')
   const isDark = settings.themeMode === 'dark'
 
   const [isMaximized, setIsMaximized] = useState(false)
@@ -275,8 +254,8 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           <NavIconButton
             onClick={goBack}
             disabled={!canGoBack}
-            title="Previous conversation"
-            ariaLabel="Previous conversation"
+            title="Back in task history"
+            ariaLabel="Back in task history"
           >
             <svg
               width="15"
@@ -295,8 +274,8 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           <NavIconButton
             onClick={goForward}
             disabled={!canGoForward}
-            title="Next conversation"
-            ariaLabel="Next conversation"
+            title="Forward in task history"
+            ariaLabel="Forward in task history"
           >
             <svg
               width="15"

@@ -316,6 +316,7 @@ const api = {
   sessions: {
     list: (opts?: {
       tab?: 'recent' | 'pinned' | 'archived'
+      projectId?: string | null
       query?: string
       limit?: number
       offset?: number
@@ -324,7 +325,7 @@ const api = {
       ipcRenderer.invoke('sessions:archive', id, archived),
     setPinned: (id: string, pinned: boolean) =>
       ipcRenderer.invoke('sessions:setPinned', id, pinned),
-    search: (query: string, limit?: number) => ipcRenderer.invoke('sessions:search', query, limit),
+    search: (query: string, limit?: number, opts?: { tab?: 'recent' | 'pinned' | 'archived'; projectId?: string | null }) => ipcRenderer.invoke('sessions:search', query, limit, opts),
     listActive: (limit?: number) => ipcRenderer.invoke('sessions:list-active', limit)
   },
 

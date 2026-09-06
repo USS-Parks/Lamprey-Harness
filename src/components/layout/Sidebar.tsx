@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useChatStore } from '@/stores/chat-store'
+import { useChatStore, navigateTaskHistory } from '@/stores/chat-store'
 import { useUiStore, SIDEBAR_BOUNDS } from '@/stores/ui-store'
 import { useProjectsStore } from '@/stores/projects-store'
 import { useNavHistoryStore } from '@/stores/nav-history-store'
@@ -74,14 +74,6 @@ export function Sidebar() {
     const frame = requestAnimationFrame(() => searchRef.current?.focus())
     return () => cancelAnimationFrame(frame)
   }, [searchToken, setCollapsed])
-  const navigate = async (direction: 'back' | 'forward') => {
-    const history = useNavHistoryStore.getState()
-    history.startReplay()
-    try {
-      const id = direction === 'back' ? history.goBack() : history.goForward()
-      if (id) await useChatStore.getState().selectConversation(id)
-    } finally { history.endReplay() }
-  }
   const newTask = async () => {
     if (creating) return
     setCreating(true)
@@ -106,8 +98,8 @@ export function Sidebar() {
   </> : <>
     <div className="flex shrink-0 items-center gap-1 px-2 pt-2">
       <button className={control} aria-label="Collapse sidebar" title="Collapse sidebar (Ctrl+B)" onClick={() => setCollapsed(true)}>‹</button>
-      <button className={control} aria-label="Back" title="Back" disabled={index <= 0} onClick={() => void navigate('back')}>←</button>
-      <button className={control} aria-label="Forward" title="Forward" disabled={index < 0 || index >= stack.length - 1} onClick={() => void navigate('forward')}>→</button>
+      <button className={control} aria-label="Back" title="Back" disabled={index <= 0} onClick={() => void navigateTaskHistory('back')}>←</button>
+      <button className={control} aria-label="Forward" title="Forward" disabled={index < 0 || index >= stack.length - 1} onClick={() => void navigateTaskHistory('forward')}>→</button>
       <button className={`${control} ml-auto flex items-center gap-1`} aria-label="New task" title="New task (Ctrl+N)" disabled={creating} onClick={() => void newTask()}><img src={newChatIcon} alt="" className="icon-asset themed-variant-light h-5 w-5" />New task</button>
     </div>
     <ActivityDashboard />

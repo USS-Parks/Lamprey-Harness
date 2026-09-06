@@ -1,0 +1,12 @@
+{
+  "cycles": 10,
+  "countBefore": 3,
+  "countAfterClose": 1,
+  "tabA": "tab-1",
+  "tabB": "tab-2",
+  "navigation": "back-forward-reload passed",
+  "addressDraftRetained": true,
+  "ownership": "task-scoped lists and one visible task page",
+  "outerClose": "hidden",
+  "innerClose": "destroyed"
+}

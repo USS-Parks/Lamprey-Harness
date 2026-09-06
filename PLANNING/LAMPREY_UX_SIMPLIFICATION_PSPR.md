@@ -277,7 +277,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2 using a real local HTTP fixture; navigation, back/forward, reload, task switch, hide/show and close work; ten lifecycle cycles do not accumulate windows/subscriptions. No cross-task page exposure or permission bypass.
 
 #### UX-08 — Dock the existing terminal below the workspace
-- [ ] **Objective:** provide a predictable bottom terminal without changing execution semantics.
+- [x] **Objective:** provide a predictable bottom terminal without changing execution semantics.
 - **Work:** move TerminalPanel into a resizable bottom dock; retain shell selection, working directory, terminal state, copy/paste and existing process controls. Keep the process alive when merely hidden; never duplicate it during rerender.
 - **Seams/output:** App shell, TerminalPanel, existing shell IPC and layout state.
 - **Gate:** G1/G2 with a real disposable shell; output continues while hidden, reopening shows prior output, explicit termination works, task/path selection is correct, keyboard input reaches the terminal, and closing the app leaves no fixture process orphan.

@@ -80,7 +80,7 @@ toolRegistry.registerNative(
     enabled: true,
     parallelizable: true
   },
-  async (args) => executeReadThreadTerminal(args as unknown as ReadThreadTerminalArgs)
+  async (args, context) => executeReadThreadTerminal(args as unknown as ReadThreadTerminalArgs, context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(

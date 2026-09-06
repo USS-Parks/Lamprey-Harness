@@ -80,7 +80,7 @@ describe('persisted workspace validation', () => {
   it('drops corrupt entries and unknown fields but preserves valid siblings', () => {
     const tab = resourceDescriptor('file', 'a.txt', 'a.txt', 'project-a')
     const decoded = decodeWorkspaces(JSON.stringify({ bad: {}, [workspaceKey('a')]: { tabs: [{ ...tab, contents: 'must not persist', credential: 'must not persist' }, { kind: 'unknown' }, tab], activeId: 'missing' } }))
-    expect(decoded[workspaceKey('a')]).toEqual({ tabs: [tab], activeId: tab.id })
+    expect(decoded[workspaceKey('a')]).toEqual({ tabs: [tab], activeId: tab.id, terminalOpen: false })
     expect(JSON.stringify(decoded)).not.toContain('must not persist')
     expect(decodeWorkspaces('{')).toEqual({})
     expect(decodeWorkspaces('[]')).toEqual({})
@@ -94,4 +94,29 @@ describe('persisted workspace validation', () => {
     expect(state().activeTool).toBe('review')
     expect(current().tabs.map(tab => tab.kind)).toEqual(['file', 'review'])
   })
+})
+
+
+it('routes terminal opens below the workspace and preserves visibility across other tab changes', () => {
+  state().setRightPanelCollapsed(true)
+  state().setActiveTool('terminal')
+  expect(current().terminalOpen).toBe(true)
+  expect(current().tabs).toEqual([])
+  expect(state().rightPanelCollapsed).toBe(true)
+  state().requestOpenFile('a.txt')
+  state().closeActiveTool()
+  expect(current().terminalOpen).toBe(true)
+  state().hydrateRightPanelForConv('another-task')
+  expect(current()?.terminalOpen).toBeUndefined()
+  state().hydrateRightPanelForConv('task-a')
+  expect(current().terminalOpen).toBe(true)
+  state().toggleTool('terminal')
+  expect(current().terminalOpen).toBe(false)
+})
+
+it('migrates a legacy terminal tab into the dock without dropping file tabs', () => {
+  const terminal = resourceDescriptor('terminal', 'terminal', 'Terminal', null)
+  const file = resourceDescriptor('file', 'a.txt', 'a.txt', null)
+  const decoded = decodeWorkspaces(JSON.stringify({ [workspaceKey('a')]: { tabs: [terminal, file], activeId: terminal.id } }))
+  expect(decoded[workspaceKey('a')]).toEqual({ tabs: [file], activeId: file.id, terminalOpen: true })
 })

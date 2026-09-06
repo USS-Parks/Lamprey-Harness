@@ -54,7 +54,7 @@ module.exports = async function browserScenario({ page, app, ids, origin, switch
   assert(hidden.filter(view => view.url.startsWith(`${origin}/browser/`)).every(view => !view.visible))
   await openBrowser()
   assert.equal((await nativeViews()).length, countBefore)
-  assert.equal(await address.inputValue(), 'Preserve this address draft')
+  await page.waitForFunction(() => document.querySelector('input[placeholder="Search Google or type a URL"]')?.value === 'Preserve this address draft')
 
   await switchTask('UX baseline task 04', 'UX browser task B ready.')
   await openBrowser()

@@ -13,6 +13,7 @@ const RIGHT_WIDTH_KEY = 'lamprey.ui.rightPanelWidth'
 const RIGHT_COLLAPSED_KEY = 'lamprey.ui.rightPanelCollapsed'
 const PERMISSIONS_KEY = 'lamprey.ui.permissionsMode'
 const CONV_FILTERS_KEY = 'lamprey.ui.convFilters'
+const TERMINAL_HEIGHT_KEY = 'lamprey.ui.terminalHeight'
 const WORKSPACES_KEY = 'lamprey.ui.workspaces'
 const ACTIVE_SHELL_KEY = 'lamprey.ui.activeShell'
 // Fluidity J11: per-conversation right-panel state. Persisted as a single
@@ -183,6 +184,11 @@ function readWorkspaces(): Workspaces {
 }
 
 interface UiState {
+  terminalHeight: number
+  terminalFocusRequested: boolean
+  setTerminalOpen: (open: boolean) => void
+  setTerminalHeight: (height: number) => void
+  consumeTerminalFocus: () => void
   workspaces: Workspaces
   browserAddressDrafts: Record<string, string>
   setBrowserAddressDraft: (tabId: string, draft: string | null) => void
@@ -292,6 +298,20 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
+  terminalHeight: readNumber(TERMINAL_HEIGHT_KEY, 240, 120, 600),
+  terminalFocusRequested: false,
+  consumeTerminalFocus: () => set({ terminalFocusRequested: false }),
+  setTerminalHeight: (height) => {
+    const terminalHeight = Math.max(120, Math.min(600, Math.round(height)))
+    writeLocal(TERMINAL_HEIGHT_KEY, String(terminalHeight))
+    set({ terminalHeight })
+  },
+  setTerminalOpen: (open) => {
+    const state = get()
+    const workspace = state.workspaces[workspaceKey(state.activeRightPanelConvId)] ?? EMPTY_WORKSPACE
+    get().updateWorkspace({ ...workspace, terminalOpen: open })
+    set({ terminalFocusRequested: open })
+  },
   workspaces: readWorkspaces(),
   browserAddressDrafts: {},
   setBrowserAddressDraft: (tabId, draft) => {
@@ -311,6 +331,7 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ workspaces, activeTool: active ? resourceTool(active) : null })
   },
   openWorkspaceResource: (kind, ref, title, activate = true) => {
+    if (kind === 'terminal') { if (activate) get().setTerminalOpen(true); return }
     const state = get()
     const workspace = state.workspaces[workspaceKey(state.activeRightPanelConvId)] ?? EMPTY_WORKSPACE
     get().updateWorkspace(openResource(workspace, resourceDescriptor(kind, ref, title, state.activeWorkspaceProjectId), activate))
@@ -505,6 +526,11 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ activeShell: kind })
   },
   toggleTool: (tool: ToolId) => {
+    if (tool === 'terminal') {
+      const workspace = get().workspaces[workspaceKey(get().activeRightPanelConvId)]
+      get().setTerminalOpen(!workspace?.terminalOpen)
+      return
+    }
     if (get().activeTool === tool) get().closeActiveTool()
     else get().setActiveTool(tool)
   },

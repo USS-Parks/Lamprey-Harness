@@ -7,7 +7,6 @@ import { FilesPanel } from './panels/FilesPanel'
 import { SideChatPanel } from './panels/SideChatPanel'
 import { BrowserPanel } from './panels/BrowserPanel'
 import { ReviewPanel } from './panels/ReviewPanel'
-import { TerminalPanel } from './panels/TerminalPanel'
 import { PlanToolPanel } from './panels/PlanToolPanel'
 import { BackgroundTasksPanel } from './panels/BackgroundTasksPanel'
 import { AfterActionPanel } from './panels/AfterActionPanel'
@@ -45,7 +44,7 @@ function renderToolBody(tool: ToolId, resource?: WorkspaceResource): React.React
     case 'review':
       return <ReviewPanel />
     case 'terminal':
-      return <TerminalPanel />
+      return <button onClick={() => useUiStore.getState().setTerminalOpen(true)}>Open terminal below the workspace</button>
     case 'environment':
       return <EnvironmentPanel />
     case 'sources':

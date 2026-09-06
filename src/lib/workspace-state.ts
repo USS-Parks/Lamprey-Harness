@@ -9,6 +9,7 @@ export interface WorkspaceResource {
   projectId: string | null
 }
 export interface TaskWorkspace {
+  terminalOpen?: boolean
   tabs: WorkspaceResource[]
   activeId: string | null
 }
@@ -42,7 +43,9 @@ export function decodeWorkspaces(raw: string | null): Workspaces {
         const clean = resourceDescriptor(tab.kind, tab.ref, tab.title, tab.projectId)
         if (!tabs.some(existing => existing.id === clean.id)) tabs.push(clean)
       }
-      result[key] = { tabs, activeId: value.activeId === null || tabs.some(tab => tab.id === value.activeId) ? value.activeId : tabs[0]?.id ?? null }
+      const terminalOpen = value.terminalOpen === true || tabs.some(tab => tab.kind === 'terminal')
+      const resources = tabs.filter(tab => tab.kind !== 'terminal')
+      result[key] = { terminalOpen, tabs: resources, activeId: value.activeId === null || resources.some(tab => tab.id === value.activeId) ? value.activeId : resources[0]?.id ?? null }
     }
     return result
   } catch { return {} }
@@ -50,12 +53,12 @@ export function decodeWorkspaces(raw: string | null): Workspaces {
 
 export function openResource(state: TaskWorkspace, resource: WorkspaceResource, activate = true): TaskWorkspace {
   const existing = state.tabs.some(tab => tab.id === resource.id)
-  return { tabs: existing ? state.tabs : [...state.tabs, resource], activeId: activate ? resource.id : state.activeId }
+  return { ...state, tabs: existing ? state.tabs : [...state.tabs, resource], activeId: activate ? resource.id : state.activeId }
 }
 
 export function closeResource(state: TaskWorkspace, id: string): TaskWorkspace {
   const index = state.tabs.findIndex(tab => tab.id === id)
   if (index < 0) return state
   const tabs = state.tabs.filter(tab => tab.id !== id)
-  return { tabs, activeId: state.activeId === id ? tabs[Math.min(index, tabs.length - 1)]?.id ?? null : state.activeId }
+  return { ...state, tabs, activeId: state.activeId === id ? tabs[Math.min(index, tabs.length - 1)]?.id ?? null : state.activeId }
 }

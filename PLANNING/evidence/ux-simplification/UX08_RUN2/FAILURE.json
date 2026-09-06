@@ -1,0 +1,7 @@
+{
+  "error": "Error: page.evaluate: Error: Task rendering timed out\n    at eval (eval at evaluate (:303:30), <anonymous>:6:72)",
+  "diagnostic": {
+    "activeElement": "<button class=\"group flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-[14px] transition-colors bg-[var(--bg-tertiary)] text-[var(--text-primary)]\" aria-current=\"page\"><img alt=\"\" aria-hidden=\"true\" class=\"icon-asset themed-variant-light h-5 w-5 shrink-0 object-contain opacity-80\" src=\"file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/Lamprey%20Auto-Review%20Icon-C_uCSC8h.png\"><span class=\"min-w-0 flex-1 truncate\">UX baseline task 05</span><span cla",
+    "draft": ""
+  }
+}

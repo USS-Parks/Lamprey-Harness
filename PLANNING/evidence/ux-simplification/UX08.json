@@ -1,0 +1,17 @@
+{
+  "prompt": "UX-08",
+  "sourceBase": "f01494d5219560573193f729f9b5c6954b475058",
+  "status": "local-pass",
+  "unitTests": 13,
+  "evidence": [
+    "UX08_RUN4/TERMINAL.json",
+    "UX08_RUN4/RUNTIME.json",
+    "UX08_RUN4/LIFECYCLE.json"
+  ],
+  "failedRunsRetained": [
+    "UX08_RUN",
+    "UX08_RUN2",
+    "UX08_RUN3"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX08.json"
+}

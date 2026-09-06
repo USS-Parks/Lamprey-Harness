@@ -1,0 +1,279 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ ''\n- 'Preserve this address draft'\n",
+  "diagnostic": {
+    "activeElement": "<div id=\"workspace-content\" role=\"tabpanel\" tabindex=\"-1\" class=\"flex min-h-0 flex-1 flex-col overflow-hidden outline-none\" aria-labelledby=\"workspace-tab-0\"><div class=\"flex min-h-0 flex-1 flex-col overflow-hidden\"><div class=\"flex flex-1 flex-col bg-[var(--bg-primary)]\"><div class=\"flex items-stretch border-b border-[var(--panel-border)] bg-[var(--bg-secondary)]\"><div class=\"flex min-w-0 flex-1 overflow-x-auto\"><div class=\"group flex min-w-[100px] max-w-[200px] shrink-0 items-center gap-1 bord",
+    "draft": "",
+    "timings": [
+      17.5,
+      10.100000143051147,
+      22.299999952316284,
+      9.799999952316284,
+      9.199999809265137,
+      11.299999952316284,
+      28,
+      22.40000009536743,
+      27,
+      12.800000190734863,
+      8.899999856948853,
+      34,
+      26.200000047683716,
+      10.600000143051147,
+      32.89999985694885,
+      33.40000009536743
+    ],
+    "longTasks": [
+      {
+        "start": 3948.9000000953674,
+        "duration": 400
+      },
+      {
+        "start": 4480.099999904633,
+        "duration": 348
+      },
+      {
+        "start": 6900.700000047684,
+        "duration": 353
+      },
+      {
+        "start": 7375.599999904633,
+        "duration": 327
+      },
+      {
+        "start": 9760.700000047684,
+        "duration": 317
+      },
+      {
+        "start": 10193.599999904633,
+        "duration": 334
+      },
+      {
+        "start": 10610.700000047684,
+        "duration": 54
+      },
+      {
+        "start": 12685.099999904633,
+        "duration": 314
+      },
+      {
+        "start": 13125.200000047684,
+        "duration": 308
+      },
+      {
+        "start": 15531.099999904633,
+        "duration": 308
+      },
+      {
+        "start": 15963.5,
+        "duration": 320
+      },
+      {
+        "start": 16536.700000047684,
+        "duration": 177
+      },
+      {
+        "start": 23168.799999952316,
+        "duration": 164
+      },
+      {
+        "start": 23486.200000047684,
+        "duration": 155
+      },
+      {
+        "start": 23743.900000095367,
+        "duration": 83
+      },
+      {
+        "start": 24703.900000095367,
+        "duration": 69
+      },
+      {
+        "start": 24912.599999904633,
+        "duration": 183
+      },
+      {
+        "start": 25259.200000047684,
+        "duration": 52
+      },
+      {
+        "start": 25366.400000095367,
+        "duration": 199
+      },
+      {
+        "start": 26044.099999904633,
+        "duration": 56
+      },
+      {
+        "start": 26165.299999952316,
+        "duration": 65
+      },
+      {
+        "start": 26240.5,
+        "duration": 52
+      },
+      {
+        "start": 26301.400000095367,
+        "duration": 53
+      },
+      {
+        "start": 26354.5,
+        "duration": 217
+      },
+      {
+        "start": 26742.900000095367,
+        "duration": 62
+      },
+      {
+        "start": 26815.900000095367,
+        "duration": 232
+      },
+      {
+        "start": 27048.599999904633,
+        "duration": 55
+      },
+      {
+        "start": 27231.700000047684,
+        "duration": 54
+      },
+      {
+        "start": 27576.200000047684,
+        "duration": 63
+      },
+      {
+        "start": 27653.299999952316,
+        "duration": 55
+      },
+      {
+        "start": 28047.299999952316,
+        "duration": 64
+      },
+      {
+        "start": 28170,
+        "duration": 87
+      },
+      {
+        "start": 28257.200000047684,
+        "duration": 210
+      },
+      {
+        "start": 28642.400000095367,
+        "duration": 56
+      },
+      {
+        "start": 29108.200000047684,
+        "duration": 72
+      },
+      {
+        "start": 29225.5,
+        "duration": 53
+      },
+      {
+        "start": 29900,
+        "duration": 55
+      },
+      {
+        "start": 29995.599999904633,
+        "duration": 62
+      },
+      {
+        "start": 30058.400000095367,
+        "duration": 58
+      },
+      {
+        "start": 30158.099999904633,
+        "duration": 52
+      },
+      {
+        "start": 30254.5,
+        "duration": 117
+      },
+      {
+        "start": 30375.200000047684,
+        "duration": 199
+      },
+      {
+        "start": 30633.599999904633,
+        "duration": 51
+      },
+      {
+        "start": 31046.200000047684,
+        "duration": 66
+      },
+      {
+        "start": 31152.900000095367,
+        "duration": 64
+      },
+      {
+        "start": 31264.099999904633,
+        "duration": 74
+      },
+      {
+        "start": 31553.200000047684,
+        "duration": 61
+      },
+      {
+        "start": 31813.799999952316,
+        "duration": 53
+      },
+      {
+        "start": 32154.099999904633,
+        "duration": 55
+      },
+      {
+        "start": 32273.900000095367,
+        "duration": 73
+      },
+      {
+        "start": 32352.400000095367,
+        "duration": 57
+      },
+      {
+        "start": 33304.700000047684,
+        "duration": 736
+      },
+      {
+        "start": 34041.200000047684,
+        "duration": 75
+      },
+      {
+        "start": 35852.700000047684,
+        "duration": 57
+      },
+      {
+        "start": 35912,
+        "duration": 263
+      },
+      {
+        "start": 36175.90000009537,
+        "duration": 62
+      },
+      {
+        "start": 36239.40000009537,
+        "duration": 56
+      },
+      {
+        "start": 36333.59999990463,
+        "duration": 129
+      },
+      {
+        "start": 36487.59999990463,
+        "duration": 64
+      },
+      {
+        "start": 36558.40000009537,
+        "duration": 107
+      },
+      {
+        "start": 36705.799999952316,
+        "duration": 58
+      },
+      {
+        "start": 36917,
+        "duration": 618
+      },
+      {
+        "start": 37605.799999952316,
+        "duration": 50
+      }
+    ]
+  }
+}

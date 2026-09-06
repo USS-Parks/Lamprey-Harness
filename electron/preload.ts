@@ -1206,17 +1206,19 @@ const api = {
   },
 
   terminal: {
+    snapshot: (args: { id: string }) => ipcRenderer.invoke('terminal:snapshot', args),
     spawn: (args: {
       id: string
       cwd?: string
+      conversationId?: string | null
       shellKind?: 'powershell' | 'cmd' | 'git-bash' | 'wsl'
     }) => ipcRenderer.invoke('terminal:spawn', args),
     write: (args: { id: string; data: string }) => ipcRenderer.invoke('terminal:write', args),
     resize: (args: { id: string; cols: number; rows: number }) =>
       ipcRenderer.invoke('terminal:resize', args),
     kill: (args: { id: string }) => ipcRenderer.invoke('terminal:kill', args),
-    onData: (cb: (e: { id: string; chunk: string }) => void) => {
-      const handler = (_: unknown, e: { id: string; chunk: string }) => cb(e)
+    onData: (cb: (e: { id: string; chunk: string; sequence: number }) => void) => {
+      const handler = (_: unknown, e: { id: string; chunk: string; sequence: number }) => cb(e)
       ipcRenderer.on('terminal:data', handler)
       return () => ipcRenderer.removeListener('terminal:data', handler)
     },

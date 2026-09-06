@@ -15,6 +15,10 @@ interface PtySession {
   cwd: string
   buffer: string
   lastActivity: number
+  conversationId: string | null
+  shellKind: ShellKind | null
+  sequence: number
+  running: boolean
 }
 
 const sessions = new Map<string, PtySession>()
@@ -32,6 +36,7 @@ function appendToBuffer(session: PtySession, chunk: string): void {
   const next = session.buffer + chunk
   session.buffer = next.length > PTY_BUFFER_CAP ? next.slice(next.length - PTY_BUFFER_CAP) : next
   session.lastActivity = Date.now()
+  session.sequence++
 }
 
 export type ShellKind = 'powershell' | 'cmd' | 'git-bash' | 'wsl'
@@ -79,6 +84,7 @@ function shellForKind(kind: ShellKind | undefined): { cmd: string; args: string[
 }
 
 export interface SpawnOptions {
+  conversationId?: string | null
   cwd?: string
   shellKind?: ShellKind
 }
@@ -88,7 +94,7 @@ export function ptySpawn(
   win: BrowserWindow,
   opts: SpawnOptions = {}
 ): { cwd: string; shell: string; shellKind: ShellKind | null } {
-  if (sessions.has(id)) {
+  if (sessions.get(id)?.running) {
     throw new Error(`PTY session ${id} already exists`)
   }
   const cwd = opts.cwd || process.cwd()
@@ -101,7 +107,7 @@ export function ptySpawn(
     windowsHide: true
   }) as ChildProcessWithoutNullStreams
 
-  const session: PtySession = { id, proc, win, cwd, buffer: '', lastActivity: Date.now() }
+  const session: PtySession = { id, proc, win, cwd, buffer: '', lastActivity: Date.now(), conversationId: opts.conversationId ?? null, shellKind: opts.shellKind ?? null, sequence: 0, running: true }
   sessions.set(id, session)
 
   const send = (channel: string, payload: unknown) => {
@@ -112,30 +118,30 @@ export function ptySpawn(
     }
   }
 
-  proc.stdout.on('data', (buf: Buffer) => {
-    const chunk = buf.toString('utf8')
+  const output = (chunk: string) => {
     appendToBuffer(session, chunk)
-    send('terminal:data', { id, chunk })
-  })
-  proc.stderr.on('data', (buf: Buffer) => {
-    const chunk = buf.toString('utf8')
-    appendToBuffer(session, chunk)
-    send('terminal:data', { id, chunk })
-  })
-  proc.on('exit', (code, signal) => {
-    sessions.delete(id)
-    send('terminal:exit', { id, code, signal: signal ?? null })
-  })
-  proc.on('error', (err) => {
-    send('terminal:data', { id, chunk: `\r\n[terminal error: ${err.message}]\r\n` })
-  })
+    send('terminal:data', { id, chunk, sequence: session.sequence })
+  }
+  const finish = (code: number | null, signal: string | null) => {
+    if (sessions.get(id) !== session) return
+    session.running = false
+    output(`\r\n[shell exited${code != null ? ` (code ${code})` : ''}]\r\n`)
+    send('terminal:exit', { id, code, signal })
+    // Retain bounded completed output for reattachment without another renderer cache.
+    const completed = [...sessions.values()].filter(item => !item.running).sort((a, b) => b.lastActivity - a.lastActivity)
+    for (const old of completed.slice(20)) sessions.delete(old.id)
+  }
+  proc.stdout.on('data', (buf: Buffer) => output(buf.toString('utf8')))
+  proc.stderr.on('data', (buf: Buffer) => output(buf.toString('utf8')))
+  proc.on('exit', (code, signal) => finish(code, signal ?? null))
+  proc.on('error', err => { output(`\r\n[terminal error: ${err.message}]\r\n`); finish(null, null) })
 
   return { cwd, shell: cmd, shellKind: opts.shellKind ?? null }
 }
 
 export function ptyWrite(id: string, data: string): boolean {
   const s = sessions.get(id)
-  if (!s) return false
+  if (!s?.running) return false
   try {
     s.proc.stdin.write(data)
     return true
@@ -152,13 +158,13 @@ export function ptyResize(_id: string, _cols: number, _rows: number): boolean {
 
 export function ptyKill(id: string): boolean {
   const s = sessions.get(id)
-  if (!s) return false
+  if (!s?.running) return false
   try {
-    s.proc.kill()
+    if (!s.proc.kill()) return false
   } catch {
-    // already dead
+    return false
   }
-  sessions.delete(id)
+  s.running = false
   return true
 }
 
@@ -174,9 +180,9 @@ export function ptyKillAll(): void {
  * to the model. Returned text is the raw captured bytes (already capped at
  * PTY_BUFFER_CAP); callers should slice the tail before showing.
  */
-export function ptyGetBuffer(id: string): string | null {
+export function ptyGetBuffer(id: string, conversationId?: string | null): string | null {
   const s = sessions.get(id)
-  if (!s) return null
+  if (!s || (conversationId !== undefined && s.conversationId !== conversationId)) return null
   return s.buffer
 }
 
@@ -185,8 +191,16 @@ export function ptyGetBuffer(id: string): string | null {
  * Used by read_thread_terminal so the model can call it without knowing
  * a specific id (the most-recent session is picked by default).
  */
-export function ptyListSessions(): string[] {
+export function ptyListSessions(conversationId?: string | null): string[] {
   return Array.from(sessions.values())
+    .filter(session => session.running && (conversationId === undefined || session.conversationId === conversationId))
     .sort((a, b) => b.lastActivity - a.lastActivity)
     .map((s) => s.id)
+}
+
+
+export function ptySnapshot(id: string) {
+  const session = sessions.get(id)
+  if (!session) return null
+  return { id, cwd: session.cwd, conversationId: session.conversationId, shellKind: session.shellKind, pid: session.proc.pid ?? null, buffer: session.buffer, sequence: session.sequence, running: session.running }
 }

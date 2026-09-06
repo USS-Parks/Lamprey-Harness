@@ -1,163 +1,126 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { useUiStore, type ShellKind } from '@/stores/ui-store'
+import { toast } from '@/stores/toast-store'
 
-// Per-shell-kind session id. Each Codex shell (PowerShell, Git Bash, WSL,
-// cmd) gets its own pty so swapping shells in the launcher doesn't kill
-// the previous session — it just hides while the new one runs.
-const terminalIdFor = (kind: ShellKind): string => `lamprey-main:${kind}`
-
-const spawnPromises = new Map<string, Promise<boolean>>()
-
-// Per-session ring buffer of pty output. Survives panel unmount/remount and
-// shell-kind switches so the next mounted xterm can replay history on attach.
-// Cap each session at ~256 KB to bound memory.
-const HISTORY_CAP = 256 * 1024
-const historyBuffers = new Map<string, string>()
-const historyListenerInstalled = { value: false }
-
-function recordHistory(id: string, chunk: string): void {
-  const prev = historyBuffers.get(id) ?? ''
-  const next = prev + chunk
-  historyBuffers.set(id, next.length > HISTORY_CAP ? next.slice(-HISTORY_CAP) : next)
+interface Snapshot {
+  id: string
+  cwd: string
+  conversationId: string | null
+  buffer: string
+  sequence: number
+  running: boolean
 }
+const pendingStarts = new Map<string, Promise<Snapshot>>()
 
-function clearHistory(id: string): void {
-  historyBuffers.delete(id)
-}
-
-// Install a single, module-level pty-data listener that records every chunk
-// into the per-session history buffer. The component-level listener (below)
-// still mirrors chunks into the live xterm; this one only captures.
-function ensureHistoryListener(): void {
-  if (historyListenerInstalled.value) return
-  if (!window.api?.terminal) return
-  historyListenerInstalled.value = true
-  window.api.terminal.onData((e: { id: string; chunk: string }) => {
-    recordHistory(e.id, e.chunk)
-  })
-  window.api.terminal.onExit((e: { id: string; code: number | null }) => {
-    recordHistory(
-      e.id,
-      `\r\n[shell exited${e.code != null ? ` (code ${e.code})` : ''}]\r\n`
-    )
-  })
-}
-
-async function ensureSpawned(id: string, shellKind: ShellKind): Promise<boolean> {
-  if (!window.api?.terminal) return false
-  ensureHistoryListener()
-  const cached = spawnPromises.get(id)
-  if (cached) return cached
+async function attachSession(id: string, conversationId: string | null, shellKind: ShellKind, restart: boolean): Promise<Snapshot> {
+  const pending = pendingStarts.get(id)
+  if (pending) return pending
   const promise = (async () => {
-    const wd = await window.api.files.getWorkdir()
-    const cwd = wd.success && wd.data ? wd.data.path : undefined
-    const res = await window.api.terminal.spawn({ id, cwd, shellKind })
-    return res.success
+    const previous = await window.api.terminal.snapshot({ id })
+    if (!previous.success) throw new Error(previous.error)
+    if (previous.data && !restart) return previous.data as Snapshot
+    if (previous.data?.running) await window.api.terminal.kill({ id })
+    const created = await window.api.terminal.spawn({ id, conversationId, shellKind })
+    if (!created.success) throw new Error(created.error)
+    const snapshot = await window.api.terminal.snapshot({ id })
+    if (!snapshot.success || !snapshot.data) throw new Error(snapshot.error ?? 'Terminal exited before it could attach.')
+    return snapshot.data as Snapshot
   })()
-  spawnPromises.set(id, promise)
-  return promise
+  pendingStarts.set(id, promise)
+  try { return await promise } finally { if (pendingStarts.get(id) === promise) pendingStarts.delete(id) }
 }
 
 export function TerminalPanel() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const termRef = useRef<Terminal | null>(null)
-  const fitRef = useRef<FitAddon | null>(null)
-  const activeShell = useUiStore((s) => s.activeShell)
+  const container = useRef<HTMLDivElement>(null)
+  const terminal = useRef<Terminal | null>(null)
+  const restartRequested = useRef(false)
+  const [restartCount, setRestartCount] = useState(0)
+  const [status, setStatus] = useState('Starting')
+  const [cwd, setCwd] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const owner = useUiStore(s => s.activeRightPanelConvId)
+  const shell = useUiStore(s => s.activeShell)
+  const setShell = useUiStore(s => s.setActiveShell)
+  const hide = useUiStore(s => s.setTerminalOpen)
+  const focusRequested = useUiStore(s => s.terminalFocusRequested)
+  const consumeFocus = useUiStore(s => s.consumeTerminalFocus)
+  const id = `lamprey-task:${encodeURIComponent(owner ?? 'home')}:${shell}`
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    if (!window.api?.terminal) {
-      container.innerText = 'Terminal API unavailable.'
-      return
-    }
-
-    const term = new Terminal({
-      cursorBlink: true,
-      fontFamily: 'ui-monospace, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
-      fontSize: 13,
-      theme: {
-        background: '#000000',
-        foreground: '#e8e8e8'
-      },
-      convertEol: true,
-      scrollback: 5000
-    })
+    if (!container.current) return
+    let disposed = false
+    let sequence = -1
+    let exited = false
+    const queued: Array<{ chunk: string; sequence: number }> = []
+    const term = new Terminal({ cursorBlink: true, fontSize: 13, fontFamily: 'Consolas, monospace', convertEol: true, scrollback: 5000, theme: { background: '#000000', foreground: '#e8e8e8' } })
     const fit = new FitAddon()
     term.loadAddon(fit)
-    term.open(container)
+    term.open(container.current)
     fit.fit()
-    termRef.current = term
-    fitRef.current = fit
-
-    const sessionId = terminalIdFor(activeShell)
-
-    // Replay buffered history so re-mounting (panel close/open, shell switch)
-    // restores what the previous xterm rendered.
-    const replay = historyBuffers.get(sessionId)
-    if (replay) term.write(replay)
-
-    // Pipe keystrokes to backend.
-    const inputDisposable = term.onData((data) => {
-      void window.api.terminal.write({ id: sessionId, data })
-    })
-
-    // Mirror pty data into the live xterm. History recording is handled by
-    // the module-level listener installed in ensureSpawned() — don't double
-    // record here.
-    const onData = (e: { id: string; chunk: string }) => {
-      if (e.id !== sessionId) return
-      term.write(e.chunk)
+    terminal.current = term
+    setStatus('Starting')
+    setError(null)
+    const accept = (event: { chunk: string; sequence: number }) => {
+      if (event.sequence > sequence) { sequence = event.sequence; term.write(event.chunk) }
     }
-    const onExit = (e: { id: string; code: number | null }) => {
-      if (e.id !== sessionId) return
-      term.write(`\r\n[shell exited${e.code != null ? ` (code ${e.code})` : ''}]\r\n`)
-      spawnPromises.delete(sessionId)
-      clearHistory(sessionId)
-    }
-    const offData = window.api.terminal.onData(onData)
-    const offExit = window.api.terminal.onExit(onExit)
-
-    void (async () => {
-      const ok = await ensureSpawned(sessionId, activeShell)
-      if (!ok) {
-        term.write(`\x1b[31m[failed to spawn ${activeShell}]\x1b[0m\r\n`)
-      }
-    })()
-
-    const ro = new ResizeObserver(() => {
-      try {
-        fit.fit()
-      } catch {
-        // container may have zero size briefly during transitions
-      }
+    const offData = window.api.terminal.onData(event => {
+      if (event.id !== id || disposed) return
+      if (sequence < 0) queued.push(event)
+      else accept(event)
     })
-    ro.observe(container)
-
+    const offExit = window.api.terminal.onExit(event => { if (event.id === id && !disposed) { exited = true; setStatus('Exited') } })
+    const input = term.onData(data => {
+      void window.api.terminal.write({ id, data }).then(result => { if (!result.success && !disposed) setError('The shell is not running. Restart it to continue.') })
+    })
+    const restart = restartRequested.current
+    restartRequested.current = false
+    void attachSession(id, owner, shell, restart).then(snapshot => {
+      if (disposed) return
+      if (snapshot.conversationId !== owner) throw new Error('Terminal ownership does not match this task.')
+      term.write(snapshot.buffer)
+      sequence = snapshot.sequence
+      for (const event of queued) accept(event)
+      queued.length = 0
+      setCwd(snapshot.cwd)
+      setStatus(snapshot.running && !exited ? 'Running' : 'Exited')
+    }).catch(failure => { if (!disposed) { setError(String(failure)); setStatus('Unavailable') } })
+    const observer = new ResizeObserver(() => { try { fit.fit() } catch { /* Hidden during layout transition. */ } })
+    observer.observe(container.current)
     return () => {
-      ro.disconnect()
-      inputDisposable.dispose()
-      // Remove only this mount's listeners. The module-level history listener
-      // (installed inside ensureSpawned) stays alive so background ptys keep
-      // recording into their buffers while the panel is unmounted.
-      offData?.()
-      offExit?.()
-      try {
-        term.dispose()
-      } catch {
-        // already disposed
-      }
-      termRef.current = null
-      fitRef.current = null
+      disposed = true
+      observer.disconnect()
+      input.dispose()
+      offData()
+      offExit()
+      term.dispose()
+      terminal.current = null
     }
-  }, [activeShell])
+  }, [id, owner, shell, restartCount])
 
-  return (
-    <div className="flex flex-1 flex-col bg-black">
-      <div ref={containerRef} className="min-h-0 flex-1" />
+  useEffect(() => {
+    if (!focusRequested) return
+    terminal.current?.focus()
+    consumeFocus()
+  }, [focusRequested, consumeFocus])
+
+  return <div className="flex min-h-0 flex-1 flex-col bg-black" data-terminal-id={id}>
+    <div className="flex min-h-10 shrink-0 items-center gap-2 bg-[var(--panel-bg)] px-2 text-xs text-[var(--text-secondary)]">
+      <span>Terminal</span>
+      <select aria-label="Terminal shell" value={shell} onChange={event => setShell(event.target.value as ShellKind)} className="min-h-8 rounded bg-[var(--bg-primary)] px-1">
+        <option value="powershell">PowerShell</option><option value="cmd">Command Prompt</option><option value="git-bash">Git Bash</option><option value="wsl">WSL</option>
+      </select>
+      <span className="min-w-0 flex-1 truncate" title={cwd}>{cwd}</span>
+      <span role="status">{status}</span>
+      <button className="min-h-8 rounded px-1 hover:bg-[var(--bg-tertiary)]" onClick={() => void navigator.clipboard.writeText(terminal.current?.getSelection() ?? '').catch(failure => toast.error(String(failure)))}>Copy</button>
+      <button className="min-h-8 rounded px-1 hover:bg-[var(--bg-tertiary)]" onClick={() => void navigator.clipboard.readText().then(text => terminal.current?.paste(text), failure => toast.error(String(failure)))}>Paste</button>
+      <button aria-label="Terminate shell" disabled={status !== 'Running'} className="min-h-8 rounded px-1 hover:bg-[var(--bg-tertiary)] disabled:opacity-40" onClick={() => void window.api.terminal.kill({ id }).then(result => { if (!result.success) setError('The shell could not be terminated.') })}>Terminate</button>
+      <button className="min-h-8 rounded px-1 hover:bg-[var(--bg-tertiary)]" onClick={() => { restartRequested.current = true; setRestartCount(value => value + 1) }}>Restart</button>
+      <button aria-label="Hide terminal" className="h-8 w-8 rounded hover:bg-[var(--bg-tertiary)]" onClick={() => hide(false)}>×</button>
     </div>
-  )
+    {error && <p role="alert" className="px-2 text-xs text-red-400">{error}</p>}
+    <div ref={container} className="min-h-0 flex-1" />
+  </div>
 }

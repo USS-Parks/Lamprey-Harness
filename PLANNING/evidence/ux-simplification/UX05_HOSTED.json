@@ -1,0 +1,83 @@
+{
+  "prompt": "UX-05",
+  "sha": "c4f98c46a51d626eec2473e52f1081a248806996",
+  "status": "all-green",
+  "runs": [
+    {
+      "conclusion": "success",
+      "databaseId": 34009228534,
+      "headSha": "c4f98c46a51d626eec2473e52f1081a248806996",
+      "name": "CI",
+      "status": "completed",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228534"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 34009228541,
+      "headSha": "c4f98c46a51d626eec2473e52f1081a248806996",
+      "name": "Build Lamprey",
+      "status": "completed",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228541"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 34009227818,
+      "headSha": "c4f98c46a51d626eec2473e52f1081a248806996",
+      "name": "pages build and deployment",
+      "status": "completed",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009227818"
+    }
+  ],
+  "checks": [
+    {
+      "name": "deploy",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009227818/job/101422004858"
+    },
+    {
+      "name": "report-build-status",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009227818/job/101422004789"
+    },
+    {
+      "name": "native-db",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228534/job/101421981524"
+    },
+    {
+      "name": "test (ubuntu-latest)",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228534/job/101421981522"
+    },
+    {
+      "name": "test (windows-latest)",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228534/job/101421981517"
+    },
+    {
+      "name": "lint",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228534/job/101421981378"
+    },
+    {
+      "name": "build-linux",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228541/job/101421981307"
+    },
+    {
+      "name": "build",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009227818/job/101421981292"
+    },
+    {
+      "name": "build-macos",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228541/job/101421981226"
+    },
+    {
+      "name": "build-windows",
+      "conclusion": "success",
+      "url": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34009228541/job/101421981148"
+    }
+  ]
+}

@@ -128,14 +128,14 @@ export interface ReadThreadTerminalArgs {
   terminal_id?: string
 }
 
-export function executeReadThreadTerminal(args: ReadThreadTerminalArgs): string {
-  const ids = ptyListSessions()
+export function executeReadThreadTerminal(args: ReadThreadTerminalArgs, conversationId?: string | null): string {
+  const ids = ptyListSessions(conversationId)
   if (ids.length === 0) return 'read_thread_terminal: no active terminal sessions.'
 
   let targetId = args?.terminal_id
   if (!targetId) targetId = ids[0]
 
-  const buffer = ptyGetBuffer(targetId)
+  const buffer = ptyGetBuffer(targetId, conversationId)
   if (buffer === null) {
     return `read_thread_terminal: no terminal session with id "${targetId}". Active sessions: ${ids.join(', ')}`
   }

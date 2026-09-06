@@ -1,17 +1,25 @@
+import { getConversation } from '../services/conversation-store'
+import { getProject } from '../services/projects-store'
+import { getActiveWorkspace } from '../services/workspace-state'
 import { ipcMain, BrowserWindow } from 'electron'
-import { ptySpawn, ptyWrite, ptyResize, ptyKill, type ShellKind } from '../services/pty-manager'
+import { ptySpawn, ptyWrite, ptyResize, ptyKill, ptySnapshot, type ShellKind } from '../services/pty-manager'
 
 export function registerTerminalHandlers(): void {
+  ipcMain.handle('terminal:snapshot', (_event, args: { id: string }) => typeof args?.id === 'string' ? { success: true, data: ptySnapshot(args.id) } : { success: false, error: 'id required' })
   ipcMain.handle(
     'terminal:spawn',
-    async (event, args: { id: string; cwd?: string; shellKind?: ShellKind }) => {
+    async (event, args: { id: string; cwd?: string; shellKind?: ShellKind; conversationId?: string | null }) => {
       try {
         if (!args?.id || typeof args.id !== 'string') {
           return { success: false, error: 'id required' }
         }
         const win = BrowserWindow.fromWebContents(event.sender)
         if (!win) return { success: false, error: 'no window' }
-        const info = ptySpawn(args.id, win, { cwd: args.cwd, shellKind: args.shellKind })
+        const conversation = args.conversationId ? getConversation(args.conversationId) : null
+        if (args.conversationId && !conversation) throw new Error('The terminal task no longer exists.')
+        const project = conversation?.projectId ? getProject(conversation.projectId) : null
+        const cwd = conversation?.worktreePath || project?.path || args.cwd || getActiveWorkspace()
+        const info = ptySpawn(args.id, win, { cwd, shellKind: args.shellKind, conversationId: args.conversationId ?? null })
         return { success: true, data: info }
       } catch (err: any) {
         return { success: false, error: err?.message ?? 'spawn failed' }

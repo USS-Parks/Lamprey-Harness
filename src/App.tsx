@@ -1,3 +1,4 @@
+import { TerminalDock } from '@/components/tools/TerminalDock'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Titlebar, SecondaryToolbar } from '@/components/layout/Titlebar'
@@ -450,6 +451,8 @@ function App(): React.ReactElement {
       <div className="flex flex-1 gap-[var(--panel-gap)] overflow-hidden p-[var(--panel-gap)]">
         <Sidebar />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 gap-[var(--panel-gap)]">
         <div ref={chatWorkspaceRef} className="flex flex-1 flex-col">
           <IntegrityBanner />
           <SecurityBanner />
@@ -506,6 +509,9 @@ function App(): React.ReactElement {
           </div>
         )}
 
+        </div>
+        <TerminalDock />
+        </div>
       </div>
 
       {/* Narrow-viewport drawer. Slides in from the right with a backdrop

@@ -1,3 +1,4 @@
+import { TaskAttention } from './TaskAttention'
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { ActivityNode } from './ActivityNode'
 import { ActivityTray } from './ActivityTray'
@@ -272,7 +273,8 @@ export function ActivityDashboard(): ReactElement {
   }
 
   return (
-    <div className="border-b border-[var(--panel-border)] pb-2" data-testid="activity-dashboard">
+    <div className="max-h-[45%] shrink-0 overflow-y-auto border-b border-[var(--panel-border)] pb-2" data-testid="activity-dashboard">
+      <TaskAttention />
       <div className="mx-3 mt-3 flex items-center justify-between">
         <button
           type="button"

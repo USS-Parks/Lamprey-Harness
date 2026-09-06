@@ -1,3 +1,4 @@
+import { useInlineApprovalsStore } from '@/stores/inline-approvals-store'
 import { useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { usePlanStore } from '@/stores/plan-store'
@@ -153,6 +154,7 @@ export function useChat(): void {
 
     track(
       window.api.chat.onToolCallResult((e) => {
+        useInlineApprovalsStore.getState().dismiss((e as { callId: string }).callId)
         if (!matchesActive(e as { conversationId?: string })) return
         useChatStore.getState().updateToolCall(e as any)
       })

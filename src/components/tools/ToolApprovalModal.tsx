@@ -1,6 +1,6 @@
+import { useApprovalResponse } from '@/hooks/useApprovalResponse'
 import { useEffect, useRef, useState } from 'react'
 import type {
-  ApprovalDecision,
   ApprovalScope,
   ToolApprovalRequest,
   ToolRisk
@@ -84,15 +84,7 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, request.callId])
 
-  const respond = (decision: ApprovalDecision, chosenScope: ApprovalScope) => {
-    window.api?.tools.respondToApproval({
-      callId: request.callId,
-      decision,
-      scope: chosenScope
-    })
-    if (decision === 'allow') onAllowed?.(request)
-    onResolved()
-  }
+  const { respond, pending, error } = useApprovalResponse(request, onResolved, onAllowed)
 
   const providerLabel =
     request.providerKind === 'mcp'
@@ -114,6 +106,7 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
         aria-labelledby="tool-approval-title"
         className="w-full max-w-md rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
       >
+        {error && <p role="alert" className="text-sm text-[var(--error)]">{error}</p>}
         <h2
           id="tool-approval-title"
           className="mb-4 text-lg font-semibold text-[var(--text-primary)]"
@@ -170,14 +163,14 @@ export function ToolApprovalModal({ request, onResolved, onAllowed }: ToolApprov
         </div>
 
         <div className="flex gap-3">
-          <button
+          <button type="button" disabled={pending}
             ref={denyBtnRef}
             onClick={() => respond('deny', scope)}
             className="flex-1 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           >
             Deny
           </button>
-          <button
+          <button type="button" disabled={pending}
             onClick={() => respond('allow', scope)}
             className="flex-1 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-110"
           >

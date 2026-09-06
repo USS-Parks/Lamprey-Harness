@@ -144,6 +144,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--attention-only')) {
+      const result = await require('./ux-attention.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+      fs.writeFileSync(path.join(output, 'ATTENTION.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'task-attention-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['task-attention'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--history-only')) {
       const result = await require('./ux-history.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
       fs.writeFileSync(path.join(output, 'HISTORY.json'), JSON.stringify(result, null, 2) + '\n')
@@ -379,6 +386,9 @@ async function main() {
     const history = await require('./ux-history.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
     fs.writeFileSync(path.join(output, 'HISTORY.json'), JSON.stringify(history, null, 2) + '\n')
     record('tool-history')
+    const attention = await require('./ux-attention.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+    fs.writeFileSync(path.join(output, 'ATTENTION.json'), JSON.stringify(attention, null, 2) + '\n')
+    record('task-attention')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

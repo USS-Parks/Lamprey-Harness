@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-inline-approval]') to be visible\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<button class=\"flex-1 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]\">Deny</button>",
+    "draft": ""
+  }
+}

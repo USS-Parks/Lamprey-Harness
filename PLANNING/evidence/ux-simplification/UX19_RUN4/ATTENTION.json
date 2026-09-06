@@ -1,0 +1,10 @@
+{
+  "actualFailedAndCompletedTurns": true,
+  "failureRemainsAfterReading": true,
+  "completionBecomesRead": true,
+  "approvalOnlyInOwningTranscript": true,
+  "ownerNavigation": true,
+  "rejectedAcknowledgementRetainedAndRetried": true,
+  "countsAgree": true,
+  "operationalLinksPresent": true
+}

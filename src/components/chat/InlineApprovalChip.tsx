@@ -1,7 +1,6 @@
+import { useApprovalResponse } from '@/hooks/useApprovalResponse'
 import { useEffect, useRef } from 'react'
 import type {
-  ApprovalDecision,
-  ApprovalScope,
   ToolApprovalRequest,
   ToolRisk
 } from '@/lib/types'
@@ -52,17 +51,10 @@ export function InlineApprovalChip({
 }: InlineApprovalChipProps) {
   const rootRef = useRef<HTMLDivElement>(null)
 
-  const respond = (decision: ApprovalDecision, scope: ApprovalScope) => {
-    window.api?.tools.respondToApproval({
-      callId: request.callId,
-      decision,
-      scope
-    })
-    onResolved()
-  }
+  const { respond, pending, error } = useApprovalResponse(request, onResolved)
 
   useEffect(() => {
-    if (autoFocus) rootRef.current?.focus()
+    if (autoFocus && document.activeElement === document.body) rootRef.current?.focus()
   }, [autoFocus])
 
   useEffect(() => {
@@ -120,6 +112,7 @@ export function InlineApprovalChip({
       data-inline-approval={request.callId}
       className="mb-3 flex flex-col gap-2 rounded-lg border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-2 outline-none transition-colors focus:ring-1 focus:ring-[var(--accent)]"
     >
+      {error && <p role="alert" className="text-xs text-[var(--error)]">{error}</p>}
       <div className="flex items-baseline gap-2 text-[12px]">
         <span className="font-medium text-[var(--text-primary)]">
           {providerLabel}
@@ -147,6 +140,7 @@ export function InlineApprovalChip({
       <div className="flex items-center gap-2">
         <button
           type="button"
+          disabled={pending}
           onClick={() => respond('allow', 'once')}
           className="rounded border border-[var(--accent)] bg-[var(--accent)] px-2 py-1 text-[11px] font-medium text-[var(--bg-primary)] transition-opacity hover:opacity-90"
         >
@@ -154,6 +148,7 @@ export function InlineApprovalChip({
         </button>
         <button
           type="button"
+          disabled={pending}
           onClick={() => respond('deny', 'once')}
           className="rounded border border-[var(--panel-border)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
         >
@@ -161,6 +156,7 @@ export function InlineApprovalChip({
         </button>
         <button
           type="button"
+          disabled={pending}
           onClick={() => respond('allow', 'workspace')}
           className="rounded border border-[var(--panel-border)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           title="Always allow this tool in this workspace"

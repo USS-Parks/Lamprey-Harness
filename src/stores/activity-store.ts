@@ -3,6 +3,7 @@ import type { Automation } from '@/stores/automations-store'
 import type { Hook } from '@/stores/hooks-store'
 
 const PINNED_KEY = 'lamprey.activity.pinnedIds'
+const READ_KEY = 'lamprey.activity.readIds'
 const COLLAPSED_KEY = 'lamprey.activity.collapsed'
 
 export type ActivityKind = 'conversation' | 'workflow' | 'agent' | 'cron' | 'loop' | 'hook'
@@ -68,6 +69,8 @@ interface ActivityStoreState {
   hooks: Hook[]
   loading: boolean
   error: string | null
+  readIds: string[]
+  markRead: (id: string) => void
   pinnedIds: string[]
   collapsed: boolean
   refresh: () => Promise<void>
@@ -82,10 +85,10 @@ interface ActivityStoreState {
   setCollapsed: (collapsed: boolean) => void
 }
 
-function readPinned(): string[] {
+function readPinned(key = PINNED_KEY): string[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage?.getItem(PINNED_KEY)
+    const raw = window.localStorage?.getItem(key)
     const parsed = raw ? JSON.parse(raw) : []
     return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
   } catch {
@@ -110,7 +113,7 @@ function writeLocal(key: string, value: string): void {
 function unwrapList<T>(result: unknown): T[] {
   const envelope = result as IpcEnvelope<T[]>
   if (envelope?.success && Array.isArray(envelope.data)) return envelope.data
-  return []
+  throw new Error(envelope?.error ?? 'Activity could not be loaded')
 }
 
 export const useActivityStore = create<ActivityStoreState>((set, get) => ({
@@ -120,6 +123,12 @@ export const useActivityStore = create<ActivityStoreState>((set, get) => ({
   hooks: [],
   loading: false,
   error: null,
+  readIds: readPinned(READ_KEY),
+  markRead: id => set(state => {
+    const readIds = [...state.readIds.filter(value => value !== id), id].slice(-1000)
+    writeLocal(READ_KEY, JSON.stringify(readIds))
+    return { readIds }
+  }),
   pinnedIds: readPinned(),
   collapsed: readCollapsed(),
 
@@ -135,31 +144,39 @@ export const useActivityStore = create<ActivityStoreState>((set, get) => ({
   },
 
   refreshAgents: async () => {
-    if (!window.api?.tasks?.list) return
-    const result = await window.api.tasks.list({ limit: 30 })
-    const rows = unwrapList<AgentRunSnapshot>(result)
-    set({ agentRuns: rows })
+    try {
+      if (!window.api?.tasks?.list) return
+      const result = await window.api.tasks.list({ limit: 30 })
+      const rows = unwrapList<AgentRunSnapshot>(result)
+      set({ agentRuns: rows })
+    } catch (cause) { set({ error: cause instanceof Error ? cause.message : "Activity could not be loaded" }) }
   },
 
   refreshAutomations: async () => {
-    if (!window.api?.automations?.list) return
-    const result = await window.api.automations.list()
-    const rows = unwrapList<Automation>(result)
-    set({ automations: rows })
+    try {
+      if (!window.api?.automations?.list) return
+      const result = await window.api.automations.list()
+      const rows = unwrapList<Automation>(result)
+      set({ automations: rows })
+    } catch (cause) { set({ error: cause instanceof Error ? cause.message : "Activity could not be loaded" }) }
   },
 
   refreshWakeups: async () => {
-    if (!window.api?.loops?.list) return
-    const result = await window.api.loops.list({ limit: 30 })
-    const rows = unwrapList<LoopWakeupSnapshot>(result)
-    set({ wakeups: rows })
+    try {
+      if (!window.api?.loops?.list) return
+      const result = await window.api.loops.list({ limit: 30 })
+      const rows = unwrapList<LoopWakeupSnapshot>(result)
+      set({ wakeups: rows })
+    } catch (cause) { set({ error: cause instanceof Error ? cause.message : "Activity could not be loaded" }) }
   },
 
   refreshHooks: async () => {
-    if (!window.api?.hooks?.list) return
-    const result = await window.api.hooks.list()
-    const rows = unwrapList<Hook>(result)
-    set({ hooks: rows })
+    try {
+      if (!window.api?.hooks?.list) return
+      const result = await window.api.hooks.list()
+      const rows = unwrapList<Hook>(result)
+      set({ hooks: rows })
+    } catch (cause) { set({ error: cause instanceof Error ? cause.message : "Activity could not be loaded" }) }
   },
 
   stopAgent: async (id: string) => {

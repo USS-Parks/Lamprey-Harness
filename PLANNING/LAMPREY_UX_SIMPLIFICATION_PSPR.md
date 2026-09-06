@@ -347,7 +347,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; real mixed tool success/failure/approval sequence remains ordered and inspectable; all content is recoverable; expanding one group does not jump the reader or collapse their selection; summaries do not hide an outstanding decision.
 
 #### UX-19 — Create one task-attention destination
-- [ ] **Objective:** bring work needing the user's response into one list.
+- [x] **Objective:** bring work needing the user's response into one list.
 - **Work:** adapt existing ActivityDashboard/Tray and task stores to show actionable approvals, failed work and unread completions with clear filters. Link Background/Loops/Agents operations to existing details rather than a second scheduler or task system.
 - **Seams/output:** activity components and current task/loop/agent stores; sidebar attention entry.
 - **Gate:** G1/G2; simultaneous task events dedupe by real identity, counts agree with details, selecting an item opens its owner, resolved approvals disappear correctly, and reading a failure does not mark it resolved. Existing loop/agent controls remain reachable.

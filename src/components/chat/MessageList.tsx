@@ -30,7 +30,9 @@ interface MessageListProps {
 const STICK_THRESHOLD_PX = 120
 
 function InlineApprovalQueue() {
-  const queue = useInlineApprovalsStore((s) => s.queue)
+  const allApprovals = useInlineApprovalsStore((s) => s.queue)
+  const owner = useChatStore(s => s.activeConversationId)
+  const queue = allApprovals.filter(request => request.conversationId === owner || !request.conversationId)
   const dismiss = useInlineApprovalsStore((s) => s.dismiss)
   if (queue.length === 0) return null
   return (

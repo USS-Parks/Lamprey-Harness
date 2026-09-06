@@ -48,14 +48,12 @@ function App(): React.ReactElement {
   // no surface and died to the main-process 30s auto-deny unseen (e.g. main
   // chat + side chat each raising a gated call). The head of the queue is the
   // visible modal; resolving it advances to the next.
-  const [approvalQueue, setApprovalQueue] = useState<ToolApprovalRequest[]>([])
+  const approvalQueue = useInlineApprovalsStore(s => s.modalQueue)
   const approvalRequest = approvalQueue[0] ?? null
-  const enqueueApproval = useCallback((req: ToolApprovalRequest) => {
-    setApprovalQueue((q) => (q.some((r) => r.callId === req.callId) ? q : [...q, req]))
-  }, [])
+  const enqueueApproval = useInlineApprovalsStore(s => s.pushModal)
   const dequeueApproval = useCallback(() => {
-    setApprovalQueue((q) => q.slice(1))
-  }, [])
+    if (approvalRequest) useInlineApprovalsStore.getState().dismiss(approvalRequest.callId)
+  }, [approvalRequest])
   // Fluidity J5: inline approval chips for previously-approved,
   // non-destructive tool calls. The set tracks (server, tool) pairs we've
   // seen approved at least once this session — first sighting still gets

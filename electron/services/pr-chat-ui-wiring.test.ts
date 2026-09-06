@@ -5,12 +5,14 @@ import { join } from 'path'
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
 
 describe('PR-5 PR Chat renderer wiring', () => {
-  it('keeps the existing PR panel and adds bound chat plus selected-hunk sends', () => {
+  it('keeps the existing PR panel and prepares bound context in the owning composer', () => {
     const panel = read('src/components/github/PullRequestsPanel.tsx')
     const diff = read('src/components/github/PRDiffView.tsx')
     expect(panel).toContain('Chat about this PR')
     expect(panel).toContain('bindPullRequest')
-    expect(panel).toContain('sendMessage')
+    expect(panel).toContain('seedComposeDraft')
+    expect(panel).not.toContain('sendMessage')
+    expect(panel).toContain('activeConversationId !== activeConversationId')
     expect(panel).toContain('onSendHunk')
     expect(diff).toContain('Send hunk')
     expect(diff).toContain('getPullRequestFiles')

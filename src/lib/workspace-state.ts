@@ -9,6 +9,8 @@ export interface WorkspaceResource {
   projectId: string | null
 }
 export interface TaskWorkspace {
+  reviewSelection?: { path: string; staged: boolean }
+  reviewMode?: 'local' | 'pr'
   terminalOpen?: boolean
   tabs: WorkspaceResource[]
   activeId: string | null
@@ -45,7 +47,9 @@ export function decodeWorkspaces(raw: string | null): Workspaces {
       }
       const terminalOpen = value.terminalOpen === true || tabs.some(tab => tab.kind === 'terminal')
       const resources = tabs.filter(tab => tab.kind !== 'terminal')
-      result[key] = { terminalOpen, tabs: resources, activeId: value.activeId === null || resources.some(tab => tab.id === value.activeId) ? value.activeId : resources[0]?.id ?? null }
+      const selection = value.reviewSelection
+      const reviewSelection = selection && typeof selection.path === 'string' && selection.path.length <= 4096 && typeof selection.staged === 'boolean' ? { path: selection.path, staged: selection.staged } : undefined
+      result[key] = { ...(reviewSelection ? { reviewSelection } : {}), ...(value.reviewMode === 'pr' ? { reviewMode: 'pr' as const } : {}), terminalOpen, tabs: resources, activeId: value.activeId === null || resources.some(tab => tab.id === value.activeId) ? value.activeId : resources[0]?.id ?? null }
     }
     return result
   } catch { return {} }

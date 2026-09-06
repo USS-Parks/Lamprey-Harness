@@ -1,0 +1,18 @@
+{
+  "prompt": "UX-09",
+  "sourceBase": "0ef2fb1bbd48ad06bcb1f9d07c611b6a7a7bf7c5",
+  "status": "local-pass",
+  "unitTests": 17,
+  "evidence": [
+    "UX09_RUN3/REVIEW_FLOW.json",
+    "UX09_RUN3/RUNTIME.json",
+    "UX09_RUN3/LIFECYCLE.json"
+  ],
+  "failedRunsRetained": [
+    "UX09_RUN",
+    "UX09_RUN2"
+  ],
+  "regressionFixed": "Late unstage completion now persists selection to its owning background task.",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX09.json",
+  "legacyWiringUpdate": "Require owning-composer seeding instead of immediate send; live PR fixture passed."
+}

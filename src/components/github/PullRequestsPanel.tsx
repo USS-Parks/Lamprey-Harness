@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { github as githubClient } from '@/lib/ipc-client'
 import { useGitHubStore } from '@/stores/github-store'
 import { useChatStore } from '@/stores/chat-store'
+import { useUiStore } from '@/stores/ui-store'
 import { toast } from '@/stores/toast-store'
 import type {
   GitHubPullRequest,
@@ -44,7 +45,7 @@ export function PullRequestsPanel() {
   // Load repos once on mount.
   useEffect(() => {
     void refreshRepos()
-  }, [refreshRepos])
+  }, [refreshRepos, status?.connected])
 
   // Default-select the first repo whenever the list loads.
   useEffect(() => {
@@ -122,12 +123,13 @@ export function PullRequestsPanel() {
     const selectedHunk = file?.patch
       ? `\n\nSelected hunk from \`${file.filename}\`:\n\`\`\`diff\n${file.patch}\n\`\`\``
       : ''
-    await useChatStore
-      .getState()
-      .sendMessage(
-        `Review ${selectedRepo.owner}/${selectedRepo.repo}#${pr.number} at head ${pr.head.sha}.${selectedHunk}`,
-        []
-      )
+    if (useChatStore.getState().activeConversationId !== activeConversationId) {
+      toast.error('The task changed. Return to the review task before adding context.')
+      return
+    }
+    useUiStore.getState().seedComposeDraft(`Review ${selectedRepo.owner}/${selectedRepo.repo}#${pr.number} at head ${pr.head.sha}.${selectedHunk}`)
+    useUiStore.getState().closeSettings()
+    toast.success('Added PR context to this task’s input')
   }
 
   if (!status?.connected) {

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useChatStore } from '@/stores/chat-store'
 import type { EnvironmentSnapshot } from '@/lib/types'
 
 interface UseEnvironmentResult {
+  changedFileCount: number
   snapshot: EnvironmentSnapshot
   loading: boolean
   error: string | null
@@ -35,6 +37,8 @@ interface ReviewSummary {
 // as a safety net (chokidar on Windows can miss events when files are atomic
 // -replaced by git). Refreshes status + summary in parallel.
 export function useEnvironment(): UseEnvironmentResult {
+  const conversationId = useChatStore(s => s.activeConversationId)
+  const [changedFileCount, setChangedFileCount] = useState(0)
   const [snapshot, setSnapshot] = useState<EnvironmentSnapshot>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -48,14 +52,15 @@ export function useEnvironment(): UseEnvironmentResult {
     try {
       if (!window.api?.review) throw new Error('Review API unavailable')
       const [statusRes, summaryRes] = await Promise.all([
-        window.api.review.status({}),
-        window.api.review.summary?.() ?? Promise.resolve({ success: false } as const)
+        window.api.review.status({ conversationId }),
+        window.api.review.summary?.({ conversationId }) ?? Promise.resolve({ success: false } as const)
       ])
       if (!mountedRef.current || request !== requestRef.current) return
       if (!statusRes.success) throw new Error(statusRes.error || 'Repository status unavailable')
       if (!summaryRes.success) throw new Error('Repository summary unavailable')
       const status = statusRes.data as ReviewStatus
       const summary = summaryRes.data as ReviewSummary
+      setChangedFileCount(status.files.length)
       setSnapshot({
         branch: status?.branch ?? null,
         additions: summary?.additions ?? 0,
@@ -73,10 +78,12 @@ export function useEnvironment(): UseEnvironmentResult {
     } finally {
       if (mountedRef.current && request === requestRef.current) setLoading(false)
     }
-  }, [])
+  }, [conversationId])
 
   useEffect(() => {
     mountedRef.current = true
+    setSnapshot(EMPTY)
+    setChangedFileCount(0)
     void refresh()
     const unsubscribe = window.api?.review?.onChanged?.(() => {
       void refresh()
@@ -92,5 +99,5 @@ export function useEnvironment(): UseEnvironmentResult {
     }
   }, [refresh])
 
-  return { snapshot, loading, error, refresh }
+  return { snapshot, changedFileCount, loading, error, refresh }
 }

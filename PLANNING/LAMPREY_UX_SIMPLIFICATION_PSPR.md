@@ -283,7 +283,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2 with a real disposable shell; output continues while hidden, reopening shows prior output, explicit termination works, task/path selection is correct, keyboard input reaches the terminal, and closing the app leaves no fixture process orphan.
 
 #### UX-09 — Keep review and follow-up in the current task
-- [ ] **Objective:** make change inspection and actionable feedback one continuous flow.
+- [x] **Objective:** make change inspection and actionable feedback one continuous flow.
 - **Work:** task header change count opens the existing local/PR ReviewPanel directly. Preserve changed-file selection, diffs, staging controls and existing line/comment-to-composer behavior. Review follow-ups return to the owning task with clear file/line context.
 - **Seams/output:** ReviewPanel and existing PR integration, message/composer context handlers; current PR acceptance fixture.
 - **Gate:** G1/G2 with a real temporary Git repo and controlled PR fixture; clean/dirty/no-repo/loading/error states work; feedback targets the selected file/task; staging uses existing authority; no unauthorized remote write or parked Code Mode implementation.

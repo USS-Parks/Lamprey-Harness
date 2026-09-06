@@ -1049,7 +1049,7 @@ const api = {
   },
 
   review: {
-    status: (args: { cwd?: string }) => ipcRenderer.invoke('review:status', args),
+    status: (args: { cwd?: string; conversationId?: string | null }) => ipcRenderer.invoke('review:status', args),
     diff: (args: { cwd?: string; path?: string; staged?: boolean }) =>
       ipcRenderer.invoke('review:diff', args),
     stage: (args: { cwd?: string; path: string }) => ipcRenderer.invoke('review:stage', args),
@@ -1059,7 +1059,7 @@ const api = {
     checkout: (args: { cwd?: string; name: string }) => ipcRenderer.invoke('review:checkout', args),
     createBranch: (args: { cwd?: string; name: string }) =>
       ipcRenderer.invoke('review:createBranch', args),
-    summary: (args?: { cwd?: string }) => ipcRenderer.invoke('review:summary', args),
+    summary: (args?: { cwd?: string; conversationId?: string | null }) => ipcRenderer.invoke('review:summary', args),
     commit: (args: { cwd?: string; message: string; stageAll?: boolean }) =>
       ipcRenderer.invoke('review:commit', args),
     push: (args?: { cwd?: string }) => ipcRenderer.invoke('review:push', args),

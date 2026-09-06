@@ -199,7 +199,7 @@ interface UiState {
   selectWorkspaceResource: (id: string) => void
   closeWorkspaceResource: (id: string) => void
   reorderWorkspaceResources: (ids: string[]) => void
-  updateWorkspace: (workspace: TaskWorkspace) => void
+  updateWorkspace: (workspace: TaskWorkspace, conversationId?: string | null) => void
   searchQuery: string
   searchFocusToken: number
   settingsOpen: boolean
@@ -323,12 +323,12 @@ export const useUiStore = create<UiState>((set, get) => ({
   workspaceFocusRequested: false,
   consumeWorkspaceFocus: () => set({ workspaceFocusRequested: false }),
   activeWorkspaceProjectId: null,
-  updateWorkspace: (workspace) => {
-    const key = workspaceKey(get().activeRightPanelConvId)
+  updateWorkspace: (workspace, conversationId = get().activeRightPanelConvId) => {
+    const key = workspaceKey(conversationId)
     const workspaces = { ...get().workspaces, [key]: workspace }
     writeLocal(WORKSPACES_KEY, JSON.stringify(workspaces))
     const active = workspace.tabs.find(tab => tab.id === workspace.activeId)
-    set({ workspaces, activeTool: active ? resourceTool(active) : null })
+    set({ workspaces, ...(conversationId === get().activeRightPanelConvId ? { activeTool: active ? resourceTool(active) : null } : {}) })
   },
   openWorkspaceResource: (kind, ref, title, activate = true) => {
     if (kind === 'terminal') { if (activate) get().setTerminalOpen(true); return }

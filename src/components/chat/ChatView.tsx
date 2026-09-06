@@ -13,6 +13,7 @@ import { ChapterSidebar } from './ChapterSidebar'
 import { ChapterQuickJumper } from './ChapterQuickJumper'
 import { SpawnTaskTray } from './SpawnTaskTray'
 import { LineageChip } from './LineageChip'
+import { TaskHeader } from './TaskHeader'
 import { FollowUpQueue } from './FollowUpQueue'
 
 // Shared chat column: max-width cap + internal padding. Messages and the
@@ -62,6 +63,7 @@ export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
       }}
     >
       <FileDropZone />
+      <TaskHeader />
 
       {/* Track 2 / C3 — persistent yellow banner above the conversation
           when plan mode is active. Self-hides when off. */}

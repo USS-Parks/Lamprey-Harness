@@ -1,3 +1,6 @@
+import { getConversation } from '../services/conversation-store'
+import { getProject } from '../services/projects-store'
+import { getActiveWorkspace } from '../services/workspace-state'
 import { ipcMain, BrowserWindow } from 'electron'
 import chokidar, { type FSWatcher } from 'chokidar'
 import * as path from 'path'
@@ -95,10 +98,20 @@ function parsePorcelain(stdout: string): FileStatus[] {
   return out
 }
 
+function reviewDirectory(args?: { cwd?: string; conversationId?: string | null }): string {
+  if (args?.conversationId) {
+    const task = getConversation(args.conversationId)
+    if (!task) throw new Error('The review task no longer exists.')
+    const project = task.projectId ? getProject(task.projectId) : null
+    return task.worktreePath || project?.path || getActiveWorkspace()
+  }
+  return args?.cwd || getActiveWorkspace()
+}
+
 export function registerReviewHandlers(): void {
-  ipcMain.handle('review:status', async (_e, args: { cwd?: string }) => {
+  ipcMain.handle('review:status', async (_e, args: { cwd?: string; conversationId?: string | null }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = reviewDirectory(args)
       ensureWatcher(cwd)
       const res = await runGit(['status', '--porcelain=v1'], cwd)
       if (res.code !== 0) {
@@ -260,9 +273,9 @@ export function registerReviewHandlers(): void {
     }
   })
 
-  ipcMain.handle('review:summary', async (_e, args?: { cwd?: string }) => {
+  ipcMain.handle('review:summary', async (_e, args?: { cwd?: string; conversationId?: string | null }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = reviewDirectory(args)
       // --shortstat for tracked changes (working tree); --cached for staged.
       // Untracked files don't count toward +/- numbers in git's view; treat
       // their existence as "has changes" via the porcelain status used by

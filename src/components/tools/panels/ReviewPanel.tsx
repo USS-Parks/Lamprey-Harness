@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
+import { EMPTY_WORKSPACE, workspaceKey } from '@/lib/workspace-state'
+import { PullRequestsPanel } from '@/components/github/PullRequestsPanel'
+import { useGitHubStore } from '@/stores/github-store'
 import { toast } from '@/stores/toast-store'
 
 interface FileStatus {
@@ -57,39 +60,65 @@ function parseHunks(diff: string): Hunk[] {
 }
 
 export function ReviewPanel() {
+  const owner = useUiStore(s => s.activeRightPanelConvId)
+  const workspace = useUiStore(s => s.workspaces[workspaceKey(owner)] ?? EMPTY_WORKSPACE)
+  const mode = workspace.reviewMode ?? 'local'
+  const selectMode = (reviewMode: 'local' | 'pr') => useUiStore.getState().updateWorkspace({ ...workspace, reviewMode })
+  useEffect(() => { if (mode === 'pr') void useGitHubStore.getState().refreshStatus() }, [mode])
+  return <div className="flex min-h-0 flex-1 flex-col">
+    <div role="group" aria-label="Review source" className="flex gap-2 border-b border-[var(--panel-border)] px-3 py-1">
+      <button aria-pressed={mode === 'local'} onClick={() => selectMode('local')} className="min-h-8 px-2">Local changes</button>
+      <button aria-pressed={mode === 'pr'} onClick={() => selectMode('pr')} className="min-h-8 px-2">Pull requests</button>
+    </div>
+    {mode === 'local' ? <LocalReviewPanel key={owner} /> : <PullRequestsPanel key={owner} />}
+  </div>
+}
+
+function LocalReviewPanel() {
   const [status, setStatus] = useState<Status | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<{ path: string; staged: boolean } | null>(null)
+  const owner = useUiStore(s => s.activeRightPanelConvId)
+  const [selected, select] = useState<{ path: string; staged: boolean } | null>(() => useUiStore.getState().workspaces[workspaceKey(owner)]?.reviewSelection ?? null)
+  const setSelected = (selection: { path: string; staged: boolean }) => {
+    select(selection)
+    const ui = useUiStore.getState()
+    ui.updateWorkspace({ ...(ui.workspaces[workspaceKey(owner)] ?? EMPTY_WORKSPACE), reviewSelection: selection }, owner)
+  }
+  const [loading, setLoading] = useState(true)
+  const request = useRef(0)
   const [diff, setDiff] = useState<string>('')
   const [diffLoading, setDiffLoading] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   const seedComposeDraft = useUiStore((s) => s.seedComposeDraft)
-  const closeActiveTool = useUiStore((s) => s.closeActiveTool)
 
   const refresh = useCallback(async () => {
+    const ticket = ++request.current
+    setLoading(true)
     setError(null)
-    if (!window.api?.review) {
-      setError('Review API unavailable.')
-      return
-    }
-    const res = await window.api.review.status({})
-    if (!res.success) {
-      setError(res.error ?? 'status failed')
-      return
-    }
-    setStatus(res.data as Status)
-  }, [])
+    try {
+      if (!window.api?.review) throw new Error('Review API unavailable.')
+      const res = await window.api.review.status({ conversationId: owner })
+      if (ticket !== request.current) return
+      if (!res.success) throw new Error(res.error ?? 'Repository status unavailable.')
+      setStatus(res.data as Status)
+    } catch (failure) {
+      if (ticket === request.current) { setStatus(null); setError(String(failure)) }
+    } finally { if (ticket === request.current) setLoading(false) }
+  }, [owner])
 
   useEffect(() => {
     void refresh()
+    return () => { request.current++ }
   }, [refresh, refreshTick])
 
   useEffect(() => {
-    if (!selected || !window.api?.review) return
+    if (!selected || !status || !window.api?.review) return
+    let disposed = false
     setDiffLoading(true)
     setDiff('')
     void (async () => {
-      const res = await window.api.review.diff({ path: selected.path, staged: selected.staged })
+      const res = await window.api.review.diff({ cwd: status.cwd, path: selected.path, staged: selected.staged })
+      if (disposed) return
       setDiffLoading(false)
       if (!res.success) {
         setDiff(`# error\n${res.error}`)
@@ -97,40 +126,28 @@ export function ReviewPanel() {
         const data = res.data as { diff: string }
         setDiff(data.diff || '(no diff)')
       }
-    })()
-  }, [selected, refreshTick])
+    })().catch(failure => { if (!disposed) { setDiffLoading(false); setDiff(`Unable to load diff: ${String(failure)}`) } })
+    return () => { disposed = true }
+  }, [selected, status, refreshTick])
 
-  const handleStage = async (path: string) => {
-    const res = await window.api?.review?.stage({ path })
-    if (res?.success) {
-      toast.success(`Staged ${path}`)
-      setRefreshTick((t) => t + 1)
-    } else {
-      toast.error(res?.error ?? 'stage failed')
-    }
-  }
-  const handleUnstage = async (path: string) => {
-    const res = await window.api?.review?.unstage({ path })
-    if (res?.success) {
-      toast.success(`Unstaged ${path}`)
-      setRefreshTick((t) => t + 1)
-    } else {
-      toast.error(res?.error ?? 'unstage failed')
-    }
-  }
-  const handleDiscard = async (path: string) => {
-    if (!confirm(`Discard changes to ${path}? This is irreversible.`)) return
-    const res = await window.api?.review?.discard({ path })
-    if (res?.success) {
-      toast.success(`Discarded ${path}`)
-      setRefreshTick((t) => t + 1)
-    } else {
-      toast.error(res?.error ?? 'discard failed')
-    }
+  const mutationBusy = useRef(false)
+  const mutate = async (action: 'stage' | 'unstage' | 'discard', path: string) => {
+    if (!status || loading || error || mutationBusy.current) return
+    if (action === 'discard' && !confirm(`Discard changes to ${path}? This is irreversible.`)) return
+    mutationBusy.current = true
+    try {
+      const result = await window.api.review[action]({ cwd: status.cwd, path })
+      if (!result.success) throw new Error(result.error ?? `${action} failed`)
+      if (action !== 'discard') setSelected({ path, staged: action === 'stage' })
+      if (useUiStore.getState().activeRightPanelConvId !== owner) return
+      setRefreshTick(value => value + 1)
+      toast.success(`${action === 'stage' ? 'Staged' : action === 'unstage' ? 'Unstaged' : 'Discarded'} ${path}`)
+    } catch (failure) { toast.error(String(failure)) }
+    finally { mutationBusy.current = false }
   }
 
   const askFix = (hunk: Hunk) => {
-    if (!selected) return
+    if (!selected || useUiStore.getState().activeRightPanelConvId !== owner) return
     const prompt =
       `In \`${selected.path}\`, the following hunk needs fixing:\n\n` +
       '```diff\n' +
@@ -140,12 +157,11 @@ export function ReviewPanel() {
       '\n```\n\n' +
       'Please review and propose a fix. Explain the change before writing the code.'
     seedComposeDraft(prompt)
-    closeActiveTool()
-    toast.success('Sent to chat input')
+    toast.success('Added review context to this task’s input')
   }
 
   const hunks = parseHunks(diff)
-  const files = status?.files ?? []
+  const files = !error && !loading ? status?.files ?? [] : []
   const stagedFiles = files.filter((f) => f.staged)
   const unstagedFiles = files.filter((f) => f.unstaged || (!f.staged && !f.unstaged))
 
@@ -184,8 +200,9 @@ export function ReviewPanel() {
       <div className="flex min-h-0 flex-1">
         {/* File list */}
         <div className="w-1/3 min-w-[180px] overflow-auto border-r border-[var(--panel-border)] py-1 text-[12px]">
-          {error && <p className="px-3 py-2 text-[var(--error)]">{error}</p>}
-          {!error && files.length === 0 && (
+          {error && <p role="alert" className="px-3 py-2 text-[var(--error)]">{error}</p>}
+          {loading && <p role="status" className="px-3 py-2 text-[var(--text-muted)]">Loading changes…</p>}
+          {!loading && !error && status && files.length === 0 && (
             <p className="px-3 py-2 text-[var(--text-muted)]">No changes — clean working tree.</p>
           )}
           {stagedFiles.length > 0 && (
@@ -214,7 +231,7 @@ export function ReviewPanel() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void handleUnstage(f.path)}
+                      onClick={() => void mutate('unstage', f.path)}
                       className="rounded px-1 text-[10px] text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[var(--text-primary)] group-hover:opacity-100"
                       title="Unstage"
                     >
@@ -251,7 +268,7 @@ export function ReviewPanel() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void handleStage(f.path)}
+                      onClick={() => void mutate('stage', f.path)}
                       className="rounded px-1 text-[10px] text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[var(--text-primary)] group-hover:opacity-100"
                       title="Stage"
                     >
@@ -260,7 +277,7 @@ export function ReviewPanel() {
                     {f.indexStatus !== '?' && (
                       <button
                         type="button"
-                        onClick={() => void handleDiscard(f.path)}
+                        onClick={() => void mutate('discard', f.path)}
                         className="rounded px-1 text-[10px] text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[var(--error)] group-hover:opacity-100"
                         title="Discard changes"
                       >

@@ -1,0 +1,24 @@
+{
+  "prompt": "UX-02",
+  "source": "2751ee1a4a27f588ef97dd066e59f5b9bf7acd09",
+  "status": "local-pass-review-stop-waived",
+  "complete": true,
+  "designDirectory": "PLANNING/UX_SIMPLIFICATION_DESIGN",
+  "preview": "http://127.0.0.1:8833/index.html",
+  "localChecks": [
+    "node PLANNING/UX_SIMPLIFICATION_DESIGN/check.cjs",
+    "npx.cmd eslint PLANNING/UX_SIMPLIFICATION_DESIGN/app.js PLANNING/UX_SIMPLIFICATION_DESIGN/check.cjs"
+  ],
+  "evidence": "PLANNING/UX_SIMPLIFICATION_DESIGN/review-check.json",
+  "productImplementation": false,
+  "releasePublished": false,
+  "authorization": "User explicitly ordered uninterrupted execution of all 40 prompts; extra review stop waived.",
+  "previewServer": {
+    "binding": "127.0.0.1:8833",
+    "directory": "PLANNING/UX_SIMPLIFICATION_DESIGN",
+    "purpose": "Owner review of static mockups only",
+    "retirement": "Stop after design review; files remain available locally"
+  },
+  "next": "Commit/push UX-02, then execute UX-03 and the remaining roster.",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX02.json"
+}

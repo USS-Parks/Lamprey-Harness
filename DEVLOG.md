@@ -1,3 +1,19 @@
+## 2026-09-05 — UX-02: Continue under explicit full-roster authorization
+
+The user explicitly rejected the added design stop and ordered all 40 prompts executed stem to stern. The PSPR now records that controlling instruction. Prepared mockups and their desktop/narrow, keyboard, destination-coverage, settings-search and no-network checks passed; the current source files also passed focused lint. No owner visual acceptance is fabricated. UX-02 is complete under the waived approval checkpoint; UX-03 follows immediately. Full v0.33.0 Bucket and humanized release notes remain authorized.
+
+Files: design folder, UX-02 receipt, hosted/storage receipts from UX-00/01, controlling PSPR addendum and DEVLOG. Commit: resolve the introducing commit of `PLANNING/evidence/ux-simplification/UX02.json`. Existing historical pending-review entries below are superseded, not erased.
+
+## 2026-09-05 — UX-02 prepared: Owner design review pending
+
+**Files prepared:** `PLANNING/UX_SIMPLIFICATION_DESIGN/` interactive idle/running/review mockups, settings/command previews, responsive styles, reused brand asset, screenshots, design notes and check runner; `PLANNING/evidence/ux-simplification/UX02.json`. UX-02 is not checked or committed because its owner design gate remains open.
+
+**Local verification:** Static Chrome checks passed desktop/narrow layouts, visible composer/Stop, queue preference, draft retention, hunk-to-draft continuity, terminal hide/show, all 13 tool command destinations plus workflows/Memory, settings groups/search, resource-tab keyboard navigation and dialog focus. No page errors or HTTP requests. A modal Tab-containment defect was corrected before the final pass. This is mockup verification only, not production acceptance.
+
+**Next:** Owner reviews the interactive preview served from the design folder on 127.0.0.1:8833. Record approval or revisions, then commit/push UX-02 and continue UX-03. Full v0.33.0 STS/Bucket authorization persists. UX-00 is fully green on GitHub (5159466); UX-01 is pushed (2751ee1), with exact hosted closeout recorded separately. Prior user/September files remain untouched.
+
+**Hosted closeout:** UX-01 remote main is 2751ee1a4a27f588ef97dd066e59f5b9bf7acd09. All three workflows and all ten check runs succeeded, including Windows/macOS/Linux builds and their smokes; see `PLANNING/evidence/ux-simplification/UX01_HOSTED.json`. UX-00's all-green receipt is `UX00_HOSTED.json`. The refreshed `UX02_STORAGE.json` retains the same four clean historical worktrees and roughly 27.7 GiB dist inventory. The static preview occupies about 2.8 MiB; only its localhost server remains running for review. Disposable Electron profiles were cleaned up.
+
 ## 2026-09-05 — UX-01: Freeze capability destinations and interaction contracts
 
 **Files changed:** UX simplification PSPR; `PLANNING/evidence/ux-simplification/UX_CONTRACTS.md`, `UX01.json`, `validate-contracts.py`; DEVLOG.

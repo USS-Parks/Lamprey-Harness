@@ -4,6 +4,12 @@
 
 Drafted 2026-09-05. Revision 1, with authorization addendum. Roster: **UX-00–UX-39**, 40 sequential prompts across eight independently approvable milestones. Checked boxes require completed verification; approval alone does not check a box.
 
+## Controlling authorization addendum — 2026-09-05
+
+The user explicitly rejected the added review stop and directed: "I already authorized STS of all 40 ... prompts" and "Run the ... prompt roster stem to ... stern. Now."
+
+Execute UX-00 through UX-39 sequentially through verified v0.33.0 Bucket and humanized GitHub release notes. The additional owner design/visual-review stop points are waived; do not request STS or release authorization again. Use the prepared design and perform the required technical, behavioral and visual checks directly. Do not claim the owner personally performed those checks. Existing text describing a future owner approval stop is historical and superseded by this addendum. All source, live-system, regression, release-integrity and exact-SHA hosted verification gates remain mandatory. Preserve unrelated user work.
+
 ## 0. Governance
 
 ### Goal
@@ -233,7 +239,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** every existing ToolId and all 24 settings leaves map to a reachable destination; every preserved operation has an acceptance scenario; no authority/default changes hidden in presentation wording.
 
 #### UX-02 — Produce and review the three-state design
-- [ ] **Objective:** settle the actual interface before implementation.
+- [x] **Objective:** settle the actual interface before implementation.
 - **Work:** create linked mockups for idle task, running task and reviewing changes using current Lamprey identity. Include the compact composer, tab panel, bottom terminal, task sidebar, attention/filter entry and six-group settings view. Annotate queue menu, permissions, empty/error states, focus order and narrow-window reflow.
 - **Seams/output:** project-local `PLANNING/UX_SIMPLIFICATION_DESIGN/` only; prototype is visibly a mockup and cannot execute tools or read user data.
 - **Gate:** user can compare all three states at desktop and narrow widths; every UX-01 destination is accounted for; record explicit design approval or revision. **Stop here at the design checkpoint unless waived by the user.**
@@ -516,5 +522,9 @@ Record the installed Codex build and owner-observed interaction differences at U
 | 2026-09-05 | User: "Approved for full STS and Bucket as v0.33.0 along with gh repo release notes update in humanized form." | Full source STS, prompt commits/pushes, v0.33.0 Bucket and release notes approved; UX-02 design checkpoint retained |
 
 **Execution started:** UX-00 baseline and UX-01 contracts locally verified; commit/remote evidence resolved from their receipts. UX-02 design review is next. **Design approved:** No. **New release/Bucket approved:** Yes, v0.33.0.
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+Execution update: UX-02 technical mockup checks passed; user explicitly waived the extra review stop. UX-03 is next. All 40 prompts and v0.33.0 publication are authorized.
 
 Authored and reviewed by Basho Parks, copyright 2026

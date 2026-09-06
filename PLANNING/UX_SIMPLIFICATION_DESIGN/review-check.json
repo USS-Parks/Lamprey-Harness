@@ -1,0 +1,64 @@
+{
+  "checkedAt": "2026-09-06T02:18:44.739Z",
+  "status": "mockup-checks-passed",
+  "productAcceptance": false,
+  "observations": [
+    {
+      "width": 1440,
+      "state": "idle",
+      "promptVisible": true,
+      "stopVisible": false,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 1440,
+      "state": "running",
+      "promptVisible": true,
+      "stopVisible": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 1440,
+      "state": "review",
+      "promptVisible": true,
+      "stopVisible": false,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 800,
+      "state": "idle",
+      "promptVisible": true,
+      "stopVisible": false,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 800,
+      "state": "running",
+      "promptVisible": true,
+      "stopVisible": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 800,
+      "state": "review",
+      "promptVisible": true,
+      "stopVisible": false,
+      "horizontalOverflow": false
+    }
+  ],
+  "checks": [
+    "Steer/Queue menu changes visible preference",
+    "Submit retains demonstration draft and sends no request",
+    "Hunk action seeds draft without closing review",
+    "Terminal hide/show",
+    "Six settings groups and old-name search aliases",
+    "Escape restores opener focus",
+    "All 13 tools plus workflows and Memory in commands",
+    "No page errors or HTTP requests"
+  ],
+  "limitations": [
+    "Static design fixture only; real Electron behavior is not implemented here.",
+    "1440x900 and 800x600 checked here; full G4 product acceptance remains required.",
+    "Design approval is still pending."
+  ]
+}

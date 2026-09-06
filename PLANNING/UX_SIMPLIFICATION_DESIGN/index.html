@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lamprey v0.33 — design review</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <header class="review-bar"><div><strong>v0.33 design review</strong><span>Interactive mockup · no tools or user data</span></div><nav aria-label="Compare design states"><button data-state="idle">Idle</button><button data-state="running">Running</button><button data-state="review">Reviewing</button><button id="theme" aria-label="Toggle light theme">Light / dark</button><a href="README.md">Design notes</a></nav></header>
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="Tasks and projects">
+      <div class="brand"><img src="brand.png" alt=""><strong>Lamprey</strong><button id="sidebar-toggle" class="icon-button" aria-label="Collapse sidebar">‹</button></div>
+      <button class="nav-action" data-action="New task"><span>＋</span> New task <kbd>Ctrl N</kbd></button>
+      <button class="nav-action" id="commands"><span>⌕</span> Search & commands <kbd>Ctrl K</kbd></button>
+      <button class="nav-action attention" data-action="Needs attention"><span>◉</span> Needs attention <b>1</b></button>
+      <div class="sidebar-label">PROJECTS <button data-action="New project" aria-label="New project">＋</button></div>
+      <button class="project" data-action="Project details"><span>▾</span> Lamprey Harness <span class="muted">···</span></button>
+      <div class="sidebar-label sublabel">PINNED</div>
+      <button class="task selected" data-task="Simplify the workspace"><span class="task-dot"></span><span>Simplify the workspace</span></button>
+      <button class="task" data-task="Release checklist"><span class="task-dot quiet"></span><span>Release checklist</span></button>
+      <div class="sidebar-label sublabel">RECENT <button data-action="Task filters" aria-label="Task filters and sorting">≡</button></div>
+      <button class="task" data-task="Review keyboard navigation"><span class="task-dot quiet"></span><span>Review keyboard navigation</span></button>
+      <button class="task" data-task="Tidy the model menu"><span class="task-dot quiet"></span><span>Tidy the model menu</span></button>
+      <button class="task" data-task="Check provider connections"><span class="task-dot quiet"></span><span>Check provider connections</span></button>
+      <button class="text-button all-tasks" data-action="All tasks and archives">All tasks & archives →</button>
+      <div class="sidebar-bottom"><button class="nav-action" data-action="Customize">◇ Customize</button><button class="nav-action" data-action="Automations">◷ Automations</button><button class="nav-action" id="settings">⚙ Settings <kbd>Ctrl ,</kbd></button></div>
+    </aside>
+    <main class="stage">
+      <header class="task-header"><div class="task-heading"><div class="history"><button data-action="Back" aria-label="Previous task">‹</button><button data-action="Forward" aria-label="Next task">›</button></div><div><button class="context" data-action="Environment">Lamprey Harness <span> / main ▾</span></button><h1 id="task-title">Simplify the workspace</h1></div></div><div class="task-actions"><button id="changes">Changes <b>2</b></button><button id="workspace-toggle" aria-label="Toggle workspace">Workspace</button><button data-action="Task actions" aria-label="Task actions">···</button></div></header>
+      <div class="work-area">
+        <section class="conversation" aria-label="Conversation">
+          <div class="messages" id="messages"></div>
+          <div class="composer-wrap">
+            <div class="status-row" id="status"></div>
+            <div class="queue-preview" id="queue-preview"><button data-action="Queued follow-ups">1 queued · Check the narrow layout next</button><button data-action="Queued follow-ups" aria-label="Edit queued follow-ups">Edit</button></div>
+            <form class="composer" id="composer"><label class="sr-only" for="prompt">Message Lamprey</label><textarea id="prompt" placeholder="What would you like to work on?" rows="2"></textarea><div class="composer-controls"><div class="composer-options"><button type="button" class="icon-button" data-action="Attach" aria-label="Attach files">＋</button><button type="button" data-action="Model">DeepSeek <span>⌄</span></button><button type="button" data-action="Working mode">Coding <span>⌄</span></button><button type="button" data-action="Permissions" class="permissions">Default permissions <span>⌄</span></button></div><div class="send-controls"><button type="button" id="stop">■ Stop</button><div class="split-button"><button type="submit" id="send">Send ↑</button><button type="button" id="send-menu" aria-label="Choose Steer or Queue">⌄</button></div></div></div></form>
+            <div class="composer-caption"><span>Changes stay in this task’s workspace</span><button data-action="Context usage">13% context</button></div>
+          </div>
+        </section>
+        <aside class="workspace" aria-label="Workspace" id="workspace"><div class="tabs" role="tablist" aria-label="Open resources"><button role="tab" data-resource="file" aria-selected="true">ChatInput.tsx</button><button role="tab" data-resource="review" aria-selected="false">Review <b>2</b></button><button id="add-resource" aria-label="Open workspace resource">＋</button><button id="close-workspace" aria-label="Close workspace view">×</button></div><div id="resource-content" class="resource-content"></div></aside>
+      </div>
+      <section class="terminal" id="terminal" aria-label="Terminal"><header><div><strong>Terminal</strong><button data-action="Shell selection">PowerShell ⌄</button><span class="muted">Lamprey Harness</span></div><div><button data-action="New terminal" aria-label="New terminal">＋</button><button data-action="Terminate terminal" aria-label="Terminate terminal process">End process</button><button id="hide-terminal" aria-label="Hide terminal">×</button></div></header><pre><span class="muted">PS C:\Projects\Lamprey Harness&gt;</span> npm run typecheck
+<span class="terminal-success">Type checking passed.</span>
+<span class="muted">PS C:\Projects\Lamprey Harness&gt;</span> <span class="cursor">▌</span></pre><p class="fixture-label">Illustrative output</p></section>
+      <footer class="workspace-footer"><button id="terminal-toggle">⌁ Terminal <kbd>Ctrl J</kbd></button><button data-action="Keyboard help">Keyboard shortcuts</button></footer>
+    </main>
+  </div>
+  <div class="review-note" role="status" id="review-note">Choose a state above. Open settings, the queue menu, resource tabs or commands to inspect the proposed navigation.</div>
+  <dialog id="dialog"><div class="dialog-header"><h2 id="dialog-title"></h2><button id="dialog-close" aria-label="Close dialog">×</button></div><div id="dialog-body"></div></dialog>
+  <script src="app.js"></script>
+</body></html>

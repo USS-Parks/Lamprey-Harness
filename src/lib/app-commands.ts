@@ -10,7 +10,7 @@ import { SETTINGS_LEAVES } from './settings-navigation'
 export interface AppCommand {
   id: string
   label: string
-  kind: 'command' | 'tool' | 'settings' | 'workflow'
+  kind: 'command' | 'tool' | 'settings' | 'workflow' | 'task' | 'file'
   aliases?: string[]
   shortcuts?: string[]
   unavailable?: () => string | null

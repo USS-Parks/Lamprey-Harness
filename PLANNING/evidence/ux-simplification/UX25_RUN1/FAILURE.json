@@ -1,0 +1,7 @@
+{
+  "error": "Error: page.waitForFunction: Target page, context or browser has been closed",
+  "diagnostic": {
+    "activeElement": "<body>\n    <div id=\"root\"><div class=\"flex h-screen w-screen flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]\"><div class=\"flex flex-col bg-transparent\" style=\"app-region: drag;\"><div class=\"relative flex h-9 items-stretch\"><div class=\"flex items-center gap-3 pl-3\" style=\"app-region: no-drag;\"><button type=\"button\" title=\"Collapse sidebar (Ctrl+B)\" aria-label=\"Toggle sidebar\" class=\"flex h-7 w-7 items-center justify-center rounded transition-colors text-[var(--text-secondar",
+    "draft": ""
+  }
+}

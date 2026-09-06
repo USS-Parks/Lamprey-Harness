@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Command menu', exact: true }).locator('[data-command-id=\"file.first/example.ts\"]') to be visible\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<input role=\"combobox\" aria-expanded=\"true\" aria-controls=\"command-results\" aria-label=\"Search commands, tasks and files\" placeholder=\"Search commands, tasks and files…\" class=\"min-h-9 min-w-0 flex-1 bg-transparent px-1 text-sm outline-none\" value=\"first/example.ts\">",
+    "draft": ""
+  }
+}

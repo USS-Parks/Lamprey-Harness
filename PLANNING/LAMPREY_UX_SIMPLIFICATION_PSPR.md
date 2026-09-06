@@ -10,6 +10,8 @@ The user explicitly rejected the added review stop and directed: "I already auth
 
 Execute UX-00 through UX-39 sequentially through verified v0.33.0 Bucket and humanized GitHub release notes. The additional owner design/visual-review stop points are waived; do not request STS or release authorization again. Use the prepared design and perform the required technical, behavioral and visual checks directly. Do not claim the owner personally performed those checks. Existing text describing a future owner approval stop is historical and superseded by this addendum. All source, live-system, regression, release-integrity and exact-SHA hosted verification gates remain mandatory. Preserve unrelated user work.
 
+The user further directed on 2026-09-06: use Codex UX to settle design questions and continue without asking while they are on mobile. Apply that reference within the approved roster and retain all verification gates.
+
 ## 0. Governance
 
 ### Goal
@@ -385,7 +387,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1; duplicate IDs/conflicting bindings are detected; unavailable actions are disabled/explained; commands invoke existing permission-aware paths; metadata cannot execute arbitrary shell text or bypass a required confirmation.
 
 #### UX-25 — Implement the unified command menu
-- [ ] **Objective:** make infrequent actions discoverable without persistent buttons.
+- [x] **Objective:** make infrequent actions discoverable without persistent buttons.
 - **Work:** extend the current palette with searchable commands, tasks, files and settings, clearly labeled by kind and scoped to the current project. Keep file quick-open's direct shortcut; integrate workflow entries rather than losing the old Ctrl+K capability.
 - **Seams/output:** existing palettes, UX-24 command metadata and current file/task search.
 - **Gate:** G1/G2; keyboard search/select/Escape, no-results/loading/error and project switching work; selection opens the intended task/file/action; dangerous actions retain existing decisions; all UX-01 destinations can be found by familiar names.

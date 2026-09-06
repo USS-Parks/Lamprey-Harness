@@ -1,0 +1,15 @@
+{
+  "prompt": "UX-25",
+  "sourceBase": "801660ea9324d09b65cf83bfe1615048e60a08c2",
+  "status": "local-pass",
+  "testsPassed": 3101,
+  "nativeAbiSkips": 176,
+  "evidence": [
+    "UX25_BUILD_FINAL.log",
+    "UX25_PROOF_PUSH22.log",
+    "UX25_RUN4/COMMANDS.json",
+    "UX25_RUN4/LIFECYCLE.json"
+  ],
+  "earlierAttempts": "RUN1 ended at fixture startup; RUN2 exposed Windows path separator mismatch; RUN3 passed product checks but failed an encoded placeholder assertion. All cleaned.",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX25.json"
+}

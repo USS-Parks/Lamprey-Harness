@@ -8,36 +8,50 @@ const { execFileSync } = require('node:child_process')
 const assert = require('node:assert/strict')
 
 async function main() {
-  const root = path.resolve(__dirname, '../../..')
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'lamprey-ux-baseline-'))
+  const root = path.resolve(__dirname, '../..')
+  const outputArgument = process.argv[2]
+  if (!outputArgument) throw new Error('Usage: node scripts/acceptance/ux.cjs <new evidence directory> [--fail-after-launch]')
+  const output = path.resolve(root, outputArgument)
+  const relative = path.relative(root, output)
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Evidence must stay inside the checkout')
+  fs.mkdirSync(output, { recursive: false })
+  const scenarios = require('./ux-scenarios.json')
+  const completed = []
+  const record = id => { assert(scenarios.some(scenario => scenario.id === id)); completed.push(id) }
+  const lifecycle = { profile: null, profileRemoved: false, serverClosed: false, passed: false }
+  fs.writeFileSync(path.join(output, 'SCENARIOS.json'), JSON.stringify(scenarios, null, 2) + '\n')
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'lamprey-ux-acceptance-'))
+  lifecycle.profile = profile
   const repo = path.join(profile, 'fixture-repo')
-  fs.mkdirSync(repo)
-  fs.writeFileSync(path.join(repo, 'example.txt'), 'Before review\n')
-  for (const args of [['init'], ['add', '.'], ['-c', 'user.name=UX Fixture', '-c', 'user.email=fixture@localhost', 'commit', '-m', 'Fixture baseline']]) execFileSync('git', args, { cwd: repo })
-  fs.writeFileSync(path.join(repo, 'example.txt'), 'After review\n')
-  fs.writeFileSync(path.join(profile, 'mcp-servers.json'), JSON.stringify([{ id: 'node-repl', name: 'Node REPL', transport: 'stdio', command: process.execPath, auth: 'none', enabled: false }]))
-  const plugins = Object.fromEntries(fs.readdirSync(path.join(root, 'resources/plugins'), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => [JSON.parse(fs.readFileSync(path.join(root, 'resources/plugins', e.name, 'plugin.json'))).id, false]))
-  fs.writeFileSync(path.join(profile, 'plugins.json'), JSON.stringify(plugins))
-  let requests = 0
-  const server = createServer((req, res) => {
-    if (req.url !== '/v1/chat/completions') { res.writeHead(404); res.end(); return }
-    requests++
-    req.resume()
-    res.writeHead(200, { 'Content-Type': 'text/event-stream' })
-    const send = () => res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Measured local stream. ' }, finish_reason: null }] })}\n\n`)
-    send()
-    const timer = setInterval(send, 100)
-    res.on('close', () => clearInterval(timer))
-  })
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-  fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }], customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }] }))
   let app
+  let server
   try {
+    fs.mkdirSync(repo)
+    fs.writeFileSync(path.join(repo, 'example.txt'), 'Before review\n')
+    for (const args of [['init'], ['add', '.'], ['-c', 'user.name=UX Fixture', '-c', 'user.email=fixture@localhost', 'commit', '-m', 'Fixture baseline']]) execFileSync('git', args, { cwd: repo })
+    fs.writeFileSync(path.join(repo, 'example.txt'), 'After review\n')
+    fs.writeFileSync(path.join(profile, 'mcp-servers.json'), JSON.stringify([{ id: 'node-repl', name: 'Node REPL', transport: 'stdio', command: process.execPath, auth: 'none', enabled: false }]))
+    const plugins = Object.fromEntries(fs.readdirSync(path.join(root, 'resources/plugins'), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => [JSON.parse(fs.readFileSync(path.join(root, 'resources/plugins', e.name, 'plugin.json'))).id, false]))
+    fs.writeFileSync(path.join(profile, 'plugins.json'), JSON.stringify(plugins))
+    let requests = 0
+    server = createServer((req, res) => {
+      if (req.url !== '/v1/chat/completions') { res.writeHead(404); res.end(); return }
+      requests++
+      req.resume()
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' })
+      const send = () => res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Measured local stream. ' }, finish_reason: null }] })}\n\n`)
+      send()
+      const timer = setInterval(send, 100)
+      res.on('close', () => clearInterval(timer))
+    })
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }], customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }] }))
     const env = { ...process.env, LAMPREY_ACCEPTANCE_PROFILE: profile }
     delete env.ELECTRON_RUN_AS_NODE
     const entry = path.join(profile, 'baseline-entry.cjs')
     fs.writeFileSync(entry, `globalThis.uxRequire = require; globalThis.uxShowInactive = require('electron').BrowserWindow.prototype.showInactive; require(${JSON.stringify(path.join(root, 'scripts/acceptance/electron-fixture.cjs'))})`)
     app = await _electron.launch({ args: ['--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--disable-features=CalculateNativeWinOcclusion', entry], env, cwd: repo })
+    if (process.argv.includes('--fail-after-launch')) throw new Error('Intentional fixture failure to verify cleanup and nonzero exit')
     const page = await app.firstWindow()
     page.setDefaultTimeout(15000)
     await page.waitForFunction(() => !!window.api?.conversation)
@@ -86,7 +100,8 @@ async function main() {
     await page.reload()
     await page.getByText('UX baseline task 00', { exact: true }).last().click()
     await page.getByText('Baseline message 999: inspect the fixture and explain its changes.', { exact: true }).waitFor()
-    await page.screenshot({ path: path.join(__dirname, 'UX00_IDLE.png') })
+    await page.screenshot({ path: path.join(output, 'IDLE.png') })
+    record('idle-history')
     console.log('Idle state captured')
     await page.evaluate(() => {
       window.uxTimings = []
@@ -132,13 +147,13 @@ async function main() {
         switching.push(await switchTask('UX baseline task 00', 'Baseline message 999: inspect the fixture and explain its changes.'))
       }
       runs[run].taskSwitch = { samples: switching, p50: quantile(switching,.5), p95: quantile(switching,.95) }
-      fs.writeFileSync(path.join(__dirname, 'UX00_TIMING_PROGRESS.log'), JSON.stringify({ status: 'incomplete', runs }, null, 2)+'\n')
+      fs.writeFileSync(path.join(output, 'TIMING_PROGRESS.log'), JSON.stringify({ status: 'incomplete', runs }, null, 2)+'\n')
       console.log('Task switch run', run+1)
     }
     await input.fill('Respond with a local streaming fixture.')
     await input.press('Enter')
     await page.getByRole('button', { name: 'Stop current turn', exact: true }).waitFor()
-    await page.screenshot({ path: path.join(__dirname, 'UX00_RUNNING.png') })
+    await page.screenshot({ path: path.join(output, 'RUNNING.png') })
     const streamingStart = await page.evaluate(() => performance.now())
     const streamingRuns = []
     for (let run = 0; run < 5; run++) {
@@ -162,12 +177,15 @@ async function main() {
     const streamingEnd = await page.evaluate(() => performance.now())
     await page.getByRole('button', { name: 'Stop current turn', exact: true }).click()
     assert(requests > 0)
+    assert(scrollAnchor.stable)
+    record('running-local-stream')
     await page.evaluate(async repo => { const result = await window.api.files.setWorkdir(repo); if (!result.success) throw new Error(result.error) }, repo)
     await page.getByRole('button', { name: 'Expand artifacts panel', exact: true }).click()
     await page.getByRole('button', { name: 'Review', exact: true }).click()
     await page.getByText('example.txt', { exact: true }).first().click()
     await page.getByText('+After review', { exact: true }).waitFor()
-    await page.screenshot({ path: path.join(__dirname, 'UX00_REVIEW.png') })
+    await page.screenshot({ path: path.join(output, 'REVIEW.png') })
+    record('review-real-git')
     for (let run = 0; run < 5; run++) {
       const samples = []
       for (let repeat = 0; repeat < 3; repeat++) {
@@ -189,17 +207,30 @@ async function main() {
     await page.waitForFunction(() => [...document.querySelectorAll('ul span')].filter(e => e.textContent === 'read_file').length === 200, undefined, {polling:50,timeout:10000})
     const renderedToolEntries = await page.locator('ul').getByText('read_file', { exact:true }).count()
     assert.equal(renderedToolEntries, 200)
+    record('task-switch-history')
+    record('timing-capture')
+    assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
-    fs.writeFileSync(path.join(__dirname, 'UX00_RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks: await page.evaluate(() => window.uxLongTasks), limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'Ten simultaneous workspace tabs are unsupported in v0.32.0; measure them after UX-04/05.', 'Browser/terminal lifecycle acceptance belongs to UX-03/07/08 and UX-33.'], status: 'baseline-recorded' }, null, 2)+'\n')
-    console.log('Baseline capture complete.')
+    fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks: await page.evaluate(() => window.uxLongTasks), limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'Ten simultaneous workspace tabs are unsupported in v0.32.0; measure them after UX-04/05.', 'Browser/terminal lifecycle extensions are tracked by UX-07/08 and UX-33; not claimed by representative cases.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')
+    lifecycle.passed = true
+    console.log('UX acceptance capture complete.')
   } finally {
-    if (app) {
-      const shutdown = setTimeout(() => app.process().kill(), 5000)
-      try { await app.close() } finally { clearTimeout(shutdown) }
+    try {
+      if (app) {
+        const shutdown = setTimeout(() => app.process().kill(), 5000)
+        try { await app.close() } finally { clearTimeout(shutdown) }
+      }
+    } finally {
+      if (server) {
+        server.closeAllConnections()
+        await new Promise(resolve => server.close(resolve))
+      }
+      lifecycle.serverClosed = true
+      fs.rmSync(profile, { recursive: true, force: true })
+      lifecycle.profileRemoved = !fs.existsSync(profile)
+      fs.writeFileSync(path.join(output, 'LIFECYCLE.json'), JSON.stringify(lifecycle, null, 2) + '\n')
+      assert(lifecycle.profileRemoved)
     }
-    server.closeAllConnections()
-    await new Promise(resolve => server.close(resolve))
-    fs.rmSync(profile, { recursive: true, force: true })
   }
 }
 main().catch(error => { console.error(error); process.exitCode = 1 })

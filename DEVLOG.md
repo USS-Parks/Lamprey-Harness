@@ -1,3 +1,9 @@
+## 2026-09-05 — UX-03: Reusable real Electron acceptance
+
+Extracted the working baseline runner into `scripts/acceptance/ux.cjs` with a scenario manifest and usage notes. Each run requires a new checkout-local evidence directory, preserving prior receipts. Real production IPC creates 50 tasks; the isolated profile holds 1,000 messages and 200 tool entries. Local streaming, stable history scrolling, actual Git diff review, task switching, screenshots and five-run timings passed. Deliberate failure after launch exited 1 and both success/failure paths removed the owned profile and closed the server. No saved credentials were used. Lint and both TypeScript projects passed the commit hook.
+
+Evidence: `UX03_RUN`, `UX03_FAILURE` and `UX03.json` under the UX evidence directory. Commit: resolve the introducing commit of `UX03.json`. UX-02 is pushed at 6b2e3ebb93108e6318e95d89e9510846cafb8e88; hosted builds are still running. Next: UX-04 task-scoped resource state. Existing audit plans/receipts and old worktrees remain preserved.
+
 ## 2026-09-05 — UX-02: Continue under explicit full-roster authorization
 
 The user explicitly rejected the added design stop and ordered all 40 prompts executed stem to stern. The PSPR now records that controlling instruction. Prepared mockups and their desktop/narrow, keyboard, destination-coverage, settings-search and no-network checks passed; the current source files also passed focused lint. No owner visual acceptance is fabricated. UX-02 is complete under the waived approval checkpoint; UX-03 follows immediately. Full v0.33.0 Bucket and humanized release notes remain authorized.

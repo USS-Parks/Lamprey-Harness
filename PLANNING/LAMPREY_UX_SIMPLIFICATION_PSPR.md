@@ -245,7 +245,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** user can compare all three states at desktop and narrow widths; every UX-01 destination is accounted for; record explicit design approval or revision. **Stop here at the design checkpoint unless waived by the user.**
 
 #### UX-03 — Establish the reusable interaction acceptance fixture
-- [ ] **Objective:** run the agreed behavior scenarios against real Lamprey.
+- [x] **Objective:** run the agreed behavior scenarios against real Lamprey.
 - **Work:** extend existing isolated Electron fixtures with deterministic task/history data, controlled local streaming/tool calls and temporary Git/file resources. Add reusable keyboard, focus, layout and timing capture only where current helpers lack it.
 - **Seams/output:** `scripts/acceptance/electron-fixture.cjs` and existing acceptance helpers; one reusable UX runner and scenario manifest.
 - **Gate:** G1/G2; baseline app runs representative idle/running/review cases; fixture failure causes nonzero exit; profile isolation proven; temporary resources are bounded and disposed. No production credential use or framework replacement.

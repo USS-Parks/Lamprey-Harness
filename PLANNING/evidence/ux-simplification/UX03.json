@@ -1,0 +1,16 @@
+{
+  "prompt": "UX-03",
+  "source": "6b2e3ebb93108e6318e95d89e9510846cafb8e88",
+  "status": "local-pass",
+  "checks": [
+    "real Electron representative cases: exit 0",
+    "injected post-launch failure: exit 1 with profile and server cleanup",
+    "G1 lint and TypeScript checked by commit hook"
+  ],
+  "evidence": [
+    "UX03_RUN/RUNTIME.json",
+    "UX03_RUN/LIFECYCLE.json",
+    "UX03_FAILURE/LIFECYCLE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX03.json"
+}

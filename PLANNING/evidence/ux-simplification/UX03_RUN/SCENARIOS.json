@@ -1,0 +1,22 @@
+[
+  {
+    "id": "idle-history",
+    "proof": "Real preload creates 50 tasks; isolated SQLite supplies 1000 messages and 200 tool entries; renderer shows history."
+  },
+  {
+    "id": "running-local-stream",
+    "proof": "Real provider dispatch reaches loopback SSE; visible Stop cancels; scrolling stays anchored while typing."
+  },
+  {
+    "id": "review-real-git",
+    "proof": "Real temporary Git repository diff is displayed by production ReviewPanel."
+  },
+  {
+    "id": "task-switch-history",
+    "proof": "Switch away and back through sidebar; 200 completed tool entries render after a turn."
+  },
+  {
+    "id": "timing-capture",
+    "proof": "Five raw runs after warmup record typing, streaming, task switching and cached panel presentation."
+  }
+]

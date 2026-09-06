@@ -1,3 +1,5 @@
+import { TOOL_LABELS } from '@/lib/workspace-tools'
+import { toast } from '@/stores/toast-store'
 import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel'
 import { useEffect, useRef, useState } from 'react'
 import { EMPTY_WORKSPACE, workspaceKey, type WorkspaceResource } from '@/lib/workspace-state'
@@ -15,22 +17,6 @@ import { AgentsPanel } from './panels/AgentsPanel'
 import { EnvironmentPanel } from '@/components/workspace/EnvironmentPanel'
 import { SourcesPanel } from '@/components/workspace/SourcesPanel'
 import { ArtifactsPanel } from '@/components/workspace/ArtifactsPanel'
-
-const TOOL_LABELS: Record<ToolId, string> = {
-  files: 'Files',
-  sidechat: 'Side chat',
-  browser: 'Browser',
-  review: 'Review',
-  terminal: 'Terminal',
-  environment: 'Environment',
-  sources: 'Sources',
-  artifacts: 'Artifacts',
-  plan: 'Plan',
-  background: 'Background tasks',
-  afterAction: 'After action',
-  loop: 'Loops',
-  agents: 'Agents'
-}
 
 function renderToolBody(tool: ToolId, resource?: WorkspaceResource): React.ReactElement {
   if (resource?.kind === 'artifact') return <ArtifactPanel artifactId={resource.ref} />
@@ -136,11 +122,14 @@ export function ToolsPanel({ onCollapse }: ToolsPanelProps) {
       </div>
       {adding && <div role="group" aria-label="Add workspace resource" onKeyDown={event => { if (event.key === 'Escape') { setAdding(false); add.current?.focus() } }} className="flex shrink-0 flex-wrap gap-1 border-b border-[var(--panel-border)] p-2">
         {(Object.keys(TOOL_LABELS) as ToolId[]).map(tool => <button key={tool} className="min-h-8 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => { open(tool); setAdding(false) }}>{TOOL_LABELS[tool]}</button>)}
+        <button className="min-h-8 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => {
+          setAdding(false)
+          void window.api.files.openInVSCode({}).then(result => { if (!result.success) toast.error(result.error ?? 'Could not open VS Code') }).catch(failure => toast.error(String(failure)))
+        }}>Open in VS Code</button>
       </div>}
       <div ref={content} id="workspace-content" role={active ? 'tabpanel' : 'region'} aria-label={active ? undefined : 'Workspace'} aria-labelledby={active ? `workspace-tab-${workspace.tabs.indexOf(active)}` : undefined} tabIndex={-1} className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">
         {activeTool ? <div key={`${taskId}:${active?.id ?? activeTool}`} className="flex min-h-0 flex-1 flex-col overflow-hidden">{renderToolBody(activeTool, active)}</div> : <>
-          <p className="px-3 pt-3 text-xs text-[var(--text-muted)]">Open a file or add a workspace tab.</p>
-          <RightPanelHome onCollapse={onCollapse} />
+          <RightPanelHome />
         </>}
       </div>
     </>

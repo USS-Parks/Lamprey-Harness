@@ -289,7 +289,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2 with a real temporary Git repo and controlled PR fixture; clean/dirty/no-repo/loading/error states work; feedback targets the selected file/task; staging uses existing authority; no unauthorized remote write or parked Code Mode implementation.
 
 #### UX-10 — Retire the redundant launcher menu
-- [ ] **Objective:** complete the workspace migration with every old capability reachable.
+- [x] **Objective:** complete the workspace migration with every old capability reachable.
 - **Work:** replace RightPanelHome's eleven cards with the approved compact entry points. Provide intermediate menu/task-detail routes for Plan, Background, After action, Loops, Agents and Side chat until the unified activity milestone lands. Remove only obsolete launcher presentation and redundant toolbar controls.
 - **Seams/output:** RightPanelHome, SecondaryToolbar, ToolsPanel and current tool routing.
 - **Gate:** G1/G2; walk the full UX-01 ToolId map, including Environment/Sources; no dead routes, orphan buttons or unreachable capabilities. Milestone B passes direct-open, lifecycle and focus scenarios; include storage/ownership closeout.

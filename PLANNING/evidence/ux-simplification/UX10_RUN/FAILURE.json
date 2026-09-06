@@ -1,0 +1,136 @@
+{
+  "error": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Background tasks', exact: true })\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<button aria-label=\"Add workspace tab\" aria-expanded=\"false\" class=\"h-8 w-8 shrink-0 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]\">+</button>",
+    "draft": "",
+    "timings": [
+      31.90000009536743,
+      14.399999856948853,
+      23.700000047683716,
+      10.400000095367432,
+      8.900000095367432,
+      17.100000143051147,
+      12,
+      7.599999904632568,
+      8.099999904632568,
+      19.799999952316284,
+      10.099999904632568,
+      12.599999904632568,
+      8.200000047683716,
+      11.099999904632568,
+      23.5,
+      9.399999856948853,
+      10.599999904632568
+    ],
+    "longTasks": [
+      {
+        "start": 3673.800000190735,
+        "duration": 510
+      },
+      {
+        "start": 4337.400000095367,
+        "duration": 479
+      },
+      {
+        "start": 6882.900000095367,
+        "duration": 488
+      },
+      {
+        "start": 7571.600000143051,
+        "duration": 488
+      },
+      {
+        "start": 10153.5,
+        "duration": 575
+      },
+      {
+        "start": 10991.100000143051,
+        "duration": 499
+      },
+      {
+        "start": 13576.100000143051,
+        "duration": 539
+      },
+      {
+        "start": 14321.100000143051,
+        "duration": 494
+      },
+      {
+        "start": 16902.400000095367,
+        "duration": 517
+      },
+      {
+        "start": 17583.900000095367,
+        "duration": 527
+      },
+      {
+        "start": 25455.300000190735,
+        "duration": 76
+      },
+      {
+        "start": 25595.200000047684,
+        "duration": 77
+      },
+      {
+        "start": 25673.200000047684,
+        "duration": 145
+      },
+      {
+        "start": 26546.800000190735,
+        "duration": 145
+      },
+      {
+        "start": 26803.10000014305,
+        "duration": 64
+      },
+      {
+        "start": 26914.800000190735,
+        "duration": 55
+      },
+      {
+        "start": 27022.700000047684,
+        "duration": 158
+      },
+      {
+        "start": 28846.200000047684,
+        "duration": 147
+      },
+      {
+        "start": 29119.10000014305,
+        "duration": 51
+      },
+      {
+        "start": 29219.10000014305,
+        "duration": 150
+      },
+      {
+        "start": 29973.400000095367,
+        "duration": 152
+      },
+      {
+        "start": 30247.300000190735,
+        "duration": 50
+      },
+      {
+        "start": 30348.800000190735,
+        "duration": 155
+      },
+      {
+        "start": 30769.900000095367,
+        "duration": 150
+      },
+      {
+        "start": 31378.60000014305,
+        "duration": 63
+      },
+      {
+        "start": 31494.800000190735,
+        "duration": 168
+      },
+      {
+        "start": 32064.700000047684,
+        "duration": 50
+      }
+    ]
+  }
+}

@@ -16,13 +16,14 @@ describe('AO-10 Agents UI wiring', () => {
     const src = read('src/components/tools/ToolsPanel.tsx')
     expect(src).toMatch(/import \{ AgentsPanel \}/)
     expect(src).toMatch(/case 'agents':[\s\S]*?<AgentsPanel \/>/)
-    expect(src).toMatch(/agents: 'Agents'/)
+    expect(read('src/lib/workspace-tools.ts')).toMatch(/agents: 'Agents'/)
   })
 
-  it('RightPanelHome registers the Agents pill', () => {
-    const src = read('src/components/artifacts/RightPanelHome.tsx')
-    expect(src).toMatch(/id: 'agents'/)
-    expect(src).toMatch(/label: 'Agents'/)
+  it('retains Agents in the workspace resource menu', () => {
+    expect(read('src/lib/workspace-tools.ts')).toMatch(/agents: 'Agents'/)
+    const panel = read('src/components/tools/ToolsPanel.tsx')
+    expect(panel).toContain('Object.keys(TOOL_LABELS)')
+    expect(panel).toContain('open(tool)')
   })
 
   it('AgentsPanel reads agents IPC + gates on the master toggle', () => {

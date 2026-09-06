@@ -1,7 +1,7 @@
 import { TerminalDock } from '@/components/tools/TerminalDock'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { Titlebar, SecondaryToolbar } from '@/components/layout/Titlebar'
+import { Titlebar } from '@/components/layout/Titlebar'
 import { ChatView } from '@/components/chat/ChatView'
 import { ToolsPanel } from '@/components/tools/ToolsPanel'
 import { QuickOpenPalette } from '@/components/tools/QuickOpenPalette'
@@ -443,11 +443,7 @@ function App(): React.ReactElement {
 
       <Titlebar onSettingsClick={openSettings} />
 
-      {/* All three columns (Sidebar | Chat | RightPanel) sit flush below
-          Row 1 of the Titlebar, forming one clean horizontal divider.
-          SecondaryToolbar now lives at the top of the right panel only
-          (suppressed when the right panel is collapsed or showing a
-          contextual resource tabs). */}
+      {/* Task content and contextual workspace share the area below the titlebar. */}
       <div className="flex flex-1 gap-[var(--panel-gap)] overflow-hidden p-[var(--panel-gap)]">
         <Sidebar />
 
@@ -504,7 +500,6 @@ function App(): React.ReactElement {
               }}
               className="resize-handle-v resize-handle-v-left"
             />
-            <SecondaryToolbar onSettingsClick={openSettings} />
             <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
           </div>
         )}
@@ -535,7 +530,6 @@ function App(): React.ReactElement {
               transform: 'translateX(0)'
             }}
           >
-            <SecondaryToolbar onSettingsClick={openSettings} />
             <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
           </aside>
         </>

@@ -12,6 +12,6 @@ The output directory must be new and inside the checkout. The runner reuses `ele
 
 `--fail-after-launch` deliberately fails after Electron launch. It must exit nonzero while recording removal of the isolated profile and closure of the local server. Reusing an output directory or supplying an outside path also fails before starting Electron.
 
-The original UX-00 runner was extracted here at UX-03. Historical measurements and screenshots remain in `PLANNING/evidence/ux-simplification/`; their source commit preserves the original runner. Extend this runner with subsequent prompt scenarios instead of creating duplicate harnesses. Component-only browser lifecycle tests remain supplementary; actual browser/terminal lifecycle gates are UX-07/08 and UX-33.
+The original UX-00 runner was extracted here at UX-03. Historical measurements and screenshots remain in `PLANNING/evidence/ux-simplification/`; their source commit preserves the original runner. Extend this runner with subsequent prompt scenarios instead of creating duplicate harnesses. Component-only browser lifecycle tests remain supplementary. Actual browser/terminal lifecycle cases are included, alongside direct files/artifacts, two-repository review and the full thirteen-route workspace walk. The expanded performance and viewport matrix remains UX-33 through UX-35.
 
 Authored and reviewed by Basho Parks, copyright 2026

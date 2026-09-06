@@ -17,13 +17,14 @@ describe('LP-9 loops UI wiring', () => {
     const src = read('src/components/tools/ToolsPanel.tsx')
     expect(src).toMatch(/import \{ LoopsPanel \}/)
     expect(src).toMatch(/case 'loop':[\s\S]*?<LoopsPanel \/>/)
-    expect(src).toMatch(/loop: 'Loops'/)
+    expect(read('src/lib/workspace-tools.ts')).toMatch(/loop: 'Loops'/)
   })
 
-  it('RightPanelHome registers the Loops pill', () => {
-    const src = read('src/components/artifacts/RightPanelHome.tsx')
-    expect(src).toMatch(/id: 'loop'/)
-    expect(src).toMatch(/label: 'Loops'/)
+  it('retains Loops in the workspace resource menu', () => {
+    expect(read('src/lib/workspace-tools.ts')).toMatch(/loop: 'Loops'/)
+    const panel = read('src/components/tools/ToolsPanel.tsx')
+    expect(panel).toContain('Object.keys(TOOL_LABELS)')
+    expect(panel).toContain('open(tool)')
   })
 
   it('LoopsPanel consumes the loops store + live loop events', () => {

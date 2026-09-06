@@ -217,7 +217,8 @@ async function main() {
       runs[run].cachedPanelShell = { samples, p50:quantile(samples,.5), p95:quantile(samples,.95) }
     }
     await page.getByRole('button', { name:'Close Review tab', exact:true }).click()
-    await page.getByRole('button', { name:'Background tasks', exact:true }).click()
+    await page.getByRole('button', { name: 'Add workspace tab', exact: true }).click()
+    await page.getByRole('group', { name: 'Add workspace resource' }).getByRole('button', { name: 'Background tasks', exact: true }).click()
     await switchTask('UX baseline task 01', 'Baseline alternate task ready.')
     await switchTask('UX baseline task 00', 'Baseline message 999: inspect the fixture and explain its changes.')
     await page.waitForFunction(() => [...document.querySelectorAll('ul span')].filter(e => e.textContent === 'read_file').length === 200, undefined, {polling:50,timeout:10000})
@@ -300,9 +301,12 @@ async function main() {
     const reviewLifecycle = await require('./ux-review.cjs')({ page, app, ids, profile, repo, switchTask })
     fs.writeFileSync(path.join(output, 'REVIEW_FLOW.json'), JSON.stringify(reviewLifecycle, null, 2) + '\n')
     record('review-task-continuity')
+    const routes = await require('./ux-routes.cjs')({ page, app, ids, trackPid: pid => { if (pid) fixturePids.push(pid) } })
+    fs.writeFileSync(path.join(output, 'ROUTES.json'), JSON.stringify(routes, null, 2) + '\n')
+    record('workspace-capability-routes')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
-    fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'Ten simultaneous workspace tabs are unsupported in v0.32.0; measure them after UX-04/05.', 'Browser/terminal lifecycle extensions are tracked by UX-07/08 and UX-33; not claimed by representative cases.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')
+    fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')
     lifecycle.passed = true
     console.log('UX acceptance capture complete.')
   } catch (error) {

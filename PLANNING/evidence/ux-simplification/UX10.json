@@ -1,0 +1,17 @@
+{
+  "prompt": "UX-10",
+  "sourceBase": "6c0490ee6a29084d0ae146f756493ffb9ce30352",
+  "status": "local-pass",
+  "unitTests": 23,
+  "evidence": [
+    "UX10_RUN2/ROUTES.json",
+    "UX10_RUN2/RUNTIME.json",
+    "UX10_RUN2/LIFECYCLE.json",
+    "UX10_STORAGE.json"
+  ],
+  "failedRunsRetained": [
+    "UX10_RUN"
+  ],
+  "milestone": "B workspace technical acceptance passed; owner review stop superseded by full-roster authorization. Full contract/performance matrix remains UX-33 through UX-35.",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX10.json"
+}

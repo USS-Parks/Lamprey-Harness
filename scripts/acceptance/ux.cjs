@@ -63,10 +63,13 @@ async function main() {
         providerBodies.push(request)
         const last = request.messages.at(-1)
         const text = typeof last?.content === 'string' ? last.content : last?.content?.filter(item => item.type === 'text').map(item => item.text).join(' ')
+        if (last?.role === 'user' && text?.includes('UX17 provider failure')) {
+          res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: { message: 'Controlled UX17 provider failure' } })); return
+        }
         if (last?.role === 'user' && text?.includes('UX16 approval fixture')) {
           res.writeHead(200, { 'Content-Type': 'text/event-stream' })
           const args = { command: "Set-Content -LiteralPath './ux16-approved.txt' -Value 'Approved fixture write' -Encoding utf8", cwd: repo, shell: 'powershell' }
-          res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: 'ux16-approval-call', type: 'function', function: { name: 'shell_command', arguments: JSON.stringify(args) } }] }, finish_reason: null }] })}\n\n`)
+          res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: `ux-approval-${requests}`, type: 'function', function: { name: 'shell_command', arguments: JSON.stringify(args) } }] }, finish_reason: null }] })}\n\n`)
           res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] })}\n\n`)
           res.end('data: [DONE]\n\n')
           return
@@ -139,6 +142,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--status-only')) {
+      const result = await require('./ux-status.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+      fs.writeFileSync(path.join(output, 'STATUS.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'current-task-status-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['current-task-status'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--composer-only')) {
       const result = await require('./ux-composer-integrated.cjs')({ page, app, ids, profile, repo, providerBodies, output })
       fs.writeFileSync(path.join(output, 'COMPOSER_INTEGRATED.json'), JSON.stringify(result, null, 2) + '\n')
@@ -354,6 +364,9 @@ async function main() {
     const integratedComposer = await require('./ux-composer-integrated.cjs')({ page, app, ids, profile, repo, providerBodies, output })
     fs.writeFileSync(path.join(output, 'COMPOSER_INTEGRATED.json'), JSON.stringify(integratedComposer, null, 2) + '\n')
     record('integrated-composer')
+    const status = await require('./ux-status.cjs')({ page, app, ids, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+    fs.writeFileSync(path.join(output, 'STATUS.json'), JSON.stringify(status, null, 2) + '\n')
+    record('current-task-status')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

@@ -1,72 +1,49 @@
+import { useEffect, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
-import { useSettingsStore } from '@/stores/settings-store'
-import type { AgentRunPhase } from '@/lib/types'
+import { useInlineApprovalsStore } from '@/stores/inline-approvals-store'
+import { useUiStore } from '@/stores/ui-store'
+import { currentTaskStatus } from '@/lib/current-task-status'
+import type { ToolApprovalRequest } from '@/lib/types'
+import { StreamStatusLine } from './StreamStatusLine'
+import { TokenTicker } from './TokenTicker'
+import { StatusLine } from '@/components/layout/StatusLine'
 
-// 2026-06-10 user direction — the multi-agent stage banner that used to
-// render here (planner → coder → reviewer dots above the input pill) is
-// DELETED, not gated: that dispatch path is retired and its toggle is gone
-// from Settings. What remains is the single-mode run-phase pill — the
-// era-style one-line status ("Reading your message", "Editing", …).
-
-// Plain-English mapping shown in the pill. Mirrored from main-side intent —
-// the labels are user-facing, not technical names. Keep the wording short
-// (fits inside the pill) and present-progressive ("Reading", "Editing") so
-// it reads as a live action.
-const PHASE_LABEL: Record<AgentRunPhase, string> = {
-  understanding: 'Reading your message',
-  gathering_context: 'Reading project',
-  planning: 'Planning',
-  acting: 'Editing',
-  verifying: 'Checking result',
-  summarizing: 'Wrapping up',
-  done: 'Done',
-  error: 'Stopped'
+export function AgentRunBanner({ modalApprovals = [] }: { modalApprovals?: ToolApprovalRequest[] }) {
+  const owner = useChatStore(s => s.activeConversationId)
+  const [open, setOpen] = useState(false)
+  useEffect(() => setOpen(false), [owner])
+  const state = useChatStore(s => owner ? s.turnControlByConversation[owner] : undefined)
+  const sending = useChatStore(s => s.isStreaming)
+  const phase = useChatStore(s => s.runPhase)
+  const inline = useInlineApprovalsStore(s => s.queue)
+  const approvalCount = new Set([...modalApprovals, ...inline].filter(request => request.conversationId === owner).map(request => request.callId)).size
+  const status = currentTaskStatus({ owner, state, sending, phase, approvalCount })
+  const color = { muted: 'var(--text-muted)', active: 'var(--accent)', attention: 'var(--warning,#b7791f)', error: 'var(--error)', success: 'var(--success)' }[status.tone]
+  return <details key={owner ?? 'new'} onToggle={event => setOpen(event.currentTarget.open)} className="mb-2 text-xs text-[var(--text-secondary)]">
+    <summary className="flex min-h-8 cursor-pointer list-none items-center gap-2 rounded px-1 focus-visible:outline-2 focus-visible:outline-[var(--accent)]">
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      <span role="status" data-task-status={status.label} aria-live="polite" style={{ color }}>{status.label}</span>
+      <span className="ml-auto text-[var(--text-muted)]">Details</span>
+    </summary>
+    {open && <div className="max-h-48 overflow-y-auto rounded border border-[var(--panel-border)] p-2">
+      {state?.hydrationError && <p role="alert">{state.hydrationError} <button className="min-h-8 underline" onClick={() => { if (owner) void useChatStore.getState().hydrateTurnControl(owner) }}>Retry status</button></p>}
+      <TaskDiagnostics />
+      <div className="flex flex-wrap gap-2">
+        <button className="min-h-8 underline" onClick={() => useUiStore.getState().setActiveTool('plan')}>Plan and progress</button>
+        <button className="min-h-8 underline" onClick={() => useUiStore.getState().setActiveTool('afterAction')}>After action</button>
+        <button className="min-h-8 underline" onClick={() => useUiStore.getState().setActiveTool('background')}>Background work</button>
+      </div>
+    </div>}
+  </details>
 }
 
-function RunPhasePill({ phase, codingMode }: { phase: AgentRunPhase; codingMode: boolean }) {
-  const label = PHASE_LABEL[phase]
-  const isError = phase === 'error'
-  const isDone = phase === 'done'
-  const dotClass = isError
-    ? 'bg-[var(--error)]'
-    : isDone
-    ? 'bg-[var(--success)]'
-    : 'bg-[var(--accent)] animate-pulse'
-  return (
-    <div
-      className="pointer-events-auto mb-2 inline-flex items-center gap-2 rounded-full bg-[var(--bg-tertiary)] px-3 py-1 text-[12px]"
-      role="status"
-      aria-live="polite"
-    >
-      <span className={`inline-block h-2 w-2 rounded-full ${dotClass}`} aria-hidden />
-      <span className="font-mono uppercase tracking-wider text-[var(--text-muted)]">Lamprey</span>
-      {codingMode && (
-        <>
-          <span
-            className="font-mono uppercase tracking-wider text-[var(--accent)]"
-            title="Agentic coding mode is on"
-          >
-            Coding
-          </span>
-          <span className="text-[var(--text-muted)]" aria-hidden>
-            ·
-          </span>
-        </>
-      )}
-      <span className="text-[var(--text-secondary)]">{label}</span>
-    </div>
-  )
-}
-
-export function AgentRunBanner() {
-  const runPhase = useChatStore((s) => s.runPhase)
-  const codingMode = useSettingsStore((s) => s.settings.agenticCodingMode)
-
-  // Show the run-phase pill while a run is active. The store nulls runPhase
-  // on terminal phases, so this unmounts itself when the model finishes.
-  if (runPhase && runPhase !== 'done' && runPhase !== 'error') {
-    return <RunPhasePill phase={runPhase} codingMode={codingMode} />
-  }
-
-  return null
+function TaskDiagnostics() {
+  const startedAt = useChatStore(s => s.streamStartedAt)
+  const content = useChatStore(s => s.streamingContent)
+  const reasoning = useChatStore(s => s.streamingReasoning)
+  return <>
+    <StreamStatusLine startedAt={startedAt} content={content} reasoning={reasoning} />
+    <TokenTicker />
+    <StatusLine />
+  </>
 }

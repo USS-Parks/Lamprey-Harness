@@ -276,6 +276,11 @@ export class TurnControlStore {
     return row ? turnFromDb(row) : null
   }
 
+  getLatestTurn(conversationId: string): ConversationTurnRecord | null {
+    const row = this.#db.prepare('SELECT * FROM conversation_turns WHERE conversation_id = ? ORDER BY started_at DESC, rowid DESC LIMIT 1').get(conversationId) as TurnDbRow | undefined
+    return row ? turnFromDb(row) : null
+  }
+
   listTurns(conversationId: string): ConversationTurnRecord[] {
     return (
       this.#db

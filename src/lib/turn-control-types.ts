@@ -177,10 +177,18 @@ export interface TurnFollowUpRecord {
   finalizedAt: number | null
 }
 
+export interface TurnOutcomeSnapshot {
+  turnId: TurnId
+  status: Exclude<TurnStatus, 'running'>
+  completedAt: number | null
+  persisted: boolean
+}
+
 export interface TurnControlSnapshot {
   conversationId: string
   activeTurn: ActiveTurnSnapshot | null
   orphaned?: boolean
+  lastOutcome?: TurnOutcomeSnapshot | null
   followUps: TurnFollowUpRecord[]
   observedAt: number
   revision: number

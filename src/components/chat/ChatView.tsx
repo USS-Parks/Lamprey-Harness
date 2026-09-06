@@ -5,7 +5,7 @@ import { ChatInput } from './ChatInput'
 import { AttachmentPreview } from './AttachmentPreview'
 import { FileDropZone } from './FileDropZone'
 import { WelcomeScreen } from './WelcomeScreen'
-import { TokenTicker } from './TokenTicker'
+import type { ToolApprovalRequest } from '@/lib/types'
 import { AgentRunBanner } from './AgentRunBanner'
 import { PlanModeBanner } from './PlanModeBanner'
 import { ChapterSidebar } from './ChapterSidebar'
@@ -21,7 +21,7 @@ import { FollowUpQueue } from './FollowUpQueue'
 // the comfortable-reading width; `px-6` keeps content off the column edge.
 export const CHAT_COLUMN_CLASS = 'mx-auto w-full max-w-4xl px-3 sm:px-6'
 
-export function ChatView() {
+export function ChatView({ modalApprovals = [] }: { modalApprovals?: ToolApprovalRequest[] }) {
   // JM-24 (RD-6) — per-field selectors. The old selector-less useChatStore()
   // subscribed to the ENTIRE store, so streamingVitals heartbeats (every ~2s)
   // and every tool-call update re-rendered the whole chat tree. Each selector
@@ -82,9 +82,8 @@ export function ChatView() {
           ::-webkit-scrollbar width set in src/styles/index.css. */}
       <div className="flex max-h-[70dvh] shrink-0 justify-center overflow-y-auto pt-3 pb-4 pr-[6px]">
         <div className={`${CHAT_COLUMN_CLASS} flex flex-col`}>
-          <AgentRunBanner />
+          <AgentRunBanner modalApprovals={modalApprovals} />
           <SpawnTaskTray />
-          <TokenTicker />
           <FollowUpQueue />
           <AttachmentPreview />
           <ChatInput

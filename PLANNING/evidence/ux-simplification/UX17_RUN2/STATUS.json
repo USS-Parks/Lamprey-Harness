@@ -1,0 +1,10 @@
+{
+  "onePrimaryRow": true,
+  "completedAndFailedPersistAcrossReload": true,
+  "realCancellation": true,
+  "staleStartedEventIgnored": true,
+  "inactiveOwnerDoesNotShowAnotherTurn": true,
+  "realApprovalWaitAndDenial": true,
+  "unavailableStatusAndRetry": true,
+  "diagnosticsRemainExpandable": true
+}

@@ -335,7 +335,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone D — Activity
 
 #### UX-17 — Derive one honest current-task status
-- [ ] **Objective:** communicate running, waiting, failed, cancelled and completed state in one primary row.
+- [x] **Objective:** communicate running, waiting, failed, cancelled and completed state in one primary row.
 - **Work:** consolidate current status selectors/presentation from existing turn and activity stores. Give waiting-for-approval and failures appropriate precedence; provide concise live operation text and elapsed activity when available. Keep plan/progress details expandable.
 - **Seams/output:** StreamStatusLine, AgentRunBanner, TokenTicker, StatusLine and existing state selectors.
 - **Gate:** G1/G2; controlled transitions and stale events cannot produce false success, false idle or another task's status. Loading/unknown state stays explicit. Token/context/spend diagnostics remain accessible without duplicating routine chrome.

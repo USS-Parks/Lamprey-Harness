@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { Message } from '@/lib/types'
-import { parseReasoning } from '@/lib/reasoning'
 import { MessageBubble } from './MessageBubble'
 import { StreamingText } from './StreamingText'
-import { StreamStatusLine } from './StreamStatusLine'
 import { DocumentCardRow } from './DocumentCardRow'
 import { VisualizationCardRow } from './VisualizationCardRow'
 import { InlineApprovalChip } from './InlineApprovalChip'
@@ -105,22 +103,10 @@ export function MessageList({
     el.scrollTop = el.scrollHeight
   }, [messages, streamingContent, isStreaming])
 
-  // Live chain-of-thought streamed off the provider's reasoning channel
-  // (DeepSeek `delta.reasoning_content` / OpenRouter `delta.reasoning` /
-  // DashScope enable_thinking). Distinct from the visible content stream
-  // so the ReasoningBlock can show up as soon as the FIRST thought
-  // arrives — even before any answer body does. Falls back to the
-  // inline-<think> parse for EVERY model now, because the contract
-  // requires every assistant turn to lead with <think>…</think>.
+  // Keep provider-supplied reasoning separate from the answer stream.
   const streamingReasoning = useChatStore((s) => s.streamingReasoning)
   const streamingDocuments = useChatStore((s) => s.streamingDocuments)
   const streamingVisualizations = useChatStore((s) => s.streamingVisualizations)
-  const parsed = (() => {
-    if (streamingReasoning) {
-      return { reasoning: streamingReasoning, body: streamingContent, isThinking: true }
-    }
-    return parseReasoning(streamingContent)
-  })()
   // Show the streaming card the moment EITHER channel has activity, not just
   // the body channel. Reasoning often lands first and runs for many seconds
   // before the model commits to its first answer token.
@@ -265,11 +251,6 @@ export function MessageList({
                     />
                   </div>
                 )}
-                <StreamStatusLine
-                  startedAt={streamStartedAt}
-                  content={parsed.body}
-                  reasoning={parsed.reasoning}
-                />
                 {streamingDocuments.length > 0 && (
                   <DocumentCardRow documents={streamingDocuments} />
                 )}

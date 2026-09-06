@@ -46,6 +46,7 @@ export interface TurnControlStoreLike {
   getFollowUp(id: string): FollowUpRecord | null
   listFollowUps(conversationId: string): FollowUpRecord[]
   getActiveTurn(conversationId: string): ConversationTurnRecord | null
+  getLatestTurn(conversationId: string): ConversationTurnRecord | null
   updateFollowUpInput(
     id: string,
     input: FollowUpSubmission['input'],
@@ -367,6 +368,7 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
         startedAt: number
       } | null
       orphaned: boolean
+      lastOutcome: import('../services/turn-control-types').TurnOutcomeSnapshot | null
       followUps: FollowUpRecord[]
       observedAt: number
       revision: number
@@ -376,6 +378,7 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       }
       try {
         const active = deps.store.getActiveTurn(conversationId)
+        const latest = deps.store.getLatestTurn(conversationId)
         const runtime = deps.runtimes.lookupActive(conversationId)
         const live =
           active?.status === 'running' && runtime?.turnId === active.id
@@ -392,6 +395,7 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
           data: {
             conversationId,
             activeTurn: live,
+            lastOutcome: latest && latest.status !== 'running' ? { turnId: latest.id, status: latest.status, completedAt: latest.completedAt, persisted: true } : null,
             orphaned: active?.status === 'running' && live === null,
             followUps: deps.store.listFollowUps(conversationId),
             observedAt: deps.now(),

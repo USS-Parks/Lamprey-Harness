@@ -93,6 +93,8 @@ class FakeStore implements TurnControlStoreLike {
     return [...this.records.values()].filter((row) => row.conversationId === conversationId)
   }
 
+  getLatestTurn(conversationId: string) { return this.getActiveTurn(conversationId) }
+
   getActiveTurn(conversationId: string) {
     return this.activeTurn?.conversationId === conversationId ? this.activeTurn : null
   }

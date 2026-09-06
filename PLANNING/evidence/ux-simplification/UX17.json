@@ -1,0 +1,15 @@
+{
+  "prompt": "UX-17",
+  "sourceBase": "ca592374458592faf00e53f8456e970a696c63cb",
+  "status": "local-pass",
+  "fullTestsPassed": 3056,
+  "nativeTestsPassed": 171,
+  "evidence": [
+    "UX17_RUN2/STATUS.json",
+    "UX17_RUN2/RUNTIME.json",
+    "UX17_RUN2/LIFECYCLE.json",
+    "UX17_NATIVE_RESULTS.json",
+    "UX17_PROOF_PUSH15.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX17.json"
+}

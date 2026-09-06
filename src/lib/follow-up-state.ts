@@ -9,6 +9,9 @@ import type { TurnInputItem } from './turn-control-types'
 
 export interface ConversationFollowUpState {
   activeTurn: ActiveTurnSnapshot | null
+  lastOutcome?: import('./turn-control-types').TurnOutcomeSnapshot | null
+  orphaned?: boolean
+  hydrationError?: string | null
   followUps: TurnFollowUpRecord[]
   observedAt: number
   revision: number
@@ -44,6 +47,9 @@ export function reconcileTurnControlSnapshot(
   if (current && current.revision >= snapshot.revision) return current
   return {
     activeTurn: snapshot.activeTurn ? { ...snapshot.activeTurn } : null,
+    lastOutcome: snapshot.lastOutcome ?? null,
+    orphaned: snapshot.orphaned ?? false,
+    hydrationError: null,
     followUps: cloneFollowUps(snapshot.followUps),
     observedAt: snapshot.observedAt,
     revision: snapshot.revision
@@ -65,6 +71,9 @@ export function applyTurnStartedEvent(
   }
   return {
     ...state,
+    lastOutcome: null,
+    orphaned: false,
+    hydrationError: null,
     activeTurn: {
       conversationId: event.conversationId,
       turnId: event.turnId,
@@ -89,6 +98,9 @@ export function applyTurnSettledEvent(
   return {
     ...state,
     activeTurn: null,
+    lastOutcome: { turnId: event.turnId, status: event.status, completedAt: event.completedAt, persisted: event.persisted },
+    orphaned: false,
+    hydrationError: null,
     observedAt: event.occurredAt,
     revision: event.revision
   }

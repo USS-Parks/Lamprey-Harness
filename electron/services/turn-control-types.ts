@@ -24,6 +24,13 @@ export const TURN_STATUSES = [
 ] as const
 export type TurnStatus = (typeof TURN_STATUSES)[number]
 
+export interface TurnOutcomeSnapshot {
+  turnId: TurnId
+  status: Exclude<TurnStatus, 'running'>
+  completedAt: number | null
+  persisted: boolean
+}
+
 export const FOLLOW_UP_DELIVERY_MODES = ['steer', 'queue'] as const
 export type FollowUpDeliveryMode = (typeof FOLLOW_UP_DELIVERY_MODES)[number]
 

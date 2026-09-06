@@ -316,10 +316,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       result = await window.api.turn.getState(conversationId)
     } catch (error) {
-      console.warn('[chat-store] turn-control hydration failed:', error)
+      if (turnHydrationGenerations.get(conversationId) === generation) set(state => ({ turnControlByConversation: { ...state.turnControlByConversation, [conversationId]: { ...getConversationFollowUpState(state.turnControlByConversation, conversationId), hydrationError: errorMessage(error, 'Status unavailable') } } }))
       return
     }
-    if (turnHydrationGenerations.get(conversationId) !== generation || !result.success) return
+    if (turnHydrationGenerations.get(conversationId) !== generation) return
+    if (!result.success) {
+      set(state => ({ turnControlByConversation: { ...state.turnControlByConversation, [conversationId]: { ...getConversationFollowUpState(state.turnControlByConversation, conversationId), hydrationError: result.error ?? 'Status unavailable' } } }))
+      return
+    }
     const snapshot = result.data as TurnControlSnapshot
     set((state) => {
       const current = state.turnControlByConversation[conversationId]
@@ -340,6 +344,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   applyTurnStarted: (event) => {
+    const previous = get().turnControlByConversation[event.conversationId]
+    const accepted = applyTurnStartedEvent(previous, event)
+    if (accepted === previous) return
+    if (accepted.activeTurn?.turnId !== event.turnId) {
+      set(state => ({ turnControlByConversation: { ...state.turnControlByConversation, [event.conversationId]: accepted } }))
+      return
+    }
     const submitted = pendingSends.get(event.conversationId)
     if (submitted) {
       const composer = useComposerStore.getState()

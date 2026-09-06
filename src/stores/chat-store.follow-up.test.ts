@@ -71,3 +71,23 @@ describe('follow-up submission ownership and recovery', () => {
     expect(deleteFollowup).toHaveBeenCalledWith({ conversationId: 'owner', followUpId: record.id })
   })
 })
+
+
+describe('status projection rejects stale lifecycle events', () => {
+  it('keeps the current turn and advances its revision when a delayed older start arrives', () => {
+    const current = { conversationId: 'owner', turnId: 'current' as any, kind: 'regular' as const, status: 'running' as const, startedAt: 100, occurredAt: 100, revision: 10 }
+    useChatStore.getState().applyTurnStarted(current)
+    useChatStore.getState().applyTurnStarted({ ...current, turnId: 'older' as any, startedAt: 90, occurredAt: 110, revision: 20 })
+    expect(useChatStore.getState().activeTurn?.turnId).toBe('current')
+    expect(useChatStore.getState().turnControlByConversation.owner.revision).toBe(20)
+    useChatStore.getState().applyTurnSettled({ conversationId: 'owner', turnId: 'older' as any, status: 'completed', completedAt: 95, occurredAt: 95, persisted: true, revision: 19 })
+    expect(useChatStore.getState().isStreaming).toBe(true)
+  })
+  it('does not set the visible stream running after a settled turn receives an old start', () => {
+    useChatStore.getState().applyTurnSettled({ conversationId: 'owner', turnId: 'old' as any, status: 'failed', completedAt: 100, occurredAt: 100, persisted: true, revision: 10 })
+    useChatStore.getState().applyTurnStarted({ conversationId: 'owner', turnId: 'old' as any, kind: 'regular', status: 'running', startedAt: 90, occurredAt: 90, revision: 9 })
+    expect(useChatStore.getState().activeTurn).toBeNull()
+    expect(useChatStore.getState().isStreaming).toBe(false)
+    expect(useChatStore.getState().turnControlByConversation.owner.lastOutcome?.status).toBe('failed')
+  })
+})

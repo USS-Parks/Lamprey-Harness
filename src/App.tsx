@@ -34,7 +34,6 @@ import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { SecurityBanner } from '@/components/ui/SecurityBanner'
 import { IntegrityBanner } from '@/components/persistence/IntegrityBanner'
 import { AsyncEventToast } from '@/components/chat/AsyncEventToast'
-import { StatusLine } from '@/components/layout/StatusLine'
 import { AskUserModal } from '@/components/chat/AskUserModal'
 import { useResearchProgressSubscription } from '@/hooks/useResearchProgress'
 import artifactsPlaceholderUrl from '@assets/Lamprey Code Window Icon.png'
@@ -405,7 +404,7 @@ function App(): React.ReactElement {
           <SecurityBanner />
           <UpdateBanner />
           <div className="flex flex-1 overflow-hidden bg-transparent p-2">
-            <ChatView />
+            <ChatView modalApprovals={approvalQueue} />
           </div>
         </div>
 
@@ -486,7 +485,6 @@ function App(): React.ReactElement {
         </>
       )}
 
-      <StatusLine />
 
       <QuickOpenPalette />
       <WorkflowPalette />

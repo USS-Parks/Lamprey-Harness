@@ -22,7 +22,7 @@ describe('SP-7 era chrome — no raw harness internals in user copy', () => {
     expect(agentRunBanner).not.toContain('ROLE_ORDER')
     expect(agentRunBanner).not.toContain('activeRun')
     expect(agentRunBanner).not.toContain('useAgentStore')
-    expect(agentRunBanner).toContain('RunPhasePill')
+    expect(agentRunBanner).toContain('currentTaskStatus')
   })
 
   it('UB-7: the Agents settings tab is deleted; the work-mode popover has no mode switch', () => {

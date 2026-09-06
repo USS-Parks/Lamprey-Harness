@@ -1,3 +1,13 @@
+## 2026-09-06 - UX-30: Theme consistency and restart checkpoint
+
+Unified the default shell around neutral surfaces and system typography while retaining all eight presets and the saved preset selection. Text, status colors and accent controls meet 4.5:1 against their supported surfaces in both modes. Filled buttons choose a contrasting foreground. Reduced shell uppercase/monospace decoration and removed phase identifiers from visible storage settings labels.
+
+UX30_RUN2 captures all sixteen preset/mode combinations through the actual persisted settings loader and Electron capturePage. Default light/dark plus mint light and drab dark were inspected directly. The captures include transient sidebar/context loading, so they establish color/surface review rather than settled loading performance. Full control density, responsive behavior and measured latency remain UX-31 through UX-34. The fixture profile was removed, its server closed, and no fixture processes remained. UX30_RUN1 preserves the initial fixture task-selection failure; RUN2 uses real task search.
+
+Gates passed: 17 targeted contrast tests, build, lint, both TypeScript projects, 3,124 tests and both smokes. The 176 explicit native ABI skips remain; native acceptance is still required in UX-36. Evidence: UX30.json and referenced logs/captures. Commit: resolve the introducing commit of UX30.json.
+
+User requested standby to restart Codex with the astra-advisor plugin. Stop after this local prompt commit. UX-24 is verified all-green on GitHub; UX-25 through UX-30 remain individually committed locally, with ordered main pushes deferred to resume. UX-31 is the next implementation prompt. No Bucket, website work, automation, new prompt or worktree cleanup starts during standby. See PLANNING/LAMPREY_UX_RESTART_CHECKPOINT.md.
+
 ## 2026-09-06 - UX-29: Contextual settings and fresh setup
 
 Model selection and /models now open Models directly. Permissions, task diagnostics, optional provider-key setup and integrity recovery link to their corresponding grouped sections. Existing Automations and local-model onboarding routes retain their leaf IDs. Advanced expands only on a relevant destination. Credential composition no longer submits a key on an IME Enter event, and setup errors preserve their reason.

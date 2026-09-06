@@ -170,7 +170,7 @@ function CodingModeToggle() {
         }`}
         aria-hidden
       />
-      <span className="font-mono uppercase tracking-wider">Coding</span>
+      <span className="font-medium">Coding</span>
     </button>
   )
 }
@@ -867,7 +867,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     <div className="w-full [@media(max-height:500px)]:order-first">
       {planMode && (
         <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-1.5 text-[12px] text-[var(--accent)]">
-          <span className="font-mono">PLAN MODE · Shift+Tab to toggle</span>
+          <span className="font-mono">Plan mode · Shift+Tab to toggle</span>
           <button
             onClick={() => useUiStore.getState().setPlanMode(false)}
             className="rounded px-1 text-[10px] uppercase tracking-wider hover:bg-[var(--bg-tertiary)]"

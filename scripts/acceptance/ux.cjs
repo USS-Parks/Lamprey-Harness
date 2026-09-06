@@ -152,6 +152,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--visual-only')) {
+      const result = await require('./ux-visual.cjs')({ page, app, ids, output })
+      fs.writeFileSync(path.join(output, 'VISUAL.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'visual-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['visual-presets'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--settings-only')) {
       const result = await require('./ux-settings.cjs')({ page, app })
       fs.writeFileSync(path.join(output, 'SETTINGS.json'), JSON.stringify(result, null, 2) + '\n')

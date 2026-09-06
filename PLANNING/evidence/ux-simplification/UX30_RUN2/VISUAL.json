@@ -1,0 +1,279 @@
+{
+  "snapshots": [
+    {
+      "mode": "light",
+      "preset": "lamprey-default",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#29578c",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "lamprey-default-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "arcgis-blue",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#536d8a",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "arcgis-blue-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "arcgis-ember",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#863d12",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "arcgis-ember-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "lamprey-mint",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#2a670d",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "lamprey-mint-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "lamprey-earth",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#614438",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "lamprey-earth-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "arcgis-magma",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#8c305b",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "arcgis-magma-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "arcgis-viridis",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#18796d",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "arcgis-viridis-light.png"
+    },
+    {
+      "mode": "light",
+      "preset": "lamprey-drab",
+      "colors": {
+        "--app-bg": "#ffffff",
+        "--panel-bg": "#f4f4f5",
+        "--text-primary": "#202124",
+        "--text-secondary": "#414a55",
+        "--text-muted": "#59636d",
+        "--accent": "#5f4a35",
+        "--accent-foreground": "#ffffff",
+        "--success": "#237a3d",
+        "--warning": "#875b00",
+        "--error": "#b42318"
+      },
+      "file": "lamprey-drab-light.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "lamprey-default",
+      "colors": {
+        "--app-bg": "#090909",
+        "--panel-bg": "#161616",
+        "--text-primary": "#e8e8e8",
+        "--text-secondary": "#888888",
+        "--text-muted": "#898989",
+        "--accent": "#4a9eff",
+        "--accent-foreground": "#111111",
+        "--success": "#3d9e60",
+        "--warning": "#c47a2a",
+        "--error": "#d26767"
+      },
+      "file": "lamprey-default-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "arcgis-blue",
+      "colors": {
+        "--app-bg": "#17191c",
+        "--panel-bg": "#1d2024",
+        "--text-primary": "#e9ebef",
+        "--text-secondary": "#c2c7d0",
+        "--text-muted": "#a5acb7",
+        "--accent": "#96c7fa",
+        "--accent-foreground": "#111111",
+        "--success": "#4ba56b",
+        "--warning": "#c9853b",
+        "--error": "#d77979"
+      },
+      "file": "arcgis-blue-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "arcgis-ember",
+      "colors": {
+        "--app-bg": "#0b0807",
+        "--panel-bg": "#1a1410",
+        "--text-primary": "#f0e8e0",
+        "--text-secondary": "#9a8878",
+        "--text-muted": "#8e837b",
+        "--accent": "#f36f20",
+        "--accent-foreground": "#111111",
+        "--success": "#3d9e60",
+        "--warning": "#f7975e",
+        "--error": "#d16565"
+      },
+      "file": "arcgis-ember-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "lamprey-mint",
+      "colors": {
+        "--app-bg": "#050e09",
+        "--panel-bg": "#0e1f15",
+        "--text-primary": "#d8f0d8",
+        "--text-secondary": "#7aa890",
+        "--text-muted": "#81948a",
+        "--accent": "#4cbb17",
+        "--accent-foreground": "#111111",
+        "--success": "#43a165",
+        "--warning": "#c78135",
+        "--error": "#d57373"
+      },
+      "file": "lamprey-mint-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "lamprey-earth",
+      "colors": {
+        "--app-bg": "#0c0705",
+        "--panel-bg": "#1c130e",
+        "--text-primary": "#e8d5b8",
+        "--text-secondary": "#b0987a",
+        "--text-muted": "#90867a",
+        "--accent": "#b17b66",
+        "--accent-foreground": "#111111",
+        "--success": "#3d9e60",
+        "--warning": "#c47a2a",
+        "--error": "#d26767"
+      },
+      "file": "lamprey-earth-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "arcgis-magma",
+      "colors": {
+        "--app-bg": "#07060e",
+        "--panel-bg": "#110f1c",
+        "--text-primary": "#f0e0ec",
+        "--text-secondary": "#9080a0",
+        "--text-muted": "#8a8192",
+        "--accent": "#ff57a5",
+        "--accent-foreground": "#111111",
+        "--success": "#3d9e60",
+        "--warning": "#ffae85",
+        "--error": "#d06161"
+      },
+      "file": "arcgis-magma-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "arcgis-viridis",
+      "colors": {
+        "--app-bg": "#060c0a",
+        "--panel-bg": "#0e1a17",
+        "--text-primary": "#e0f0ec",
+        "--text-secondary": "#7898a0",
+        "--text-muted": "#818f8f",
+        "--accent": "#2cdcc6",
+        "--accent-foreground": "#111111",
+        "--success": "#3d9e60",
+        "--warning": "#c47a2a",
+        "--error": "#d36d6d"
+      },
+      "file": "arcgis-viridis-dark.png"
+    },
+    {
+      "mode": "dark",
+      "preset": "lamprey-drab",
+      "colors": {
+        "--app-bg": "#0e0c07",
+        "--panel-bg": "#1e1a12",
+        "--text-primary": "#e8dcb8",
+        "--text-secondary": "#a09478",
+        "--text-muted": "#948d7f",
+        "--accent": "#ad8660",
+        "--accent-foreground": "#111111",
+        "--success": "#819535",
+        "--warning": "#d4a017",
+        "--error": "#d46f6f"
+      },
+      "file": "lamprey-drab-dark.png"
+    }
+  ],
+  "realSettingsLoader": true,
+  "screenshotMethod": "Electron webContents capturePage",
+  "tokenContrast": "src/styles/contrast.test.ts checks all 16 preset modes against six surfaces and filled action foregrounds."
+}

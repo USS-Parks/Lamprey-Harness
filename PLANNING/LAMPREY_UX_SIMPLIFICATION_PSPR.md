@@ -421,7 +421,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone G — Visual and performance finish
 
 #### UX-30 — Unify shell typography, colors and surfaces
-- [ ] **Objective:** apply one restrained visual vocabulary to the redesigned shell.
+- [x] **Objective:** apply one restrained visual vocabulary to the redesigned shell.
 - **Work:** reuse theme tokens for text hierarchy, borders, panel background, focus and spacing. Reduce repeated card borders/shadows and uppercase microtext; retain Lamprey branding and supported theme presets.
 - **Seams/output:** `src/styles` and touched shell/chat/navigation components.
 - **Gate:** G1 and G4 visual/contrast inspection; light/dark presets remain legible, task content is visually primary, no hardcoded theme-breaking colors or hidden focus indicators. No screenshot-only tests for incidental pixel positions.

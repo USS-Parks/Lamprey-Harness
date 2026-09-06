@@ -141,10 +141,10 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
       data-testid="sessions-sidebar"
     >
       <div className="flex items-center justify-between px-3">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+        <span className="text-[11px] font-medium text-[var(--text-muted)]">
           Tasks
         </span>
-        <span className="font-mono text-[10px] text-[var(--text-muted)]">{entries.length}</span>
+        <span className="text-[10px] text-[var(--text-muted)]">{entries.length}</span>
       </div>
 
       <SessionSearchBar inputRef={searchRef} />
@@ -160,7 +160,7 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`min-h-8 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider transition-colors ${
+            className={`min-h-8 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
               tab === t.key
                 ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
                 : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
@@ -191,7 +191,7 @@ export function SessionsSidebar({ embedded = false, searchRef, onSelected }: Ses
           <div className="space-y-2">
             {groups.map((group) => (
               <div key={group.id}>
-                <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                <div className="px-2 py-1 text-[10px] font-medium text-[var(--text-muted)]">
                   {group.label}
                 </div>
                 <ul className="flex flex-col gap-0.5">
@@ -276,7 +276,7 @@ function SearchHits({
               onClick={() => onSelect(hit.conversationId)}
               className="block w-full rounded px-2 py-1 text-left hover:bg-[var(--bg-tertiary)]"
             >
-              <span className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="block text-[10px] text-[var(--text-muted)]">
                 {hit.source}
               </span>
               <span
@@ -381,7 +381,7 @@ function SessionRow({
       } ${dragging ? 'opacity-50' : ''}`}
     >
       {draggable && (
-        <span className="cursor-grab font-mono text-[10px] text-[var(--text-muted)]" aria-hidden>
+        <span className="cursor-grab text-[10px] text-[var(--text-muted)]" aria-hidden>
           ::
         </span>
       )}
@@ -392,7 +392,7 @@ function SessionRow({
         <span className="flex items-center gap-1">
           <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{running && <span aria-label="Running task">• </span>}{entry.title || 'Untitled task'}</span>
           {unreadCount > 0 && (
-            <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--bg-primary)]">
+            <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] text-[var(--bg-primary)]">
               {unreadCount}
             </span>
           )}

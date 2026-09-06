@@ -1,3 +1,4 @@
+import { accentForeground } from './contrast'
 import type { ThemeMode, ThemePreset, ThemePresetTokens } from '@/lib/types'
 import { getActiveTokens } from './theme-presets'
 
@@ -30,6 +31,7 @@ export function applyThemePreset(preset: ThemePreset, mode: ThemeMode = 'dark'):
     const value = tokens[key]
     if (value) root.style.setProperty(varName, value)
   }
+  root.style.setProperty('--accent-foreground', accentForeground(tokens.accent))
   root.dataset.themePreset = preset.id
   root.dataset.themeMode = mode
   root.style.colorScheme = mode

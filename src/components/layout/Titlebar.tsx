@@ -94,7 +94,7 @@ function MenuButton({ label, items, open, onToggle, onClose, onHover }: MenuButt
               >
                 <span>{item.label}</span>
                 {item.shortcut && (
-                  <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                  <span className="text-[11px] text-[var(--text-muted)]">
                     {item.shortcut}
                   </span>
                 )}
@@ -312,9 +312,9 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
           style={{ left: effectiveSidebar, right: effectiveRight }}
           aria-hidden
         >
-          <span className="flex items-center gap-2 font-mono text-[13px] font-semibold text-[var(--text-primary)]">
+          <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
             <img src={lampreyLogo} alt="" aria-hidden className="h-6 w-6 object-contain" />
-            <span className="tracking-wide">Lamprey</span>
+            <span className="">Lamprey</span>
           </span>
         </div>
 

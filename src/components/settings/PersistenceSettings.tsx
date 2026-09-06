@@ -87,7 +87,7 @@ function StatusRow({ label, value }: { label: string; value: React.ReactNode }) 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <div className="mb-2 border-b border-[var(--panel-border)] pb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+      <div className="mb-2 border-b border-[var(--panel-border)] pb-1 text-xs font-semibold text-[var(--text-secondary)]">
         {title}
       </div>
       {children}
@@ -181,7 +181,7 @@ export function PersistenceSettings(): React.ReactElement {
         <StatusRow label="SHM" value={formatBytes(status?.shmBytes ?? null)} />
       </Section>
 
-      <Section title="Last checkpoint (PS2)">
+      <Section title="Last checkpoint">
         <StatusRow
           label="Result"
           value={
@@ -209,7 +209,7 @@ export function PersistenceSettings(): React.ReactElement {
         </div>
       </Section>
 
-      <Section title="Last integrity check (PS4)">
+      <Section title="Last integrity check">
         <StatusRow
           label="Result"
           value={
@@ -244,7 +244,7 @@ export function PersistenceSettings(): React.ReactElement {
         </div>
       </Section>
 
-      <Section title={`Backups (PS5) — ${status?.backupCount ?? 0} kept`}>
+      <Section title={`Backups — ${status?.backupCount ?? 0} kept`}>
         <StatusRow label="Backup directory" value={status?.backupDir ?? '—'} />
         <StatusRow
           label="Latest backup"
@@ -304,7 +304,7 @@ export function PersistenceSettings(): React.ReactElement {
         )}
       </Section>
 
-      <Section title="Encryption (PS9)">
+      <Section title="Encryption">
         {encryption === null ? (
           <div className="text-xs text-[var(--text-muted)]">loading…</div>
         ) : !encryption.bindingAvailable ? (

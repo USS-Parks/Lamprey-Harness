@@ -28,30 +28,12 @@ function shadeToward(hex: string, amount: number): string {
 }
 
 function buildLightTokens(dark: ThemePresetTokens): ThemePresetTokens {
-  // Use the preset's accent to lightly tint the surfaces so each preset still
-  // feels distinct in light mode, without overwhelming the content.
-  // Panels Phase: bgPrimary is now slightly off-white so form-control inputs
-  // (which use bg-primary) read as distinct surfaces against the pure white
-  // --panel-bg = #ffffff sidebars.
   return {
-    bgPrimary: '#f8f9fa',
-    bgSecondary: tintToward(dark.accent, 0.94),
-    bgTertiary: tintToward(dark.accent, 0.88),
-    border: tintToward(dark.accent, 0.78),
-    textPrimary: '#0f1115',
-    textSecondary: '#4a5160',
-    textMuted: '#8a92a0',
-    accent: shadeToward(dark.accent, 0.12),
-    accentDim: tintToward(dark.accent, 0.82),
-    success: shadeToward(dark.success, 0.1),
-    warning: shadeToward(dark.warning, 0.1),
-    error: shadeToward(dark.error, 0.05),
-    codeBg: tintToward(dark.accent, 0.92),
-    // Panels Phase: substrate is warm-tinted (cream-leaning per accent);
-    // panel surface is pure white so existing --bg-tertiary cards on the
-    // panel still read as a step down/cooler.
-    appBg: tintToward(dark.accent, 0.92),
-    panelBg: '#ffffff'
+    bgPrimary: '#ffffff', bgSecondary: '#fafafa', bgTertiary: tintToward(dark.accent, 0.94),
+    border: '#d4d7dc', textPrimary: '#202124', textSecondary: '#414a55', textMuted: '#59636d',
+    accent: shadeToward(dark.accent, 0.45), accentDim: tintToward(dark.accent, 0.88),
+    success: '#237a3d', warning: '#875b00', error: '#b42318', codeBg: '#f3f4f6',
+    appBg: '#ffffff', panelBg: '#f4f4f5'
   }
 }
 
@@ -68,12 +50,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#2a2a2a',
       textPrimary: '#e8e8e8',
       textSecondary: '#888888',
-      textMuted: '#444444',
+      textMuted: '#898989',
       accent: '#4a9eff',
       accentDim: '#1a3a5c',
       success: '#3d9e60',
       warning: '#c47a2a',
-      error: '#c43a3a',
+      error: '#d26767',
       codeBg: '#111111',
       appBg: '#090909',
       panelBg: '#161616'
@@ -85,21 +67,21 @@ export const THEME_PRESETS: ThemePreset[] = [
     source: 'ArcGIS Blue 3',
     swatch: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c'],
     tokens: {
-      bgPrimary: '#0a0d12',
-      bgSecondary: '#11151c',
-      bgTertiary: '#1a2030',
-      border: '#1f2a3a',
-      textPrimary: '#e8edf3',
-      textSecondary: '#8a96a8',
-      textMuted: '#44546a',
-      accent: '#6baed6',
+      bgPrimary: '#17191c',
+      bgSecondary: '#202429',
+      bgTertiary: '#272c32',
+      border: '#363c44',
+      textPrimary: '#e9ebef',
+      textSecondary: '#c2c7d0',
+      textMuted: '#a5acb7',
+      accent: '#96c7fa',
       accentDim: '#1a3a5c',
-      success: '#3d9e60',
-      warning: '#c47a2a',
-      error: '#c43a3a',
-      codeBg: '#0d1118',
-      appBg: '#07090d',
-      panelBg: '#11151c'
+      success: '#4ba56b',
+      warning: '#c9853b',
+      error: '#d77979',
+      codeBg: '#16191d',
+      appBg: '#17191c',
+      panelBg: '#1d2024'
     }
   },
   {
@@ -114,12 +96,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#2e221a',
       textPrimary: '#f0e8e0',
       textSecondary: '#9a8878',
-      textMuted: '#4e3e30',
+      textMuted: '#8e837b',
       accent: '#f36f20',
       accentDim: '#4a2810',
       success: '#3d9e60',
       warning: '#f7975e',
-      error: '#c43a3a',
+      error: '#d16565',
       codeBg: '#130f0d',
       appBg: '#0b0807',
       panelBg: '#1a1410'
@@ -137,12 +119,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#1f3a28',
       textPrimary: '#d8f0d8',
       textSecondary: '#7aa890',
-      textMuted: '#3a5848',
+      textMuted: '#81948a',
       accent: '#4cbb17',
       accentDim: '#1c4218',
-      success: '#3d9e60',
-      warning: '#c47a2a',
-      error: '#c43a3a',
+      success: '#43a165',
+      warning: '#c78135',
+      error: '#d57373',
       codeBg: '#0a180f',
       appBg: '#050e09',
       panelBg: '#0e1f15'
@@ -160,12 +142,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#3a281c',
       textPrimary: '#e8d5b8',
       textSecondary: '#b0987a',
-      textMuted: '#5a4a38',
-      accent: '#8b3a1a',
+      textMuted: '#90867a',
+      accent: '#b17b66',
       accentDim: '#3a1808',
       success: '#3d9e60',
       warning: '#c47a2a',
-      error: '#c43a3a',
+      error: '#d26767',
       codeBg: '#14100a',
       appBg: '#0c0705',
       panelBg: '#1c130e'
@@ -183,12 +165,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#25223a',
       textPrimary: '#f0e0ec',
       textSecondary: '#9080a0',
-      textMuted: '#483a55',
+      textMuted: '#8a8192',
       accent: '#ff57a5',
       accentDim: '#5c1c48',
       success: '#3d9e60',
       warning: '#ffae85',
-      error: '#c43a3a',
+      error: '#d06161',
       codeBg: '#0d0a18',
       appBg: '#07060e',
       panelBg: '#110f1c'
@@ -206,12 +188,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#1f3030',
       textPrimary: '#e0f0ec',
       textSecondary: '#7898a0',
-      textMuted: '#3a5050',
+      textMuted: '#818f8f',
       accent: '#2cdcc6',
       accentDim: '#105550',
       success: '#3d9e60',
       warning: '#c47a2a',
-      error: '#c43a3a',
+      error: '#d36d6d',
       codeBg: '#0a1410',
       appBg: '#060c0a',
       panelBg: '#0e1a17'
@@ -229,12 +211,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       border: '#382f22',
       textPrimary: '#e8dcb8',
       textSecondary: '#a09478',
-      textMuted: '#5a4f3a',
-      accent: '#a67c52',
+      textMuted: '#948d7f',
+      accent: '#ad8660',
       accentDim: '#3d2e1d',
-      success: '#7a8f2a',
+      success: '#819535',
       warning: '#d4a017',
-      error: '#c43a3a',
+      error: '#d46f6f',
       codeBg: '#18140d',
       appBg: '#0e0c07',
       panelBg: '#1e1a12'

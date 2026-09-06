@@ -1,0 +1,16 @@
+{
+  "prompt": "UX-30",
+  "sourceBase": "862de0f68533350591532852a9b1bd5feafa91a4",
+  "status": "local-pass",
+  "testsPassed": 3124,
+  "nativeAbiSkips": 176,
+  "evidence": [
+    "UX30_TARGETED.log",
+    "UX30_BUILD.log",
+    "UX30_PROOF.log",
+    "UX30_RUN2/VISUAL.json",
+    "UX30_RUN2/LIFECYCLE.json"
+  ],
+  "visualReview": "All 16 preset modes captured through Electron; default light/dark, mint light and drab dark inspected directly. Token contrast covers all 16 modes. Captures include transient sidebar/context loading; they do not prove settled loading performance. Full responsive/control review remains UX-31/32.",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX30.json"
+}

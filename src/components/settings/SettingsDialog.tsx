@@ -130,7 +130,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         {/* Content */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="flex h-10 shrink-0 items-center justify-between px-4">
-            <span id="settings-heading" className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+            <span id="settings-heading" className="text-xs font-semibold text-[var(--text-primary)]">
               Settings
             </span>
             <button

@@ -379,7 +379,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2 with real seeded task history; recent/archived/project/filter searches, reload, back/forward, deleted-target recovery and fast query changes behave consistently without losing drafts or changing running task ownership.
 
 #### UX-24 — Consolidate app command metadata
-- [ ] **Objective:** define existing app actions once for menus, search and shortcuts.
+- [x] **Objective:** define existing app actions once for menus, search and shortcuts.
 - **Work:** inventory action IDs, labels, availability, handlers and shortcut ownership. Reuse workflow/file commands and existing handlers; create only the thin metadata needed for unified discovery. Include all relocated rare tools/settings and current workflow commands.
 - **Seams/output:** QuickOpenPalette, WorkflowPalette, shortcut hooks and menu action definitions.
 - **Gate:** G1; duplicate IDs/conflicting bindings are detected; unavailable actions are disabled/explained; commands invoke existing permission-aware paths; metadata cannot execute arbitrary shell text or bypass a required confirmation.

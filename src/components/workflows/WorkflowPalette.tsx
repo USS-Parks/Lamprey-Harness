@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
-import { toast } from '@/stores/toast-store'
+import { executeCommand, workflowCommands } from '@/lib/app-commands'
 import { useUiStore } from '@/stores/ui-store'
 import { useWorkflowsStore, type WorkflowLibraryEntry } from '@/stores/workflows-store'
 import { WorkflowEditor } from './WorkflowEditor'
@@ -17,7 +17,6 @@ export function WorkflowPalette(): ReactElement | null {
   const loading = useWorkflowsStore((s) => s.libraryLoading)
   const error = useWorkflowsStore((s) => s.libraryError)
   const refreshLibrary = useWorkflowsStore((s) => s.refreshLibrary)
-  const runWorkflow = useWorkflowsStore((s) => s.runWorkflow)
   const [query, setQuery] = useState('')
   const [editorOpen, setEditorOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(0)
@@ -62,13 +61,7 @@ export function WorkflowPalette(): ReactElement | null {
   }, [activeIdx, close, editorOpen, matches, visible])
 
   const run = async (entry: WorkflowLibraryEntry) => {
-    const runId = await runWorkflow(entry.name)
-    if (!runId) {
-      toast.error('Workflow did not start')
-      return
-    }
-    toast.success(`Started ${entry.name}`)
-    close()
+    if (await executeCommand(workflowCommands([entry])[0])) close()
   }
 
   if (!visible) return null

@@ -22,8 +22,9 @@ describe('AO-10 Agents UI wiring', () => {
   it('retains Agents in the workspace resource menu', () => {
     expect(read('src/lib/workspace-tools.ts')).toMatch(/agents: 'Agents'/)
     const panel = read('src/components/tools/ToolsPanel.tsx')
-    expect(panel).toContain('Object.keys(TOOL_LABELS)')
-    expect(panel).toContain('open(tool)')
+    expect(panel).toContain('...TOOL_COMMANDS')
+    expect(panel).toContain('executeCommand(command)')
+    expect(read('src/lib/app-commands.ts')).toContain('run: () => ui().setActiveTool(id)')
   })
 
   it('AgentsPanel reads agents IPC + gates on the master toggle', () => {

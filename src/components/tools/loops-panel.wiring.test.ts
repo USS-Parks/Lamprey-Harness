@@ -23,8 +23,9 @@ describe('LP-9 loops UI wiring', () => {
   it('retains Loops in the workspace resource menu', () => {
     expect(read('src/lib/workspace-tools.ts')).toMatch(/loop: 'Loops'/)
     const panel = read('src/components/tools/ToolsPanel.tsx')
-    expect(panel).toContain('Object.keys(TOOL_LABELS)')
-    expect(panel).toContain('open(tool)')
+    expect(panel).toContain('...TOOL_COMMANDS')
+    expect(panel).toContain('executeCommand(command)')
+    expect(read('src/lib/app-commands.ts')).toContain('run: () => ui().setActiveTool(id)')
   })
 
   it('LoopsPanel consumes the loops store + live loop events', () => {
@@ -37,7 +38,8 @@ describe('LP-9 loops UI wiring', () => {
   it('SettingsDialog registers the Loops tab + panel (gap-1)', () => {
     const src = read('src/components/settings/SettingsDialog.tsx')
     expect(src).toMatch(/import \{ LoopSettings \}/)
-    expect(src).toMatch(/id: 'loops', label: 'Loops'/)
+    expect(read('src/lib/settings-navigation.ts')).toMatch(/id: 'loops', label: 'Loops'/)
+    expect(src).toContain('SETTINGS_LEAVES as TABS')
     expect(src).toMatch(/activeTab === 'loops' && <LoopSettings \/>/)
   })
 

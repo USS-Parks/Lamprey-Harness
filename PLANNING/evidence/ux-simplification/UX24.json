@@ -1,0 +1,14 @@
+{
+  "prompt": "UX-24",
+  "sourceBase": "063497cb314333fcac224c1d86a53bfd7ddfdc34",
+  "status": "local-pass",
+  "fullTestsPassed": 3097,
+  "toolCommands": 13,
+  "settingsLeaves": 24,
+  "evidence": [
+    "UX24_TARGETED.log",
+    "UX24_BUILD3.log",
+    "UX24_PROOF_RETRY.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX24.json"
+}

@@ -61,7 +61,8 @@ describe('AO-1 orchestration safety — defaults + config', () => {
 
   it('the Settings dialog registers an Orchestration tab', () => {
     const src = read('src/components/settings/SettingsDialog.tsx')
-    expect(src).toMatch(/id: 'orchestration'/)
+    expect(read('src/lib/settings-navigation.ts')).toMatch(/id: 'orchestration'/)
+    expect(src).toContain('SETTINGS_LEAVES as TABS')
     expect(src).toMatch(/activeTab === 'orchestration' && <OrchestrationSettings/)
   })
 

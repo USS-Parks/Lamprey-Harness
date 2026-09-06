@@ -9,14 +9,16 @@ describe('AC-20/AC-22/AC-23/AC-24 settings and tool-search wiring', () => {
   it('SettingsDialog has a Tools tab next to Timeouts', () => {
     const src = read('src/components/settings/SettingsDialog.tsx')
     expect(src).toMatch(/import \{ ToolSettings \}/)
-    expect(src).toMatch(/id: 'tools', label: 'Tools'/)
+    expect(read('src/lib/settings-navigation.ts')).toMatch(/id: 'tools', label: 'Tools'/)
+    expect(src).toContain('SETTINGS_LEAVES as TABS')
     expect(src).toMatch(/activeTab === 'tools' && <ToolSettings \/>/)
   })
 
   it('SettingsTabId includes every SettingsDialog tab', () => {
     const ui = read('src/stores/ui-store.ts')
-    const dialog = read('src/components/settings/SettingsDialog.tsx')
+    const dialog = read('src/lib/settings-navigation.ts')
     const tabIds = [...dialog.matchAll(/id: '([a-zA-Z]+)'/g)].map((m) => m[1])
+    expect(tabIds).toHaveLength(24)
     for (const id of tabIds) {
       expect(ui, `SettingsTabId missing '${id}'`).toMatch(new RegExp(`\\|\\s*'${id}'`))
     }

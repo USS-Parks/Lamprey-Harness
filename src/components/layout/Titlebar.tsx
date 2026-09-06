@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useUiStore } from '@/stores/ui-store'
 import { useNavHistoryStore } from '@/stores/nav-history-store'
-import { useChatStore, navigateTaskHistory } from '@/stores/chat-store'
+import { navigateTaskHistory } from '@/stores/chat-store'
+import { commandById, executeCommand, shortcutHint } from '@/lib/app-commands'
 import { toast } from '@/stores/toast-store'
 import lampreyLogo from '@assets/Lamprey Desktop Icon-1.png'
 
@@ -120,8 +121,6 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
   const sidebarWidth = useUiStore((s) => s.sidebarWidth)
   const rightPanelCollapsed = useUiStore((s) => s.rightPanelCollapsed)
   const rightPanelWidth = useUiStore((s) => s.rightPanelWidth)
-  const requestSearchFocus = useUiStore((s) => s.requestSearchFocus)
-  const createConversation = useChatStore((s) => s.createConversation)
   const canGoBack = useNavHistoryStore(s => s.index > 0)
   const canGoForward = useNavHistoryStore(s => s.index >= 0 && s.index < s.stack.length - 1)
   const goBack = () => void navigateTaskHistory('back')
@@ -158,9 +157,15 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
     }
   }
 
+  const commandItem = (id: string): MenuItem => {
+    const command = commandById(id)
+    return { label: command.label, shortcut: shortcutHint(command), disabled: !!command.unavailable?.(), onSelect: () => void executeCommand(command) }
+  }
   const fileMenu: MenuItem[] = [
-    { label: 'New chat', shortcut: 'Ctrl+N', onSelect: () => createConversation() },
-    { label: 'Search conversations', shortcut: 'Ctrl+K', onSelect: requestSearchFocus },
+    commandItem('task.new'),
+    commandItem('task.search'),
+    commandItem('app.commands'),
+    commandItem('files.find'),
     { separator: true },
     { label: 'Open folder…', onSelect: handlePickFolder },
     { separator: true },
@@ -206,16 +211,10 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
   const helpMenu: MenuItem[] = [
     {
       label: 'About Lamprey',
-      onSelect: () => toast.info('Lamprey — multi-agent coding harness')
+      onSelect: () => toast.info('Lamprey — a local-first coding harness with your choice of provider')
     },
-    {
-      label: 'View on GitHub',
-      onSelect: () => toast.info('https://github.com/USS-Parks/lamprey')
-    },
-    {
-      label: 'Report an issue',
-      onSelect: () => toast.info('Open the GitHub repo and file an issue')
-    }
+    commandItem('app.github'),
+    commandItem('app.issue')
   ]
 
   const menus: Array<{ label: string; items: MenuItem[] }> = [

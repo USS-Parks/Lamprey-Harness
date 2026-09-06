@@ -33,9 +33,9 @@ const NO_TAB = 'Error: No active browser tab. Use browser_open first.'
 const NAV_TIMEOUT_MS = 15_000
 const FIND_TIMEOUT_MS = 5_000
 
-function resolveTabArg(tabId?: string): BrowserTabHandle | null {
-  if (tabId) return getTab(tabId)
-  return getActiveTab()
+function resolveTabArg(tabId?: string, ownerId?: string | null): BrowserTabHandle | null {
+  if (tabId) return getTab(tabId, ownerId)
+  return getActiveTab(ownerId)
 }
 
 // ── browser_open ────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ export interface BrowserOpenArgs {
   new_tab?: boolean
 }
 
-export async function executeBrowserOpen(args: BrowserOpenArgs): Promise<string> {
+export async function executeBrowserOpen(args: BrowserOpenArgs, ownerId?: string | null): Promise<string> {
   const rawUrl = (args?.url ?? '').trim()
   if (!rawUrl) return 'Error: url is required.'
 
@@ -55,12 +55,12 @@ export async function executeBrowserOpen(args: BrowserOpenArgs): Promise<string>
   const url = coerceUrl(rawUrl)
 
   const newTabRequested = args?.new_tab === true
-  const active = getActiveTab()
+  const active = getActiveTab(ownerId)
 
   // If no active tab exists OR new_tab requested, spawn a new tab.
   if (!active || newTabRequested) {
     try {
-      const tab = await newTab(url)
+      const tab = await newTab(url, ownerId)
       return `Opened ${tab.url} (tab ${tab.id}, title "${tab.title}")`
     } catch (err: any) {
       return `Error: failed to open new tab — ${err?.message ?? 'unknown'}`
@@ -93,7 +93,7 @@ export async function executeBrowserOpen(args: BrowserOpenArgs): Promise<string>
     return `Error: failed to load ${url} — ${err?.message ?? 'unknown'}`
   }
   await waitStop
-  const refreshed = getTab(active.id)
+  const refreshed = getTab(active.id, ownerId)
   const title = refreshed?.title ?? wc.getTitle()
   const finalUrl = refreshed?.url ?? wc.getURL()
   return `Opened ${finalUrl} (tab ${active.id}, title "${title}")`
@@ -106,10 +106,10 @@ export interface BrowserClickArgs {
   tab_id?: string
 }
 
-export async function executeBrowserClick(args: BrowserClickArgs): Promise<string> {
+export async function executeBrowserClick(args: BrowserClickArgs, ownerId?: string | null): Promise<string> {
   const selector = (args?.selector ?? '').trim()
   if (!selector) return 'Error: selector is required.'
-  const tab = resolveTabArg(args?.tab_id)
+  const tab = resolveTabArg(args?.tab_id, ownerId)
   if (!tab) return NO_TAB
 
   // JSON-encode the selector so the model can't break out of the string.
@@ -136,11 +136,11 @@ export interface BrowserTypeArgs {
   tab_id?: string
 }
 
-export async function executeBrowserType(args: BrowserTypeArgs): Promise<string> {
+export async function executeBrowserType(args: BrowserTypeArgs, ownerId?: string | null): Promise<string> {
   const selector = (args?.selector ?? '').trim()
   const text = typeof args?.text === 'string' ? args.text : ''
   if (!selector) return 'Error: selector is required.'
-  const tab = resolveTabArg(args?.tab_id)
+  const tab = resolveTabArg(args?.tab_id, ownerId)
   if (!tab) return NO_TAB
 
   const js = `(() => {
@@ -182,10 +182,10 @@ export interface BrowserFindArgs {
   case_sensitive?: boolean
 }
 
-export async function executeBrowserFind(args: BrowserFindArgs): Promise<string> {
+export async function executeBrowserFind(args: BrowserFindArgs, ownerId?: string | null): Promise<string> {
   const text = typeof args?.text === 'string' ? args.text : ''
   if (text === '') return 'Error: text is required.'
-  const tab = resolveTabArg(args?.tab_id)
+  const tab = resolveTabArg(args?.tab_id, ownerId)
   if (!tab) return NO_TAB
 
   const wc = tab.view.webContents
@@ -242,9 +242,9 @@ function ensureScreenshotDir(): string {
 }
 
 export async function executeBrowserScreenshot(
-  args: BrowserScreenshotArgs
+  args: BrowserScreenshotArgs, ownerId?: string | null
 ): Promise<string> {
-  const tab = resolveTabArg(args?.tab_id)
+  const tab = resolveTabArg(args?.tab_id, ownerId)
   if (!tab) return NO_TAB
 
   try {
@@ -656,8 +656,8 @@ export async function executePreviewResize(args: PreviewResizeArgs): Promise<str
 
 // ── browser_get_current_tab ─────────────────────────────────────────────────
 
-export async function executeBrowserGetCurrentTab(): Promise<string> {
-  const tab = getActiveTab()
+export async function executeBrowserGetCurrentTab(ownerId?: string | null): Promise<string> {
+  const tab = getActiveTab(ownerId)
   if (!tab) return 'No active tab'
   const wc = tab.view.webContents
   const info = {
@@ -772,7 +772,7 @@ function buildReadPayload(
 }
 
 export async function executeBrowserEvaluateReadonly(
-  args: BrowserEvaluateArgs
+  args: BrowserEvaluateArgs, ownerId?: string | null
 ): Promise<string> {
   const kind = args?.kind as BrowserReadKind
   if (!kind || !READ_KINDS.has(kind)) {
@@ -795,7 +795,7 @@ export async function executeBrowserEvaluateReadonly(
     return 'Error: attr (meta name) is required when kind="meta".'
   }
 
-  const tab = getActiveTab()
+  const tab = getActiveTab(ownerId)
   if (!tab) return NO_TAB
 
   const payload = buildReadPayload(kind, selector, attr, limit)

@@ -1,0 +1,13 @@
+{
+  "prompt": "UX-07",
+  "sourceBase": "5c7b93e34ef6b3cbaea06a928af2e14890bd578a",
+  "status": "local-pass",
+  "evidence": [
+    "UX07_RUN/BROWSER.json",
+    "UX07_RUN/RUNTIME.json",
+    "UX07_RUN/LIFECYCLE.json"
+  ],
+  "unitTests": 45,
+  "componentLifecycle": "delayed unmount and polling cleanup passed",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX07.json"
+}

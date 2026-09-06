@@ -40,6 +40,11 @@ async function main() {
     fs.writeFileSync(path.join(profile, 'plugins.json'), JSON.stringify(plugins))
     let requests = 0
     server = createServer((req, res) => {
+      if (req.url.startsWith('/browser/')) {
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        res.end(`<html><head><title>Local ${req.url}</title></head><body><p>Browser fixture ${req.url}</p><input id="draft"><a href="/browser/b">Continue</a></body></html>`)
+        return
+      }
       if (req.url !== '/v1/chat/completions') { res.writeHead(404); res.end(); return }
       requests++
       req.resume()
@@ -87,6 +92,8 @@ async function main() {
         const msg = db.prepare('INSERT INTO messages (id,conversation_id,role,content,model,created_at) VALUES (?,?,?,?,?,?)')
         for (let i = 0; i < 1000; i++) msg.run(`ux-message-${i}`, ids[0], i % 2 ? 'assistant' : 'user', `Baseline message ${i}: inspect the fixture and explain its changes.`, 'fixture-stream', now + i)
         msg.run('ux-alternate-message', ids[1], 'assistant', 'Baseline alternate task ready.', 'fixture-stream', now)
+        msg.run('ux-browser-a', ids[3], 'assistant', 'UX browser task A ready.', 'fixture-stream', now)
+        msg.run('ux-browser-b', ids[4], 'assistant', 'UX browser task B ready.', 'fixture-stream', now)
         msg.run('ux-file-links', ids[2], 'assistant', 'UX file links ready.\n\n[Open first](first/example.ts:80) [Open second](second/example.ts) [Outside file](../outside.txt)\n\n```html\n<div id="ux-artifact">UX generated artifact</div>\n```', 'fixture-stream', now)
         const tool = db.prepare('INSERT INTO tool_calls (id,tool_id,name,conversation_id,args_json,status,result_preview,started_at,finished_at,duration_ms) VALUES (?,?,?,?,?,?,?,?,?,?)')
         for (let i = 0; i < 200; i++) tool.run(`ux-tool-${i}`, 'read_file', 'read_file', ids[0], '{"path":"example.txt"}', 'done', 'Before review', now+i, now+i+1, 1)
@@ -279,6 +286,9 @@ async function main() {
     await switchTask('UX baseline task 02', 'UX file links ready.')
     await page.getByRole('tab', { name: 'html artifact', exact: true }).waitFor()
     record('direct-file-artifact-links')
+    const browserLifecycle = await require('./ux-browser.cjs')({ page, app, ids, origin: `http://127.0.0.1:${server.address().port}`, switchTask })
+    fs.writeFileSync(path.join(output, 'BROWSER.json'), JSON.stringify(browserLifecycle, null, 2) + '\n')
+    record('browser-task-lifecycle')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks: await page.evaluate(() => window.uxLongTasks), limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'Ten simultaneous workspace tabs are unsupported in v0.32.0; measure them after UX-04/05.', 'Browser/terminal lifecycle extensions are tracked by UX-07/08 and UX-33; not claimed by representative cases.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

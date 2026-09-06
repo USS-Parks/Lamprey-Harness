@@ -1,6 +1,8 @@
+import { useUiStore } from '@/stores/ui-store'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface TabInfo {
+  ownerId?: string | null
   id: string
   title: string
   url: string
@@ -64,10 +66,12 @@ function PlusGlyph() {
 }
 
 export function BrowserPanel() {
+  const ownerId = useUiStore(s => s.activeRightPanelConvId)
   const [tabs, setTabs] = useState<TabInfo[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [urlDraft, setUrlDraft] = useState('')
-  const [draftDirty, setDraftDirty] = useState(false)
+  const browserDraft = useUiStore(s => activeId ? s.browserAddressDrafts[activeId] : undefined)
+  const setBrowserDraft = useUiStore(s => s.setBrowserAddressDraft)
   const [developerOpen, setDeveloperOpen] = useState(false)
   const [developerStatus, setDeveloperStatus] = useState<DeveloperStatus | null>(null)
   const [developerBusy, setDeveloperBusy] = useState(false)
@@ -132,6 +136,7 @@ export function BrowserPanel() {
     mounted.current = true
 
     const onUpdated = (e: TabInfo) => {
+      if ((e.ownerId ?? null) !== ownerId) return
       setTabs((cur) => {
         const idx = cur.findIndex((t) => t.id === e.id)
         if (idx === -1) return [...cur, e]
@@ -140,18 +145,23 @@ export function BrowserPanel() {
         return next
       })
     }
-    const onClosed = (e: { id: string; activeTabId: string | null }) => {
+    const onClosed = (e: { id: string; ownerId?: string | null; activeTabId: string | null }) => {
+      if ((e.ownerId ?? null) !== ownerId) return
+      setBrowserDraft(e.id, null)
       setTabs((cur) => cur.filter((t) => t.id !== e.id))
       setActiveId(e.activeTabId)
     }
-    const onActive = (e: { id: string }) => {
+    const onActive = (e: { id: string | null; ownerId?: string | null }) => {
+      if ((e.ownerId ?? null) !== ownerId) return
       setActiveId(e.id)
-      setDraftDirty(false)
     }
     const unsubscribe = [api.onTabUpdated(onUpdated), api.onTabClosed(onClosed), api.onActiveTab(onActive)]
 
     void (async () => {
-      const list = await api.listTabs()
+      const owner = await api.setOwner({ ownerId })
+      if (disposed) return
+      if (!owner.success) throw new Error(owner.error ?? 'Unable to select browser task')
+      const list = await api.listTabs({ ownerId })
       if (disposed) return
       if (!list.success) throw new Error(list.error ?? 'Unable to read browser tabs')
       if (list.success) {
@@ -159,12 +169,12 @@ export function BrowserPanel() {
         setTabs(data.tabs)
         setActiveId(data.activeTabId)
         if (data.tabs.length === 0) {
-          const created = await api.newTab({})
+          const created = await api.newTab({ ownerId, url: 'about:blank' })
           if (!created.success) throw new Error(created.error ?? 'Unable to create browser tab')
         }
       }
       if (disposed) return
-      const shown = await api.setVisible({ visible: true })
+      const shown = await api.setVisible({ visible: true, ownerId })
       if (!shown.success) throw new Error(shown.error ?? 'Unable to show browser view')
       if (disposed) return
       reportBounds()
@@ -182,9 +192,9 @@ export function BrowserPanel() {
       ro.disconnect()
       window.removeEventListener('resize', onWinResize)
       unsubscribe.forEach((remove) => remove())
-      void api.setVisible({ visible: false }).catch((error) => console.error('[browser] Unable to hide view:', error))
+      void api.setVisible({ visible: false, ownerId }).catch((error) => console.error('[browser] Unable to hide view:', error))
     }
-  }, [reportBounds])
+  }, [reportBounds, ownerId, setBrowserDraft])
 
   useEffect(() => {
     setDeveloperStatus(null)
@@ -196,10 +206,9 @@ export function BrowserPanel() {
 
   // Keep address bar synced to the active tab's URL when the user isn't typing.
   useEffect(() => {
-    if (draftDirty) return
     const active = tabs.find((t) => t.id === activeId)
-    setUrlDraft(active?.url ?? '')
-  }, [activeId, tabs, draftDirty])
+    setUrlDraft(browserDraft ?? active?.url ?? '')
+  }, [activeId, tabs, browserDraft])
 
   // Re-report bounds whenever the panel chrome rearranges (tabs added etc).
   useEffect(() => {
@@ -210,7 +219,7 @@ export function BrowserPanel() {
 
   const handleNavigate = () => {
     if (!active) return
-    setDraftDirty(false)
+    setBrowserDraft(active.id, null)
     void window.api?.browser?.navigate({ id: active.id, url: urlDraft })
   }
 
@@ -263,7 +272,7 @@ export function BrowserPanel() {
         </div>
         <button
           type="button"
-          onClick={() => void window.api?.browser?.newTab({})}
+          onClick={() => void window.api?.browser?.newTab({ ownerId, url: 'about:blank' })}
           className="flex shrink-0 items-center justify-center border-l border-[var(--panel-border)] px-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           title="New tab"
           aria-label="New tab"
@@ -305,7 +314,7 @@ export function BrowserPanel() {
           type="text"
           value={urlDraft}
           onChange={(e) => {
-            setDraftDirty(true)
+            if (activeId) setBrowserDraft(activeId, e.target.value)
             setUrlDraft(e.target.value)
           }}
           onKeyDown={(e) => {
@@ -314,8 +323,8 @@ export function BrowserPanel() {
               handleNavigate()
             }
             if (e.key === 'Escape') {
-              setDraftDirty(false)
-              setUrlDraft(active?.url ?? '')
+              if (activeId) setBrowserDraft(activeId, null)
+                      setUrlDraft(active?.url ?? '')
             }
           }}
           placeholder="Search Google or type a URL"

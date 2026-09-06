@@ -1071,7 +1071,8 @@ const api = {
   },
 
   browser: {
-    newTab: (args: { url?: string }) => ipcRenderer.invoke('browser:newTab', args),
+    setOwner: (args: { ownerId: string | null }) => ipcRenderer.invoke('browser:setOwner', args),
+    newTab: (args: { url?: string; ownerId?: string | null }) => ipcRenderer.invoke('browser:newTab', args),
     closeTab: (args: { id: string }) => ipcRenderer.invoke('browser:closeTab', args),
     setActiveTab: (args: { id: string }) => ipcRenderer.invoke('browser:setActiveTab', args),
     navigate: (args: { id: string; url: string }) => ipcRenderer.invoke('browser:navigate', args),
@@ -1080,8 +1081,8 @@ const api = {
     reload: (args: { id: string }) => ipcRenderer.invoke('browser:reload', args),
     setBounds: (args: { x: number; y: number; width: number; height: number }) =>
       ipcRenderer.invoke('browser:setBounds', args),
-    setVisible: (args: { visible: boolean }) => ipcRenderer.invoke('browser:setVisible', args),
-    listTabs: () => ipcRenderer.invoke('browser:listTabs'),
+    setVisible: (args: { visible: boolean; ownerId?: string | null }) => ipcRenderer.invoke('browser:setVisible', args),
+    listTabs: (args?: { ownerId?: string | null }) => ipcRenderer.invoke('browser:listTabs', args),
     developerStatus: (args?: { id?: string }) => ipcRenderer.invoke('browser:developerStatus', args),
     developerSetEnabled: (args: { enabled: boolean }) =>
       ipcRenderer.invoke('browser:developerSetEnabled', args),
@@ -1104,6 +1105,7 @@ const api = {
     onTabUpdated: (
       cb: (e: {
         id: string
+        ownerId?: string | null
         title: string
         url: string
         loading: boolean
@@ -1115,12 +1117,12 @@ const api = {
       ipcRenderer.on('browser:tabUpdated', handler)
       return () => ipcRenderer.removeListener('browser:tabUpdated', handler)
     },
-    onTabClosed: (cb: (e: { id: string; activeTabId: string | null }) => void) => {
+    onTabClosed: (cb: (e: { id: string; ownerId?: string | null; activeTabId: string | null }) => void) => {
       const handler = (_: unknown, e: Parameters<typeof cb>[0]): void => cb(e)
       ipcRenderer.on('browser:tabClosed', handler)
       return () => ipcRenderer.removeListener('browser:tabClosed', handler)
     },
-    onActiveTab: (cb: (e: { id: string }) => void) => {
+    onActiveTab: (cb: (e: { id: string | null; ownerId?: string | null }) => void) => {
       const handler = (_: unknown, e: Parameters<typeof cb>[0]): void => cb(e)
       ipcRenderer.on('browser:activeTab', handler)
       return () => ipcRenderer.removeListener('browser:activeTab', handler)

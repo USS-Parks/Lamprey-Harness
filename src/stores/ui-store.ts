@@ -184,6 +184,8 @@ function readWorkspaces(): Workspaces {
 
 interface UiState {
   workspaces: Workspaces
+  browserAddressDrafts: Record<string, string>
+  setBrowserAddressDraft: (tabId: string, draft: string | null) => void
   workspaceFocusRequested: boolean
   consumeWorkspaceFocus: () => void
   activeWorkspaceProjectId: string | null
@@ -291,6 +293,13 @@ interface UiState {
 
 export const useUiStore = create<UiState>((set, get) => ({
   workspaces: readWorkspaces(),
+  browserAddressDrafts: {},
+  setBrowserAddressDraft: (tabId, draft) => {
+    const browserAddressDrafts = { ...get().browserAddressDrafts }
+    if (draft === null) delete browserAddressDrafts[tabId]
+    else browserAddressDrafts[tabId] = draft
+    set({ browserAddressDrafts })
+  },
   workspaceFocusRequested: false,
   consumeWorkspaceFocus: () => set({ workspaceFocusRequested: false }),
   activeWorkspaceProjectId: null,

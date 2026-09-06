@@ -49,9 +49,14 @@ function developerStatus(id?: string) {
 }
 
 export function registerBrowserHandlers(): void {
-  ipcMain.handle('browser:newTab', async (_e, args: { url?: string }) => {
+  ipcMain.handle('browser:setOwner', (_event, args: { ownerId: string | null }) => {
+    if (!args || !(args.ownerId === null || typeof args.ownerId === 'string')) return { success: false, error: 'A task owner is required.' }
+    bm.setOwner(args.ownerId)
+    return { success: true, data: true }
+  })
+  ipcMain.handle('browser:newTab', async (_e, args: { url?: string; ownerId?: string | null }) => {
     try {
-      const tab = await bm.newTab(args?.url)
+      const tab = await bm.newTab(args?.url, args?.ownerId)
       return { success: true, data: { id: tab.id } }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'newTab failed' }
@@ -124,18 +129,18 @@ export function registerBrowserHandlers(): void {
     }
   )
 
-  ipcMain.handle('browser:setVisible', async (_e, args: { visible: boolean }) => {
+  ipcMain.handle('browser:setVisible', async (_e, args: { visible: boolean; ownerId?: string | null }) => {
     try {
-      bm.setVisible(!!args?.visible)
+      bm.setVisible(!!args?.visible, args?.ownerId)
       return { success: true, data: true }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'setVisible failed' }
     }
   })
 
-  ipcMain.handle('browser:listTabs', async () => {
+  ipcMain.handle('browser:listTabs', async (_event, args?: { ownerId?: string | null }) => {
     try {
-      return { success: true, data: { tabs: bm.listTabs(), activeTabId: bm.getActiveTabId() } }
+      return { success: true, data: { tabs: bm.listTabs(args?.ownerId), activeTabId: bm.getActiveTabId(args?.ownerId) } }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'listTabs failed' }
     }

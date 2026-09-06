@@ -1,15 +1,16 @@
 /* global window, document */
 const { build } = require('esbuild')
+const { resolve } = require('node:path')
 const { createServer } = require('node:http')
 const { chromium } = require('playwright')
 const assert = require('node:assert/strict')
 
 async function main() {
-  const bundle = await build({ stdin: { resolveDir: process.cwd(), loader: 'tsx', contents: `
+  const bundle = await build({ alias: { '@': resolve('src') }, stdin: { resolveDir: process.cwd(), loader: 'tsx', contents: `
     import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';import {BrowserPanel} from './src/components/tools/panels/BrowserPanel';
     const listeners={updated:new Set(),closed:new Set(),active:new Set()};window.listeners=listeners;window.visible=[];window.requests=[];window.outside=0;listeners.updated.add(()=>window.outside++);
     const subscribe=name=>cb=>{listeners[name].add(cb);return()=>listeners[name].delete(cb)};
-    window.api={browser:{onTabUpdated:subscribe('updated'),onTabClosed:subscribe('closed'),onActiveTab:subscribe('active'),offAll:()=>{throw Error('bulk removal forbidden')},listTabs:()=>new Promise(resolve=>window.finishList=resolve),newTab:async()=>({success:true}),setVisible:async value=>{window.visible.push(value.visible);return{success:true}},setBounds:async()=>({success:true}),developerStatus:args=>new Promise((resolve,reject)=>window.requests.push({id:args?.id,resolve,reject}))}};
+    window.api={browser:{setOwner:async()=>({success:true}),onTabUpdated:subscribe('updated'),onTabClosed:subscribe('closed'),onActiveTab:subscribe('active'),offAll:()=>{throw Error('bulk removal forbidden')},listTabs:()=>new Promise(resolve=>window.finishList=resolve),newTab:async()=>({success:true}),setVisible:async value=>{window.visible.push(value.visible);return{success:true}},setBounds:async()=>({success:true}),developerStatus:args=>new Promise((resolve,reject)=>window.requests.push({id:args?.id,resolve,reject}))}};
     const root=createRoot(document.getElementById('root'));flushSync(()=>root.render(<BrowserPanel/>));window.unmount=()=>flushSync(()=>root.unmount());
   ` }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } })
   const server = createServer((request, response) => {

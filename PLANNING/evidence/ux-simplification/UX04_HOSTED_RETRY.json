@@ -1,0 +1,12 @@
+{
+  "prompt": "UX-04",
+  "sha": "f66119ec17cc60b4b02e36d86c24f53d02ccd87f",
+  "run": 34008567855,
+  "attempt": 1,
+  "failedJob": "test (windows-latest)",
+  "test": "electron/services/dangerous-command-policy.test.ts: real PowerShell AST safe command",
+  "reason": "spawnSync powershell.exe ETIMEDOUT; expected safe, received fail-closed uninspectable",
+  "sourceChangeInThatService": false,
+  "action": "Rerun failed hosted job on exact same commit; no policy or test bypass.",
+  "otherGates": "Linux tests, native DB, lint, Pages and all platform builds passed."
+}

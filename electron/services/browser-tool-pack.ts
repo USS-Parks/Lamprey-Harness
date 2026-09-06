@@ -40,7 +40,7 @@ toolRegistry.registerNative(
     requiresApproval: false,
     enabled: true
   },
-  async (args) => executeBrowserOpen(args as unknown as BrowserOpenArgs)
+  async (args, context) => executeBrowserOpen(args as unknown as BrowserOpenArgs, context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(
@@ -65,7 +65,7 @@ toolRegistry.registerNative(
     requiresApproval: true,
     enabled: true
   },
-  async (args) => executeBrowserClick(args as unknown as BrowserClickArgs)
+  async (args, context) => executeBrowserClick(args as unknown as BrowserClickArgs, context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(
@@ -91,7 +91,7 @@ toolRegistry.registerNative(
     requiresApproval: true,
     enabled: true
   },
-  async (args) => executeBrowserType(args as unknown as BrowserTypeArgs)
+  async (args, context) => executeBrowserType(args as unknown as BrowserTypeArgs, context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(
@@ -120,7 +120,7 @@ toolRegistry.registerNative(
     requiresApproval: false,
     enabled: true
   },
-  async (args) => executeBrowserFind(args as unknown as BrowserFindArgs)
+  async (args, context) => executeBrowserFind(args as unknown as BrowserFindArgs, context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(
@@ -147,7 +147,7 @@ toolRegistry.registerNative(
     requiresApproval: false,
     enabled: true
   },
-  async (args) => executeBrowserScreenshot(args as unknown as BrowserScreenshotArgs)
+  async (args, context) => executeBrowserScreenshot(args as unknown as BrowserScreenshotArgs, context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(
@@ -164,7 +164,7 @@ toolRegistry.registerNative(
     requiresApproval: false,
     enabled: true
   },
-  async () => executeBrowserGetCurrentTab()
+  async (_args, context) => executeBrowserGetCurrentTab(context.conversationId ?? null)
 )
 
 toolRegistry.registerNative(
@@ -218,5 +218,5 @@ toolRegistry.registerNative(
     requiresApproval: false,
     enabled: true
   },
-  async (args) => executeBrowserEvaluateReadonly(args as unknown as BrowserEvaluateArgs)
+  async (args, context) => executeBrowserEvaluateReadonly(args as unknown as BrowserEvaluateArgs, context.conversationId ?? null)
 )

@@ -11,6 +11,7 @@ import {
 import { assertBrowserDeveloperUrlAllowed } from './browser-developer-policy'
 
 interface Tab {
+  ownerId: string | null
   id: string
   view: WebContentsView
   title: string
@@ -58,6 +59,8 @@ interface Bounds {
 
 const tabs = new Map<string, Tab>()
 let activeTabId: string | null = null
+let visibleOwner: string | null = null
+const activeByOwner = new Map<string | null, string>()
 let lastBounds: Bounds | null = null
 let panelVisible = false
 let nextId = 1
@@ -78,8 +81,10 @@ function sendToRenderer(channel: string, payload: unknown): void {
 }
 
 function emitTab(tab: Tab): void {
+  if (tab.view.webContents.isDestroyed()) return
   sendToRenderer('browser:tabUpdated', {
     id: tab.id,
+    ownerId: tab.ownerId,
     title: tab.title,
     url: tab.url,
     loading: tab.loading,
@@ -160,7 +165,7 @@ function attachTabListeners(tab: Tab): void {
   // Pop-up handler: open new windows as new tabs in our browser instead of
   // spawning native BrowserWindows.
   wc.setWindowOpenHandler(({ url }) => {
-    void newTab(url)
+    void newTab(url, tab.ownerId)
     return { action: 'deny' }
   })
 }
@@ -272,7 +277,7 @@ function showOnly(tabId: string | null): void {
   const win = getMainWindow()
   if (!win) return
   for (const [id, t] of tabs) {
-    if (id === tabId && panelVisible) {
+    if (id === tabId && t.ownerId === visibleOwner && panelVisible) {
       // ensure attached
       if (!win.contentView.children.includes(t.view)) {
         win.contentView.addChildView(t.view)
@@ -317,7 +322,7 @@ export function coerceUrl(input: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`
 }
 
-export async function newTab(rawUrl?: string): Promise<Tab> {
+export async function newTab(rawUrl?: string, ownerId: string | null = visibleOwner): Promise<Tab> {
   const win = getMainWindow()
   if (!win) throw new Error('no main window')
 
@@ -334,6 +339,7 @@ export async function newTab(rawUrl?: string): Promise<Tab> {
     }
   })
   const tab: Tab = {
+    ownerId,
     id,
     view,
     title: url,
@@ -384,18 +390,26 @@ export function closeTab(id: string): void {
   tabs.delete(id)
 
   if (activeTabId === id) {
-    const remaining = Array.from(tabs.keys())
-    activeTabId = remaining[remaining.length - 1] ?? null
+    const remaining = Array.from(tabs.values()).filter(tab => tab.ownerId === visibleOwner)
+    activeTabId = remaining.at(-1)?.id ?? null
     showOnly(activeTabId)
   }
-  sendToRenderer('browser:tabClosed', { id, activeTabId })
+  if (activeByOwner.get(t.ownerId) === id) {
+    const next = Array.from(tabs.values()).filter(tab => tab.ownerId === t.ownerId).at(-1)
+    if (next) activeByOwner.set(t.ownerId, next.id)
+    else activeByOwner.delete(t.ownerId)
+  }
+  sendToRenderer('browser:tabClosed', { id, ownerId: t.ownerId, activeTabId })
 }
 
 export function setActiveTab(id: string): void {
-  if (!tabs.has(id)) return
+  const tab = tabs.get(id)
+  if (!tab) return
+  activeByOwner.set(tab.ownerId, id)
+  if (tab.ownerId !== visibleOwner) return
   activeTabId = id
   showOnly(id)
-  sendToRenderer('browser:activeTab', { id })
+  sendToRenderer('browser:activeTab', { id, ownerId: visibleOwner })
 }
 
 export function navigate(id: string, rawUrl: string): void {
@@ -437,13 +451,15 @@ export function setBounds(bounds: Bounds): void {
   applyBoundsToActive()
 }
 
-export function setVisible(visible: boolean): void {
+export function setVisible(visible: boolean, ownerId: string | null = visibleOwner): void {
+  if (ownerId !== visibleOwner) return
   panelVisible = visible
   showOnly(panelVisible ? activeTabId : null)
 }
 
-export function listTabs(): Array<{ id: string; title: string; url: string; loading: boolean }> {
-  return Array.from(tabs.values()).map((t) => ({
+export function listTabs(ownerId: string | null = visibleOwner): Array<{ id: string; ownerId: string | null; title: string; url: string; loading: boolean }> {
+  return Array.from(tabs.values()).filter(t => t.ownerId === ownerId).map((t) => ({
+    ownerId: t.ownerId,
     id: t.id,
     title: t.title,
     url: t.url,
@@ -451,8 +467,16 @@ export function listTabs(): Array<{ id: string; title: string; url: string; load
   }))
 }
 
-export function getActiveTabId(): string | null {
-  return activeTabId
+export function getActiveTabId(ownerId: string | null = visibleOwner): string | null {
+  return activeByOwner.get(ownerId) ?? null
+}
+
+export function setOwner(ownerId: string | null): void {
+  visibleOwner = ownerId
+  activeTabId = getActiveTabId(ownerId)
+  panelVisible = false
+  showOnly(null)
+  sendToRenderer('browser:activeTab', { id: activeTabId, ownerId })
 }
 
 // Model-callable browser tools need direct access to a tab's WebContentsView
@@ -468,15 +492,15 @@ export interface BrowserTabHandle {
   loading: boolean
 }
 
-export function getTab(id: string): BrowserTabHandle | null {
+export function getTab(id: string, ownerId?: string | null): BrowserTabHandle | null {
   const t = tabs.get(id)
-  if (!t) return null
+  if (!t || (ownerId !== undefined && t.ownerId !== ownerId)) return null
   return { id: t.id, view: t.view, title: t.title, url: t.url, loading: t.loading }
 }
 
-export function getActiveTab(): BrowserTabHandle | null {
-  if (!activeTabId) return null
-  return getTab(activeTabId)
+export function getActiveTab(ownerId: string | null = visibleOwner): BrowserTabHandle | null {
+  const id = getActiveTabId(ownerId)
+  return id ? getTab(id, ownerId) : null
 }
 
 export function attachBrowserDeveloperSession(

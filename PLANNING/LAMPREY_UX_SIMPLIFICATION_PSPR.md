@@ -271,7 +271,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2 with real temporary files; existing file, missing/deleted file, duplicate basename, line jump, generated artifact and denied external path all behave correctly. Artifact links do not bypass existing sandbox/IPC rules.
 
 #### UX-07 — Preserve browser lifecycle in contextual tabs
-- [ ] **Objective:** move browser access without losing page state or leaking browser instances.
+- [x] **Objective:** move browser access without losing page state or leaking browser instances.
 - **Work:** host the existing BrowserPanel/session model through resource tabs; preserve history/address state and normal permissions. Define closing the outer tab versus closing an actual browser session using the existing lifecycle contract.
 - **Seams/output:** BrowserPanel, browser store/IPC integration and `scripts/acceptance/browser-lifecycle.cjs`.
 - **Gate:** G1/G2 using a real local HTTP fixture; navigation, back/forward, reload, task switch, hide/show and close work; ten lifecycle cycles do not accumulate windows/subscriptions. No cross-task page exposure or permission bypass.

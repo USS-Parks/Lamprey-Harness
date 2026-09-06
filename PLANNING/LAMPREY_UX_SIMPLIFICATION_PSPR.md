@@ -413,7 +413,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2/G4; every old section is discoverable, no-results/reset/back behavior works, results open and focus correct content, and search never indexes API keys or private values.
 
 #### UX-29 — Reconcile contextual settings links and onboarding
-- [ ] **Objective:** make setup and in-task configuration use the same settings destinations.
+- [x] **Objective:** make setup and in-task configuration use the same settings destinations.
 - **Work:** route missing-key/model setup, permissions, context budgets, tools, automations and recovery links through the grouped navigation. Preserve local/keyless startup and existing unsaved-change behavior; expose Advanced on demand without presenting its entire contents at startup.
 - **Seams/output:** settings callers, ApiKeyModal, Customize, model/composer/status links and first-run entry.
 - **Gate:** G1/G2; fresh cloud-key and local-provider setup, existing configured profile, unavailable credential storage and invalid settings recovery remain usable. Milestone F verifies all leaf routes and records storage closeout.

@@ -1,9 +1,11 @@
+import { useProvidersStore } from '@/stores/providers-store'
+import { useUiStore } from '@/stores/ui-store'
 import { useEffect, useState } from 'react'
 import type { ProviderInfo } from '@/lib/types'
 import { ensurePlaintextConsentIfNeeded } from '@/lib/keychain-consent'
 
 interface ApiKeyModalProps {
-  onComplete: () => void
+  onComplete: () => void | Promise<void>
   onDismiss?: () => void
   defaultProvider?: string
   required?: boolean
@@ -56,6 +58,13 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
     return () => { cancelled = true }
   }, [defaultProvider, attempt])
 
+  const finishSetup = async () => {
+    const refreshed = await window.api.settings.listProviderKeys()
+    if (!refreshed.success) throw new Error(refreshed.error || 'The key was validated, but provider status could not refresh. Try again.')
+    useProvidersStore.getState().setProviders(refreshed.data as ProviderEntry[])
+    await onComplete()
+  }
+
   const handleSubmit = async () => {
     if (!key.trim() || testing || encrypted === null || loadError) return
     // SEC-10: shared consent gate. Confirms once per session when encryption
@@ -78,18 +87,18 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         : undefined
       if (typeof data === 'object' && data !== null) {
         if (data.ok) {
-          onComplete()
+          await finishSetup()
         } else {
           setError(data.reason || 'Provider rejected the key.')
         }
       } else if (typeof data === 'boolean') {
-        if (data) onComplete()
+        if (data) await finishSetup()
         else setError('Provider rejected the key.')
       } else {
         setError(result.success ? 'No response from provider.' : (result.error || 'Unknown error.'))
       }
-    } catch {
-      setError('Connection failed. Check your network and try again.')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Connection failed. Check your network and try again.')
     } finally {
       setTesting(false)
     }
@@ -162,7 +171,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
           type="password"
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && !e.repeat) { e.preventDefault(); void handleSubmit() } }}
           placeholder={selected === 'deepseek' ? 'sk-...' : 'API key'}
           className="mt-3 w-full rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-3 py-2 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
           autoFocus
@@ -195,6 +204,7 @@ export function ApiKeyModal({ onComplete, onDismiss, defaultProvider, required =
         >
           {testing ? 'Validating...' : 'Connect'}
         </button>
+        {!required && onDismiss && <button type="button" disabled={testing} className="mt-2 min-h-8 w-full text-sm text-[var(--accent)]" onClick={() => { onDismiss(); useUiStore.getState().openSettings('api') }}>Provider settings</button>}
         {onUseLocal && <button onClick={onUseLocal} disabled={testing} className="mt-3 w-full text-sm text-[var(--accent)]">Set up a local model</button>}
 
         <p className="mt-3 text-[12px] text-[var(--text-muted)]">

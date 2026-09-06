@@ -1,17 +1,7 @@
+import { useUiStore } from '@/stores/ui-store'
 import { useEffect, useState } from 'react'
 
-// Persistence Phase / PS4 — non-dismissible startup banner that
-// surfaces a non-'ok' `PRAGMA integrity_check` result. The banner
-// stays put until the user either:
-//   1. Restores from the most recent backup (PS5 wires the restore
-//      action — this banner ships first; without PS5 the button toasts
-//      "backup restore shipping in next prompt").
-//   2. Continues in read-only mode (UI affordance for inspection).
-//
-// We deliberately do NOT add a dismiss button — corruption is not a
-// preference the user toggles away. Per the §3.2 design in the phase
-// plan, the banner is paired with the Settings → Persistence panel
-// (PS10) which can re-run the check + restore.
+// Keep integrity failures actionable through the existing restore/read-only paths.
 
 interface IntegrityCheckResult {
   ok: boolean
@@ -67,7 +57,7 @@ export function IntegrityBanner(): React.ReactElement | null {
   // Hide when status is unknown, the check is ok, or the user opted
   // into read-only mode (the banner has already done its job — they
   // know).
-  if (loadError) return <div role="alert" className="flex items-center gap-2 border-b border-[var(--error)] p-2 text-xs">{loadError} <button className="min-h-8 underline" onClick={() => setAttempt(value => value + 1)}>Retry integrity check</button></div>
+  if (loadError) return <div role="alert" className="flex items-center gap-2 border-b border-[var(--error)] p-2 text-xs">{loadError} <button className="min-h-8 underline" onClick={() => setAttempt(value => value + 1)}>Retry integrity check</button> <button className="min-h-8 underline" onClick={() => useUiStore.getState().openSettings('persistence')}>Storage and recovery</button></div>
   if (!status || !status.lastIntegrity) return null
   if (status.lastIntegrity.ok) return null
   if (readOnlyMode) return null
@@ -87,7 +77,7 @@ export function IntegrityBanner(): React.ReactElement | null {
   const handleRestore = async (): Promise<void> => {
     if (!latestBackup) {
       setError(
-        'No backup available to restore from. Save a backup via Settings → Persistence first, or continue in read-only mode.'
+        'No backup available to restore from. Save a backup via Settings → Advanced → Storage & Recovery first, or continue in read-only mode.'
       )
       return
     }
@@ -130,13 +120,14 @@ export function IntegrityBanner(): React.ReactElement | null {
           </div>
         ) : (
           <div className="text-[var(--text-muted)]">
-            No backups available. Open Settings → Persistence to create one before
+            No backups available. Open Settings → Advanced → Storage & Recovery to create one before
             restoring.
           </div>
         )}
         {error && <div className="text-[var(--warning)]">{error}</div>}
       </div>
       <div className="flex flex-col gap-1.5">
+        <button className="min-h-8 underline" onClick={() => useUiStore.getState().openSettings('persistence')}>Storage and recovery</button>
         <button
           onClick={handleRestore}
           disabled={restoring || !latestBackup}

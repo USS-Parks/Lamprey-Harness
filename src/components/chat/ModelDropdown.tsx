@@ -91,6 +91,7 @@ export function ModelDropdown({ onRequestKey }: { onRequestKey: (providerId: str
         })}
         {filtered.length === 0 && <p role="status" className="p-3 text-xs text-[var(--text-muted)]">{models.length ? 'No matching models.' : 'No models loaded.'}</p>}
       </div>
+      <button type="button" className="min-h-9 w-full border-t border-[var(--panel-border)] px-3 text-left text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => { close(); useUiStore.getState().openSettings('models') }}>Model settings</button>
     </PopoverMenu>
   </>
 }

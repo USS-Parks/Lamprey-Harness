@@ -33,6 +33,9 @@ export function AgentRunBanner({ modalApprovals = [] }: { modalApprovals?: ToolA
         <button className="min-h-8 underline" onClick={() => useUiStore.getState().setActiveTool('afterAction')}>After action</button>
         <button className="min-h-8 underline" onClick={() => useUiStore.getState().setActiveTool('background')}>Background work</button>
       </div>
+      <div className="mt-1 flex flex-wrap gap-2 border-t border-[var(--panel-border)] pt-1">
+        {([{ id: 'seedBudget', label: 'Context budgets' }, { id: 'tools', label: 'Tool settings' }, { id: 'automations', label: 'Automation settings' }, { id: 'persistence', label: 'Storage and recovery' }] as const).map(link => <button key={link.id} className="min-h-8 underline" onClick={() => useUiStore.getState().openSettings(link.id)}>{link.label}</button>)}
+      </div>
     </div>}
   </details>
 }

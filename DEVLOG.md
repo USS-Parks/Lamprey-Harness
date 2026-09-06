@@ -1,3 +1,13 @@
+## 2026-09-06 - UX-29: Contextual settings and fresh setup
+
+Model selection and /models now open Models directly. Permissions, task diagnostics, optional provider-key setup and integrity recovery link to their corresponding grouped sections. Existing Automations and local-model onboarding routes retain their leaf IDs. Advanced expands only on a relevant destination. Credential composition no longer submits a key on an IME Enter event, and setup errors preserve their reason.
+
+Fresh cloud acceptance found that a validated first key left the renderer provider store stale, causing the first chat to ask for the same key again. ApiKeyModal now refreshes authoritative provider status before completing setup. UX29_CLOUD2 passes controlled unavailable-storage reads and writes, declined plaintext consent blocking a write, composed Enter, real keychain save and local authentication, a successful first chat request and configured reload. UX29_KEYLESS2 passes fresh startup and a real request without credentials. Both verify contextual routes, actual corrupt-settings preservation, a usable local-model setup path and restoration of the valid isolated fixture. The preserved corrupt file is evidence of the existing recovery mechanism; no automatic repair of arbitrary corrupt settings is claimed.
+
+Full proof passed lint, both TypeScript projects, 3,107 tests and both smokes (UX29_PROOF_PUSH24.log); 176 explicit ABI skips remain. UX29_STORAGE.json refreshes all five worktrees and generated sizes: old audit trees remain clean, preserved and unowned by this lane; no deletion or duplicate dependency tree was created. All setup profiles and processes were cleaned.
+
+Files: existing model/composer/status/key/recovery surfaces, fresh setup fixture and full scenario manifest. Commit: resolve the introducing commit of UX29.json. UX-23 is all green; UX-24 is pushed. Later prompts retain individual commits for ordered publication. Visual and performance finish continues in UX-30 through UX-34.
+
 ## 2026-09-06 - UX-28: Search settings by familiar names
 
 Added settings search over static labels, descriptions, groups and legacy aliases. Search does not inspect saved values or keychain contents. Results name the destination group, distinguish diagnostic Activity History from current task attention, and focus the selected section. Back to search results restores the query; Clear and Escape reset it. The search field stays visible while long results scroll independently, with active-result announcements and keyboard selection.

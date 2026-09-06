@@ -102,9 +102,5 @@
   {
     "id": "settings-navigation",
     "description": "All 24 legacy settings destinations open in six groups without changing values; existing saves and Customize routes work."
-  },
-  {
-    "id": "contextual-setup",
-    "description": "Existing provider setup, contextual settings links and preserved invalid-settings recovery; fresh cloud/keyless profiles have dedicated acceptance runs."
   }
 ]

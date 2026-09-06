@@ -87,7 +87,7 @@ async function main() {
       })
     })
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }, { id: 'fixture-keyed', label: 'Fixture Keyed Provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: true }], customModels: [{ id: 'fixture-vision', name: 'Fixture Vision', provider: 'fixture-provider', contextWindow: 131072, supportsTools: true, supportsVision: true }, { id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }, { id: 'fixture-keyed-model', name: 'Fixture keyed model with a deliberately long display name for bounded selection', provider: 'fixture-keyed', contextWindow: 131072, supportsTools: false }] }))
+    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: process.argv.includes('--setup-cloud') ? 'fixture-keyed-model' : 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }, { id: 'fixture-keyed', label: 'Fixture Keyed Provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: true }], customModels: [{ id: 'fixture-vision', name: 'Fixture Vision', provider: 'fixture-provider', contextWindow: 131072, supportsTools: true, supportsVision: true }, { id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }, { id: 'fixture-keyed-model', name: 'Fixture keyed model with a deliberately long display name for bounded selection', provider: 'fixture-keyed', contextWindow: 131072, supportsTools: false }] }))
     const env = { ...process.env, LAMPREY_ACCEPTANCE_PROFILE: profile }
     delete env.ELECTRON_RUN_AS_NODE
     const entry = path.join(profile, 'baseline-entry.cjs')
@@ -104,6 +104,13 @@ async function main() {
       win.setContentSize(1440, 900)
       globalThis.uxShowInactive.call(win)
     })
+    if (process.argv.includes('--setup-only')) {
+      const result = await require('./ux-setup.cjs')({ page, app, profile, cloud: process.argv.includes('--setup-cloud'), providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+      fs.writeFileSync(path.join(output, 'SETUP.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'fresh-setup-only', runtime: await app.evaluate(() => process.versions), completed: ['contextual-setup'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     const ids = await page.evaluate(async () => {
       const ids = []
       for (let i = 0; i < 50; i++) {
@@ -450,6 +457,9 @@ async function main() {
     const settingsNavigation = await require('./ux-settings.cjs')({ page, app })
     fs.writeFileSync(path.join(output, 'SETTINGS.json'), JSON.stringify(settingsNavigation, null, 2) + '\n')
     record('settings-navigation')
+    const setup = await require('./ux-setup.cjs')({ page, app, profile, cloud: false, fresh: false, providerBodies, finishStreams: () => [...streamFinishers].forEach(finish => finish()) })
+    fs.writeFileSync(path.join(output, 'SETUP.json'), JSON.stringify(setup, null, 2) + '\n')
+    record('contextual-setup')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

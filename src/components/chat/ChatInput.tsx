@@ -258,6 +258,7 @@ function PermissionsDropdown() {
               </button>
             )
           })}
+          <button type="button" className="min-h-9 w-full border-t border-[var(--panel-border)] px-3 text-left text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => { setOpen(false); useUiStore.getState().openSettings('permissions') }}>Permission settings</button>
         </div>
       )}
     </div>
@@ -403,9 +404,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
         return true
       }
       case '/models': {
-        // Open settings on the Models pane — closest hook we have.
-        useUiStore.getState().openSettings()
-        toast.info('Pick a model in Settings → Models')
+        useUiStore.getState().openSettings('models')
         return true
       }
       case '/fast': {

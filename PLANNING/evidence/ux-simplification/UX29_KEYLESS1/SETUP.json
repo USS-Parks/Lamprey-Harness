@@ -1,0 +1,13 @@
+{
+  "fresh": true,
+  "cloud": false,
+  "realProviderRequest": true,
+  "configuredReload": true,
+  "unavailableStorageCheckAndWrite": "covered by cloud fixture",
+  "declinedConsentBlocksWrite": false,
+  "composedEnterDoesNotSave": false,
+  "contextualLeafRoutes": true,
+  "preservedInvalidSettings": true,
+  "localSetupRecovery": true,
+  "advancedCollapsedAtStartup": true
+}

@@ -1,0 +1,13 @@
+{
+  "fresh": true,
+  "cloud": true,
+  "realProviderRequest": true,
+  "configuredReload": true,
+  "unavailableStorageCheckAndWrite": "controlled failures followed by real keychain/provider success",
+  "declinedConsentBlocksWrite": true,
+  "composedEnterDoesNotSave": true,
+  "contextualLeafRoutes": true,
+  "preservedInvalidSettings": true,
+  "localSetupRecovery": true,
+  "advancedCollapsedAtStartup": true
+}

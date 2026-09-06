@@ -266,7 +266,7 @@ export function HooksSettings() {
         })}
       </div>
 
-      <div className="grid grid-cols-[260px_1fr] gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <div className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)]">
           <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-2 py-1.5">
             <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">

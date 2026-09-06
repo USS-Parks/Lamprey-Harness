@@ -73,7 +73,8 @@ module.exports = async function settingsScenario({ page, app }) {
   for (const [width, height] of [[1440,900],[1024,768],[800,600],[1920,1080]]) for (const zoom of [1,1.5,2]) {
     await app.evaluate(({ BrowserWindow }, { width, height, zoom }) => { const win = BrowserWindow.getAllWindows()[0]; win.setContentSize(width,height); win.webContents.setZoomFactor(zoom) }, { width,height,zoom })
     await search.fill('RAG'); await search.press('Enter'); await page.waitForFunction(() => document.activeElement?.id === 'settings-panel')
-    assert.equal(await dialog.locator('#settings-tab-rag').getAttribute('aria-selected'), 'true')
+    if (width / zoom <= 640) assert.equal(await dialog.getByRole('combobox', { name: 'Settings section', exact: true }).inputValue(), 'rag')
+    else assert.equal(await dialog.locator('#settings-tab-rag').getAttribute('aria-selected'), 'true')
     await dialog.getByRole('button', { name: 'Back to search results', exact: true }).click()
     responsive.push({theme,width,height,zoom})
   }

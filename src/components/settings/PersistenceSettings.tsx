@@ -77,9 +77,9 @@ function formatTimestamp(ms: number | undefined): string {
 
 function StatusRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1 text-xs">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-1 text-xs">
       <span className="text-[var(--text-muted)]">{label}</span>
-      <span className="font-mono text-[var(--text-primary)]">{value}</span>
+      <span className="min-w-0 break-all font-mono text-[var(--text-primary)]">{value}</span>
     </div>
   )
 }

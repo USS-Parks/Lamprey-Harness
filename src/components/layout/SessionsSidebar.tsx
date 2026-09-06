@@ -386,7 +386,7 @@ function SessionRow({
         </span>
       )}
       {renaming ? <form className="flex min-w-0 flex-1" onSubmit={event => { event.preventDefault(); void rename() }}>
-        <input autoFocus aria-label="Rename task" value={title} onChange={event => setTitle(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setRenaming(false) }} className="min-w-0 flex-1 bg-[var(--bg-primary)]" />
+        <input autoFocus aria-label="Rename task" value={title} onChange={event => setTitle(event.target.value)} onKeyDown={event => { if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); event.stopPropagation(); setRenaming(false) } }} className="min-w-0 flex-1 bg-[var(--bg-primary)]" />
         <button type="submit" disabled={saving || !title.trim()} className="min-h-8 px-1">Save</button><button type="button" onClick={() => setRenaming(false)} className="min-h-8 px-1">Cancel</button>
       </form> : <button type="button" onClick={onSelect} className="min-h-8 min-w-0 flex-1 text-left" title={entry.title || 'Untitled task'} aria-current={active ? 'page' : undefined}>
         <span className="flex items-center gap-1">

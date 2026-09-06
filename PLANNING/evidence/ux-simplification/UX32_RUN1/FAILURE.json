@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Worktrees', exact: true }) to be detached\u001b[22m\n\u001b[2m    33 × locator resolved to visible <div role=\"dialog\" tabindex=\"-1\" aria-modal=\"true\" aria-label=\"Worktrees\" class=\"flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-lg flex-col overflow-y-auto rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl\">…</div>\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<body>\n    <div id=\"root\"><div class=\"flex h-screen w-screen flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]\"><div class=\"flex flex-col bg-transparent\" style=\"app-region: drag;\"><div class=\"relative flex h-9 items-stretch\"><div class=\"flex min-w-0 items-center gap-1 pl-2 md:gap-3 md:pl-3\" style=\"app-region: no-drag;\"><button type=\"button\" title=\"Collapse sidebar (Ctrl+B)\" aria-label=\"Toggle sidebar\" class=\"flex h-8 w-8 shrink-0 items-center justify-center rounded transitio",
+    "draft": "UX32 preserved draft"
+  }
+}

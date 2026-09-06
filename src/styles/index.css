@@ -240,3 +240,9 @@ img.icon-asset-crisp {
     scroll-behavior: auto !important;
   }
 }
+
+/* Compact settings stack form columns inside their own scroll region. */
+@media (max-width: 640px) {
+  #settings-panel .grid { grid-template-columns: minmax(0, 1fr); }
+  #settings-panel input, #settings-panel select, #settings-panel textarea { max-width: 100%; }
+}

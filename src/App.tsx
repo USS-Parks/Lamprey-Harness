@@ -1,3 +1,4 @@
+import { containDialogTab, useDialogFocus } from '@/hooks/useDialogFocus'
 import { TerminalDock } from '@/components/tools/TerminalDock'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -185,24 +186,8 @@ function App(): React.ReactElement {
     hydrateRightPanelForConv(activeConversationId, workspaceProjectId)
   }, [activeConversationId, workspaceProjectId, hydrateRightPanelForConv])
 
-  // Narrow-viewport drawer: Esc closes (collapses the right panel) so the
-  // chat takes the full width back. Only active while the drawer is open.
-  useEffect(() => {
-    if (!isNarrow || rightPanelCollapsed) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const target = e.target
-        if (target instanceof HTMLElement) {
-          const tag = target.tagName
-          if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return
-        }
-        e.preventDefault()
-        setRightPanelCollapsed(true)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [isNarrow, rightPanelCollapsed, setRightPanelCollapsed])
+  const drawerRef = useRef<HTMLElement>(null)
+  useDialogFocus(drawerRef, isNarrow && !rightPanelCollapsed)
 
   useEffect(() => {
     if (!window.api) return
@@ -470,12 +455,17 @@ function App(): React.ReactElement {
             aria-hidden
           />
           <aside
-            role="dialog"
+            ref={drawerRef}
+            role="dialog" aria-modal="true" tabIndex={-1}
+            onKeyDown={event => {
+              if (event.defaultPrevented || event.nativeEvent.isComposing) return
+              containDialogTab(event)
+              if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setRightPanelCollapsed(true) }
+            }}
             aria-label="Workspace panel"
             className="fixed bottom-0 right-0 top-0 z-30 flex flex-col overflow-hidden rounded-l-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
             style={{
               width: `min(${rightPanelWidth}px, calc(100vw - 24px))`,
-              transition: 'transform 200ms ease-out',
               transform: 'translateX(0)'
             }}
           >

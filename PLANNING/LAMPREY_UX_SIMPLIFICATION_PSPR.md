@@ -433,7 +433,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G4; readable labels, adequate hit targets, stable alignment and reduced-motion behavior; no layout jump when status changes, attachments appear or a panel opens; no inactive/placeholder control reintroduced.
 
 #### UX-32 — Complete responsive and accessibility behavior
-- [ ] **Objective:** make the new shell fully operable at constrained sizes and with assistive input.
+- [x] **Objective:** make the new shell fully operable at constrained sizes and with assistive input.
 - **Work:** fix issues across the G4 matrix: panel reflow/drawer behavior, bottom dock bounds, menu placement, text scaling, tab order, focus restoration and screen-reader announcements. Side/bottom panels must not make the composer or Stop unreachable.
 - **Seams/output:** affected shell/palette/settings/dialog components and existing accessibility helpers.
 - **Gate:** full G4 on actual app; keyboard-only three-state workflow passes; 200% scale and minimum supported window retain essential controls; status announced once per meaningful transition. Record manual assistive-technology checks separately from automated accessibility scans.

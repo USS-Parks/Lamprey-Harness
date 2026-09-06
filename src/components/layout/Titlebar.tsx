@@ -1,3 +1,6 @@
+import { PopoverMenu } from '@/components/ui/PopoverMenu'
+import { MenuRow, MenuSectionLabel, MenuSeparator } from '@/components/ui/MenuRow'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useUiStore } from '@/stores/ui-store'
@@ -16,25 +19,11 @@ const DRAG = { WebkitAppRegion: 'drag' } as React.CSSProperties
 
 interface MenuItem {
   label?: string
+  heading?: string
   shortcut?: string
   onSelect?: () => void
   separator?: boolean
   disabled?: boolean
-}
-
-function useClickOutside(
-  ref: React.RefObject<HTMLElement | null>,
-  onOutside: () => void,
-  active: boolean
-) {
-  useEffect(() => {
-    if (!active) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onOutside()
-    }
-    window.addEventListener('mousedown', handler)
-    return () => window.removeEventListener('mousedown', handler)
-  }, [active, onOutside, ref])
 }
 
 interface MenuButtonProps {
@@ -47,64 +36,20 @@ interface MenuButtonProps {
 }
 
 function MenuButton({ label, items, open, onToggle, onClose, onHover }: MenuButtonProps) {
-  const wrapRef = useRef<HTMLDivElement>(null)
-  useClickOutside(wrapRef, onClose, open)
-  return (
-    <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        onMouseEnter={onHover}
-        className={`rounded px-2 py-1 text-[13px] transition-colors ${
-          open
-            ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
-        }`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        {label}
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute left-0 top-full z-50 mt-1 min-w-[220px] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] py-1 shadow-xl"
-        >
-          {items.map((item, i) =>
-            item.separator ? (
-              <div
-                key={`sep-${i}`}
-                className="my-1 border-t border-[var(--panel-border)]"
-                aria-hidden
-              />
-            ) : (
-              <button
-                key={item.label}
-                type="button"
-                disabled={item.disabled}
-                onClick={() => {
-                  onClose()
-                  item.onSelect?.()
-                }}
-                className={`flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left text-[13px] transition-colors ${
-                  item.disabled
-                    ? 'cursor-not-allowed text-[var(--text-muted)] opacity-60'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <span>{item.label}</span>
-                {item.shortcut && (
-                  <span className="text-[11px] text-[var(--text-muted)]">
-                    {item.shortcut}
-                  </span>
-                )}
-              </button>
-            )
-          )}
-        </div>
-      )}
-    </div>
-  )
+  const anchor = useRef<HTMLButtonElement>(null)
+  return <>
+    <button ref={anchor} type="button" onClick={onToggle} onMouseEnter={onHover}
+      onKeyDown={event => { if (event.key === 'ArrowDown' && !event.nativeEvent.isComposing) { event.preventDefault(); if (!open) onToggle() } }}
+      className="min-h-8 shrink-0 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+      aria-haspopup="menu" aria-expanded={open}>{label}</button>
+    <PopoverMenu open={open} onClose={onClose} anchorRef={anchor} ariaLabel={`${label} menu`} width="min(320px, calc(100vw - 16px))">
+      <div className="max-h-[calc(100vh-64px)] overflow-y-auto">
+        {items.map((item, index) => item.heading ? <MenuSectionLabel key={`heading-${index}`}>{item.heading}</MenuSectionLabel> : item.separator ? <MenuSeparator key={`separator-${index}`} /> :
+          <MenuRow key={`${index}-${item.label}`} label={item.label ?? ''} shortcut={item.shortcut} disabled={item.disabled}
+            onSelect={() => { onClose(); anchor.current?.focus(); item.onSelect?.() }} />)}
+      </div>
+    </PopoverMenu>
+  </>
 }
 
 // Collapsed-rail widths must match Sidebar's `w-12` (48px) and App's `w-8`
@@ -113,6 +58,7 @@ const SIDEBAR_COLLAPSED_PX = 48
 const RIGHT_COLLAPSED_PX = 32
 
 export function Titlebar({ onSettingsClick }: TitlebarProps) {
+  const compactMenu = useMediaQuery('(max-width: 760px)')
   const settings = useSettingsStore((s) => s.settings)
   const toggleThemeMode = useSettingsStore((s) => s.toggleThemeMode)
   const toggleSidebar = useUiStore((s) => s.toggleSidebar)
@@ -229,7 +175,7 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
     <div className="flex flex-col bg-transparent" style={DRAG}>
       {/* ─── Row 1 ─── nav + menus (left) · centered logo (over chat column) · window controls (right) */}
       <div className="relative flex h-9 items-stretch">
-        <div className="flex items-center gap-3 pl-3" style={NO_DRAG}>
+        <div className="flex min-w-0 items-center gap-1 pl-2 md:gap-3 md:pl-3" style={NO_DRAG}>
           <NavIconButton
             onClick={toggleSidebar}
             title={sidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
@@ -291,7 +237,7 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
             </svg>
           </NavIconButton>
           <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden />
-          {menus.map((m) => (
+          {(compactMenu ? [{ label: 'Menu', items: menus.flatMap(menu => [{ heading: menu.label }, ...menu.items]) }] : menus).map((m) => (
             <MenuButton
               key={m.label}
               label={m.label}
@@ -308,7 +254,7 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
 
         {/* Centered logo — tracks the chat column as sidebar/right-panel resize. */}
         <div
-          className="pointer-events-none absolute inset-y-0 flex items-center justify-center"
+          className="pointer-events-none absolute inset-y-0 hidden items-center justify-center min-[1100px]:flex"
           style={{ left: effectiveSidebar, right: effectiveRight }}
           aria-hidden
         >
@@ -407,7 +353,7 @@ function NavIconButton({ onClick, title, ariaLabel, disabled, children }: NavIco
       disabled={disabled}
       title={title}
       aria-label={ariaLabel}
-      className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded transition-colors ${
         disabled
           ? 'cursor-not-allowed text-[var(--text-muted)] opacity-40'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'

@@ -695,7 +695,7 @@ export function ModelSettings() {
                   value={liveFilter}
                   onChange={(e) => setLiveFilter(e.target.value)}
                   placeholder="Filter model ids"
-                  className="min-w-48 flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+                  className="min-w-0 w-full flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                 />
                 <span className="font-mono text-[11px] text-[var(--text-muted)]">
                   {filteredLiveIds.length} of {liveIds.length}

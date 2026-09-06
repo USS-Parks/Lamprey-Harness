@@ -49,14 +49,15 @@ export function LibraryView() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input
+          aria-label="New collection name"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="New collection name…"
-          className="flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 font-mono text-[12px] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+          className="min-w-0 basis-40 flex-1 rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 font-mono text-[12px] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && newName.trim()) {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing && newName.trim()) {
               void createCollection({ name: newName.trim() })
               setNewName('')
             }
@@ -73,6 +74,7 @@ export function LibraryView() {
           + Collection
         </button>
         <select
+          aria-label="Embedding model"
           value={activeEmbedderId ?? ''}
           onChange={(e) => void setActiveEmbedder(e.target.value)}
           className="rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 py-1 font-mono text-[11px] text-[var(--text-primary)]"
@@ -86,11 +88,11 @@ export function LibraryView() {
         </select>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-3">
-        <div className="w-48 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row">
+        <div className="max-h-40 w-full shrink-0 overflow-y-auto sm:max-h-none sm:w-48">
           <CollectionList />
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
           {collections.length === 0 ? (
             <EmptyCollections />
           ) : activeId ? (
@@ -107,7 +109,7 @@ export function LibraryView() {
             </>
           ) : (
             <p className="font-mono text-[11px] text-[var(--text-muted)]">
-              Select a collection from the left.
+              Select a collection.
             </p>
           )}
         </div>

@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Command menu', exact: true }) to be visible\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<textarea data-chat-input=\"true\" placeholder=\"What would you like to work on?\" rows=\"1\" aria-label=\"Message Lamprey\" class=\"max-h-[200px] min-h-[48px] w-full flex-1 resize-none px-1 py-2 bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]\" style=\"height: 48px;\">UX26 keep this draft</textarea>",
+    "draft": "UX26 keep this draft"
+  }
+}

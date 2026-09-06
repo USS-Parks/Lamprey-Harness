@@ -1,3 +1,4 @@
+import { containDialogTab, useDialogFocus } from '@/hooks/useDialogFocus'
 import { commandById, executeCommand } from '@/lib/app-commands'
 import { useEffect, useRef, useState } from 'react'
 import { useChatStore, navigateTaskHistory } from '@/stores/chat-store'
@@ -37,7 +38,7 @@ function ProjectShortcut({ project }: { project: Project }) {
   const action = (label: string, fn: () => void, disabled = false) => <button key={label} role="menuitem" disabled={disabled} className={`${control} block w-full text-left disabled:opacity-50`} onClick={() => { setOpen(false); fn() }}>{label}</button>
   return <div className="flex min-w-0 items-center gap-1" data-project-id={project.id}>
     {renaming ? <form className="flex min-w-0 flex-1" onSubmit={event => { event.preventDefault(); void rename() }}>
-      <input autoFocus aria-label="Rename project" value={name} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setRenaming(false) }} className="min-w-0 flex-1 rounded bg-[var(--bg-primary)] px-2 text-xs" />
+      <input autoFocus aria-label="Rename project" value={name} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); event.stopPropagation(); setRenaming(false) } }} className="min-w-0 flex-1 rounded bg-[var(--bg-primary)] px-2 text-xs" />
       <button className={control} type="submit">Save</button><button className={control} type="button" onClick={() => setRenaming(false)}>Cancel</button>
     </form> : <button type="button" title={project.name || 'Untitled project'} className={`${control} min-w-0 flex-1 truncate text-left ${active === project.id ? 'bg-[var(--bg-tertiary)]' : ''}`} onClick={() => useUiStore.getState().openProjectView(project.id)}>{project.pinned ? '★ ' : ''}{project.name || 'Untitled project'}</button>}
     <button ref={anchor} type="button" aria-label={`Project actions: ${project.name}`} className={control} onClick={() => setOpen(value => !value)}>⋯</button>
@@ -67,6 +68,8 @@ export function Sidebar() {
   const [creating, setCreating] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const narrow = useMediaQuery(NARROW_VIEWPORT_QUERY)
+  const navigationRef = useRef<HTMLElement>(null)
+  useDialogFocus(navigationRef, narrow && !collapsed)
   const { dragging, onResizeStart } = useResizeDrag(width, setWidth, SIDEBAR_BOUNDS)
   useEffect(() => { void loadProjects() }, [loadProjects])
   useEffect(() => {
@@ -113,7 +116,11 @@ export function Sidebar() {
   </>
   return <>
     {narrow && !collapsed && <button aria-label="Close navigation" className="fixed inset-0 z-20 bg-black/40" onClick={() => setCollapsed(true)} />}
-    <aside aria-label="Task sidebar" className={`panel-shadow flex shrink-0 flex-col overflow-hidden bg-[var(--panel-bg)] ${narrow && !collapsed ? 'fixed bottom-0 left-0 top-0 z-30 rounded-r-[var(--panel-radius)]' : 'relative h-full rounded-[var(--panel-radius)]'}`} style={{ width: collapsed ? 48 : narrow ? `min(${width}px, calc(100vw - 48px))` : width }}>
+    <aside ref={navigationRef} role={narrow && !collapsed ? 'dialog' : 'complementary'} aria-modal={narrow && !collapsed ? true : undefined} tabIndex={-1} aria-label={narrow && !collapsed ? 'Navigation' : 'Task sidebar'} onKeyDown={event => {
+      if (!narrow || collapsed || event.defaultPrevented || event.nativeEvent.isComposing) return
+      containDialogTab(event)
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setCollapsed(true) }
+    }} className={`panel-shadow flex shrink-0 flex-col overflow-hidden bg-[var(--panel-bg)] ${narrow && !collapsed ? 'fixed bottom-0 left-0 top-0 z-30 rounded-r-[var(--panel-radius)]' : 'relative h-full rounded-[var(--panel-radius)]'}`} style={{ width: collapsed ? 48 : narrow ? `min(${width}px, calc(100vw - 48px))` : width }}>
       {body}
       {!collapsed && !narrow && <div onMouseDown={onResizeStart} className={`resize-handle-v resize-handle-v-right ${dragging ? 'dragging' : ''}`} />}
     </aside>

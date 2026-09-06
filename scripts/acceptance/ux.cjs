@@ -152,6 +152,12 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--accessibility-only')) {
+      const result = await require('./ux-accessibility.cjs')({ page, app, ids, profile, output })
+      fs.writeFileSync(path.join(output, 'ACCESSIBILITY.json'), JSON.stringify(result, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--density-only')) {
       const result = await require('./ux-density.cjs')({ page, app, ids, profile, output })
       fs.writeFileSync(path.join(output, 'DENSITY.json'), JSON.stringify(result, null, 2) + '\n')

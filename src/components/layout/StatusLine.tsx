@@ -360,7 +360,7 @@ export function StatusLine() {
 
   return (
     <div
-      role="status"
+      role="group"
       aria-label="Lamprey status line"
       className="flex h-7 shrink-0 items-center gap-2 bg-transparent px-3 text-[11px] text-[var(--text-muted)]"
       data-testid="statusline"

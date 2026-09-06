@@ -1,0 +1,833 @@
+{
+  "worktreeFocusCount": 4,
+  "worktreeMutationsNotRun": "Automatic approval review rejected temporary worktree create/remove. This run uses actual read-only listing and controlled rejected IPC calls; no worktree is created or removed.",
+  "worktreeUiOnlySuccess": {
+    "createSuccessTaskFailureRefresh": true,
+    "removeSuccessRefresh": true,
+    "filesystemMutation": false
+  },
+  "worktreeRejectedOperations": true,
+  "staleListRejected": true,
+  "browserEscapeOwnership": true,
+  "layouts": [
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1,
+      "idle": {
+        "x": 409.8000183105469,
+        "y": 728.7999877929688,
+        "right": 1232.2000427246094,
+        "bottom": 776.7999877929688,
+        "width": 822.4000244140625,
+        "height": 48,
+        "viewWidth": 1440,
+        "viewHeight": 902,
+        "clipped": false
+      },
+      "running": {
+        "x": 1196.2000732421875,
+        "y": 784.7999877929688,
+        "right": 1232.2000732421875,
+        "bottom": 820.7999877929688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1440,
+        "viewHeight": 902,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5,
+      "idle": {
+        "x": 108.53334045410156,
+        "y": 428.5333557128906,
+        "right": 901.4666900634766,
+        "bottom": 476.5333595275879,
+        "width": 792.933349609375,
+        "height": 48.000003814697266,
+        "viewWidth": 960,
+        "viewHeight": 601,
+        "clipped": false
+      },
+      "running": {
+        "x": 865.4667358398438,
+        "y": 484.5333557128906,
+        "right": 901.4667358398438,
+        "bottom": 520.5333557128906,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 960,
+        "viewHeight": 601,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 2,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 238,
+        "right": 661.2000274658203,
+        "bottom": 286,
+        "width": 552.4000244140625,
+        "height": 48,
+        "viewWidth": 720,
+        "viewHeight": 451,
+        "clipped": false
+      },
+      "running": {
+        "x": 625.2000122070312,
+        "y": 294,
+        "right": 661.2000122070312,
+        "bottom": 330,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 720,
+        "viewHeight": 451,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 596.7999877929688,
+        "right": 925.2000274658203,
+        "bottom": 644.7999877929688,
+        "width": 816.4000244140625,
+        "height": 48,
+        "viewWidth": 1024,
+        "viewHeight": 770,
+        "clipped": false
+      },
+      "running": {
+        "x": 889.2000122070312,
+        "y": 652.7999877929688,
+        "right": 925.2000122070312,
+        "bottom": 688.7999877929688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1024,
+        "viewHeight": 770,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5,
+      "idle": {
+        "x": 108.53334045410156,
+        "y": 340.5333557128906,
+        "right": 624.1333770751953,
+        "bottom": 388.5333595275879,
+        "width": 515.6000366210938,
+        "height": 48.000003814697266,
+        "viewWidth": 682,
+        "viewHeight": 513,
+        "clipped": false
+      },
+      "running": {
+        "x": 228.53334045410156,
+        "y": 396.5333557128906,
+        "right": 264.53334045410156,
+        "bottom": 432.5333557128906,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 682,
+        "viewHeight": 513,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 2,
+      "idle": {
+        "x": 96.80000305175781,
+        "y": 132,
+        "right": 465.1999969482422,
+        "bottom": 180,
+        "width": 368.3999938964844,
+        "height": 48,
+        "viewWidth": 512,
+        "viewHeight": 385,
+        "clipped": false
+      },
+      "running": {
+        "x": 429.20001220703125,
+        "y": 188,
+        "right": 465.20001220703125,
+        "bottom": 224,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 512,
+        "viewHeight": 385,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 1,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 428.8000183105469,
+        "right": 741.2000274658203,
+        "bottom": 476.8000183105469,
+        "width": 632.4000244140625,
+        "height": 48,
+        "viewWidth": 800,
+        "viewHeight": 602,
+        "clipped": false
+      },
+      "running": {
+        "x": 705.2000122070312,
+        "y": 484.8000183105469,
+        "right": 741.2000122070312,
+        "bottom": 520.8000183105469,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 800,
+        "viewHeight": 602,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5,
+      "idle": {
+        "x": 96.53334045410156,
+        "y": 148.53334045410156,
+        "right": 486.7917022705078,
+        "bottom": 196.53334426879883,
+        "width": 390.25836181640625,
+        "height": 48.000003814697266,
+        "viewWidth": 533,
+        "viewHeight": 401,
+        "clipped": false
+      },
+      "running": {
+        "x": 450.79168701171875,
+        "y": 204.53334045410156,
+        "right": 486.79168701171875,
+        "bottom": 240.53334045410156,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 533,
+        "viewHeight": 401,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 2,
+      "idle": {
+        "x": 96.80000305175781,
+        "y": 112.80000305175781,
+        "right": 347.20001220703125,
+        "bottom": 160.8000030517578,
+        "width": 250.40000915527344,
+        "height": 48,
+        "viewWidth": 400,
+        "viewHeight": 301,
+        "clipped": false
+      },
+      "running": {
+        "x": 311.20001220703125,
+        "y": 188.8000030517578,
+        "right": 347.20001220703125,
+        "bottom": 224.8000030517578,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 400,
+        "viewHeight": 301,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1,
+      "idle": {
+        "x": 553.7999877929688,
+        "y": 908.7999877929688,
+        "right": 1376.2000122070312,
+        "bottom": 956.7999877929688,
+        "width": 822.4000244140625,
+        "height": 48,
+        "viewWidth": 1920,
+        "viewHeight": 1082,
+        "clipped": false
+      },
+      "running": {
+        "x": 1340.2000732421875,
+        "y": 964.7999877929688,
+        "right": 1376.2000732421875,
+        "bottom": 1000.7999877929688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1920,
+        "viewHeight": 1082,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5,
+      "idle": {
+        "x": 233.53334045410156,
+        "y": 548.5333862304688,
+        "right": 1056.4666900634766,
+        "bottom": 596.533390045166,
+        "width": 822.933349609375,
+        "height": 48.000003814697266,
+        "viewWidth": 1280,
+        "viewHeight": 721,
+        "clipped": false
+      },
+      "running": {
+        "x": 1020.4667358398438,
+        "y": 604.5333862304688,
+        "right": 1056.4667358398438,
+        "bottom": 640.5333862304688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1280,
+        "viewHeight": 721,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 368,
+        "right": 901.2000274658203,
+        "bottom": 416,
+        "width": 792.4000244140625,
+        "height": 48,
+        "viewWidth": 960,
+        "viewHeight": 541,
+        "clipped": false
+      },
+      "running": {
+        "x": 865.2000122070312,
+        "y": 424,
+        "right": 901.2000122070312,
+        "bottom": 460,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 960,
+        "viewHeight": 541,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1,
+      "idle": {
+        "x": 313.8000183105469,
+        "y": 728.7999877929688,
+        "right": 1136.2000427246094,
+        "bottom": 776.7999877929688,
+        "width": 822.4000244140625,
+        "height": 48,
+        "viewWidth": 1440,
+        "viewHeight": 902,
+        "clipped": false
+      },
+      "running": {
+        "x": 1100.2000732421875,
+        "y": 784.7999877929688,
+        "right": 1136.2000732421875,
+        "bottom": 820.7999877929688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1440,
+        "viewHeight": 902,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5,
+      "idle": {
+        "x": 108.53334045410156,
+        "y": 428.5333557128906,
+        "right": 901.4666900634766,
+        "bottom": 476.5333595275879,
+        "width": 792.933349609375,
+        "height": 48.000003814697266,
+        "viewWidth": 960,
+        "viewHeight": 601,
+        "clipped": false
+      },
+      "running": {
+        "x": 865.4667358398438,
+        "y": 484.5333557128906,
+        "right": 901.4667358398438,
+        "bottom": 520.5333557128906,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 960,
+        "viewHeight": 601,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 2,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 238,
+        "right": 661.2000274658203,
+        "bottom": 286,
+        "width": 552.4000244140625,
+        "height": 48,
+        "viewWidth": 720,
+        "viewHeight": 451,
+        "clipped": false
+      },
+      "running": {
+        "x": 625.2000122070312,
+        "y": 294,
+        "right": 661.2000122070312,
+        "bottom": 330,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 720,
+        "viewHeight": 451,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 596.7999877929688,
+        "right": 925.2000274658203,
+        "bottom": 644.7999877929688,
+        "width": 816.4000244140625,
+        "height": 48,
+        "viewWidth": 1024,
+        "viewHeight": 770,
+        "clipped": false
+      },
+      "running": {
+        "x": 889.2000122070312,
+        "y": 652.7999877929688,
+        "right": 925.2000122070312,
+        "bottom": 688.7999877929688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1024,
+        "viewHeight": 770,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5,
+      "idle": {
+        "x": 108.53334045410156,
+        "y": 340.5333557128906,
+        "right": 624.1333770751953,
+        "bottom": 388.5333595275879,
+        "width": 515.6000366210938,
+        "height": 48.000003814697266,
+        "viewWidth": 682,
+        "viewHeight": 513,
+        "clipped": false
+      },
+      "running": {
+        "x": 228.53334045410156,
+        "y": 396.5333557128906,
+        "right": 264.53334045410156,
+        "bottom": 432.5333557128906,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 682,
+        "viewHeight": 513,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 2,
+      "idle": {
+        "x": 96.80000305175781,
+        "y": 132,
+        "right": 465.1999969482422,
+        "bottom": 180,
+        "width": 368.3999938964844,
+        "height": 48,
+        "viewWidth": 512,
+        "viewHeight": 385,
+        "clipped": false
+      },
+      "running": {
+        "x": 429.20001220703125,
+        "y": 188,
+        "right": 465.20001220703125,
+        "bottom": 224,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 512,
+        "viewHeight": 385,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 1,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 428.8000183105469,
+        "right": 741.2000274658203,
+        "bottom": 476.8000183105469,
+        "width": 632.4000244140625,
+        "height": 48,
+        "viewWidth": 800,
+        "viewHeight": 602,
+        "clipped": false
+      },
+      "running": {
+        "x": 705.2000122070312,
+        "y": 484.8000183105469,
+        "right": 741.2000122070312,
+        "bottom": 520.8000183105469,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 800,
+        "viewHeight": 602,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5,
+      "idle": {
+        "x": 96.53334045410156,
+        "y": 148.53334045410156,
+        "right": 486.7917022705078,
+        "bottom": 196.53334426879883,
+        "width": 390.25836181640625,
+        "height": 48.000003814697266,
+        "viewWidth": 533,
+        "viewHeight": 401,
+        "clipped": false
+      },
+      "running": {
+        "x": 450.79168701171875,
+        "y": 204.53334045410156,
+        "right": 486.79168701171875,
+        "bottom": 240.53334045410156,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 533,
+        "viewHeight": 401,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 2,
+      "idle": {
+        "x": 96.80000305175781,
+        "y": 112.80000305175781,
+        "right": 347.20001220703125,
+        "bottom": 160.8000030517578,
+        "width": 250.40000915527344,
+        "height": 48,
+        "viewWidth": 400,
+        "viewHeight": 301,
+        "clipped": false
+      },
+      "running": {
+        "x": 311.20001220703125,
+        "y": 188.8000030517578,
+        "right": 347.20001220703125,
+        "bottom": 224.8000030517578,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 400,
+        "viewHeight": 301,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1,
+      "idle": {
+        "x": 553.7999877929688,
+        "y": 908.7999877929688,
+        "right": 1376.2000122070312,
+        "bottom": 956.7999877929688,
+        "width": 822.4000244140625,
+        "height": 48,
+        "viewWidth": 1920,
+        "viewHeight": 1082,
+        "clipped": false
+      },
+      "running": {
+        "x": 1340.2000732421875,
+        "y": 964.7999877929688,
+        "right": 1376.2000732421875,
+        "bottom": 1000.7999877929688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1920,
+        "viewHeight": 1082,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5,
+      "idle": {
+        "x": 233.53334045410156,
+        "y": 548.5333862304688,
+        "right": 1056.4666900634766,
+        "bottom": 596.533390045166,
+        "width": 822.933349609375,
+        "height": 48.000003814697266,
+        "viewWidth": 1280,
+        "viewHeight": 721,
+        "clipped": false
+      },
+      "running": {
+        "x": 1020.4667358398438,
+        "y": 604.5333862304688,
+        "right": 1056.4667358398438,
+        "bottom": 640.5333862304688,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 1280,
+        "viewHeight": 721,
+        "clipped": false
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2,
+      "idle": {
+        "x": 108.80000305175781,
+        "y": 368,
+        "right": 901.2000274658203,
+        "bottom": 416,
+        "width": 792.4000244140625,
+        "height": 48,
+        "viewWidth": 960,
+        "viewHeight": 541,
+        "clipped": false
+      },
+      "running": {
+        "x": 865.2000122070312,
+        "y": 424,
+        "right": 901.2000122070312,
+        "bottom": 460,
+        "width": 36,
+        "height": 36,
+        "viewWidth": 960,
+        "viewHeight": 541,
+        "clipped": false
+      }
+    }
+  ],
+  "settingsChecks": [
+    {
+      "id": "general",
+      "label": "General",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "automations",
+      "label": "Automations",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "models",
+      "label": "Models",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "api",
+      "label": "API Keys",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "webTools",
+      "label": "Web Tools",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "currentInfo",
+      "label": "Current Info",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "imageGen",
+      "label": "Image Generation",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "tools",
+      "label": "Tools",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "library",
+      "label": "Library",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "rag",
+      "label": "Knowledge Search (RAG)",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "permissions",
+      "label": "Permissions",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "agenticCoding",
+      "label": "Coding Behavior",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "planGoal",
+      "label": "Plans & Goals",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "hooks",
+      "label": "Hooks",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "loops",
+      "label": "Loops",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "orchestration",
+      "label": "Orchestration",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "snip",
+      "label": "Output Filtering (Snip)",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "timeouts",
+      "label": "Timeouts",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "seedBudget",
+      "label": "Context Budgets",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "reasoning",
+      "label": "Reasoning Audit",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "persistence",
+      "label": "Storage & Recovery",
+      "client": 360,
+      "scroll": 360
+    },
+    {
+      "id": "activity",
+      "label": "Activity History",
+      "client": 360,
+      "scroll": 360
+    }
+  ],
+  "manualAssistiveTechnology": "Not performed; automated focus, DOM semantics and actual-app geometry are not a screen-reader listening test."
+}

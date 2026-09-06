@@ -316,11 +316,13 @@ export function BrowserPanel() {
             if (activeId) setBrowserDraft(activeId, e.target.value)
           }}
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return
             if (e.key === 'Enter') {
               e.preventDefault()
               handleNavigate()
             }
             if (e.key === 'Escape') {
+              e.preventDefault(); e.stopPropagation()
               if (activeId) setBrowserDraft(activeId, null)
             }
           }}

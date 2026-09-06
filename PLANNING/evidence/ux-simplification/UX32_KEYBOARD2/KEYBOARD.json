@@ -1,0 +1,402 @@
+{
+  "viewportChecks": [
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1,
+      "geometry": {
+        "width": 1440,
+        "height": 902,
+        "left": 384,
+        "right": 1056,
+        "top": 72.125,
+        "bottom": 829.4625244140625,
+        "resultsHeight": 586.9375,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 960,
+        "height": 601,
+        "left": 144,
+        "right": 816.0000610351562,
+        "top": 48.083335876464844,
+        "bottom": 552.9750289916992,
+        "resultsHeight": 335.29168701171875,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 2,
+      "geometry": {
+        "width": 720,
+        "height": 451,
+        "left": 24,
+        "right": 696,
+        "top": 36.0625,
+        "bottom": 414.73126220703125,
+        "resultsHeight": 208.2687530517578,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1,
+      "geometry": {
+        "width": 1024,
+        "height": 770,
+        "left": 176,
+        "right": 848,
+        "top": 61.5625,
+        "bottom": 708.0250244140625,
+        "resultsHeight": 476.0625,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 682,
+        "height": 513,
+        "left": 8,
+        "right": 674.6666870117188,
+        "top": 41.04166793823242,
+        "bottom": 472.0167045593262,
+        "resultsHeight": 261.375,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 2,
+      "geometry": {
+        "width": 512,
+        "height": 385,
+        "left": 8,
+        "right": 504,
+        "top": 30.78125,
+        "bottom": 354.01251220703125,
+        "resultsHeight": 152.8312530517578,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 1,
+      "geometry": {
+        "width": 802,
+        "height": 602,
+        "left": 64.80000305175781,
+        "right": 736.8000030517578,
+        "top": 48.1875,
+        "bottom": 554.2000122070312,
+        "resultsHeight": 335.6125183105469,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 534,
+        "height": 401,
+        "left": 8,
+        "right": 526.4000244140625,
+        "top": 32.125,
+        "bottom": 369.4666748046875,
+        "resultsHeight": 167.74166870117188,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 2,
+      "geometry": {
+        "width": 401,
+        "height": 301,
+        "left": 8,
+        "right": 392.8000183105469,
+        "top": 24.09375,
+        "bottom": 277.1000061035156,
+        "resultsHeight": 46.60625076293945,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1,
+      "geometry": {
+        "width": 960,
+        "height": 541,
+        "left": 144,
+        "right": 816,
+        "top": 43.26250076293945,
+        "bottom": 497.5312690734863,
+        "resultsHeight": 283.8687438964844,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 1280,
+        "height": 721,
+        "left": 304.0000305175781,
+        "right": 976.0000915527344,
+        "top": 57.6833381652832,
+        "bottom": 663.3750495910645,
+        "resultsHeight": 436.0916748046875,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2,
+      "geometry": {
+        "width": 960,
+        "height": 541,
+        "left": 144,
+        "right": 816,
+        "top": 43.26250076293945,
+        "bottom": 497.5312690734863,
+        "resultsHeight": 283.8687438964844,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1,
+      "geometry": {
+        "width": 1440,
+        "height": 902,
+        "left": 384,
+        "right": 1056,
+        "top": 72.125,
+        "bottom": 829.4625244140625,
+        "resultsHeight": 586.9375,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 960,
+        "height": 601,
+        "left": 144,
+        "right": 816.0000610351562,
+        "top": 48.083335876464844,
+        "bottom": 552.9750289916992,
+        "resultsHeight": 335.29168701171875,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 2,
+      "geometry": {
+        "width": 720,
+        "height": 451,
+        "left": 24,
+        "right": 696,
+        "top": 36.0625,
+        "bottom": 414.73126220703125,
+        "resultsHeight": 208.2687530517578,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1,
+      "geometry": {
+        "width": 1024,
+        "height": 770,
+        "left": 176,
+        "right": 848,
+        "top": 61.5625,
+        "bottom": 708.0250244140625,
+        "resultsHeight": 476.0625,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 682,
+        "height": 513,
+        "left": 8,
+        "right": 674.6666870117188,
+        "top": 41.04166793823242,
+        "bottom": 472.0167045593262,
+        "resultsHeight": 261.375,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 2,
+      "geometry": {
+        "width": 512,
+        "height": 385,
+        "left": 8,
+        "right": 504,
+        "top": 30.78125,
+        "bottom": 354.01251220703125,
+        "resultsHeight": 152.8312530517578,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 1,
+      "geometry": {
+        "width": 802,
+        "height": 602,
+        "left": 64.80000305175781,
+        "right": 736.8000030517578,
+        "top": 48.1875,
+        "bottom": 554.2000122070312,
+        "resultsHeight": 335.6125183105469,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 534,
+        "height": 401,
+        "left": 8,
+        "right": 526.4000244140625,
+        "top": 32.125,
+        "bottom": 369.4666748046875,
+        "resultsHeight": 167.74166870117188,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 2,
+      "geometry": {
+        "width": 401,
+        "height": 301,
+        "left": 8,
+        "right": 392.8000183105469,
+        "top": 24.09375,
+        "bottom": 277.1000061035156,
+        "resultsHeight": 46.60625076293945,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1,
+      "geometry": {
+        "width": 1920,
+        "height": 1082,
+        "left": 624,
+        "right": 1296,
+        "top": 86.5250015258789,
+        "bottom": 995.0625381469727,
+        "resultsHeight": 738.1375122070312,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5,
+      "geometry": {
+        "width": 1280,
+        "height": 721,
+        "left": 304.0000305175781,
+        "right": 976.0000915527344,
+        "top": 57.6833381652832,
+        "bottom": 663.3750495910645,
+        "resultsHeight": 436.0916748046875,
+        "focused": true
+      }
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2,
+      "geometry": {
+        "width": 960,
+        "height": 541,
+        "left": 144,
+        "right": 816,
+        "top": 43.26250076293945,
+        "bottom": 497.5312690734863,
+        "resultsHeight": 283.8687438964844,
+        "focused": true
+      }
+    }
+  ],
+  "commandAliases": true,
+  "modelAndMemoryBindings": true,
+  "modalOwnership": true,
+  "compositionAndRepeatIgnored": true,
+  "sidebarAndTerminalBindings": true,
+  "terminalInputOwnership": true,
+  "reviewAndFiles": true,
+  "fileInputOwnership": true,
+  "browserInputOwnership": true,
+  "narrowZoomKeyboard": true,
+  "worktreeEscape": true,
+  "helpUsesMetadata": true,
+  "newTaskOnce": true,
+  "previousDraftRetained": true
+}

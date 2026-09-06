@@ -64,6 +64,10 @@ module.exports = async function keyboardScenario({ page, app, ids, trackPid }) {
   assert.equal(await page.evaluate(async () => (await window.api.conversation.list()).data.length), count)
   await page.evaluate(id => window.api.browser.closeTab({ id }), browserTab)
   await app.evaluate(({ BrowserWindow }) => { const win = BrowserWindow.getAllWindows()[0]; win.setContentSize(800, 600); win.webContents.setZoomFactor(2) })
+  for (const name of ['Workspace panel', 'Navigation']) {
+    const drawer = page.getByRole('dialog', { name, exact: true })
+    if (await drawer.isVisible()) { await drawer.focus(); await page.keyboard.press('Escape'); await drawer.waitFor({ state: 'hidden' }) }
+  }
   await input.focus(); await page.keyboard.press('Control+Shift+p'); await menu.waitFor(); await page.keyboard.press('Escape')
   assert.equal(await menu.count(), 0)
   await app.evaluate(({ BrowserWindow }) => { const win = BrowserWindow.getAllWindows()[0]; win.webContents.setZoomFactor(1); win.setContentSize(1440, 900) })
@@ -79,6 +83,10 @@ module.exports = async function keyboardScenario({ page, app, ids, trackPid }) {
     await settings.getByRole('button', { name: theme, exact: true }).click(); await page.keyboard.press('Escape')
     for (const [width, height] of [[1440, 900], [1024, 768], [800, 600], [1920, 1080]]) for (const zoom of [1, 1.5, 2]) {
       await app.evaluate(({ BrowserWindow }, { width, height, zoom }) => { const win = BrowserWindow.getAllWindows()[0]; win.setContentSize(width, height); win.webContents.setZoomFactor(zoom) }, { width, height, zoom })
+      for (const name of ['Workspace panel', 'Navigation']) {
+        const drawer = page.getByRole('dialog', { name, exact: true })
+        if (await drawer.isVisible()) { await drawer.focus(); await page.keyboard.press('Escape'); await drawer.waitFor({ state: 'hidden' }) }
+      }
       await input.focus(); await page.keyboard.press('Control+k'); await menu.waitFor()
       const geometry = await menu.evaluate(element => { const rect = element.getBoundingClientRect(); const results = element.querySelector('[role="listbox"]'); return { width: window.innerWidth, height: window.innerHeight, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, resultsHeight: results.getBoundingClientRect().height, focused: element.contains(document.activeElement) } })
       assert(geometry.focused); assert(geometry.left >= 0 && geometry.right <= geometry.width + 1); assert(geometry.top >= 0 && geometry.bottom <= geometry.height + 1); assert(geometry.resultsHeight > 0)

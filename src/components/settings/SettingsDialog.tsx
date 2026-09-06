@@ -1,3 +1,5 @@
+import { containDialogTab, useDialogFocus } from '@/hooks/useDialogFocus'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useEffect, useRef, useState } from 'react'
 import { GeneralSettings } from './GeneralSettings'
 import { AppearanceSettings } from './AppearanceSettings'
@@ -33,6 +35,7 @@ interface SettingsDialogProps {
 type TabId = (typeof TABS)[number]['id']
 
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
+  const compact = useMediaQuery('(max-width: 640px)')
   const initialTab = useUiStore((s) => s.settingsInitialTab)
   const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? 'general')
   const [query, setQuery] = useState('')
@@ -50,11 +53,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   useEffect(() => { if (initialTab) { setActiveTab(initialTab); setQuery(''); setLastQuery('') } }, [initialTab])
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    dialogRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus()
-    return () => { if (previous?.isConnected) previous.focus() }
-  }, [])
+  useDialogFocus(dialogRef, true)
 
   useEffect(() => {
     document.getElementById(`settings-tab-${activeTab}`)?.scrollIntoView({ block: 'nearest' })
@@ -64,10 +63,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
       <div
         ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-heading"
-        className="flex h-[560px] max-h-[calc(100vh-2rem)] w-[720px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-2xl"
+        className="flex max-[640px]:flex-col h-[560px] max-h-[calc(100vh-2rem)] w-[720px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-2xl"
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return
           if (event.key === 'Escape') {
@@ -76,23 +76,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             onClose()
             return
           }
-          if (event.key !== 'Tab') return
-          // Reuse the approval dialog's boundary wrapping, excluding hidden
-          // and disabled controls and inactive tabs.
-          const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button, select, input, textarea, [href], [tabindex]'))
-            .filter((control) => control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length > 0)
-          const first = controls[0]
-          const last = controls[controls.length - 1]
-          if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault()
-            last?.focus()
-          } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault()
-            first?.focus()
-          }
+          containDialogTab(event)
         }}
       >
-        <nav aria-label="Settings groups" className="flex min-h-0 w-48 max-w-[45%] shrink-0 flex-col overflow-y-auto bg-[var(--bg-primary)] p-2">
+        <nav aria-label="Settings groups" className="flex min-h-0 w-48 max-w-[45%] shrink-0 flex-col overflow-y-auto bg-[var(--bg-primary)] p-2 max-[640px]:max-h-[50%] max-[640px]:w-full max-[640px]:max-w-none">
           <div className="mb-2 flex shrink-0 flex-col gap-1">
             <input ref={searchInput} type="search" role="combobox" aria-expanded={!!query} aria-controls="settings-search-results" aria-autocomplete="list" aria-activedescendant={query && results[searchIndex] ? `settings-result-${searchIndex}` : undefined} aria-label="Search settings" placeholder="Search settings" value={query} onChange={event => { setQuery(event.target.value); setSearchIndex(0); setLastQuery('') }} onKeyDown={event => {
               if (event.nativeEvent.isComposing) return
@@ -106,7 +93,9 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           {query ? <div id="settings-search-results" role="listbox" aria-label="Settings search results" className="min-h-0 flex-1 space-y-1 overflow-y-auto">
             <p role="status" className="px-2 py-1 text-xs text-[var(--text-muted)]">{results.length ? `${results.length} sections found` : 'No matching settings.'}</p>
             {results.map((leaf, index) => <button key={leaf.id} id={`settings-result-${index}`} role="option" aria-selected={index === searchIndex} data-settings-result={leaf.id} className={`min-h-10 w-full rounded px-2 py-2 text-left text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${index === searchIndex ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`} onMouseEnter={() => setSearchIndex(index)} onClick={() => chooseResult(leaf.id)}><span className="block font-medium text-[var(--text-primary)]">{leaf.label}</span><span className="block text-[var(--text-muted)]">{SETTINGS_GROUPS.find(group => group.id === leaf.group)?.label}</span><span className="mt-1 block text-[var(--text-secondary)]">{leaf.description}</span></button>)}
-          </div> : SETTINGS_GROUPS.map(group => <div key={group.id}>
+          </div> : compact ? <><select aria-label="Settings section" value={activeTab} onChange={event => setActiveTab(event.target.value as TabId)} className="min-h-8 w-full shrink-0 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 text-xs text-[var(--text-primary)]">
+            {SETTINGS_GROUPS.map(group => <optgroup key={group.id} label={group.label}>{TABS.filter(tab => tab.group === group.id).map(tab => <option key={tab.id} value={tab.id}>{tab.label}</option>)}</optgroup>)}
+          </select>{activeGroup === 'extensions' && <div className="flex flex-wrap gap-1">{(['skills', 'connectors', 'plugins'] as const).map(column => <button key={column} className="min-h-8 rounded px-2 text-xs" onClick={() => { onClose(); useUiStore.getState().openCustomize(column) }}>Manage {column}</button>)}</div>}</> : SETTINGS_GROUPS.map(group => <div key={group.id}>
             <button type="button" data-settings-group={group.id} aria-expanded={activeGroup === group.id} aria-controls={`settings-group-${group.id}`} className={`min-h-9 w-full rounded px-2 py-2 text-left text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${activeGroup === group.id ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} onClick={() => setActiveTab(TABS.find(leaf => leaf.group === group.id)!.id)} onKeyDown={event => {
               const index = SETTINGS_GROUPS.findIndex(item => item.id === group.id)
               const next = event.key === 'ArrowDown' ? (index + 1) % SETTINGS_GROUPS.length : event.key === 'ArrowUp' ? (index + SETTINGS_GROUPS.length - 1) % SETTINGS_GROUPS.length : null
@@ -151,7 +140,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </button>
           </div>
 
-          <div id="settings-panel" role="tabpanel" tabIndex={-1} aria-labelledby={`settings-tab-${activeTab}`} className="min-h-0 flex-1 overflow-y-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]">
+          <div id="settings-panel" role="tabpanel" tabIndex={-1} aria-label={compact ? settingsLeaf(activeTab).label : undefined} aria-labelledby={compact ? undefined : `settings-tab-${activeTab}`} className="min-h-0 flex-1 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]">
             {activeTab === 'general' && <GeneralSettings />}
             {activeTab === 'models' && <ModelSettings />}
             {activeTab === 'agenticCoding' && <AgenticCodingSettings />}

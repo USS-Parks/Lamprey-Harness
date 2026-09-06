@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.getAttribute: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Settings', exact: true }).locator('#settings-tab-rag')\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<div id=\"settings-panel\" role=\"tabpanel\" tabindex=\"-1\" class=\"min-h-0 flex-1 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]\" aria-label=\"Knowledge Search (RAG)\"><div class=\"space-y-4\"><div><h2 class=\"text-[14px] font-medium text-[var(--text-primary)]\">RAG</h2><p class=\"mt-1 text-[12px] text-[var(--text-muted)]\">Local retrieval over your indexed documents. All embeddings and search run on-device.</p></div><div class=\"flex flex-col gap-1\"><h3 ",
+    "draft": ""
+  }
+}

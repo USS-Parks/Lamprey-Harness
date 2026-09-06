@@ -1,0 +1,29 @@
+{
+  "prompt": "UX-32",
+  "sourceBase": "6f2d8ba8b0b34b8777ee4fc02b25a621377c3e3d",
+  "status": "local-pass",
+  "testsPassed": 3124,
+  "nativeAbiSkips": 176,
+  "evidence": [
+    "UX32_BUILD6.log",
+    "UX32_PROOF_FINAL.log",
+    "UX32_LINT_FINAL.log",
+    "UX32_RUN5/ACCESSIBILITY.json",
+    "UX32_RUN5/LIFECYCLE.json",
+    "UX32_SETTINGS2/SETTINGS.json",
+    "UX32_SETTINGS2/LIFECYCLE.json",
+    "UX32_KEYBOARD2/KEYBOARD.json",
+    "UX32_KEYBOARD2/LIFECYCLE.json",
+    "UX32_REVIEW1.md",
+    "UX32_PROOF_REVIEW_FIX.log",
+    "UX32_REVIEW2.md"
+  ],
+  "limitations": [
+    "Manual screen-reader listening was not performed. Automated focus, DOM semantics and geometry are recorded separately.",
+    "Worktree creation/removal was not run: automatic approval review rejected that temporary-worktree lifecycle. Real readonly listing and controlled rejected IPC calls cover the changed UI recovery paths. Backend authority is unchanged.",
+    "Default Node skips 176 native ABI-dependent tests; final Electron-native gate remains UX-36."
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX32.json",
+  "reviewCorrection": "After worktree creation succeeds, refresh independently of optional task creation and preserve its error. RUN5 covers controlled create-success/task-failure and remove-success responses without filesystem mutation.",
+  "review": "ship"
+}

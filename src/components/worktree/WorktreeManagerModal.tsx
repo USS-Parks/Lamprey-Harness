@@ -1,3 +1,4 @@
+import { containDialogTab, useDialogFocus } from '@/hooks/useDialogFocus'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
 import { useChatStore } from '@/stores/chat-store'
@@ -19,92 +20,97 @@ export function WorktreeManagerModal() {
   const [list, setList] = useState<Worktree[]>([])
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const busy = useRef(false)
+  const requests = useRef(0)
   const [newBranch, setNewBranch] = useState('')
   const [newPath, setNewPath] = useState('')
   const owner = useChatStore(s => s.activeConversationId)
   const contextRevision = useUiStore(s => s.workspaceContextRevision)
   const [cwd, setCwd] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    setError(null)
-    if (!window.api?.worktree) {
-      setError('Worktree API unavailable.')
-      return
+  const context = JSON.stringify([visible, owner, contextRevision, projectId, projectPath])
+  const currentContext = useRef(context)
+  currentContext.current = context
+  const refresh = useCallback(async (preserveError = false) => {
+    const request = ++requests.current
+    const current = () => request === requests.current && currentContext.current === context
+    if (!preserveError) setError(null)
+    setCwd(null); setList([])
+    try {
+      if (!window.api?.worktree) throw new Error('Worktree API unavailable.')
+      const folder = projectId
+        ? { success: !!projectPath, data: projectPath ? { path: projectPath } : undefined, error: 'Project folder unavailable' }
+        : await window.api.files.getWorkdir(owner)
+      if (!current()) return
+      if (!folder.success || !folder.data) throw new Error(folder.error ?? 'Task folder unavailable')
+      const result = await window.api.worktree.list({ cwd: folder.data.path })
+      if (!current()) return
+      if (!result.success) throw new Error(result.error ?? 'Could not list worktrees')
+      setCwd(folder.data.path); setList(result.data as Worktree[])
+    } catch (failure) {
+      if (current()) setError(failure instanceof Error ? failure.message : String(failure))
     }
-    setCwd(null)
-    const folder = projectId
-      ? { success: !!projectPath, data: projectPath ? { path: projectPath } : undefined, error: 'Project folder unavailable' }
-      : await window.api.files.getWorkdir(owner)
-    if (!folder.success || !folder.data) { setError(folder.error ?? 'Task folder unavailable'); return }
-    setCwd(folder.data.path)
-    const res = await window.api.worktree.list({ cwd: folder.data.path })
-    if (!res.success) {
-      setError(res.error ?? 'list failed')
-      return
-    }
-    setList(res.data as Worktree[])
-  }, [owner, contextRevision, projectId, projectPath])
+  }, [context, owner, projectId, projectPath])
 
   useEffect(() => {
+    busy.current = false; setCreating(false); setRemoving(null)
     if (visible) void refresh()
+    return () => { requests.current++ }
   }, [visible, refresh])
-
-  useEffect(() => {
-    if (!visible) return
-    const previous = document.activeElement as HTMLElement | null
-    dialog.current?.querySelector<HTMLElement>('button, input')?.focus()
-    return () => { if (previous?.isConnected) previous.focus() }
-  }, [visible])
+  useDialogFocus(dialog, visible)
 
   if (!visible) return null
 
   const handleCreate = async () => {
-    if (!cwd || !newBranch.trim() || !newPath.trim()) {
-      setError('branch and path are required')
-      return
-    }
-    setCreating(true)
-    const res = await window.api?.worktree?.create({
-      cwd,
-      branch: newBranch.trim(),
-      path: newPath.trim()
-    })
-    setCreating(false)
-    if (!res?.success) {
-      setError(res?.error ?? 'create failed')
-      return
-    }
-    const data = res.data as { path: string; branch: string }
-    toast.success(`Worktree created at ${data.path}`)
-    setNewBranch('')
-    setNewPath('')
-    void refresh()
-    // Optionally seed a new thread tagged with this worktree.
-    if (confirm(`Create a new thread for worktree '${data.branch}'?`)) {
-      // createConversation in the store doesn't currently take kind; using
-      // direct IPC so the metadata is recorded.
-      const conv = await window.api.conversation.create(useChatStore.getState().activeModel, {
-        kind: 'worktree',
-        worktreePath: data.path
-      })
-      if (conv.success) {
+    if (busy.current) return
+    if (!cwd || !newBranch.trim() || !newPath.trim()) { setError('Branch and path are required'); return }
+    const request = requests.current
+    const current = () => request === requests.current && currentContext.current === context
+    busy.current = true; setCreating(true); setError(null)
+    let completed = false
+    try {
+      const res = await window.api.worktree.create({ cwd, branch: newBranch.trim(), path: newPath.trim() })
+      if (!current()) return
+      if (!res.success) throw new Error(res.error ?? 'Could not create worktree')
+      completed = true
+      const data = res.data as { path: string; branch: string }
+      toast.success(`Worktree created at ${data.path}`)
+      setNewBranch(''); setNewPath('')
+      if (confirm(`Create a new thread for worktree '${data.branch}'?`)) {
+        const conv = await window.api.conversation.create(useChatStore.getState().activeModel, { kind: 'worktree', worktreePath: data.path })
+        if (!conv.success) throw new Error(conv.error ?? 'Could not create worktree task')
         if (projectId) await useProjectsStore.getState().assignConversation(conv.data.id, projectId)
         await useChatStore.getState().loadConversations()
+        if (!current()) return
         await useChatStore.getState().selectConversation(conv.data.id)
         close()
       }
+    } catch (failure) {
+      if (current()) setError(failure instanceof Error ? failure.message : String(failure))
+    } finally {
+      if (current()) { busy.current = false; setCreating(false) }
     }
+    if (completed && current()) void refresh(true)
   }
 
-  const handleRemove = async (p: string) => {
-    if (!confirm(`Remove worktree at ${p}?`)) return
-    const res = await window.api?.worktree?.remove({ path: p, cwd: cwd ?? undefined })
-    if (!res?.success) {
-      toast.error(res?.error ?? 'remove failed')
-      return
+  const handleRemove = async (path: string) => {
+    if (busy.current || !cwd || !confirm(`Remove worktree at ${path}?`)) return
+    const request = requests.current
+    const current = () => request === requests.current && currentContext.current === context
+    busy.current = true; setRemoving(path); setError(null)
+    let removed = false
+    try {
+      const result = await window.api.worktree.remove({ path, cwd })
+      if (!current()) return
+      if (!result.success) throw new Error(result.error ?? 'Could not remove worktree')
+      removed = true; toast.success('Worktree removed')
+    } catch (failure) {
+      if (current()) setError(failure instanceof Error ? failure.message : String(failure))
+    } finally {
+      if (current()) { busy.current = false; setRemoving(null) }
     }
-    toast.success('Worktree removed')
-    void refresh()
+    if (removed && current()) void refresh()
   }
 
   return (
@@ -114,12 +120,12 @@ export function WorktreeManagerModal() {
         if (e.target === e.currentTarget) close()
       }}
     >
-      <div ref={dialog} role="dialog" aria-label="Worktrees" aria-modal="true" onKeyDown={event => { if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); event.stopPropagation(); close() } }} className="flex w-full max-w-lg flex-col overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl">
+      <div ref={dialog} role="dialog" aria-label="Worktrees" aria-modal="true" tabIndex={-1} onKeyDown={event => { containDialogTab(event); if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); event.stopPropagation(); close() } }} className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-lg flex-col overflow-y-auto rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-4 py-3">
           <h2 className="text-[14px] font-medium text-[var(--text-primary)]">Worktrees</h2>
           <button
             onClick={close}
-            className="rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+            className="min-h-8 min-w-8 rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
             aria-label="Close"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -138,26 +144,26 @@ export function WorktreeManagerModal() {
               type="text"
               value={newBranch}
               onChange={(e) => setNewBranch(e.target.value)}
-              placeholder="branch name (e.g. feature-x)"
+              aria-label="Worktree branch" placeholder="branch name (e.g. feature-x)"
               className="w-full rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
             />
             <input
               type="text"
               value={newPath}
               onChange={(e) => setNewPath(e.target.value)}
-              placeholder="path (relative resolves next to repo, or absolute)"
+              aria-label="Worktree path" placeholder="path (relative resolves next to repo, or absolute)"
               className="w-full rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 py-1 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
             />
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={handleCreate}
-                disabled={creating || !cwd}
-                className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-3 py-1 text-[12px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                disabled={creating || removing !== null || !cwd}
+                className="min-h-8 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-3 py-1 text-[12px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text-primary)] disabled:opacity-50"
               >
                 {creating ? 'Creating…' : 'Create worktree'}
               </button>
             </div>
-            {error && <p className="text-[12px] text-[var(--error)]">{error}</p>}
+            {error && <div role="alert" className="text-xs text-[var(--error)]">{error}<button type="button" disabled={creating || removing !== null} onClick={() => void refresh()} className="min-h-8 px-2 underline">Retry worktree list</button></div>}
           </div>
         </div>
 
@@ -184,10 +190,11 @@ export function WorktreeManagerModal() {
               </div>
               {i > 0 && (
                 <button
+                  disabled={creating || removing !== null}
                   onClick={() => void handleRemove(wt.path)}
-                  className="shrink-0 rounded px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--error)]"
+                  className="min-h-8 shrink-0 rounded px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--error)]"
                 >
-                  remove
+                  {removing === wt.path ? 'Removing…' : 'Remove'}
                 </button>
               )}
             </div>

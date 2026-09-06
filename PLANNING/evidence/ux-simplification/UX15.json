@@ -1,0 +1,14 @@
+{
+  "prompt": "UX-15",
+  "sourceBase": "13f5c525cb00dc06588cb2131d2dbc8c93e9c2de",
+  "status": "local-pass",
+  "affectedTestsPassed": 16,
+  "evidence": [
+    "UX15_RUN/INACTIVE.json",
+    "UX15_RUN/COMPOSER.json",
+    "UX15_RUN/FOLLOW_UP.json",
+    "UX15_RUN/RUNTIME.json",
+    "UX15_RUN/LIFECYCLE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX15.json"
+}

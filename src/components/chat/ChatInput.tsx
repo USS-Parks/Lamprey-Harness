@@ -25,14 +25,13 @@ import {
   historyUp,
   type PromptHistoryState
 } from '@/lib/prompt-history'
-import { currentSlot, nextMode, slotLabel, type ModeSlot } from '@/lib/mode-cycle'
+import { currentSlot, nextMode, slotLabel } from '@/lib/mode-cycle'
 import { usePlanMode } from '@/hooks/usePlanMode'
 import type { ProcessedFile } from '@/lib/types'
 
 import defaultAccessIcon from '@assets/Lamprey Default Access Icon.png'
 import autoReviewIcon from '@assets/Lamprey Auto-Review Icon.png'
 import fullAccessIcon from '@assets/Lamprey Full Access Icon.png'
-import micIcon from '@assets/Lamprey Microphone Icon.png'
 import sendIcon from '@assets/Lamprey Prompt Enter Icon.png'
 
 interface ChatInputProps {
@@ -263,84 +262,41 @@ function PermissionsDropdown() {
   )
 }
 
-interface AddMenuItem {
-  label: string
-  shortcut?: string
-  onSelect: () => void
-}
-
-interface AddMenuProps {
-  onPickFile: () => void
-  onOpenSettings: () => void
-  onInsertSlash: () => void
-}
-
-function AddMenu({ onPickFile, onOpenSettings, onInsertSlash }: AddMenuProps) {
+function AddMenu({ onPickFile, onInsertSlash }: { onPickFile: () => void; onInsertSlash: () => void }) {
   const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-  useClickOutside(wrapRef, () => setOpen(false), open)
-
-  const items: AddMenuItem[] = [
-    { label: 'Add files or photos', shortcut: 'Ctrl+U', onSelect: onPickFile },
-    { label: 'Add folder', onSelect: () => toast.info('Add folder — coming soon') },
-    {
-      label: 'Import GitHub issue',
-      onSelect: () => toast.info('Import GitHub issue — coming soon')
-    },
+  const [help, setHelp] = useState(false)
+  const anchor = useRef<HTMLButtonElement>(null)
+  const items = [
+    { label: 'Add files or photos', shortcut: 'Ctrl/Cmd+U', onSelect: onPickFile },
     { label: 'Slash commands', onSelect: onInsertSlash },
-    { label: 'Connectors', onSelect: () => toast.info('Connectors — coming soon') },
-    { label: 'Plugins', onSelect: onOpenSettings }
+    { label: 'Connectors', onSelect: () => useUiStore.getState().openCustomize('connectors') },
+    { label: 'Plugins', onSelect: () => useUiStore.getState().openCustomize('plugins') },
+    { label: 'Keyboard help', onSelect: () => setHelp(true) }
   ]
-
-  return (
-    <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        title="Add"
-        aria-label="Add"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute bottom-full left-0 z-30 mb-1 w-60 overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] py-1 shadow-xl">
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                item.onSelect()
-              }}
-              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-            >
-              <span>{item.label}</span>
-              {item.shortcut && (
-                <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                  {item.shortcut}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  return <>
+    <button ref={anchor} type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" title="Add" aria-label="Add" className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+    </button>
+    <PopoverMenu open={open} onClose={() => setOpen(false)} anchorRef={anchor} align="top-start" width={260} ariaLabel="Add to prompt">
+      {items.map(item => <button key={item.label} type="button" onClick={() => { setOpen(false); item.onSelect() }} className="flex min-h-9 w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"><span>{item.label}</span>{item.shortcut && <span className="text-[var(--text-muted)]">{item.shortcut}</span>}</button>)}
+    </PopoverMenu>
+    <PopoverMenu open={help} onClose={() => setHelp(false)} anchorRef={anchor} align="top-start" width="min(380px, calc(100vw - 16px))" role="dialog" ariaLabel="Composer keyboard help">
+      <div className="max-h-[65vh] space-y-3 overflow-y-auto p-3 text-xs text-[var(--text-primary)]">
+        <p className="font-medium">Writing a prompt</p>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+          <dt>Enter</dt><dd>Send when idle</dd><dt>Shift+Enter</dt><dd>New line</dd>
+          <dt>↑ / ↓</dt><dd>Recall prompts from the first line; Escape restores your draft</dd>
+          <dt>Shift+Tab</dt><dd>Cycle permissions and plan mode in an empty prompt</dd>
+          <dt>Ctrl/Cmd+U</dt><dd>Attach files</dd><dt>@file</dt><dd>Attach a workspace file</dd>
+          <dt>/command</dt><dd>Find a slash command</dd><dt>#note</dt><dd>Open the memory editor</dd>
+          <dt>Ctrl/Cmd+K</dt><dd>Workflow commands</dd><dt>Ctrl/Cmd+P</dt><dd>Find workspace files</dd>
+          <dt>Escape</dt><dd>Close the current menu or stop the active turn</dd>
+        </dl>
+        <p className="text-[var(--text-muted)]">During a turn, use Steer or Queue to submit a follow-up. Stop stays beside them.</p>
+        <button type="button" onClick={() => { setHelp(false); anchor.current?.focus() }} className="min-h-8 rounded px-2 hover:bg-[var(--bg-tertiary)]">Close keyboard help</button>
+      </div>
+    </PopoverMenu>
+  </>
 }
 
 export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInputProps) {
@@ -362,7 +318,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const composeSeedToken = useUiStore((s) => s.composeSeedToken)
   const consumeComposeDraft = useUiStore((s) => s.consumeComposeDraft)
   const seedMemoryDescription = useUiStore((s) => s.seedMemoryDescription)
-  const openSettings = useUiStore((s) => s.openSettings)
   const refreshProviders = useProvidersStore((s) => s.refresh)
   const providersLoaded = useProvidersStore((s) => s.loaded)
   const activeModel = useChatStore((s) => s.activeModel)
@@ -713,13 +668,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const setPlanModeFlag = useUiStore((s) => s.setPlanMode)
   const planControl = usePlanMode()
 
-  // "Live" slot blends ui-store's local flags with plan-store's IPC truth so
-  // the indicator reflects whichever transitioned most recently.
-  const liveSlot: ModeSlot = currentSlot({
-    permissions: permissionsMode,
-    plan: planModeLocal || planModeActive
-  })
-
   const cycleMode = () => {
     const next = nextMode({
       permissions: permissionsMode,
@@ -1030,7 +978,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
         <div className="flex flex-wrap items-center gap-1">
           <AddMenu
             onPickFile={handlePickerClick}
-            onOpenSettings={openSettings}
             onInsertSlash={() => {
               setContent((c) => (c.startsWith('/') ? c : `/${c}`))
               textareaRef.current?.focus()
@@ -1042,19 +989,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           <PermissionsDropdown />
           <div className="flex-1" />
 
-          <button
-            onClick={() => toast.info('Voice input coming soon')}
-            title="Voice input"
-            aria-label="Voice input"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <img
-              src={micIcon}
-              alt=""
-              aria-hidden
-              className="icon-asset h-[25px] w-[25px] object-contain"
-            />
-          </button>
           {isStreaming ? (
             <div className="flex shrink-0 items-center gap-2 self-end">
               <button
@@ -1149,21 +1083,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
 
         <div className="flex items-center justify-between gap-2"><TaskContext /><ToolActivityChip /></div>
       </div>
-
-      {/* Fluidity J2 — slim mode indicator below the input bar. The `key` swap
-          on slot change gives React a fresh element each cycle so the CSS
-          opacity transition replays without needing a keyframe definition. */}
-      <div className="mt-1 flex justify-center">
-        <span
-          key={liveSlot}
-          data-mode-slot={liveSlot}
-          style={{ opacity: 0, animation: 'lamprey-mode-fade 200ms ease-out forwards' }}
-          className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]"
-        >
-          {slotLabel(liveSlot)} · ⇧⇥ to cycle
-        </span>
-      </div>
-      <style>{`@keyframes lamprey-mode-fade { from { opacity: 0; transform: translateY(-1px) } to { opacity: 1; transform: translateY(0) } }`}</style>
 
       {keyPromptProvider && (
         <ApiKeyModal

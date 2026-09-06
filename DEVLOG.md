@@ -1,3 +1,11 @@
+## 2026-09-05 — UX-15: Useful composer actions and discoverable keyboard help
+
+Removed the inactive voice button and Add folder/Import issue placeholders. Connectors and Plugins now open their actual Customize columns. The Add menu uses the existing bounded keyboard popover; its help dialog documents the current composer shortcuts and restores focus on Escape/Close. Removed the duplicate animated mode hint below the input; named working-mode and permission controls remain. The microphone source asset is retained for future work, with its unused import removed.
+
+Verification: all 16 mode/history tests, renderer TypeScript and production build passed; full lint and both TypeScript projects are mandatory commit hooks. Actual Electron UX15_RUN verified the exact retained Add actions, no voice or duplicate mode hint, keyboard-help discovery/focus, both real Customize columns and slash insertion preserving text. Earlier attachment, permission, follow-up/Stop and idle/running scenarios passed on the same build, along with all shared resource/model/context cases and cleanup. Task-switch and rejection draft ownership remains the explicit UX-16 acceptance gate.
+
+Files: ChatInput, shared acceptance runner/inactive module/manifest and receipts. Commit: resolve the introducing commit of UX15.json. UX-11 CI and Pages are green while its platform build finishes; UX-12/13/14 remain separately verified commits for ordered pushes.
+
 ## 2026-09-05 — UX-14: Searchable model choice from the actual catalog
 
 Extracted the compact model picker from ChatInput. Search covers model names, exact IDs and providers; usable providers sort first, an optional ready-only filter retains a clear full-catalog route, the selected row is revealed, long labels truncate, and keyboard navigation/Escape reuse the existing bounded popover. Keyless and stored-key labels describe setup state without claiming live capability validation. Removed the duplicate fallback catalog and the first-model display fallback; the trigger shows the actual saved ID while metadata loads. Selection still calls the existing model store, and missing keys open the existing provider-specific modal.

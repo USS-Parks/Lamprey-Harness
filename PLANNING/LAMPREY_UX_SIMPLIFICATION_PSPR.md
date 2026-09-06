@@ -321,7 +321,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; local/keyless and configured-provider selection, missing-key setup, search/empty results, long labels, keyboard selection and externally refreshed key state work. A display label never changes provider routing or advertises unproven capabilities.
 
 #### UX-15 — Remove inactive controls and redundant composer hints
-- [ ] **Objective:** ensure every visible composer affordance does something useful now.
+- [x] **Objective:** ensure every visible composer affordance does something useful now.
 - **Work:** hide the nonfunctional voice button; consolidate duplicate mode/help text and remove obsolete visual assets/imports only when unused. Keep documented keyboard/help discovery in an accessible menu. Do not implement voice or delete future-facing source artifacts merely to reduce file count.
 - **Seams/output:** ChatInput, composer styles/help labels and demonstrably unused imports.
 - **Gate:** G1 and UI inspection; no visible click target ends in a coming-soon toast; all retained controls have names and real outcomes; layout remains coherent with/without attachments and while running.

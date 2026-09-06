@@ -1,3 +1,4 @@
+import { useComposerStore, composerOwnerKey, EMPTY_COMPOSER_DRAFT } from './composer-store'
 import { create } from 'zustand'
 import type {
   AgentRunPhase,
@@ -37,6 +38,9 @@ import type {
   TurnSettledEvent,
   TurnStartedEvent
 } from '@/lib/turn-control-types'
+
+const submittingOwners = new Set<string>()
+const pendingSends = new Map<string, { text: string; attachments: ProcessedFile[]; messageId: string }>()
 
 export interface ToolCallState {
   callId: string
@@ -140,14 +144,14 @@ interface ChatState {
   updateToolCall: (event: ToolCallResultEvent) => void
   clearToolCalls: () => void
   setRunPhase: (phase: AgentRunPhase | null) => void
-  addAttachments: (files: ProcessedFile[]) => void
+  addAttachments: (files: ProcessedFile[], owner?: string | null) => void
   removeAttachment: (index: number) => void
   clearAttachments: () => void
-  setAttachmentsProcessing: (v: boolean) => void
+  setAttachmentsProcessing: (v: boolean, owner?: string | null) => void
   /**
    * Fluidity J1: most-recent-first list of the user's prior prompts in the
    * active conversation. Used by ChatInput's ↑/↓ history walker. Strips the
-   * attachment-block suffix that buildAttachmentBlock appends at send time
+   * attachment-block suffix assembled by the canonical input builder
    * so the recalled text is what the user originally typed.
    */
   getRecentUserPrompts: (limit?: number) => string[]
@@ -167,43 +171,6 @@ interface ChatState {
 const turnHydrationGenerations = new Map<string, number>()
 
 export type FollowUpActionResult = { success: true } | { success: false; error: string }
-
-function extOf(name: string): string {
-  const dot = name.lastIndexOf('.')
-  return dot >= 0 ? name.slice(dot + 1).toLowerCase() : ''
-}
-
-function buildAttachmentBlock(file: ProcessedFile): string {
-  if (file.error) return `\n\n[Attachment ${file.name}: ${file.error}]`
-  if (file.kind === 'text') {
-    const lang = extOf(file.name)
-    const open = lang ? '```' + lang : '```'
-    const close = '```'
-    return '\n\n[Attachment ' + file.name + ']\n' + open + '\n' + file.content + '\n' + close
-  }
-  if (file.kind === 'pdf') {
-    return `\n\n[PDF ${file.name}]\n${file.content || '(no extractable text)'}`
-  }
-  if (file.kind === 'binary') {
-    return `\n\n[Attachment ${file.name}: ${file.previewText || 'binary file, content not included.'}]`
-  }
-  if (file.kind === 'rag-pending') {
-    // The file's content reaches the model via augmentForChat's
-    // <retrieved_context> block at chat-send time, not inline here. We
-    // leave a one-line marker so the model knows a corpus is attached
-    // and can reason about citation expectations even before the first
-    // <retrieved_context> arrives.
-    const phase = file.ragPhase ?? 'queued'
-    if (phase === 'ready') {
-      return `\n\n[Indexed corpus: ${file.name} — ${file.ragChunkCount ?? '?'} chunks available via retrieval]`
-    }
-    if (phase === 'error') {
-      return `\n\n[Attachment ${file.name}: indexing failed${file.error ? ` — ${file.error}` : ''}]`
-    }
-    return `\n\n[Indexing ${file.name} — chunks not yet available for this turn]`
-  }
-  return ''
-}
 
 function followUpFailure(error: unknown, fallback: string): FollowUpActionResult {
   return { success: false, error: errorMessage(error, fallback) }
@@ -373,6 +340,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   applyTurnStarted: (event) => {
+    const submitted = pendingSends.get(event.conversationId)
+    if (submitted) {
+      const composer = useComposerStore.getState()
+      const current = composer.drafts[composerOwnerKey(event.conversationId)]
+      if (current?.text === submitted.text) composer.patch(event.conversationId, { text: '' })
+      updateOwnerAttachments(event.conversationId, files => files.filter(file => !submitted.attachments.includes(file)))
+      pendingSends.delete(event.conversationId)
+    }
     set((state) => {
       const next = applyTurnStartedEvent(
         state.turnControlByConversation[event.conversationId],
@@ -465,9 +440,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             })
       await get().hydrateTurnControl(conversationId)
       if (!result.success) return { success: false, error: result.error ?? `${mode} failed.` }
-      set(current => current.activeConversationId === conversationId ? {
-        pendingAttachments: current.pendingAttachments.filter(file => !state.pendingAttachments.includes(file))
-      } : {})
+      updateOwnerAttachments(conversationId, files => files.filter(file => !state.pendingAttachments.includes(file)))
       return { success: true }
     } catch (error) {
       return followUpFailure(error, `${mode} failed.`)
@@ -561,11 +534,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   createConversation: async () => {
+    const startingOwner = get().activeConversationId
     const model = get().activeModel
     try {
       const result = await window.api.conversation.create(model)
       if (result.success) {
         const conv = result.data
+        if (get().activeConversationId !== startingOwner) {
+          set(state => ({ conversations: [conv, ...state.conversations] }))
+          return conv.id
+        }
         useNavHistoryStore.getState().push(conv.id)
         set((state) => ({
           conversations: [conv, ...state.conversations],
@@ -639,6 +617,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       toast.error(res.error ?? 'Could not delete conversation')
       return
     }
+    useComposerStore.getState().forget(id)
     const wasActive = get().activeConversationId === id
     turnHydrationGenerations.delete(id)
     set((state) => ({
@@ -678,111 +657,112 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessage: async (content: string, activeSkillIds: string[]) => {
     const state = get()
-    let conversationId = state.activeConversationId
-
-    if (!conversationId) {
-      conversationId = await get().createConversation()
-      if (!conversationId) return
-    }
-
-    // Resolve attachments + vision check
-    const pending = state.pendingAttachments
-    const modelInfo = useModelStore.getState().models.find((m) => m.id === state.activeModel)
-    const supportsVision = modelInfo?.supportsVision ?? false
-    const images = pending.filter((f) => f.kind === 'image')
-    const nonImages = pending.filter((f) => f.kind !== 'image')
-
-    if (images.length > 0 && !supportsVision) {
-      const label = modelInfo?.name ?? state.activeModel
-      toast.warning(
-        `${label} does not support images — ${images.length} image attachment${images.length === 1 ? '' : 's'} dropped.`
-      )
-    }
-
-    const attachmentBlocks = nonImages.map(buildAttachmentBlock).join('')
-    const augmentedContent = attachmentBlocks ? `${content}${attachmentBlocks}` : content
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: augmentedContent,
-      timestamp: Date.now(),
-      conversationId,
-      model: state.activeModel
-    }
-
-    set((s) => ({
-      messages: [...s.messages, userMessage],
-      isStreaming: true,
-      streamingContent: '',
-      streamingReasoning: '',
-      streamingDocuments: [],
-      streamingVisualizations: [],
-      streamingVitals: null,
-      streamStartedAt: Date.now(),
-      toolCalls: [],
-      runPhase: 'understanding',
-      pendingAttachments: []
-    }))
-
-    // UB-6 (Unburdening Phase, 2026-06-10) — the per-turn agentMode override
-    // died with the pipeline; every turn is single-agent.
-    let result
+    const submitOwner = composerOwnerKey(state.activeConversationId)
+    if (submittingOwners.has(submitOwner) || state.isStreaming) return
+    submittingOwners.add(submitOwner)
     try {
-      result = await window.api.chat.send({
-        conversationId,
-        model: state.activeModel,
-        content: augmentedContent,
-        activeSkillIds
-      })
-    } catch (err) {
-      const msg = errorMessage(err, 'Message failed')
-      console.error('[chat-store] chat:send threw:', err)
-      toast.error(msg)
-      get().streamError(msg)
-      return
-    }
+      let conversationId = state.activeConversationId
 
-    if (!result.success) {
-      const msg = result.error ?? 'Message failed'
-      console.error('[chat-store] chat:send failed:', msg)
-      toast.error(msg)
-      get().streamError(msg)
-      return
-    }
-
-    if (result.data.conversationId !== conversationId) {
-      set({ activeConversationId: result.data.conversationId })
-    }
-
-    // Auto-title: first message sets conversation title
-    // JM-21 (RD-10) — write the title to the conversation that OWNED this
-    // send, captured at the top of the function. Using
-    // get().activeConversationId! here meant a mid-stream conversation switch
-    // (or delete, which nulls it and makes the `!` lie) landed the title on
-    // the wrong conversation or an undefined id.
-    const titleConversationId = result.data.conversationId ?? conversationId
-    const msgs = get().messages
-    const userMsgs = msgs.filter((m) => m.role === 'user')
-    if (titleConversationId && userMsgs.length === 1) {
-      const fallback = content.slice(0, 40)
-      await window.api.conversation.updateTitle(titleConversationId, fallback)
-      await get().loadConversations()
-
-      // Optional AI-generated title (fire-and-forget; falls back silently on error)
-      if (useSettingsStore.getState().settings.aiGeneratedTitles) {
-        void window.api.chat.generateTitle(content).then(async (titleResult) => {
-          if (
-            titleResult.success &&
-            typeof titleResult.data === 'string' &&
-            titleResult.data.trim()
-          ) {
-            await window.api.conversation.updateTitle(titleConversationId, titleResult.data.trim())
-            await get().loadConversations()
-          }
-        })
+      if (!conversationId) {
+        conversationId = await get().createConversation()
+        if (!conversationId) return
+        await useComposerStore.getState().move(state.activeConversationId, conversationId)
       }
-    }
+
+      const pending = state.pendingAttachments
+      let input: TurnInputItem[]
+      try { input = buildCanonicalFollowUpInput(content, pending) }
+      catch (error) { toast.error(String(error)); return }
+      const modelInfo = useModelStore.getState().models.find(m => m.id === state.activeModel)
+      if (pending.some(file => file.kind === 'image') && !modelInfo?.supportsVision) {
+        toast.error(`${modelInfo?.name ?? state.activeModel} does not support images. Choose a vision model or remove the images; your draft is retained.`)
+        return
+      }
+      const augmentedContent = input.map(item => item.type === 'text' ? item.text : `[Image: ${item.name ?? 'attachment'}]`).join('\n\n')
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: augmentedContent,
+        timestamp: Date.now(),
+        conversationId,
+        model: state.activeModel
+      }
+
+      pendingSends.set(conversationId, { text: useComposerStore.getState().drafts[composerOwnerKey(conversationId)]?.text ?? content, attachments: pending, messageId: userMessage.id })
+      set((s) => s.activeConversationId === conversationId ? ({
+        messages: [...s.messages, userMessage],
+        isStreaming: true,
+        streamingContent: '',
+        streamingReasoning: '',
+        streamingDocuments: [],
+        streamingVisualizations: [],
+        streamingVitals: null,
+        streamStartedAt: Date.now(),
+        toolCalls: [],
+        runPhase: 'understanding'
+      }) : {})
+
+      // UB-6 (Unburdening Phase, 2026-06-10) — the per-turn agentMode override
+      // died with the pipeline; every turn is single-agent.
+      let result
+      try {
+        result = await window.api.chat.send({
+          conversationId,
+          model: state.activeModel,
+          content,
+          input,
+          activeSkillIds
+        })
+      } catch (err) {
+        const msg = errorMessage(err, 'Message failed')
+        toast.error(msg)
+        if (pendingSends.has(conversationId)) {
+          pendingSends.delete(conversationId)
+          if (get().activeConversationId === conversationId) set(s => ({ messages: s.messages.filter(message => message.id !== userMessage.id) }))
+        }
+        if (get().activeConversationId === conversationId) get().streamError(msg)
+        return
+      }
+      if (!result.success) {
+        const msg = result.error ?? 'Message failed'
+        toast.error(msg)
+        if (pendingSends.has(conversationId)) {
+          pendingSends.delete(conversationId)
+          if (get().activeConversationId === conversationId) set(s => ({ messages: s.messages.filter(message => message.id !== userMessage.id) }))
+        }
+        if (get().activeConversationId === conversationId) get().streamError(msg)
+        return
+      }
+
+      // Auto-title: first message sets conversation title
+      // JM-21 (RD-10) — write the title to the conversation that OWNED this
+      // send, captured at the top of the function. Using
+      // get().activeConversationId! here meant a mid-stream conversation switch
+      // (or delete, which nulls it and makes the `!` lie) landed the title on
+      // the wrong conversation or an undefined id.
+      const titleConversationId = result.data.conversationId ?? conversationId
+      const msgs = [...state.messages, userMessage]
+      const userMsgs = msgs.filter((m) => m.role === 'user')
+      if (titleConversationId && userMsgs.length === 1) {
+        const fallback = content.slice(0, 40)
+        await window.api.conversation.updateTitle(titleConversationId, fallback)
+        await get().loadConversations()
+
+        // Optional AI-generated title (fire-and-forget; falls back silently on error)
+        if (useSettingsStore.getState().settings.aiGeneratedTitles) {
+          void window.api.chat.generateTitle(content).then(async (titleResult) => {
+            if (
+              titleResult.success &&
+              typeof titleResult.data === 'string' &&
+              titleResult.data.trim()
+            ) {
+              await window.api.conversation.updateTitle(titleConversationId, titleResult.data.trim())
+              await get().loadConversations()
+            }
+          })
+        }
+      }
+    } finally { submittingOwners.delete(submitOwner) }
   },
 
   cancelStream: () => {
@@ -990,7 +970,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ runPhase: phase })
   },
 
-  addAttachments: (files: ProcessedFile[]) => {
+  addAttachments: (files: ProcessedFile[], owner = get().activeConversationId) => {
     if (!files.length) return
     // Seed rag-pending files with a queued phase so the chip can render an
     // "Indexing…" state immediately, before the auto-attach IPC returns.
@@ -1002,7 +982,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ? { ...withId, ragPhase: 'queued' as const, ragProgress: 0 }
         : withId
     })
-    set((state) => ({ pendingAttachments: [...state.pendingAttachments, ...seeded] }))
+    updateOwnerAttachments(owner, files => [...files, ...seeded])
     for (const f of files) {
       if (f.error) toast.warning(`${f.name}: ${f.error}`)
     }
@@ -1012,6 +992,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // ingest job, and stamps the returned jobId onto the matching chip so
     // progress events can update it. The auto-attach IPC requires a
     // conversationId; if none exists yet we create one first.
+    let taskCreation: Promise<string> | null = null
     for (const f of seeded) {
       if (f.kind !== 'rag-pending') continue
       if (!f.sourcePath) {
@@ -1019,9 +1000,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         continue
       }
       void (async () => {
-        let convId = get().activeConversationId
+        let convId = owner
         if (!convId) {
-          convId = await get().createConversation()
+          taskCreation ??= get().createConversation().then(async id => { if (id) await useComposerStore.getState().move(owner, id); return id })
+          convId = await taskCreation
           if (!convId) return
         }
         try {
@@ -1033,29 +1015,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
           if (!res?.success) {
             const errMsg = res?.error ?? 'auto-attach failed'
             toast.error(`${f.name}: ${errMsg}`)
-            set((state) => ({
-              pendingAttachments: state.pendingAttachments.map((a) =>
-                a.clientId === f.clientId && a.kind === 'rag-pending'
-                  ? { ...a, ragPhase: 'error' as const, error: errMsg }
-                  : a
-              )
-            }))
+            updateOwnerAttachments(convId, files => files.map(a => a.clientId === f.clientId && a.kind === 'rag-pending' ? { ...a, ragPhase: 'error' as const, error: errMsg } : a))
             return
           }
           const { jobId, collectionId } = res.data as {
             jobId: string
             collectionId: string
           }
-          set((state) => ({
-            pendingAttachments: state.pendingAttachments.map((a) =>
-              a.clientId === f.clientId && a.kind === 'rag-pending'
-                ? { ...a, ingestJobId: jobId, collectionId }
-                : a
-            )
-          }))
+          updateOwnerAttachments(convId, files => files.map(a => a.clientId === f.clientId && a.kind === 'rag-pending' ? { ...a, ingestJobId: jobId, collectionId } : a))
         } catch (err) {
           const msg = (err as Error)?.message ?? 'auto-attach threw'
           toast.error(`${f.name}: ${msg}`)
+          updateOwnerAttachments(convId, files => files.map(a => a.clientId === f.clientId ? { ...a, ragPhase: 'error' as const, error: msg } : a))
         }
       })()
     }
@@ -1063,9 +1034,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   removeAttachment: (index: number) => {
     const removed = get().pendingAttachments[index]
-    set((state) => ({
-      pendingAttachments: state.pendingAttachments.filter((_, i) => i !== index)
-    }))
+    updateOwnerAttachments(get().activeConversationId, files => files.filter((_, i) => i !== index))
     // If a rag-pending chip is removed mid-ingest, drop the conversation→
     // collection link so augmentForChat stops querying it. We deliberately
     // do NOT delete the ingested document — it stays in the auto-collection
@@ -1093,30 +1062,35 @@ export const useChatStore = create<ChatState>((set, get) => ({
     chunkCount?: number
     error?: string
   }) => {
-    set((state) => ({
-      pendingAttachments: state.pendingAttachments.map((a) => {
-        if (a.kind !== 'rag-pending' || a.ingestJobId !== event.jobId) return a
-        return {
-          ...a,
-          documentId: event.documentId || a.documentId,
-          ragPhase: event.phase as ProcessedFile['ragPhase'],
-          ragProgress: event.progress,
-          ragChunkCount: event.chunkCount ?? a.ragChunkCount,
-          error: event.error ?? a.error
-        }
-      })
+    const owners = new Set<string | null>([get().activeConversationId, ...Object.keys(useComposerStore.getState().drafts).map(key => key === '__new__' ? null : key)])
+    for (const owner of owners) updateOwnerAttachments(owner, files => files.map(a => {
+      if (a.kind !== 'rag-pending' || a.ingestJobId !== event.jobId) return a
+      return { ...a, documentId: event.documentId || a.documentId, ragPhase: event.phase as ProcessedFile['ragPhase'], ragProgress: event.progress, ragChunkCount: event.chunkCount ?? a.ragChunkCount, error: event.error ?? a.error }
     }))
   },
 
-  clearAttachments: () => {
-    set({ pendingAttachments: [] })
-  },
-
-  setAttachmentsProcessing: (v: boolean) => {
-    set({ attachmentsProcessing: v })
-  },
+  clearAttachments: () => updateOwnerAttachments(get().activeConversationId, () => []),
+  setAttachmentsProcessing: (v: boolean, owner = get().activeConversationId) => useComposerStore.getState().processing(owner, v),
 
   getRecentUserPrompts: (limit = 50) => {
     return getRecentUserPromptsFrom(get().messages, limit)
   }
 }))
+
+function updateOwnerAttachments(owner: string | null, update: (files: ProcessedFile[]) => ProcessedFile[]): void {
+  const state = useChatStore.getState()
+  const files = state.activeConversationId === owner ? state.pendingAttachments : useComposerStore.getState().drafts[composerOwnerKey(owner)]?.attachments ?? []
+  const next = update(files)
+  if (next.length === files.length && next.every((file, i) => file === files[i])) return
+  useComposerStore.getState().patch(owner, { attachments: next })
+}
+function projectComposerAttachments(): void {
+  const chat = useChatStore.getState()
+  const draft = useComposerStore.getState().drafts[composerOwnerKey(chat.activeConversationId)] ?? EMPTY_COMPOSER_DRAFT
+  if (chat.pendingAttachments !== draft.attachments || chat.attachmentsProcessing !== (draft.processing > 0)) useChatStore.setState({ pendingAttachments: draft.attachments, attachmentsProcessing: draft.processing > 0 })
+}
+useComposerStore.subscribe(projectComposerAttachments)
+useChatStore.subscribe((state, previous) => {
+  if (state.activeConversationId === previous.activeConversationId) return
+  projectComposerAttachments()
+})

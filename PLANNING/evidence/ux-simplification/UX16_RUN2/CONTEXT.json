@@ -1,0 +1,17 @@
+{
+  "taskAndProjectPaths": true,
+  "fileConfinement": true,
+  "modelUsesOwningAgentsFile": true,
+  "branchCreateAndExternalRefresh": true,
+  "failedBranchPreservesDirtyFiles": true,
+  "commitDialogOwnsDirectory": true,
+  "revealFailureVisible": true,
+  "worktreeCreatedSelectedAndRemoved": true,
+  "worktreeOwner": "isolated UX fixture",
+  "worktreePurpose": "test existing manager without dependencies or production repo changes",
+  "worktreeRetirement": "verified clean, removed through UI, original registry restored",
+  "projectAssignment": true,
+  "folderSelectionPersisted": true,
+  "floatingSpaceRemoved": true,
+  "boundaries": "Real Git, file processing, model request and task/project storage; clipboard, external reveal and chooser boundaries controlled; only synthetic fixture worktree created and removed."
+}

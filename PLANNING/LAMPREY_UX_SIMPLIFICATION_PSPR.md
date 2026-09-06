@@ -327,7 +327,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1 and UI inspection; no visible click target ends in a coming-soon toast; all retained controls have names and real outcomes; layout remains coherent with/without attachments and while running.
 
 #### UX-16 — Accept the integrated composer workflow
-- [ ] **Objective:** prove the whole composer remains usable across task transitions.
+- [x] **Objective:** prove the whole composer remains usable across task transitions.
 - **Work:** execute the shared acceptance scenarios on the compact composer, including draft ownership, attachment errors, active task switching, follow-up preference, Stop and approval interruptions.
 - **Seams/output:** existing acceptance runner; composer milestone receipt and before/after screenshots.
 - **Gate:** G2/G3/G4 for the affected controls; stable focus and readable input at narrow widths and 200% scale; no lost/duplicated messages or hidden Stop. Record measured navigation reduction against UX-00 and storage closeout; fix regressions before accepting C.

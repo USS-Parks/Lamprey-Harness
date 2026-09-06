@@ -1,0 +1,20 @@
+{
+  "primaryPreferenceMenuDoesNotSubmit": true,
+  "failedIpcPreservesDraft": true,
+  "unreadableAttachmentRejected": true,
+  "delayedAcknowledgementKeepsNewDraft": true,
+  "synchronousDoubleSubmit": "one durable record",
+  "orderedMixedInput": [
+    "text",
+    "image",
+    "text"
+  ],
+  "editReorderReload": true,
+  "sendNowAndSteerDelivered": true,
+  "staleTurnRejected": "turnMismatch",
+  "explicitDelete": true,
+  "cancellationRecoveryAndReloadRetry": true,
+  "requests": 3,
+  "activeTurn": "c7e0233a-f877-4749-bef2-af758cb576ab",
+  "boundaries": "Real renderer/preload/main turn service, SQLite, file processing and loopback provider; native file chooser and IPC fault/acknowledgement boundaries controlled."
+}

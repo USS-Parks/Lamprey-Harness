@@ -1,0 +1,18 @@
+{
+  "prompt": "UX-16",
+  "sourceBase": "b8ebcf487dee15d52fe6a137dc0ff564d3f71a6b",
+  "status": "local-pass",
+  "fullTestsPassed": 3044,
+  "nativeTestsPassed": 171,
+  "nativeSkipped": 0,
+  "evidence": [
+    "UX16_COMPOSER_MILESTONE.md",
+    "UX16_FOCUSED9/COMPOSER_INTEGRATED.json",
+    "UX16_FOCUSED9/COMPOSER_LAYOUTS.json",
+    "UX16_FOCUSED9/LIFECYCLE.json",
+    "UX16_NATIVE_RESULTS.json",
+    "UX16_PROOF_PUSH14.log",
+    "UX16_STORAGE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX16.json"
+}

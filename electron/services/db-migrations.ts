@@ -406,6 +406,26 @@ export const MIGRATIONS: Migration[] = [
         )
       `)
     }
+  },
+  {
+    version: 34,
+    description: 'UX-16: durable task composer fields',
+    up(db) {
+      db.exec(`CREATE TABLE IF NOT EXISTS composer_drafts (
+        owner_id TEXT NOT NULL,
+        field TEXT NOT NULL CHECK (field IN ('text', 'attachments')),
+        value TEXT NOT NULL,
+        PRIMARY KEY (owner_id, field)
+      );
+      CREATE TRIGGER IF NOT EXISTS delete_conversation_composer_draft
+        AFTER DELETE ON conversations BEGIN
+          DELETE FROM composer_drafts WHERE owner_id = OLD.id;
+        END;
+        CREATE TABLE IF NOT EXISTS user_message_content (
+        message_id TEXT PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+        content_json TEXT NOT NULL
+      )`)
+    }
   }
 ]
 

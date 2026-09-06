@@ -1,0 +1,128 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "zoom": 1,
+    "theme": "Dark",
+    "geometry": {
+      "x": 409.8000183105469,
+      "right": 1232.2000427246094,
+      "bottom": 748.7999877929688,
+      "width": 822.4000244140625,
+      "viewWidth": 1440,
+      "viewHeight": 902,
+      "focused": true
+    },
+    "stopBox": {
+      "x": 1196.2000732421875,
+      "y": 756.7999877929688,
+      "width": 36,
+      "height": 36
+    }
+  },
+  {
+    "width": 1024,
+    "height": 768,
+    "zoom": 1.5,
+    "theme": "Dark",
+    "geometry": {
+      "x": 108.53334045410156,
+      "right": 624.1333770751953,
+      "bottom": 320.5333595275879,
+      "width": 515.6000366210938,
+      "viewWidth": 682,
+      "viewHeight": 513,
+      "focused": true
+    },
+    "stopBox": {
+      "x": 228.53334045410156,
+      "y": 368.5333557128906,
+      "width": 36,
+      "height": 36
+    }
+  },
+  {
+    "width": 800,
+    "height": 600,
+    "zoom": 2,
+    "theme": "Dark",
+    "geometry": {
+      "x": 96.80000305175781,
+      "right": 347.20001220703125,
+      "bottom": 160.8000030517578,
+      "width": 250.40000915527344,
+      "viewWidth": 400,
+      "viewHeight": 301,
+      "focused": true
+    },
+    "stopBox": {
+      "x": 311.20001220703125,
+      "y": 168.8000030517578,
+      "width": 36,
+      "height": 36
+    }
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "zoom": 1,
+    "theme": "Light",
+    "geometry": {
+      "x": 313.8000183105469,
+      "right": 1136.2000427246094,
+      "bottom": 748.7999877929688,
+      "width": 822.4000244140625,
+      "viewWidth": 1440,
+      "viewHeight": 902,
+      "focused": true
+    },
+    "stopBox": {
+      "x": 1100.2000732421875,
+      "y": 756.7999877929688,
+      "width": 36,
+      "height": 36
+    }
+  },
+  {
+    "width": 1024,
+    "height": 768,
+    "zoom": 1.5,
+    "theme": "Light",
+    "geometry": {
+      "x": 108.53334045410156,
+      "right": 624.1333770751953,
+      "bottom": 320.5333595275879,
+      "width": 515.6000366210938,
+      "viewWidth": 682,
+      "viewHeight": 513,
+      "focused": true
+    },
+    "stopBox": {
+      "x": 228.53334045410156,
+      "y": 368.5333557128906,
+      "width": 36,
+      "height": 36
+    }
+  },
+  {
+    "width": 800,
+    "height": 600,
+    "zoom": 2,
+    "theme": "Light",
+    "geometry": {
+      "x": 96.80000305175781,
+      "right": 347.20001220703125,
+      "bottom": 160.8000030517578,
+      "width": 250.40000915527344,
+      "viewWidth": 400,
+      "viewHeight": 301,
+      "focused": true
+    },
+    "stopBox": {
+      "x": 311.20001220703125,
+      "y": 168.8000030517578,
+      "width": 36,
+      "height": 36
+    }
+  }
+]

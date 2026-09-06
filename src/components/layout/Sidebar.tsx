@@ -652,7 +652,7 @@ export function Sidebar() {
           aria-label="Navigation"
           className="fixed bottom-0 left-0 top-0 z-30 flex flex-col overflow-hidden rounded-r-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
           style={{
-            width: Math.min(sidebarWidth, window.innerWidth - 48),
+            width: `min(${sidebarWidth}px, calc(100vw - 48px))`,
             transform: 'translateX(0)',
             transition: reduced ? 'none' : 'transform 200ms ease-out'
           }}

@@ -1,0 +1,16 @@
+{
+  "keyboardInput": true,
+  "hiddenOutput": true,
+  "rendererReloadRetainedPid": true,
+  "taskPaths": [
+    "C:\\Users\\17076\\AppData\\Local\\Temp\\lamprey-ux-acceptance-tChgsg\\fixture-repo",
+    "C:\\Users\\17076\\AppData\\Local\\Temp\\lamprey-ux-acceptance-tChgsg\\terminal-second"
+  ],
+  "terminated": 78296,
+  "fixturePids": [
+    78296,
+    77468,
+    30600
+  ],
+  "restartCreatedNewPid": true
+}

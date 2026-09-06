@@ -1,3 +1,5 @@
+import { saveStructuredUserMessage, readStructuredUserContent } from '../services/user-message-content'
+import { prepareSteerInput } from '../services/steer-transcript'
 import { ipcMain } from 'electron'
 import { randomUUID } from 'crypto'
 import { filterOrchestrationTools } from '../services/orchestration-tools'
@@ -248,6 +250,13 @@ export function registerChatHandlers(): void {
         conversationId = conv.id
       }
 
+      if (!convStore.getConversation(conversationId)) throw new Error('The task no longer exists.')
+      if (turnRuntimeRegistry.lookupActive(conversationId)) throw new Error('This task already has an active turn. Use Steer or Queue.')
+      const orderedInput = validation.value.input
+      if (orderedInput?.some(item => item.type !== 'text') && !resolveModel(model).supportsVision) throw new Error('This model does not support images. Choose a vision model or remove the images.')
+      let prepared = orderedInput ? await prepareSteerInput(orderedInput) : null
+      const userMessageId = randomUUID()
+
       // D3 — Deep research routing decision. Strips any /research or
       // --no-research prefix from the prompt and, when auto-trigger is
       // enabled in settings (defaults to off until D10 ships the real
@@ -256,7 +265,7 @@ export function registerChatHandlers(): void {
       const deepResearchSettings = readDeepResearchSettings()
       let researchRoute: Awaited<ReturnType<typeof routeChatTurn>> | null = null
       try {
-        researchRoute = await routeChatTurn(rawContent, {
+        researchRoute = orderedInput?.some(item => item.type !== 'text') ? null : await routeChatTurn(orderedInput?.filter(item => item.type === 'text').map(item => item.text).join('\n\n') ?? rawContent, {
           autoTrigger: deepResearchSettings.autoTrigger,
           planMode: isPlanModeActive(conversationId),
           modelOverride: deepResearchSettings.classifierModel
@@ -268,15 +277,17 @@ export function registerChatHandlers(): void {
         // Use the cleaned body (prefix stripped) for the saved message and
         // every downstream model call.
         content = researchRoute.kind === 'research' ? researchRoute.body : researchRoute.content
+        if (prepared) prepared = await prepareSteerInput([{ type: 'text', text: content }])
       }
 
-      convStore.saveMessage({
-        id: randomUUID(),
+      if (turnRuntimeRegistry.lookupActive(conversationId)) throw new Error('This task already has an active turn. Use Steer or Queue.')
+      saveStructuredUserMessage({
+        id: userMessageId,
         conversationId,
         role: 'user',
-        content,
+        content: prepared?.displayContent ?? content,
         model
-      })
+      }, prepared?.apiMessage.role === 'user' ? prepared.apiMessage.content : undefined)
 
       // ST-3: one stable identity spans research, research fallback, and
       // ordinary dispatch. Loops and wake-ups register through the same
@@ -379,7 +390,8 @@ export function registerChatHandlers(): void {
         activeSkillIds,
         correlationId,
         promptBody: content,
-        runtime: turnRuntime
+        runtime: turnRuntime,
+        ...(prepared ? { injectedUserMessage: { messageId: userMessageId, apiMessage: prepared.apiMessage } } : {})
       })
       // JM-8 (CC-20) — same success payload shape as the research path.
       // AC-10: headless `finally` already ran finalizeTurn.
@@ -638,7 +650,8 @@ export async function runHeadlessTurn(input: {
       settingsRaw
     )
 
-    const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, promptHistory, model)
+    const historyWithInputs = resolveModel(model).supportsVision ? promptHistory.map(message => message.role === 'user' ? { ...message, apiUserContent: readStructuredUserContent(message.id) } : message) : promptHistory
+    const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, historyWithInputs, model)
     if (input.injectedUserMessage) apiMessages.push(input.injectedUserMessage.apiMessage)
 
     // JM-12 (CC-11) — per-round token accounting. The old estimate counted the

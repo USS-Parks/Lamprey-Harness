@@ -1,4 +1,4 @@
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
+import type { ChatCompletionMessageParam, ChatCompletionUserMessageParam } from 'openai/resources/chat/completions'
 import type { StoredToolCall } from './conversation-store'
 import { readSettings } from './settings-helper'
 import { resolveModel } from './providers/registry'
@@ -6,6 +6,7 @@ import { resolveModel } from './providers/registry'
 export interface StoredChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool'
   content: string
+  apiUserContent?: ChatCompletionUserMessageParam['content']
   toolCallId?: string
   toolCalls?: StoredToolCall[]
   /** Reasoning Audit Phase R8 — chain-of-thought the model produced
@@ -184,7 +185,7 @@ export function buildApiMessagesFromStoredMessages(
       continue
     }
 
-    apiMessages.push({ role: 'user' as const, content: m.content })
+    apiMessages.push({ role: 'user' as const, content: m.apiUserContent ?? m.content })
   }
 
   flushPending()

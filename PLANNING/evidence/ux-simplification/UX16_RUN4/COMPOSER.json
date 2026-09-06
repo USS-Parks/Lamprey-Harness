@@ -1,0 +1,12 @@
+{
+  "textAndMultilinePaste": true,
+  "pasteAsAttachment": true,
+  "nativePickerFileProcessing": true,
+  "imeDidNotSubmit": true,
+  "permissionModes": 3,
+  "codingRestored": true,
+  "persistedPlanGate": true,
+  "draftPreservedAcrossModeChanges": true,
+  "providerRequestsDuringScenario": 0,
+  "boundaries": "Synthetic clipboard/IME events and controlled native chooser; production renderer, preload, main, file processing, settings and plan storage."
+}

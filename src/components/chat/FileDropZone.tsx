@@ -48,7 +48,8 @@ export function FileDropZone() {
       const files = e.dataTransfer?.files
       if (!files || files.length === 0) return
 
-      setProcessing(true)
+      const owner = useChatStore.getState().activeConversationId
+      setProcessing(true, owner)
       try {
         const paths: string[] = []
         for (let i = 0; i < files.length; i++) {
@@ -59,16 +60,16 @@ export function FileDropZone() {
           toast.error('Could not read the dropped file paths. Use Add file to select these files.', 8000)
           return
         }
-        const result = await window.api.files.process(paths, useChatStore.getState().activeConversationId)
+        const result = await window.api.files.process(paths, owner)
         if (result.success) {
-          addAttachments(result.data as ProcessedFile[])
+          addAttachments(result.data as ProcessedFile[], owner)
         } else {
           toast.error(`${result.error} Use Add file to select files outside this project.`, 8000)
         }
       } catch (error) {
         toast.error(`Could not attach dropped files: ${error instanceof Error ? error.message : String(error)}. Use Add file to select them.`, 8000)
       } finally {
-        setProcessing(false)
+        setProcessing(false, owner)
       }
     }
 

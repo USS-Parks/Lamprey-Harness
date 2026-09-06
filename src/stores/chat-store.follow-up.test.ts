@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useChatStore } from './chat-store'
+import { useComposerStore } from './composer-store'
 import type { ProcessedFile } from '@/lib/types'
 import type { TurnFollowUpRecord } from '@/lib/turn-control-types'
 
@@ -9,6 +10,7 @@ const deleteFollowup = vi.fn()
 const file = (name: string): ProcessedFile => ({ name, kind: 'text', mimeType: 'text/plain', size: 4, content: name, previewText: name })
 beforeEach(() => {
   vi.resetAllMocks()
+  useComposerStore.setState({ drafts: {} })
   vi.stubGlobal('window', { api: { turn: { queue, steer, deleteFollowup, getState: vi.fn().mockResolvedValue({ success: false }) } } })
   useChatStore.setState({ activeConversationId: 'owner', activeTurn: null, pendingAttachments: [], followUps: [], turnControlByConversation: {} })
 })
@@ -34,7 +36,8 @@ describe('follow-up submission ownership and recovery', () => {
     const other = file('other.txt')
     useChatStore.setState({ pendingAttachments: [first] })
     const pending = useChatStore.getState().submitFollowUp('First', 'queue', 'owner-id')
-    useChatStore.setState({ activeConversationId: 'other', pendingAttachments: [other] })
+    useComposerStore.getState().patch('other', { attachments: [other] })
+    useChatStore.setState({ activeConversationId: 'other' })
     finish({ success: true })
     await pending
     expect(queue.mock.calls[0][0].conversationId).toBe('owner')

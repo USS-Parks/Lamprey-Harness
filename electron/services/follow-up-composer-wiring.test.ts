@@ -21,7 +21,7 @@ describe('ST-9 follow-up composer UX wiring', () => {
   it('keeps the running composer editable until an explicit follow-up action', () => {
     const input = read('src/components/chat/ChatInput.tsx')
     expect(input).not.toContain("if (e.key === 'Tab' && isStreaming)")
-    expect(input).toContain("if (e.key === 'Enter' && !e.shiftKey && !isStreaming)")
+    expect(input).toContain("if (e.key === 'Enter' && !e.shiftKey)")
     expect(input).toContain("'Write a follow-up, then choose Steer or Queue'")
     expect(input).toContain('aria-label="Stop current turn"')
     expect(input).toContain('Your draft is still editable.')

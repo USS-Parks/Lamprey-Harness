@@ -1,0 +1,7 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: {\"x\":91.5999984741211,\"right\":405.99999237060547,\"bottom\":220.6999969482422,\"width\":314.3999938964844,\"viewWidth\":400,\"viewHeight\":301,\"focused\":true}",
+  "diagnostic": {
+    "activeElement": "<textarea data-chat-input=\"true\" placeholder=\"Write a follow-up, then choose Steer or Queue\" rows=\"1\" aria-label=\"Message Lamprey\" class=\"max-h-[200px] min-h-[48px] w-full flex-1 resize-none px-1 py-2 bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]\" style=\"height: 48px;\">Draft retained through approval interruption</textarea>",
+    "draft": "Draft retained through approval interruption"
+  }
+}

@@ -400,7 +400,7 @@ function App(): React.ReactElement {
 
         <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 gap-[var(--panel-gap)]">
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <IntegrityBanner />
           <SecurityBanner />
           <UpdateBanner />
@@ -476,7 +476,7 @@ function App(): React.ReactElement {
             aria-label="Workspace panel"
             className="fixed bottom-0 right-0 top-0 z-30 flex flex-col overflow-hidden rounded-l-[var(--panel-radius)] bg-[var(--panel-bg)] shadow-2xl"
             style={{
-              width: Math.min(rightPanelWidth, window.innerWidth - 24),
+              width: `min(${rightPanelWidth}px, calc(100vw - 24px))`,
               transition: 'transform 200ms ease-out',
               transform: 'translateX(0)'
             }}

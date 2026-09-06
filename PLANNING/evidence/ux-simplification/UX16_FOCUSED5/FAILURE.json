@@ -1,0 +1,7 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Stop stays visible at every composer scale",
+  "diagnostic": {
+    "activeElement": "<textarea data-chat-input=\"true\" placeholder=\"Write a follow-up, then choose Steer or Queue\" rows=\"1\" aria-label=\"Message Lamprey\" class=\"max-h-[200px] min-h-[48px] w-full flex-1 resize-none px-1 py-2 bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]\" style=\"height: 48px;\">Draft retained through approval interruption</textarea>",
+    "draft": "Draft retained through approval interruption"
+  }
+}

@@ -26,7 +26,9 @@ describe('JM-2 loop iteration prompt reaches the model', () => {
     const src = read('electron/ipc/chat.ts')
     const fn = src.slice(src.indexOf('export async function runHeadlessTurn'))
     expect(fn).toMatch(/getEffectiveMessages\(conversationId\)/)
-    expect(fn).toMatch(/buildApiMessagesFromStoredMessages\(systemPrompt, promptHistory/)
+    expect(fn).toContain('promptHistory.map(message')
+    expect(fn).toContain('readStructuredUserContent(message.id)')
+    expect(fn).toMatch(/buildApiMessagesFromStoredMessages\(systemPrompt, historyWithInputs/)
   })
 
   it('fireDueWakeups keeps its persist-then-run contract', () => {

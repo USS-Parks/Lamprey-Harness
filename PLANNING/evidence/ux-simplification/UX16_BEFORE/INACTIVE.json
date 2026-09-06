@@ -1,0 +1,8 @@
+{
+  "inactiveVoiceAndActionsAbsent": true,
+  "customizationRoutesReal": true,
+  "keyboardHelpAccessible": true,
+  "menuEscapeFocus": true,
+  "slashActionPreservesDraft": true,
+  "attachmentAndRunningLayouts": "Covered by preceding COMPOSER/FOLLOW_UP cases and idle/running captures in the same build."
+}

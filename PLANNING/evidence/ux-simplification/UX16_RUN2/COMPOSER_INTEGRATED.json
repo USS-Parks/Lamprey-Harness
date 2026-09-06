@@ -1,0 +1,12 @@
+{
+  "taskDraftOwnership": true,
+  "reloadTextAndAttachments": true,
+  "delayedPickerOwnership": true,
+  "rejectedAndThrownNormalSendsRetainInput": true,
+  "synchronousDoubleSubmitOnce": true,
+  "orderedImageProviderDelivery": true,
+  "imageHistoryAfterReload": true,
+  "activeTaskSwitchAndStop": true,
+  "enterQueuesUsingVisiblePreference": true,
+  "boundary": "Built renderer/preload/main, real SQLite and loopback provider. Only chooser and rejected IPC boundaries are controlled."
+}

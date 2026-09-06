@@ -58,7 +58,19 @@ async function main() {
       requests++
       let body = ''
       req.on('data', chunk => { body += chunk })
-      req.on('end', () => providerBodies.push({ ...JSON.parse(body), _fixtureKeyAccepted: req.headers.authorization === 'Bearer fixture-provider-key' }))
+      req.on('end', () => {
+        const request = { ...JSON.parse(body), _fixtureKeyAccepted: req.headers.authorization === 'Bearer fixture-provider-key' }
+        providerBodies.push(request)
+        const last = request.messages.at(-1)
+        const text = typeof last?.content === 'string' ? last.content : last?.content?.filter(item => item.type === 'text').map(item => item.text).join(' ')
+        if (last?.role === 'user' && text?.includes('UX16 approval fixture')) {
+          res.writeHead(200, { 'Content-Type': 'text/event-stream' })
+          const args = { command: "Set-Content -LiteralPath './ux16-approved.txt' -Value 'Approved fixture write' -Encoding utf8", cwd: repo, shell: 'powershell' }
+          res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: 'ux16-approval-call', type: 'function', function: { name: 'shell_command', arguments: JSON.stringify(args) } }] }, finish_reason: null }] })}\n\n`)
+          res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] })}\n\n`)
+          res.end('data: [DONE]\n\n')
+          return
+        }
       res.writeHead(200, { 'Content-Type': 'text/event-stream' })
       const send = () => res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Measured local stream. ' }, finish_reason: null }] })}\n\n`)
       send()
@@ -66,9 +78,10 @@ async function main() {
       const finish = () => { clearInterval(timer); streamFinishers.delete(finish); res.end('data: [DONE]\n\n') }
       streamFinishers.add(finish)
       res.on('close', () => { clearInterval(timer); streamFinishers.delete(finish) })
+      })
     })
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }, { id: 'fixture-keyed', label: 'Fixture Keyed Provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: true }], customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }, { id: 'fixture-keyed-model', name: 'Fixture keyed model with a deliberately long display name for bounded selection', provider: 'fixture-keyed', contextWindow: 131072, supportsTools: false }] }))
+    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }, { id: 'fixture-keyed', label: 'Fixture Keyed Provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: true }], customModels: [{ id: 'fixture-vision', name: 'Fixture Vision', provider: 'fixture-provider', contextWindow: 131072, supportsTools: true, supportsVision: true }, { id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }, { id: 'fixture-keyed-model', name: 'Fixture keyed model with a deliberately long display name for bounded selection', provider: 'fixture-keyed', contextWindow: 131072, supportsTools: false }] }))
     const env = { ...process.env, LAMPREY_ACCEPTANCE_PROFILE: profile }
     delete env.ELECTRON_RUN_AS_NODE
     const entry = path.join(profile, 'baseline-entry.cjs')
@@ -126,6 +139,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--composer-only')) {
+      const result = await require('./ux-composer-integrated.cjs')({ page, app, ids, profile, repo, providerBodies, output })
+      fs.writeFileSync(path.join(output, 'COMPOSER_INTEGRATED.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'integrated-composer-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['integrated-composer'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     await page.getByText('UX baseline task 00', { exact: true }).last().click()
     await page.getByText('Baseline message 999: inspect the fixture and explain its changes.', { exact: true }).waitFor()
     await page.screenshot({ path: path.join(output, 'IDLE.png') })
@@ -331,6 +351,9 @@ async function main() {
     const inactive = await require('./ux-inactive.cjs')({ page })
     fs.writeFileSync(path.join(output, 'INACTIVE.json'), JSON.stringify(inactive, null, 2) + '\n')
     record('active-composer-affordances')
+    const integratedComposer = await require('./ux-composer-integrated.cjs')({ page, app, ids, profile, repo, providerBodies, output })
+    fs.writeFileSync(path.join(output, 'COMPOSER_INTEGRATED.json'), JSON.stringify(integratedComposer, null, 2) + '\n')
+    record('integrated-composer')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

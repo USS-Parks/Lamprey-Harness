@@ -1,3 +1,4 @@
+import { readComposerDraft, writeComposerDraft } from '../services/composer-drafts'
 import { ipcMain } from 'electron'
 import { createHash, randomUUID } from 'crypto'
 import * as store from '../services/conversation-store'
@@ -362,6 +363,15 @@ export function registerConversationHandlers(): void {
       }
     }
   )
+
+  ipcMain.handle('conversation:getDraft', (_event, owner: string | null) => {
+    try { return { success: true, data: readComposerDraft(owner) } }
+    catch (error) { return { success: false, error: String(error) } }
+  })
+  ipcMain.handle('conversation:setDraft', (_event, owner: string | null, patch: unknown) => {
+    try { writeComposerDraft(owner, patch); return { success: true } }
+    catch (error) { return { success: false, error: String(error) } }
+  })
 
   ipcMain.handle('conversation:delete', async (_event, id) => {
     try {

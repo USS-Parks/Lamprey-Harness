@@ -1,0 +1,21 @@
+{
+  "visited": [
+    "Files",
+    "Side chat",
+    "Browser",
+    "Review",
+    "Terminal",
+    "Environment",
+    "Sources",
+    "Artifacts",
+    "Plan",
+    "Background tasks",
+    "After action",
+    "Loops",
+    "Agents"
+  ],
+  "routeCount": 13,
+  "editorAction": "real renderer/preload with controlled launch IPC; no external window opened",
+  "settingsAndThemeReachable": true,
+  "duplicateLauncherRemoved": true
+}

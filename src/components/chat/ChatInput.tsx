@@ -1,3 +1,4 @@
+import { useComposerStore, composerOwnerKey, EMPTY_COMPOSER_DRAFT } from '@/stores/composer-store'
 import { ModelDropdown } from './ModelDropdown'
 import { TaskContext } from '@/components/workspace/TaskContext'
 import { useState, useRef, useEffect } from 'react'
@@ -300,7 +301,14 @@ function AddMenu({ onPickFile, onInsertSlash }: { onPickFile: () => void; onInse
 }
 
 export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInputProps) {
-  const [content, setContent] = useState('')
+  const owner = useChatStore(s => s.activeConversationId)
+  const draft = useComposerStore(s => s.drafts[composerOwnerKey(owner)] ?? EMPTY_COMPOSER_DRAFT)
+  const content = draft.text
+  const setContent = (value: string | ((current: string) => string)) => {
+    const current = useComposerStore.getState().drafts[composerOwnerKey(owner)]?.text ?? ''
+    useComposerStore.getState().patch(owner, { text: typeof value === 'function' ? value(current) : value })
+  }
+  useEffect(() => { void useComposerStore.getState().load(owner) }, [owner])
   const [followUpError, setFollowUpError] = useState<string | null>(null)
   const [followUpSubmitting, setFollowUpSubmitting] = useState(false)
   const [pasteOffer, setPasteOffer] = useState<string | null>(null)
@@ -313,8 +321,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   // Fluidity J1: ↑/↓ walks past user prompts. Index tracking lives in a ref
   // so re-renders triggered by setContent() don't reset our position.
   const historyRef = useRef<PromptHistoryState>(emptyHistoryState)
-  const addAttachments = useChatStore((s) => s.addAttachments)
-  const setProcessing = useChatStore((s) => s.setAttachmentsProcessing)
+  const addAttachments = (files: ProcessedFile[]) => useChatStore.getState().addAttachments(files, owner)
+  const setProcessing = (active: boolean) => useChatStore.getState().setAttachmentsProcessing(active, owner)
   const composeSeedToken = useUiStore((s) => s.composeSeedToken)
   const consumeComposeDraft = useUiStore((s) => s.consumeComposeDraft)
   const seedMemoryDescription = useUiStore((s) => s.seedMemoryDescription)
@@ -322,7 +330,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const providersLoaded = useProvidersStore((s) => s.loaded)
   const activeModel = useChatStore((s) => s.activeModel)
   const contextRevision = useUiStore(s => s.workspaceContextRevision)
-  const owner = useChatStore(s => s.activeConversationId)
   const activeTurn = useChatStore((s) => s.activeTurn)
   const pendingAttachments = useChatStore((s) => s.pendingAttachments)
   const submitFollowUp = useChatStore((s) => s.submitFollowUp)
@@ -509,6 +516,16 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     if (isSlashInput && !slashPaletteOpen) setSlashPaletteOpen(true)
   }, [isSlashInput, slashPaletteOpen])
 
+  useEffect(() => {
+    historyRef.current = emptyHistoryState
+    setPasteOffer(null)
+    setFollowUpError(null)
+    setFollowUpMenuOpen(false)
+    setAtMentionDismissed(false)
+    setCaretPos(0)
+    setSlashPaletteOpen(true)
+  }, [owner])
+
   const applySlashName = (name: string) => {
     setContent(`/${name} `)
     setSlashPaletteOpen(false)
@@ -526,7 +543,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   // Lazy-load the workspace file index the first time the popover opens.
   useEffect(() => {
     if (!showAtMention) return
-    if (workspaceFiles !== null || workspaceLoading) return
+    if (workspaceFiles !== null) return
     if (!window.api?.files) return
     let cancelled = false
     setWorkspaceLoading(true)
@@ -545,6 +562,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           setWorkspaceFiles(data.files)
           setWorkspaceRoot(root)
         }
+      } catch (error) {
+        if (!cancelled) toast.error(`Could not load workspace files: ${String(error)}`)
       } finally {
         if (!cancelled) setWorkspaceLoading(false)
       }
@@ -552,7 +571,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     return () => {
       cancelled = true
     }
-  }, [showAtMention, workspaceFiles, workspaceLoading, owner])
+  }, [showAtMention, workspaceFiles, owner, contextRevision])
 
   const applyAtMention = (relPath: string) => {
     if (!mention) return
@@ -591,9 +610,11 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
 
   const handleSubmit = (followUpMode = followUpBehavior) => {
     const trimmed = content.trim()
-    const hasSubmittableInput = trimmed.length > 0 || (isStreaming && pendingAttachments.length > 0)
-    if (!hasSubmittableInput || disabled) return
+    const hasSubmittableInput = trimmed.length > 0 || pendingAttachments.length > 0
+    if (!hasSubmittableInput || disabled || !draft.loaded || draft.error || draft.processing) return
+    if (!isStreaming && useChatStore.getState().isStreaming) return
     if (isStreaming) {
+      if (!activeTurn) return
       if (followUpBusyRef.current) return
       followUpBusyRef.current = true
       const owner = useChatStore.getState().activeConversationId
@@ -610,10 +631,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             return
           }
           followUpClientIdRef.current = null
-          if (useChatStore.getState().activeConversationId === owner) {
-            setContent(current => current === submittedContent ? '' : current)
-            historyRef.current = emptyHistoryState
-          }
+          setContent(current => current === submittedContent ? '' : current)
+          if (useChatStore.getState().activeConversationId === owner) historyRef.current = emptyHistoryState
         })
         .catch(error => {
           const message = error instanceof Error ? error.message : String(error)
@@ -652,7 +671,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       ? `[PLAN MODE — produce a plan first, list assumptions and steps, then await my confirmation before executing.]\n\n${trimmed}`
       : trimmed
     onSend(final)
-    setContent('')
     historyRef.current = emptyHistoryState
   }
 
@@ -754,7 +772,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
       cycleMode()
       return
     }
-    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
     }
@@ -841,12 +859,12 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   }
 
   const canSend =
-    (content.trim().length > 0 || (isStreaming && pendingAttachments.length > 0)) && !disabled
+    (content.trim().length > 0 || pendingAttachments.length > 0) && !disabled && draft.loaded && !draft.error && !draft.processing
   const planMode = useUiStore((s) => s.planMode)
   const followUpLabel = followUpBehavior === 'steer' ? 'Steer' : 'Queue'
 
   return (
-    <div className="w-full">
+    <div className="w-full [@media(max-height:500px)]:order-first">
       {planMode && (
         <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-1.5 text-[12px] text-[var(--accent)]">
           <span className="font-mono">PLAN MODE · Shift+Tab to toggle</span>
@@ -967,7 +985,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
                 : 'What would you like to work on?'
             }
             rows={1}
-            disabled={disabled}
+            disabled={disabled || !draft.loaded}
             aria-label="Message Lamprey"
             className="max-h-[200px] min-h-[48px] w-full flex-1 resize-none px-1 py-2 bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
           />
@@ -989,6 +1007,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           <PermissionsDropdown />
           <div className="flex-1" />
 
+          <div className="order-first flex w-full justify-end sm:order-last sm:w-auto">
           {isStreaming ? (
             <div className="flex shrink-0 items-center gap-2 self-end">
               <button
@@ -1079,11 +1098,13 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               />
             </button>
           )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2"><TaskContext /><ToolActivityChip /></div>
       </div>
 
+      {draft.error && <p role="alert" className="mt-2 text-xs text-[var(--error)]">{draft.error} <button type="button" onClick={() => void useComposerStore.getState().retry(owner)} className="min-h-8 underline">Retry draft save</button></p>}
       {keyPromptProvider && (
         <ApiKeyModal
           defaultProvider={keyPromptProvider}

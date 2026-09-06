@@ -19,7 +19,7 @@ import { FollowUpQueue } from './FollowUpQueue'
 // input pill both use this so they sit in the same centered column no
 // matter how wide the surrounding chat area gets. `max-w-4xl` (896 px) is
 // the comfortable-reading width; `px-6` keeps content off the column edge.
-export const CHAT_COLUMN_CLASS = 'mx-auto w-full max-w-4xl px-6'
+export const CHAT_COLUMN_CLASS = 'mx-auto w-full max-w-4xl px-3 sm:px-6'
 
 export function ChatView() {
   // JM-24 (RD-6) — per-field selectors. The old selector-less useChatStore()
@@ -42,7 +42,7 @@ export function ChatView() {
 
   return (
     <div
-      className="chat-column relative flex flex-1 flex-col overflow-hidden bg-transparent"
+      className="chat-column relative flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent"
     >
       <FileDropZone />
       <TaskHeader />
@@ -80,8 +80,8 @@ export function ChatView() {
           as a permanent half-step misalignment between the pipeline pill /
           input pill and the message bubbles above. The 6 px matches the
           ::-webkit-scrollbar width set in src/styles/index.css. */}
-      <div className="flex justify-center pt-3 pb-4 pr-[6px]">
-        <div className={CHAT_COLUMN_CLASS}>
+      <div className="flex max-h-[70dvh] shrink-0 justify-center overflow-y-auto pt-3 pb-4 pr-[6px]">
+        <div className={`${CHAT_COLUMN_CLASS} flex flex-col`}>
           <AgentRunBanner />
           <SpawnTaskTray />
           <TokenTicker />

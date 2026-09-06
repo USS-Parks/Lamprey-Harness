@@ -1,0 +1,12 @@
+{
+  "catalogSearchAndEmpty": true,
+  "keylessSelection": true,
+  "realLocalKeySetupAndAuthentication": true,
+  "configuredSelectionAndRouting": true,
+  "longLabelBounded": true,
+  "selectedRowRevealed": true,
+  "keyboardSelectionAndEscapeFocus": true,
+  "externalKeyDeletionAndSaveRefresh": true,
+  "fullCatalogAccessible": true,
+  "boundary": "Built Electron renderer/preload/main and actual loopback /models authentication plus keyed chat request. Synthetic credential exists only in disposable profile; zero external provider requests."
+}

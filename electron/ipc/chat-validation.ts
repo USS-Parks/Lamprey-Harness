@@ -1,3 +1,4 @@
+import { validateTurnInputItems, type TurnInputItem } from '../services/turn-control-types'
 // Pure validation for the `chat:send` IPC payload. Lives in its own file
 // (rather than alongside the handler in chat.ts) so the test layer can
 // exercise it without pulling chat.ts's full module graph — chat.ts
@@ -15,6 +16,7 @@ export type ChatSendValidation =
         model: string
         conversationId: string
         activeSkillIds: string[]
+        input?: TurnInputItem[]
       }
     }
   | { ok: false; error: string }
@@ -24,7 +26,7 @@ export function validateChatSendRequest(raw: unknown): ChatSendValidation {
     return { ok: false, error: 'chat:send: request object is required' }
   }
   const req = raw as Record<string, unknown>
-  if (typeof req.content !== 'string' || req.content.trim() === '') {
+  if (typeof req.content !== 'string' || (req.content.trim() === '' && req.input === undefined)) {
     return {
       ok: false,
       error: 'chat:send: content (non-empty string) is required'
@@ -39,6 +41,8 @@ export function validateChatSendRequest(raw: unknown): ChatSendValidation {
       error: 'chat:send: conversationId must be a string'
     }
   }
+  const input = req.input === undefined ? null : validateTurnInputItems(req.input)
+  if (input && !input.ok) return { ok: false, error: input.rejection.message }
   // Filter to strings so a mixed-type array doesn't reach the skill loader
   // as a "skill not found" later.
   const activeSkillIds: string[] = Array.isArray(req.activeSkillIds)
@@ -53,7 +57,8 @@ export function validateChatSendRequest(raw: unknown): ChatSendValidation {
       model: req.model,
       conversationId:
         typeof req.conversationId === 'string' ? req.conversationId : 'new',
-      activeSkillIds
+      activeSkillIds,
+      ...(input?.ok ? { input: input.value } : {})
     }
   }
 }

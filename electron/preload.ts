@@ -74,6 +74,7 @@ const api = {
       conversationId: string
       model: string
       content: string
+      input?: PreloadTurnInputItem[]
       activeSkillIds: string[]
     }) => ipcRenderer.invoke('chat:send', request),
     cancel: (conversationId: string) => ipcRenderer.invoke('chat:cancel', conversationId),
@@ -328,6 +329,8 @@ const api = {
   },
 
   conversation: {
+    getDraft: (owner: string | null) => ipcRenderer.invoke('conversation:getDraft', owner),
+    setDraft: (owner: string | null, patch: { text?: string; attachments?: unknown[] }) => ipcRenderer.invoke('conversation:setDraft', owner, patch),
     list: () => ipcRenderer.invoke('conversation:list'),
     get: (id: string) => ipcRenderer.invoke('conversation:get', id),
     create: (

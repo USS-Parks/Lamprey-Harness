@@ -20,13 +20,14 @@ export async function pickAndAttachFiles(): Promise<void> {
   }
   const setProcessing = useChatStore.getState().setAttachmentsProcessing
   const addAttachments = useChatStore.getState().addAttachments
-  setProcessing(true)
+  const owner = useChatStore.getState().activeConversationId
+  setProcessing(true, owner)
   try {
     const result = await api.files.openPicker()
     if (result.success) {
       const files = result.data as ProcessedFile[]
       if (files.length > 0) {
-        addAttachments(files)
+        addAttachments(files, owner)
       }
     } else if (result.error) {
       toast.error(`File picker failed: ${result.error}`)
@@ -34,6 +35,6 @@ export async function pickAndAttachFiles(): Promise<void> {
   } catch (err) {
     toast.error(`File picker failed: ${(err as Error).message}`)
   } finally {
-    setProcessing(false)
+    setProcessing(false, owner)
   }
 }

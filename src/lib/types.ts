@@ -152,6 +152,10 @@ export interface ForkParams {
 }
 
 export interface Conversation {
+  archived?: boolean
+  pinnedAt?: number | null
+  closedAt?: number | null
+  forkedFromTurnId?: string | null
   id: string
   title: string
   model: string

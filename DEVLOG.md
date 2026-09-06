@@ -1,3 +1,11 @@
+## 2026-09-06 - UX-21: Shared task identity and navigation metadata
+
+Promoted existing archive, pin, closure and fork-turn fields into the renderer Conversation type; SessionEntry now aliases that same record. Shared reconciliation deduplicates IDs without adding out-of-scope rows to filtered lists, keeps newer metadata and preserves requested order. Both sidebar projections reuse the same project partitioning, retaining missing-project and unassigned tasks. The main task view excludes archived records; the existing Archived view retains them. Session running markers read their own turn identity. Session mutations refresh both existing list projections instead of leaving the conversation view stale.
+
+Verification: five new reconciliation/ownership tests plus full proof passed lint, both TypeScript projects, 3,084 tests and both production smokes (UX21_PROOF.log). UX21_RUN used real Electron/preload/SQLite project assignment, pin, archive and fork operations, then reload and both list APIs. The same archived identity retained pin/project metadata, fork lineage/project persisted, and the archived task remained discoverable in the actual Sessions view. No schema or task database was added. Fixture cleanup passed.
+
+Files: shared task-navigation helper/tests, existing conversation/session types/store, Sidebar/SessionsSidebar and the task-data acceptance module/manifest. Commit: resolve the introducing commit of UX21.json. UX-18 has all ten hosted checks green; UX-19 is next for its ordered push. UI hierarchy, search and navigation history remain UX-22/23.
+
 ## 2026-09-05 - UX-20: Stable notices and task-owned approval lifetime
 
 Removed the obsolete renderer 30-second auto-deny, matching the existing main-service contract that decisions stay pending until answered or cancelled. Passed the turn cancellation signal into approval waiting, removed its listener on settlement, rejected duplicate pending identities and stale responses, and emitted exact resolution IDs to both renderer queues. Late allow/always responses cannot create a policy after cancellation. Settled-ID tombstones prevent duplicate events from reviving old requests. Keyboard decisions are scoped to the focused inline request; destructive/first-use requests retain the modal path.

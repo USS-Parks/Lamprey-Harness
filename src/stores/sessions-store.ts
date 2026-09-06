@@ -1,3 +1,5 @@
+import { useChatStore } from './chat-store'
+import { reconcileTaskRows } from '@/lib/task-navigation'
 import { create } from 'zustand'
 import { toast } from '@/stores/toast-store'
 import type { Conversation } from '@/lib/types'
@@ -11,10 +13,7 @@ import type { Conversation } from '@/lib/types'
 
 export type SessionsTab = 'recent' | 'pinned' | 'archived'
 
-export interface SessionEntry extends Conversation {
-  archived?: boolean
-  pinnedAt?: number | null
-}
+export type SessionEntry = Conversation
 
 export interface SessionSearchHit {
   conversationId: string
@@ -200,7 +199,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
     const next = tab === 'pinned' ? applyPinnedOrder(rawNext, get().pinOrder) : rawNext
     set((state) => ({
       loading: false,
-      entries: [...state.entries, ...next],
+      entries: reconcileTaskRows([...state.entries, ...next]),
       page: state.page + 1,
       hasMore: rawNext.length === PAGE_SIZE
     }))
@@ -214,7 +213,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       toast.error(`Failed to archive: ${res.error}`)
       return
     }
-    await get().loadFirstPage()
+    await Promise.all([get().loadFirstPage(), useChatStore.getState().loadConversations()])
   },
 
   setPinned: async (id, pinned) => {
@@ -225,7 +224,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       toast.error(`Failed to pin: ${res.error}`)
       return
     }
-    await get().loadFirstPage()
+    await Promise.all([get().loadFirstPage(), useChatStore.getState().loadConversations()])
   },
 
   duplicate: async (id) => {
@@ -236,7 +235,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       toast.error(`Failed to duplicate: ${res.error}`)
       return null
     }
-    await get().loadFirstPage()
+    await Promise.all([get().loadFirstPage(), useChatStore.getState().loadConversations()])
     // JM-22 (RD-2) — conversation:fork returns { conversationId }; reading
     // .id here silently returned undefined so Duplicate never navigated.
     return (res.data as unknown as { conversationId: string }).conversationId
@@ -250,7 +249,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       toast.error(`Failed to delete: ${res.error}`)
       return
     }
-    await get().loadFirstPage()
+    await Promise.all([get().loadFirstPage(), useChatStore.getState().loadConversations()])
   },
 
   markUnreadAgentResult: (conversationId) => {

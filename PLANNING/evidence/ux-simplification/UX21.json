@@ -1,0 +1,14 @@
+{
+  "prompt": "UX-21",
+  "sourceBase": "b49278cd21109c90878dbbf3ad9710f38da9a69a",
+  "status": "local-pass",
+  "fullTestsPassed": 3084,
+  "evidence": [
+    "UX21_RUN/TASK_DATA.json",
+    "UX21_RUN/RUNTIME.json",
+    "UX21_RUN/LIFECYCLE.json",
+    "UX21_BUILD.log",
+    "UX21_PROOF.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX21.json"
+}

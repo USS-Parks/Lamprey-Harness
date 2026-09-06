@@ -1,3 +1,5 @@
+import { partitionTaskRows, reconcileTaskRows } from '@/lib/task-navigation'
+import { useSessionsStore } from '@/stores/sessions-store'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useUiStore, SIDEBAR_BOUNDS } from '@/stores/ui-store'
@@ -121,17 +123,9 @@ function bucketConversations(
   conversations: Conversation[],
   projects: Project[]
 ): { groups: ProjectGroup[]; orphans: Conversation[] } {
-  const byProject = new Map<string, Conversation[]>()
-  const orphans: Conversation[] = []
-  for (const c of conversations) {
-    if (c.projectId) {
-      const arr = byProject.get(c.projectId) ?? []
-      arr.push(c)
-      byProject.set(c.projectId, arr)
-    } else {
-      orphans.push(c)
-    }
-  }
+  const byProject = partitionTaskRows(conversations)
+  const orphans = [...(byProject.get(null) ?? [])]
+  byProject.delete(null)
   // Preserve the project sort order from projects-store (pinned first, then
   // by lastActivityAt) and append any conversations whose project has been
   // archived/deleted into the orphan bucket so they don't disappear.
@@ -142,7 +136,7 @@ function bucketConversations(
     groups.push({ project: p, conversations: items })
   }
   for (const [pid, items] of byProject.entries()) {
-    if (!known.has(pid)) orphans.push(...items)
+    if (pid && !known.has(pid)) orphans.push(...items)
   }
   orphans.sort((a, b) => b.updatedAt - a.updatedAt)
   return { groups, orphans }
@@ -554,11 +548,11 @@ export function Sidebar() {
     return () => window.removeEventListener('mousedown', handler)
   }, [filterVisible, setSearchQuery])
 
+  const sessionRows = useSessionsStore(s => s.entries)
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return conversations
-    return conversations.filter((c) => c.title?.toLowerCase().includes(q))
-  }, [conversations, searchQuery])
+    return reconcileTaskRows(conversations, sessionRows).filter(task => !task.archived && (!q || task.title?.toLowerCase().includes(q)))
+  }, [conversations, sessionRows, searchQuery])
 
   const { groups, orphans } = useMemo(
     () => bucketConversations(filtered, projects),

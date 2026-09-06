@@ -1,3 +1,4 @@
+import { partitionTaskRows, reconcileTaskRows, taskRunning } from '@/lib/task-navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSessionsStore, type SessionEntry, type SessionsTab } from '@/stores/sessions-store'
 import { useChatStore } from '@/stores/chat-store'
@@ -37,7 +38,10 @@ function formatWhen(ts: number): string {
 export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
   const tab = useSessionsStore((s) => s.tab)
   const setTab = useSessionsStore((s) => s.setTab)
-  const entries = useSessionsStore((s) => s.entries)
+  const sessionEntries = useSessionsStore((s) => s.entries)
+  const conversations = useChatStore(s => s.conversations)
+  const turnStates = useChatStore(s => s.turnControlByConversation)
+  const entries = useMemo(() => reconcileTaskRows(sessionEntries, conversations), [sessionEntries, conversations])
   const hits = useSessionsStore((s) => s.hits)
   const query = useSessionsStore((s) => s.query)
   const loading = useSessionsStore((s) => s.loading)
@@ -98,15 +102,11 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
 
   const groups = useMemo(() => {
     const projectNames = new Map(projects.map((project) => [project.id, project.name]))
-    const grouped = new Map<string, SessionGroup>()
-    for (const entry of entries) {
-      const id = entry.projectId ?? '__unassigned__'
-      const label = entry.projectId ? projectNames.get(entry.projectId) ?? 'Missing project' : 'Unassigned'
-      const group = grouped.get(id) ?? { id, label, entries: [] }
-      group.entries.push(entry)
-      grouped.set(id, group)
-    }
-    return [...grouped.values()]
+    return [...partitionTaskRows(entries)].map(([projectId, entries]): SessionGroup => ({
+      id: projectId ?? '__unassigned__',
+      label: projectId ? projectNames.get(projectId) ?? 'Missing project' : 'Unassigned',
+      entries
+    }))
   }, [entries, projects])
 
   const select = async (id: string) => {
@@ -187,6 +187,7 @@ export function SessionsSidebar({ embedded = false }: SessionsSidebarProps) {
                       <SessionRow
                         entry={entry}
                         active={entry.id === activeId}
+                        running={taskRunning(entry.id, turnStates)}
                         unreadCount={unreadAgentResults[entry.id] ?? 0}
                         draggable={tab === 'pinned'}
                         dragging={draggingId === entry.id}
@@ -281,6 +282,7 @@ function SearchHits({
 interface SessionRowProps {
   entry: SessionEntry
   active: boolean
+  running: boolean
   unreadCount: number
   draggable: boolean
   dragging: boolean
@@ -298,6 +300,7 @@ interface SessionRowProps {
 function SessionRow({
   entry,
   active,
+  running,
   unreadCount,
   draggable,
   dragging,
@@ -342,7 +345,7 @@ function SessionRow({
       )}
       <button type="button" onClick={onSelect} className="min-w-0 flex-1 text-left" title={entry.title}>
         <span className="flex items-center gap-1">
-          <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{entry.title}</span>
+          <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{running && <span aria-label="Running task">• </span>}{entry.title}</span>
           {unreadCount > 0 && (
             <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--bg-primary)]">
               {unreadCount}

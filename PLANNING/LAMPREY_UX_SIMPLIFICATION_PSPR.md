@@ -361,7 +361,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone E — Navigation and commands
 
 #### UX-21 — Reconcile task and session navigation data
-- [ ] **Objective:** give the sidebar one consistent task identity and grouping model.
+- [x] **Objective:** give the sidebar one consistent task identity and grouping model.
 - **Work:** map current conversation/session/project records into existing shared selectors. Preserve lineage, project membership, ordering, unread state, archive state and running ownership; do not introduce another database of tasks.
 - **Seams/output:** Sidebar, SessionsSidebar, chat/project/session stores and existing persistence.
 - **Gate:** G1 plus actual temporary-profile persistence where changed; the same task never appears as unrelated duplicate records, legacy sessions remain discoverable, and reload retains project/task relationships.

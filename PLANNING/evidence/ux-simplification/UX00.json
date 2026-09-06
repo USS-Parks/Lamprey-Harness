@@ -1,0 +1,34 @@
+{
+  "prompt": "UX-00",
+  "source": "bc78ec984205695480568b5e2a7097b676265a52",
+  "gate": "local-pass",
+  "productChanges": false,
+  "releasePublished": false,
+  "commands": [
+    "npm.cmd run build",
+    "node PLANNING/evidence/ux-simplification/baseline.cjs",
+    "npx.cmd eslint PLANNING/evidence/ux-simplification/baseline.cjs"
+  ],
+  "preservedFiles": {
+    "PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md": "0cea9c711608797b437e4d82e24e1f0e0195b54ac2b13bfc29502e8962eaf00f",
+    "PLANNING/LAMPREY_AUGUST_2026_AUDIT.md": "e1393a2585e3bae5638fb6de589bdb09ecaeea638075e99a7040ebf655d97379",
+    "PLANNING/LAMPREY_AUGUST_2026_AUDIT_PLAN.md": "f0a63648d22fecdf5d7ca0b607523af93f1c913659202cae6d9d9c11f02bdd3c",
+    "PLANNING/LAMPREY_SADDLE_PADDOCK_PLAN.md": "52776d200b6a71f08b0902f4e4cc6ec1124deb73cec012949301075047b0fcb6"
+  },
+  "evidence": {
+    "UX00_IDLE.png": "808421e7082cac6b70701e768dad27804751ba425ae77b829cdb1a49895ffdcd",
+    "UX00_PACKAGE_BASELINE.json": "6b9f9037a8277bf781671ea2c78082a9bf130117e560cd8ebd51caa4907a5a28",
+    "UX00_RELEASE_BASELINE.json": "5f10bf66eab711e31612505a422a7b6c6689934dc3204d056218fa9914f8a085",
+    "UX00_REVIEW.png": "ae64ab22546f6cfd0319c39d8d7bbb06f398be68dd7231c7b3c978cf66ad6a95",
+    "UX00_RUNNING.png": "7f7bc7c79420a4733cd8ad421a4e4229e14beda73a45c6097d3dbf4f8950ba1d",
+    "UX00_RUNTIME.json": "bd007dceba70c2b68660f8efe51eb768b0be7a0f4a815b966cdedd6b50b600b2",
+    "UX00_STORAGE.json": "438bc0ccb016fdab026ff097514eaf3b60579aebf444cc57d0f9c96d3716970a"
+  },
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX00.json",
+  "remaining": [
+    "UX-01 capability contracts",
+    "UX-02 mockups and explicit design review",
+    "UX-03 onward implementation and v0.33.0 publication",
+    "Separate September ledger and paused website work remain outside this commit"
+  ]
+}

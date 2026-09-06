@@ -1,3 +1,13 @@
+## 2026-09-05 — UX-00: Record the approved v0.33.0 UX baseline
+
+**Files changed:** UX simplification PSPR; `PLANNING/evidence/ux-simplification/` baseline runner, source/storage/release handoff receipts, three screenshots and measured runtime evidence; DEVLOG.
+
+**Verification:** Production build and focused fixture lint passed. Actual isolated Electron acceptance exited 0 with 50 tasks, 1,000 primary-history messages, 200 rendered completed tool entries, local streaming and a real temporary Git diff. Five-run timings show idle typing p95 11.4–25.5 ms, streaming typing 42.8–67.4 ms, cached panel shell 62.2–92.2 ms, and task switch 425.0–503.7 ms. Streaming scroll anchoring passed. Task switching exceeds the future 250 ms acceptance target and remains explicit work for UX-33/34. Hidden-window trial timings were rejected. No product source changed.
+
+**Notes:** Full STS and Bucket as v0.33.0, including humanized GitHub notes, are approved. UX-02 still requires owner design review. Four clean old audit worktrees remain retained pending cleanup authorization; canonical dist is about 27.7 GiB. Prior September/user planning files remain outside this commit. v0.32.0 publication succeeded; its unclosed documentation ledger and paused website proposal are not silently closed here.
+
+**Commit:** resolve the introducing commit with `git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX00.json`. Hosted greens must be checked for that exact SHA after push.
+
 ## 2026-09-05 — SR-36B: Bound slow release downloads without weakening hashes
 
 **Files changed:** `scripts/bucket.cjs`, `PLANNING/evidence/sr37-candidate-manifest.json`, `PLANNING/evidence/SR36_CANDIDATE.md`

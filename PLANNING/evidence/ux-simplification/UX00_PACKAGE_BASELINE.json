@@ -1,0 +1,18 @@
+{
+  "source": "bc78ec984205695480568b5e2a7097b676265a52",
+  "version": "0.32.0",
+  "artifactStage": "verified",
+  "portableInstall": true,
+  "nsisVersionMetadata": {
+    "ProductVersion": "0.32.0",
+    "ProductName": "Lamprey"
+  },
+  "stockExecutableAndAsar": true,
+  "isolatedProfile": true,
+  "rendererIPC": true,
+  "packagedEmbeddingWorker": true,
+  "vectorRetrieval": true,
+  "asarSha256": "55b57e7f8673821641c1aed78a9b2e24db5a1377ab9d10e2322f19b44c9d0537",
+  "updaterMetadata": "Validated against actual installer SHA-512",
+  "limitation": "NSIS wizard installation and platform GUI launches on macOS/Linux were not performed."
+}

@@ -253,7 +253,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone B — Workspace
 
 #### UX-04 — Introduce task-scoped workspace tab state
-- [ ] **Objective:** represent open workspace resources without duplicating their underlying data.
+- [x] **Objective:** represent open workspace resources without duplicating their underlying data.
 - **Work:** extend current UI state with resource identity, kind, owning task/project, active tab and layout preferences. Dedupe repeated opens; preserve user tab order; validate reload data and migrate legacy selection without resetting valid settings.
 - **Seams/output:** `src/stores/ui-store.ts`, existing right-panel state, a small typed resource descriptor only if required.
 - **Gate:** G1 plus state tests for repeated opens, identical filenames in different projects, task switching, close/reopen, corrupt persisted state and safe legacy migration. No credentials or entire file contents persisted in tab metadata.

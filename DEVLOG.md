@@ -1,3 +1,11 @@
+## 2026-09-05 — UX-04: Task-scoped workspace state
+
+Added resource descriptors and validated metadata reload to the existing UI store. Tool/file opens now deduplicate by project, resource kind and identity; tasks retain their own tab order and selection. Windows path spelling is normalized for identity. Close selects the neighboring resource; incidental opens preserve selection/collapse. Background-task auto-open no longer changes the foreground task's collapse state. App supplies the owning project alongside the conversation. Existing permission, plan and layout preferences remain independent.
+
+Changed: `src/lib/workspace-state.ts`, `src/stores/ui-store.ts`, `src/stores/ui-store.workspace.test.ts`, `src/App.tsx` and prompt ledgers. Verification: 19 affected state tests passed, renderer TypeScript and focused lint passed; full lint and both TypeScript projects are mandatory commit hooks. Persisted metadata strips unknown fields and rejects corrupt entries; no file content or credentials are stored. Tab presentation and live host acceptance follow at UX-05.
+
+Evidence: `PLANNING/evidence/ux-simplification/UX04.json`. Commit: resolve its introducing commit. Earlier hosted receipts remain separately tracked; no pending build is claimed green.
+
 ## 2026-09-05 — UX-03: Reusable real Electron acceptance
 
 Extracted the working baseline runner into `scripts/acceptance/ux.cjs` with a scenario manifest and usage notes. Each run requires a new checkout-local evidence directory, preserving prior receipts. Real production IPC creates 50 tasks; the isolated profile holds 1,000 messages and 200 tool entries. Local streaming, stable history scrolling, actual Git diff review, task switching, screenshots and five-run timings passed. Deliberate failure after launch exited 1 and both success/failure paths removed the owned profile and closed the server. No saved credentials were used. Lint and both TypeScript projects passed the commit hook.

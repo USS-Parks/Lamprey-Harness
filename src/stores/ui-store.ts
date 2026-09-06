@@ -1,3 +1,4 @@
+import { closeResource, decodeWorkspaces, EMPTY_WORKSPACE, openResource, resourceDescriptor, resourceTool, workspaceKey, type ResourceKind, type Workspaces, type TaskWorkspace } from '@/lib/workspace-state'
 import { create } from 'zustand'
 import {
   applyUserToggle,
@@ -12,6 +13,7 @@ const RIGHT_WIDTH_KEY = 'lamprey.ui.rightPanelWidth'
 const RIGHT_COLLAPSED_KEY = 'lamprey.ui.rightPanelCollapsed'
 const PERMISSIONS_KEY = 'lamprey.ui.permissionsMode'
 const CONV_FILTERS_KEY = 'lamprey.ui.convFilters'
+const WORKSPACES_KEY = 'lamprey.ui.workspaces'
 const ACTIVE_SHELL_KEY = 'lamprey.ui.activeShell'
 // Fluidity J11: per-conversation right-panel state. Persisted as a single
 // JSON blob so the panel remembers each conv's last expand/collapse state
@@ -176,7 +178,18 @@ export type SettingsTabId =
 
 export type CustomizeColumnId = 'skills' | 'connectors' | 'plugins'
 
+function readWorkspaces(): Workspaces {
+  try { return decodeWorkspaces(window.localStorage?.getItem(WORKSPACES_KEY) ?? null) } catch { return {} }
+}
+
 interface UiState {
+  workspaces: Workspaces
+  activeWorkspaceProjectId: string | null
+  openWorkspaceResource: (kind: ResourceKind, ref: string, title: string, activate?: boolean) => void
+  selectWorkspaceResource: (id: string) => void
+  closeWorkspaceResource: (id: string) => void
+  reorderWorkspaceResources: (ids: string[]) => void
+  updateWorkspace: (workspace: TaskWorkspace) => void
   searchQuery: string
   searchFocusToken: number
   settingsOpen: boolean
@@ -265,7 +278,7 @@ interface UiState {
   /** Fluidity J11: hydrate the global collapsed flag from the per-conv
    *  map when the active conversation changes. New conversations (no
    *  entry in the map) seed to collapsed=true. */
-  hydrateRightPanelForConv: (conversationId: string | null) => void
+  hydrateRightPanelForConv: (conversationId: string | null, projectId?: string | null) => void
   /** Fluidity J11: auto-open driven by an artifact emit or tool launch.
    *  `triggerKey` identifies the source (artifact URL, tool id) so the
    *  same trigger won't re-pop after the user dismisses it. */
@@ -274,6 +287,40 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
+  workspaces: readWorkspaces(),
+  activeWorkspaceProjectId: null,
+  updateWorkspace: (workspace) => {
+    const key = workspaceKey(get().activeRightPanelConvId)
+    const workspaces = { ...get().workspaces, [key]: workspace }
+    writeLocal(WORKSPACES_KEY, JSON.stringify(workspaces))
+    const active = workspace.tabs.find(tab => tab.id === workspace.activeId)
+    set({ workspaces, activeTool: active ? resourceTool(active) : null })
+  },
+  openWorkspaceResource: (kind, ref, title, activate = true) => {
+    const state = get()
+    const workspace = state.workspaces[workspaceKey(state.activeRightPanelConvId)] ?? EMPTY_WORKSPACE
+    get().updateWorkspace(openResource(workspace, resourceDescriptor(kind, ref, title, state.activeWorkspaceProjectId), activate))
+    if (activate) get().setRightPanelCollapsed(false)
+  },
+  selectWorkspaceResource: (id) => {
+    const workspace = get().workspaces[workspaceKey(get().activeRightPanelConvId)] ?? EMPTY_WORKSPACE
+    const resource = workspace.tabs.find(tab => tab.id === id)
+    if (!resource) return
+    get().updateWorkspace({ ...workspace, activeId: id })
+    if (resource.kind === 'file') set(state => ({ requestedOpenFilePath: resource.ref, requestedOpenFileToken: state.requestedOpenFileToken + 1 }))
+    get().setRightPanelCollapsed(false)
+  },
+  closeWorkspaceResource: (id) => {
+    const workspace = get().workspaces[workspaceKey(get().activeRightPanelConvId)] ?? EMPTY_WORKSPACE
+    const next = closeResource(workspace, id)
+    get().updateWorkspace(next)
+    if (next.activeId) get().selectWorkspaceResource(next.activeId)
+  },
+  reorderWorkspaceResources: (ids) => {
+    const workspace = get().workspaces[workspaceKey(get().activeRightPanelConvId)] ?? EMPTY_WORKSPACE
+    if (ids.length !== workspace.tabs.length || new Set(ids).size !== ids.length || ids.some(id => !workspace.tabs.some(tab => tab.id === id))) return
+    get().updateWorkspace({ ...workspace, tabs: ids.map(id => workspace.tabs.find(tab => tab.id === id)!) })
+  },
   searchQuery: '',
   searchFocusToken: 0,
   settingsOpen: false,
@@ -382,12 +429,18 @@ export const useUiStore = create<UiState>((set, get) => ({
     // and trigger-dismissal logic stays in one place.
     get().setRightPanelCollapsed(next)
   },
-  hydrateRightPanelForConv: (conversationId) => {
+  hydrateRightPanelForConv: (conversationId, projectId = null) => {
     const state = getConvState(get().rightPanelByConv, conversationId)
     writeLocal(RIGHT_COLLAPSED_KEY, state.collapsed ? '1' : '0')
+    const workspace = get().workspaces[workspaceKey(conversationId)] ?? EMPTY_WORKSPACE
+    const active = workspace.tabs.find(tab => tab.id === workspace.activeId)
     set({
       rightPanelCollapsed: state.collapsed,
-      activeRightPanelConvId: conversationId
+      activeRightPanelConvId: conversationId,
+      activeWorkspaceProjectId: projectId,
+      activeTool: active ? resourceTool(active) : null,
+      requestedOpenFilePath: active?.kind === 'file' ? active.ref : null,
+      requestedOpenFileToken: get().requestedOpenFileToken + 1
     })
   },
   autoOpenRightPanel: (conversationId, triggerKey) => {
@@ -397,8 +450,9 @@ export const useUiStore = create<UiState>((set, get) => ({
     if (next === prev) return
     const nextMap = { ...cur, [conversationId]: next }
     writeRightPanelByConv(nextMap)
-    writeLocal(RIGHT_COLLAPSED_KEY, next.collapsed ? '1' : '0')
-    set({ rightPanelByConv: nextMap, rightPanelCollapsed: next.collapsed })
+    const active = conversationId === get().activeRightPanelConvId
+    if (active) writeLocal(RIGHT_COLLAPSED_KEY, next.collapsed ? '1' : '0')
+    set({ rightPanelByConv: nextMap, ...(active ? { rightPanelCollapsed: next.collapsed } : {}) })
   },
   setRightPanelWidth: (w: number) => {
     const clamped = Math.max(RIGHT_MIN, Math.min(RIGHT_MAX, Math.round(w)))
@@ -410,39 +464,30 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ permissionsMode: mode })
   },
   setActiveTool: (tool: ToolId | null) => {
-    if (tool && get().rightPanelCollapsed) {
-      writeLocal(RIGHT_COLLAPSED_KEY, '0')
-      set({ rightPanelCollapsed: false })
-    }
-    set({ activeTool: tool })
+    if (tool) get().openWorkspaceResource(tool, tool, tool)
+    else get().closeActiveTool()
   },
   seedSideChat: (payload) => {
-    if (get().rightPanelCollapsed) {
-      writeLocal(RIGHT_COLLAPSED_KEY, '0')
-    }
-    set({ activeTool: 'sidechat', rightPanelCollapsed: false, sideChatSeed: payload })
+    get().openWorkspaceResource('sidechat', 'sidechat', 'Side chat')
+    set({ sideChatSeed: payload })
   },
   consumeSideChatSeed: () => {
     const seed = get().sideChatSeed
     set({ sideChatSeed: null })
     return seed
   },
-  closeActiveTool: () => set({ activeTool: null }),
+  closeActiveTool: () => {
+    const workspace = get().workspaces[workspaceKey(get().activeRightPanelConvId)]
+    if (workspace?.activeId) get().closeWorkspaceResource(workspace.activeId)
+    else set({ activeTool: null })
+  },
   setActiveShell: (kind: ShellKind) => {
     writeLocal(ACTIVE_SHELL_KEY, kind)
     set({ activeShell: kind })
   },
   toggleTool: (tool: ToolId) => {
-    const current = get().activeTool
-    if (current === tool) {
-      set({ activeTool: null })
-    } else {
-      if (get().rightPanelCollapsed) {
-        writeLocal(RIGHT_COLLAPSED_KEY, '0')
-        set({ rightPanelCollapsed: false })
-      }
-      set({ activeTool: tool })
-    }
+    if (get().activeTool === tool) get().closeActiveTool()
+    else get().setActiveTool(tool)
   },
   openQuickOpen: () => set({ quickOpenVisible: true }),
   closeQuickOpen: () => set({ quickOpenVisible: false }),
@@ -455,10 +500,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   togglePlanMode: () => set((s) => ({ planMode: !s.planMode })),
   setPlanMode: (v: boolean) => set({ planMode: v }),
   requestOpenFile: (path: string) => {
-    if (get().rightPanelCollapsed) {
-      writeLocal(RIGHT_COLLAPSED_KEY, '0')
-      set({ rightPanelCollapsed: false })
-    }
+    get().openWorkspaceResource('file', path, path.split(/[\\/]/).pop() || path)
     set((s) => ({
       activeTool: 'files',
       requestedOpenFilePath: path,

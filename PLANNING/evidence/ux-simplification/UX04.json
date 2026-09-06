@@ -1,0 +1,13 @@
+{
+  "prompt": "UX-04",
+  "source": "6a6956d4f813b1461eba15b3f158e2bd78dd4e37",
+  "status": "local-pass",
+  "checks": [
+    "npx vitest run src/stores/ui-store.workspace.test.ts src/lib/right-panel-state.test.ts: 19 passed",
+    "npx tsc --noEmit -p tsconfig.web.json: pass",
+    "focused eslint: pass",
+    "commit hook: full lint and node/web TypeScript required"
+  ],
+  "scope": "Resource identity/state and existing open entry points; live tab presentation acceptance is UX-05.",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX04.json"
+}

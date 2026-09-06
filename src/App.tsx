@@ -186,6 +186,7 @@ function App(): React.ReactElement {
   const autoOpenRightPanel = useUiStore((s) => s.autoOpenRightPanel)
   const hydrateRightPanelForConv = useUiStore((s) => s.hydrateRightPanelForConv)
   const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const workspaceProjectId = useChatStore((s) => s.conversations.find(conversation => conversation.id === s.activeConversationId)?.projectId ?? null)
 
   const handleArtifactOpen = useCallback(
     (type: string, source: string) => {
@@ -252,8 +253,8 @@ function App(): React.ReactElement {
   // every time the active conversation changes. New conversations seed
   // to collapsed; existing ones restore their last manual / auto state.
   useEffect(() => {
-    hydrateRightPanelForConv(activeConversationId)
-  }, [activeConversationId, hydrateRightPanelForConv])
+    hydrateRightPanelForConv(activeConversationId, workspaceProjectId)
+  }, [activeConversationId, workspaceProjectId, hydrateRightPanelForConv])
 
   // Narrow-viewport drawer: Esc closes (collapses the right panel) so the
   // chat takes the full width back. Only active while the drawer is open.

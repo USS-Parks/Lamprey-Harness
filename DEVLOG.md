@@ -1,3 +1,11 @@
+## 2026-09-05 — UX-11: Compact composer hierarchy
+
+Gave the prompt a full-width text area and moved sending beside a compact attachment/model/working-mode/permission row. Send/Remember controls use the same height as adjacent controls. Coding and plan choices share a focused popover; permission state remains separately labeled and independently controlled. Reused coding settings and the existing per-task plan IPC. Existing-task plan display follows the persisted gate, avoiding a stale local flag after Exit & Execute. Draft/paste/attachment/provider and send paths remain in place; follow-up consolidation and inactive-control removal remain UX-12/15.
+
+Verification: 16 existing mode/history tests passed; renderer TypeScript, focused lint and production build passed. Actual Electron UX11_RUN preserved a multiline draft across all three permission choices and coding toggles, enabled/exited the real plan gate, rejected IME Enter submission, handled long-code inline paste and paste-as-attachment, processed a real file through the native chooser boundary, and retained attachment/draft while opening mode controls. No provider request occurred during that scenario. Synthetic clipboard/IME events and the controlled chooser response are identified in COMPOSER.json; renderer/preload/main/file processing/settings/plan persistence were real. All preceding shared acceptance cases and fixture cleanup passed.
+
+Files: ChatInput and shared acceptance fixtures/manifest plus ledgers. Commit: resolve the introducing commit of UX11.json. UX-07 all ten hosted checks succeeded (UX07_HOSTED.json). UX-08/09/10 remain separate verified local commits for sequential pushes; final native-DB, full behavior/performance matrix, version and Bucket remain later roster gates.
+
 ## 2026-09-05 — UX-10: Compact workspace entry points
 
 Replaced the eleven launcher cards with four compact shortcuts and a current-task plan indicator. The resource menu retains all thirteen ToolIds through one extracted label catalog. Removed the redundant secondary toolbar and its unused launcher component; VS Code access moved into the same resource menu, shell selection stays in the terminal dock, and theme/settings actions retain their existing Settings and View-menu routes. No capability service or permission policy was removed.

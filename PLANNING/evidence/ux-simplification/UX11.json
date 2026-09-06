@@ -1,0 +1,12 @@
+{
+  "prompt": "UX-11",
+  "sourceBase": "8029e4cd0462f1e0f7cb7ee9db0c2e9efc492295",
+  "status": "local-pass",
+  "unitTests": 16,
+  "evidence": [
+    "UX11_RUN/COMPOSER.json",
+    "UX11_RUN/RUNTIME.json",
+    "UX11_RUN/LIFECYCLE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX11.json"
+}

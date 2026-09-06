@@ -297,7 +297,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone C — Composer
 
 #### UX-11 — Reduce the composer's default visual hierarchy
-- [ ] **Objective:** make writing the prompt the dominant action.
+- [x] **Objective:** make writing the prompt the dominant action.
 - **Work:** implement approved input spacing and compact attachment/model/mode/access placement. Reuse draft, attachment and paste behavior. Group plan/coding controls in the approved popover while displaying permission state clearly and independently.
 - **Seams/output:** ChatInput and existing mode/permission controls; presentation extraction only where needed.
 - **Gate:** G1/G2; text, multiline paste, IME composition, attachments, plan state, coding state and all permission modes remain correct. Changing presentation or mode never escalates permissions or clears a draft.

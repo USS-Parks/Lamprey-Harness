@@ -5,6 +5,7 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { canUseProvider, useProvidersStore } from '@/stores/providers-store'
 import { useUiStore, type PermissionsMode } from '@/stores/ui-store'
 import { toast } from '@/stores/toast-store'
+import { PopoverMenu } from '@/components/ui/PopoverMenu'
 import { ApiKeyModal } from '@/components/settings/ApiKeyModal'
 import { SlashCommandPalette } from './SlashCommandPalette'
 import { AtFileMention } from './AtFileMention'
@@ -173,6 +174,42 @@ function CodingModeToggle() {
       <span className="font-mono uppercase tracking-wider">Coding</span>
     </button>
   )
+}
+
+function WorkingModeMenu() {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const anchor = useRef<HTMLButtonElement>(null)
+  const coding = useSettingsStore(s => s.settings.agenticCodingMode)
+  const localPlan = useUiStore(s => s.planMode)
+  const plan = usePlanMode()
+  const active = localPlan || plan.active
+  const togglePlan = async () => {
+    if (busy) return
+    setBusy(true)
+    const owner = useChatStore.getState().activeConversationId
+    try {
+      const enabled = !active
+      const ok = !owner || await (enabled ? plan.enter() : plan.exit())
+      if (!ok) { toast.error('Could not change plan mode.'); return }
+      if (useChatStore.getState().activeConversationId === owner) useUiStore.getState().setPlanMode(owner ? false : enabled)
+    } catch (failure) { toast.error(String(failure)) }
+    finally { setBusy(false) }
+  }
+  return <>
+    <button ref={anchor} type="button" aria-label="Working mode" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen(!open)} className="flex min-h-8 items-center gap-1 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
+      {active ? 'Plan' : coding ? 'Coding' : 'Chat'} <ChevronDown />
+    </button>
+    <PopoverMenu open={open} onClose={() => setOpen(false)} anchorRef={anchor} align="top-start" ariaLabel="Working mode">
+      <div className="space-y-1 p-2">
+        <CodingModeToggle />
+        <button type="button" aria-pressed={active} disabled={busy} onClick={() => void togglePlan()} className="flex min-h-8 w-full items-center justify-between gap-3 rounded px-2 text-left text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50">
+          Plan before editing <span>{active ? 'On' : 'Off'}</span>
+        </button>
+        <button type="button" onClick={() => { setOpen(false); useUiStore.getState().openSettings('agenticCoding') }} className="min-h-8 rounded px-2 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]">Coding settings</button>
+      </div>
+    </PopoverMenu>
+  </>
 }
 
 function PermissionsDropdown() {
@@ -1391,7 +1428,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
         </div>
       )}
 
-      <div className="relative flex w-full flex-col gap-2 rounded-3xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-4 pt-3 pb-2 shadow-lg backdrop-blur-sm">
+      <div className="relative flex w-full flex-col gap-2 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3 py-2">
         {/* Track 2 / C4 — slash-command palette. Anchored to this
             container's top edge via `bottom-full`, so it floats above
             the input box without affecting layout. */}
@@ -1441,14 +1478,45 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
             placeholder={
               isStreaming
                 ? 'Write a follow-up, then choose Steer or Queue'
-                : 'Ask anything — ↑ for history'
+                : 'What would you like to work on?'
             }
             rows={1}
             disabled={disabled}
-            style={{ paddingLeft: '20px', paddingTop: '8px' }}
-            className="max-h-[200px] min-h-[28px] flex-1 resize-none bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+            aria-label="Message Lamprey"
+            className="max-h-[200px] min-h-[48px] w-full flex-1 resize-none px-1 py-2 bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
           />
 
+
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1">
+          <AddMenu
+            onPickFile={handlePickerClick}
+            onOpenSettings={openSettings}
+            onInsertSlash={() => {
+              setContent((c) => (c.startsWith('/') ? c : `/${c}`))
+              textareaRef.current?.focus()
+            }}
+          />
+
+          <ModelDropdown onRequestKey={(providerId) => setKeyPromptProvider(providerId)} />
+          <WorkingModeMenu />
+          <PermissionsDropdown />
+          <div className="flex-1" />
+
+          <button
+            onClick={() => toast.info('Voice input coming soon')}
+            title="Voice input"
+            aria-label="Voice input"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+          >
+            <img
+              src={micIcon}
+              alt=""
+              aria-hidden
+              className="icon-asset h-[25px] w-[25px] object-contain"
+            />
+          </button>
           {isStreaming ? (
             <div className="flex shrink-0 items-center gap-2 self-end">
               <button
@@ -1494,7 +1562,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               title="Open memory editor (Enter)"
               aria-label="Remember"
               data-mode="memory"
-              className="flex h-[60px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-[var(--bg-primary)] transition-all hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:hover:scale-100"
+              className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-sm font-medium text-[var(--bg-primary)] transition-all hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:hover:scale-100"
             >
               <svg
                 width="14"
@@ -1517,49 +1585,16 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
               disabled={!canSend}
               title="Send (Enter)"
               aria-label="Send"
-              className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--accent)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-[var(--bg-tertiary)]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] transition-all hover:scale-105 hover:bg-[var(--accent)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-[var(--bg-tertiary)]"
             >
               <img
                 src={sendIcon}
                 alt=""
                 aria-hidden
-                className="icon-asset-crisp h-[45px] w-[45px] object-contain"
+                className="icon-asset-crisp h-6 w-6 object-contain"
               />
             </button>
           )}
-        </div>
-
-        <div className="flex items-center gap-1">
-          <AddMenu
-            onPickFile={handlePickerClick}
-            onOpenSettings={openSettings}
-            onInsertSlash={() => {
-              setContent((c) => (c.startsWith('/') ? c : `/${c}`))
-              textareaRef.current?.focus()
-            }}
-          />
-
-          <PermissionsDropdown />
-
-          <CodingModeToggle />
-
-          <div className="flex-1" />
-
-          <ModelDropdown onRequestKey={(providerId) => setKeyPromptProvider(providerId)} />
-
-          <button
-            onClick={() => toast.info('Voice input coming soon')}
-            title="Voice input"
-            aria-label="Voice input"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <img
-              src={micIcon}
-              alt=""
-              aria-hidden
-              className="icon-asset h-[25px] w-[25px] object-contain"
-            />
-          </button>
         </div>
 
         <ContextChipRow onAddFile={handlePickerClick} />

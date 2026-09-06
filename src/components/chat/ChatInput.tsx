@@ -1,4 +1,5 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { TaskContext } from '@/components/workspace/TaskContext'
+import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
@@ -32,10 +33,6 @@ import autoReviewIcon from '@assets/Lamprey Auto-Review Icon.png'
 import fullAccessIcon from '@assets/Lamprey Full Access Icon.png'
 import micIcon from '@assets/Lamprey Microphone Icon.png'
 import sendIcon from '@assets/Lamprey Prompt Enter Icon.png'
-import workLocationIcon from '@assets/Lamprey Work Location Icon.png'
-import folderIcon from '@assets/Lamprey Folder 1 Icon.png'
-import worktreeIcon from '@assets/Lamprey Worktree Icon.png'
-import addFileIcon from '@assets/Lamprey Add File Icon.png'
 
 interface ChatInputProps {
   onSend: (content: string) => void
@@ -508,240 +505,6 @@ function ModelDropdown({ onRequestKey }: ModelDropdownProps) {
   )
 }
 
-interface ChipMenuItem {
-  label: string
-  description?: string
-  onSelect: () => void
-  active?: boolean
-}
-
-interface ContextChipProps {
-  icon: string
-  label: string
-  title?: string
-  onClick?: () => void
-  menu?: ChipMenuItem[]
-}
-
-function ContextChip({ icon, label, title, onClick, menu }: ContextChipProps) {
-  const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-  useClickOutside(wrapRef, () => setOpen(false), open)
-
-  const hasMenu = !!menu && menu.length > 0
-  const interactive = hasMenu || !!onClick
-
-  const handleClick = () => {
-    if (hasMenu) {
-      setOpen((v) => !v)
-      return
-    }
-    onClick?.()
-  }
-
-  return (
-    <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={handleClick}
-        title={title ?? label}
-        disabled={!interactive}
-        aria-haspopup={hasMenu ? 'menu' : undefined}
-        aria-expanded={hasMenu ? open : undefined}
-        className={`flex items-center gap-1.5 rounded-md border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-2 py-1 text-[12px] text-[var(--text-secondary)] transition-colors ${
-          interactive
-            ? 'hover:border-[var(--accent)] hover:text-[var(--text-primary)]'
-            : 'cursor-default opacity-90'
-        } ${open ? 'border-[var(--accent)] text-[var(--text-primary)]' : ''}`}
-      >
-        <span className="relative flex h-[18px] w-[18px] items-center justify-center">
-          <img
-            src={icon}
-            alt=""
-            aria-hidden
-            className="icon-asset h-[18px] w-[18px] object-contain"
-          />
-        </span>
-        <span className="leading-none">{label}</span>
-        {hasMenu && (
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        )}
-      </button>
-
-      {hasMenu && open && (
-        <div
-          role="menu"
-          className="absolute bottom-full left-0 z-30 mb-1 min-w-[220px] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] py-1 shadow-xl"
-        >
-          {menu!.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                item.onSelect()
-              }}
-              className={`flex w-full flex-col items-start gap-0.5 px-3 py-1.5 text-left text-[12px] transition-colors ${
-                item.active
-                  ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <span className="font-medium">{item.label}</span>
-              {item.description && (
-                <span className="text-[11px] text-[var(--text-muted)]">{item.description}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-interface ContextChipRowProps {
-  onAddFile: () => void
-}
-
-function ContextChipRow({ onAddFile }: ContextChipRowProps) {
-  const [workdir, setWorkdir] = useState<{ path: string; name: string } | null>(null)
-
-  useEffect(() => {
-    if (!window.api?.files?.getWorkdir) return
-    let cancelled = false
-    window.api.files
-      .getWorkdir()
-      .then((res: { success: boolean; data?: { path: string; name: string } }) => {
-        if (!cancelled && res.success && res.data) setWorkdir(res.data)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const handlePickFolder = async () => {
-    if (!window.api?.files?.pickWorkdir) return
-    try {
-      const res = await window.api.files.pickWorkdir()
-      if (!(res.success && res.data)) return
-      // pickWorkdir only returns the chosen path; persisting it through
-      // setWorkdir is what makes tool execution honor the user's choice.
-      // The chip-local state mirrors the persisted value either way.
-      const persisted = await window.api.files.setWorkdir?.(res.data.path)
-      if (persisted && persisted.success && persisted.data) {
-        setWorkdir(persisted.data)
-      } else {
-        setWorkdir(res.data)
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  const folderLabel = workdir?.name ?? '(no folder)'
-  const folderTitle = workdir?.path
-    ? `Working folder: ${workdir.path} (click to change)`
-    : 'Click to choose a working folder'
-
-  const locationMenu: ChipMenuItem[] = [
-    {
-      label: 'Local',
-      description: 'This machine',
-      active: true,
-      onSelect: () => {
-        /* already local */
-      }
-    },
-    {
-      label: 'Remote (coming soon)',
-      description: 'Run against a remote dev container',
-      onSelect: () => toast.info('Remote execution — coming soon')
-    }
-  ]
-
-  const folderMenu: ChipMenuItem[] = [
-    {
-      label: 'Change folder…',
-      description: workdir?.path ?? 'No folder selected',
-      onSelect: handlePickFolder
-    },
-    {
-      label: 'Use current process folder',
-      description: 'Reset to the folder Lamprey was launched from',
-      onSelect: () => {
-        // Reset: clearWorkdir drops the persisted override, getWorkdir then
-        // returns process.cwd() as the fallback.
-        const api = window.api?.files
-        if (!api) return
-        const clear = api.clearWorkdir ? api.clearWorkdir() : Promise.resolve({ success: true })
-        Promise.resolve(clear)
-          .then(() => api.getWorkdir())
-          .then((res: { success: boolean; data?: { path: string; name: string } }) => {
-            if (res.success && res.data) setWorkdir(res.data)
-          })
-          .catch(() => {})
-      }
-    }
-  ]
-
-  const worktreeMenu: ChipMenuItem[] = [
-    { label: 'main', description: 'Default branch', active: true, onSelect: () => {} },
-    {
-      label: 'Switch branch (coming soon)',
-      description: 'Pick a different git branch',
-      onSelect: () => toast.info('Branch switching — coming soon')
-    },
-    {
-      label: 'New worktree (coming soon)',
-      description: 'Run agents in an isolated worktree',
-      onSelect: () => toast.info('Worktrees — coming soon')
-    }
-  ]
-
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
-      <ContextChip
-        icon={workLocationIcon}
-        label="Local"
-        title="Running locally on this machine"
-        menu={locationMenu}
-      />
-      <ContextChip icon={folderIcon} label={folderLabel} title={folderTitle} menu={folderMenu} />
-      <ContextChip
-        icon={worktreeIcon}
-        label="main · worktree"
-        title="Active git worktree"
-        menu={worktreeMenu}
-      />
-      <ContextChip
-        icon={addFileIcon}
-        label="Add file"
-        title="Attach a file to your prompt"
-        onClick={onAddFile}
-      />
-      {/* Right-aligned tool-activity consolidator. The cards used to live
-          inline in the transcript and stack into a wall of rows during
-          exploration bursts; they now hide behind this chip so the chat
-          panel stays clean. The chip itself returns null when the turn
-          has no tool calls, so idle turns show nothing here. */}
-      <ToolActivityChip />
-    </div>
-  )
-}
-
 interface AddMenuItem {
   label: string
   shortcut?: string
@@ -845,6 +608,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const refreshProviders = useProvidersStore((s) => s.refresh)
   const providersLoaded = useProvidersStore((s) => s.loaded)
   const activeModel = useChatStore((s) => s.activeModel)
+  const contextRevision = useUiStore(s => s.workspaceContextRevision)
+  const owner = useChatStore(s => s.activeConversationId)
   const activeTurn = useChatStore((s) => s.activeTurn)
   const pendingAttachments = useChatStore((s) => s.pendingAttachments)
   const submitFollowUp = useChatStore((s) => s.submitFollowUp)
@@ -1043,6 +808,8 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const mention = detectAtMention(content, caretPos)
   const showAtMention = mention !== null && !atMentionDismissed && !isStreaming && !disabled
 
+  useEffect(() => { setWorkspaceFiles(null); setWorkspaceRoot(null); setWorkspaceLoading(false) }, [owner, contextRevision])
+
   // Lazy-load the workspace file index the first time the popover opens.
   useEffect(() => {
     if (!showAtMention) return
@@ -1052,13 +819,13 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     setWorkspaceLoading(true)
     void (async () => {
       try {
-        const wd = await window.api.files.getWorkdir()
+        const wd = await window.api.files.getWorkdir(owner)
         if (cancelled || !wd.success || !wd.data) {
           if (!cancelled) setWorkspaceLoading(false)
           return
         }
         const root = wd.data.path
-        const w = await window.api.files.walkProject(root)
+        const w = await window.api.files.walkProject(root, owner)
         if (cancelled) return
         if (w.success) {
           const data = w.data as { files: string[] }
@@ -1072,7 +839,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     return () => {
       cancelled = true
     }
-  }, [showAtMention, workspaceFiles, workspaceLoading])
+  }, [showAtMention, workspaceFiles, workspaceLoading, owner])
 
   const applyAtMention = (relPath: string) => {
     if (!mention) return
@@ -1088,7 +855,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     if (window.api?.files?.process) {
       setProcessing(true)
       void window.api.files
-        .process([fullPath])
+        .process([fullPath], owner)
         .then((res) => {
           if (res.success) addAttachments(res.data as ProcessedFile[])
           else if (res.error) toast.error(`Attach failed: ${res.error}`)
@@ -1622,7 +1389,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
           )}
         </div>
 
-        <ContextChipRow onAddFile={handlePickerClick} />
+        <div className="flex items-center justify-between gap-2"><TaskContext /><ToolActivityChip /></div>
       </div>
 
       {/* Fluidity J2 — slim mode indicator below the input bar. The `key` swap

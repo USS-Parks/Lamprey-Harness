@@ -409,6 +409,7 @@ export function EnvironmentPanel(): React.ReactElement {
         open={branchOpen}
         onClose={() => setBranchOpen(false)}
         anchorRef={branchRef}
+        cwd={snapshot.cwd}
         onChanged={() => void refresh()}
       />
       {projectId && (

@@ -89,14 +89,16 @@ describe('JM-20 file-read confinement + MCP spawn approval', () => {
       files.indexOf("'files:openInVSCode'"),
       files.indexOf("'files:openInExplorer'")
     )
-    expect(vsHandler).toMatch(/confineToWorkspace\(/)
-    expect(vsHandler).toMatch(/args\?\.targetPath \|\| getActiveWorkspace\(\)/)
+    expect(vsHandler).toContain('getTaskWorkspace(args?.conversationId)')
+    expect(vsHandler).toContain('confineToWorkspace(requested, workspace)')
+    expect(vsHandler).toMatch(/args\?\.targetPath \|\| workspace/)
     expect(vsHandler).not.toMatch(/process\.cwd\(\)/)
     expect(vsHandler).toMatch(/buildVSCodeLaunchPlan\(codePath, target\)/)
 
     const explorerHandler = files.slice(files.indexOf("'files:openInExplorer'"))
-    expect(explorerHandler).toMatch(/confineToWorkspace\(/)
-    expect(explorerHandler).toMatch(/args\?\.targetPath \|\| getActiveWorkspace\(\)/)
+    expect(explorerHandler).toContain('getTaskWorkspace(args?.conversationId)')
+    expect(explorerHandler).toContain('confineToWorkspace(requested, workspace)')
+    expect(explorerHandler).toMatch(/args\?\.targetPath \|\| workspace/)
     expect(explorerHandler).not.toMatch(/process\.cwd\(\)/)
     expect(explorerHandler).toMatch(/shell\.openPath\(target\)/)
 

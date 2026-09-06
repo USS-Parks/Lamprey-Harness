@@ -74,7 +74,7 @@ import {
   ToolRoundCapError
 } from '../services/tool-round-cap-error'
 import { type AgentRunPhase } from '../services/agent-run-phase'
-import { getActiveWorkspace } from '../services/workspace-state'
+import { getTaskWorkspace } from '../services/task-workspace'
 import { parseFallbackToolCalls, FALLBACK_TOOL_INSTRUCTION } from '../services/fallback-tool-parser'
 import { recordCapabilityCheck, isDowngraded } from '../services/providers/capability-tracker'
 import { emitChatEvent } from '../services/chat-events'
@@ -613,7 +613,7 @@ export async function runHeadlessTurn(input: {
       ((settingsRaw as { toolSurface?: string } | null)?.toolSurface ?? 'full') === 'lazy'
 
     const { params: modelParams, systemPromptOverride } = loadModelConfig(settingsRaw, model)
-    const activeWorkspace = getActiveWorkspace()
+    const activeWorkspace = getTaskWorkspace(conversationId)
     const agentsMd = readAgentsMd(activeWorkspace)
     const chaptersBlock = buildChaptersBlock(conversationId)
     const supportsTools = resolveModel(model).supportsTools

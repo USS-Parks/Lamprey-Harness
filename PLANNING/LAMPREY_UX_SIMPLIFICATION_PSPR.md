@@ -309,7 +309,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2/G3; real active-turn steer, durable queue, edit/reorder/delete/send-now, double-submit, stale turn, cancellation, failed IPC, unreadable attachment and reload recovery all pass. No fallback to a fresh chat send; menu navigation never submits accidentally.
 
 #### UX-13 — Consolidate project and environment context
-- [ ] **Objective:** show the active project, location and branch once with a reliable details popover.
+- [x] **Objective:** show the active project, location and branch once with a reliable details popover.
 - **Work:** reuse the floating Environment card's real handlers and context-chip state in the compact location. Preserve project selection, worktree/branch actions, reveal/copy path and plan detail access. Remove the floating duplicate only after mapping every action.
 - **Seams/output:** FloatingEnvironmentCard, EnvironmentPanel, ContextChipRow, environment stores/fixtures.
 - **Gate:** G1/G2 using real temporary Git operations; external branch changes refresh, failed actions are visible, task switch updates context, and no dirty work is discarded. The conversation no longer shifts to accommodate a floating context card.

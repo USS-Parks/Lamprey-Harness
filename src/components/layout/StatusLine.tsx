@@ -76,6 +76,7 @@ export function StatusLine() {
   const models = useModelStore((s) => s.models)
   const runs = useWorkflowsStore((s) => s.runs)
   const ragCollections = useRagStore((s) => s.collections)
+  const owner = useChatStore(s => s.activeConversationId)
   const messages = useChatStore((s) => s.messages)
 
   // Load config on mount
@@ -97,34 +98,20 @@ export function StatusLine() {
     }
   }, [])
 
-  // Fluidity J8: load current branch from review:branches IPC. Polled at
-  // 30s so a branch switch outside Lamprey shows up reasonably soon.
+  // Default context lives in the composer; retain explicitly customized branch slots.
   useEffect(() => {
+    if (config.source !== 'user' || !config.slots.includes('branch')) return
     let cancelled = false
-    function refresh(): void {
-      const reviewApi = (window.api as { review?: { branches?: (a?: { cwd?: string }) => Promise<unknown> } })?.review
-      if (!reviewApi?.branches) return
-      void reviewApi.branches().then((res: unknown) => {
-        if (cancelled) return
-        const r = res as {
-          success?: boolean
-          data?: { branches?: Array<{ name: string; current: boolean }> }
-        }
-        if (!r?.success || !r?.data?.branches) {
-          setCurrentBranch(null)
-          return
-        }
-        const cur = r.data.branches.find((b) => b.current)
-        setCurrentBranch(cur ? cur.name : null)
-      })
+    const refresh = async () => {
+      try {
+        const result = await window.api.review.status({ conversationId: owner })
+        if (!cancelled) setCurrentBranch(result.success ? result.data.branch : null)
+      } catch { if (!cancelled) setCurrentBranch(null) }
     }
-    refresh()
-    const interval = setInterval(refresh, 30_000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [])
+    void refresh()
+    const interval = setInterval(() => void refresh(), 30_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [owner, config])
 
   // Snip Phase K13: poll today's tokens-saved every 30s. The slot
   // hides itself when the count is 0 so brand-new installs don't see
@@ -369,7 +356,7 @@ export function StatusLine() {
     return `${(n / 1_000_000).toFixed(1)}M`
   }
 
-  const renderedSlots = config.slots.map(renderSlot).filter(Boolean) as ReactElement[]
+  const renderedSlots = config.slots.filter(slot => slot !== 'branch' || config.source === 'user').map(renderSlot).filter(Boolean) as ReactElement[]
 
   return (
     <div

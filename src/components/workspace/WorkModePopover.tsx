@@ -65,10 +65,15 @@ export function WorkModePopover({
       toast.error('Workdir picker unavailable')
       return
     }
-    const res = await window.api.files.pickWorkdir()
-    if (res.success && res.data) {
-      toast.success(`Working folder set: ${res.data.name}`)
-    }
+    try {
+      const res = await window.api.files.pickWorkdir()
+      if (!res.success) throw new Error(res.error ?? 'Folder picker failed')
+      if (!res.data) return
+      const saved = await window.api.files.setWorkdir(res.data.path)
+      if (!saved.success) throw new Error(saved.error ?? 'Could not save default folder')
+      useUiStore.getState().refreshWorkspaceContext()
+      toast.success(`Default working folder: ${saved.data.name}`)
+    } catch (error) { toast.error(String(error)) }
   }
 
   return (
@@ -81,7 +86,7 @@ export function WorkModePopover({
       ariaLabel="Work mode"
     >
       <MenuRow
-        label="Change workdir…"
+        label="Change default working folder…"
         leading={<FolderGlyph />}
         onSelect={() => void pickWorkdir()}
       />

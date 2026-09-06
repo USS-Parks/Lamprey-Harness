@@ -17,7 +17,9 @@ export function WorktreeManagerModal() {
   const [creating, setCreating] = useState(false)
   const [newBranch, setNewBranch] = useState('')
   const [newPath, setNewPath] = useState('')
-  const createConversation = useChatStore((s) => s.createConversation)
+  const owner = useChatStore(s => s.activeConversationId)
+  const contextRevision = useUiStore(s => s.workspaceContextRevision)
+  const [cwd, setCwd] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setError(null)
@@ -25,13 +27,17 @@ export function WorktreeManagerModal() {
       setError('Worktree API unavailable.')
       return
     }
-    const res = await window.api.worktree.list({})
+    setCwd(null)
+    const folder = await window.api.files.getWorkdir(owner)
+    if (!folder.success || !folder.data) { setError(folder.error ?? 'Task folder unavailable'); return }
+    setCwd(folder.data.path)
+    const res = await window.api.worktree.list({ cwd: folder.data.path })
     if (!res.success) {
       setError(res.error ?? 'list failed')
       return
     }
     setList(res.data as Worktree[])
-  }, [])
+  }, [owner, contextRevision])
 
   useEffect(() => {
     if (visible) void refresh()
@@ -40,12 +46,13 @@ export function WorktreeManagerModal() {
   if (!visible) return null
 
   const handleCreate = async () => {
-    if (!newBranch.trim() || !newPath.trim()) {
+    if (!cwd || !newBranch.trim() || !newPath.trim()) {
       setError('branch and path are required')
       return
     }
     setCreating(true)
     const res = await window.api?.worktree?.create({
+      cwd,
       branch: newBranch.trim(),
       path: newPath.trim()
     })
@@ -63,20 +70,21 @@ export function WorktreeManagerModal() {
     if (confirm(`Create a new thread for worktree '${data.branch}'?`)) {
       // createConversation in the store doesn't currently take kind; using
       // direct IPC so the metadata is recorded.
-      const conv = await window.api.conversation.create('deepseek-v4-flash', {
+      const conv = await window.api.conversation.create(useChatStore.getState().activeModel, {
         kind: 'worktree',
         worktreePath: data.path
       })
       if (conv.success) {
         await useChatStore.getState().loadConversations()
-        await createConversation()
+        await useChatStore.getState().selectConversation(conv.data.id)
+        close()
       }
     }
   }
 
   const handleRemove = async (p: string) => {
     if (!confirm(`Remove worktree at ${p}?`)) return
-    const res = await window.api?.worktree?.remove({ path: p })
+    const res = await window.api?.worktree?.remove({ path: p, cwd: cwd ?? undefined })
     if (!res?.success) {
       toast.error(res?.error ?? 'remove failed')
       return
@@ -92,7 +100,7 @@ export function WorktreeManagerModal() {
         if (e.target === e.currentTarget) close()
       }}
     >
-      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl">
+      <div role="dialog" aria-label="Worktrees" aria-modal="true" className="flex w-full max-w-lg flex-col overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-4 py-3">
           <h2 className="text-[14px] font-medium text-[var(--text-primary)]">Worktrees</h2>
           <button
@@ -129,7 +137,7 @@ export function WorktreeManagerModal() {
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={handleCreate}
-                disabled={creating}
+                disabled={creating || !cwd}
                 className="rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-3 py-1 text-[12px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text-primary)] disabled:opacity-50"
               >
                 {creating ? 'Creating…' : 'Create worktree'}

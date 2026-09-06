@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PopoverMenu } from '@/components/ui/PopoverMenu'
 import { MenuRow, MenuSeparator, MenuSectionLabel } from '@/components/ui/MenuRow'
 import { toast } from '@/stores/toast-store'
@@ -9,6 +9,7 @@ interface BranchPickerPopoverProps {
   onClose: () => void
   anchorRef: React.RefObject<HTMLElement | null>
   onChanged?: () => void
+  cwd?: string
 }
 
 function BranchGlyph(): React.ReactElement {
@@ -55,8 +56,11 @@ export function BranchPickerPopover({
   open,
   onClose,
   anchorRef,
-  onChanged
+  onChanged,
+  cwd
 }: BranchPickerPopoverProps): React.ReactElement {
+  const busy = useRef(false)
+  const [acting, setActing] = useState(false)
   const [branches, setBranches] = useState<BranchItem[]>([])
   const [filter, setFilter] = useState('')
   const [loading, setLoading] = useState(false)
@@ -71,47 +75,38 @@ export function BranchPickerPopover({
       return
     }
     if (!window.api?.review?.branches) return
+    let cancelled = false
     setLoading(true)
-    void window.api.review.branches().then((res) => {
-      setLoading(false)
-      if (!res.success) {
-        toast.error(res.error ?? 'Could not list branches')
-        return
-      }
+    setBranches([])
+    void window.api.review.branches({ cwd }).then(res => {
+      if (cancelled) return
+      if (!res.success) throw new Error(res.error ?? 'Could not list branches')
       const data = res.data as { branches: BranchItem[] }
       setBranches(data.branches ?? [])
-    })
-  }, [open])
+    }).catch(error => { if (!cancelled) toast.error(String(error)) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [open, cwd])
 
   const filtered = branches.filter((b) =>
     filter ? b.name.toLowerCase().includes(filter.toLowerCase()) : true
   )
 
-  const handleCheckout = async (name: string) => {
-    if (!window.api?.review?.checkout) return
-    const res = await window.api.review.checkout({ name })
-    if (!res.success) {
-      toast.error(res.error ?? `Checkout ${name} failed`)
-      return
-    }
-    toast.success(`Switched to ${name}`)
-    onClose()
-    onChanged?.()
+  const changeBranch = async (name: string, create = false) => {
+    if (!name.trim() || busy.current) return
+    busy.current = true
+    setActing(true)
+    try {
+      const result = await (create ? window.api.review.createBranch({ name: name.trim(), cwd }) : window.api.review.checkout({ name, cwd }))
+      if (!result.success) throw new Error(result.error ?? 'Branch action failed')
+      toast.success(`${create ? 'Created and switched to' : 'Switched to'} ${name}`)
+      onClose()
+      onChanged?.()
+    } catch (error) { toast.error(String(error)) }
+    finally { busy.current = false; setActing(false) }
   }
-
-  const handleCreate = async () => {
-    const trimmed = newName.trim()
-    if (!trimmed) return
-    if (!window.api?.review?.createBranch) return
-    const res = await window.api.review.createBranch({ name: trimmed })
-    if (!res.success) {
-      toast.error(res.error ?? 'Create branch failed')
-      return
-    }
-    toast.success(`Created and checked out ${trimmed}`)
-    onClose()
-    onChanged?.()
-  }
+  const handleCheckout = (name: string) => changeBranch(name)
+  const handleCreate = () => changeBranch(newName, true)
 
   return (
     <PopoverMenu
@@ -169,6 +164,7 @@ export function BranchPickerPopover({
             label={b.name}
             leading={<BranchGlyph />}
             selected={b.current}
+            disabled={acting}
             onSelect={() => void handleCheckout(b.name)}
             title={b.upstream ? `Tracks ${b.upstream}` : undefined}
           />
@@ -200,7 +196,7 @@ export function BranchPickerPopover({
           <button
             type="button"
             onClick={() => void handleCreate()}
-            disabled={!newName.trim()}
+            disabled={acting || !newName.trim()}
             className="rounded-md border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-2 py-1 text-[11px] text-[var(--text-primary)] disabled:opacity-50"
           >
             Create

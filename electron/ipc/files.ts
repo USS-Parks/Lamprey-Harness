@@ -1,3 +1,4 @@
+import { getTaskWorkspace } from '../services/task-workspace'
 import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import { spawn } from 'child_process'
 import * as path from 'path'
@@ -146,8 +147,8 @@ async function walkProject(rootPath: string): Promise<string[]> {
 // openInExplorer, and app:openPath (main.ts) reuse this same helper.
 // Returns null when the path escapes the root (`..`, absolute-elsewhere,
 // other drive on Windows).
-export function confineToWorkspace(candidate: string): string | null {
-  const root = path.resolve(getActiveWorkspace())
+export function confineToWorkspace(candidate: string, workspace = getActiveWorkspace()): string | null {
+  const root = path.resolve(workspace)
   const target = path.resolve(root, candidate)
   const escapes = (from: string, to: string): boolean => {
     const relative = path.relative(from, to)
@@ -185,12 +186,12 @@ export const OUTSIDE_WORKSPACE_ERROR =
   'Path is outside the active workspace. File access is confined to the project root.'
 
 export function registerFilesHandlers(): void {
-  ipcMain.handle('files:listDir', async (_event, dirPath: string) => {
+  ipcMain.handle('files:listDir', async (_event, dirPath: string, conversationId?: string | null) => {
     try {
       if (typeof dirPath !== 'string' || !dirPath) {
         return { success: false, error: 'dirPath required' }
       }
-      const safe = confineToWorkspace(dirPath)
+      const safe = confineToWorkspace(dirPath, getTaskWorkspace(conversationId))
       if (!safe) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const entries = await listDir(safe)
       return { success: true, data: entries }
@@ -199,12 +200,12 @@ export function registerFilesHandlers(): void {
     }
   })
 
-  ipcMain.handle('files:readText', async (_event, filePath: string) => {
+  ipcMain.handle('files:readText', async (_event, filePath: string, conversationId?: string | null) => {
     try {
       if (typeof filePath !== 'string' || !filePath) {
         return { success: false, error: 'filePath required' }
       }
-      const safeFile = confineToWorkspace(filePath)
+      const safeFile = confineToWorkspace(filePath, getTaskWorkspace(conversationId))
       if (!safeFile) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const st = await fs.stat(safeFile)
       if (st.size > TEXT_READ_CAP) {
@@ -226,12 +227,12 @@ export function registerFilesHandlers(): void {
     }
   })
 
-  ipcMain.handle('files:walkProject', async (_event, rootPath: string) => {
+  ipcMain.handle('files:walkProject', async (_event, rootPath: string, conversationId?: string | null) => {
     try {
       if (typeof rootPath !== 'string' || !rootPath) {
         return { success: false, error: 'rootPath required' }
       }
-      const safeRoot = confineToWorkspace(rootPath)
+      const safeRoot = confineToWorkspace(rootPath, getTaskWorkspace(conversationId))
       if (!safeRoot) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const files = await walkProject(safeRoot)
       return { success: true, data: { files, truncated: files.length >= WALK_FILE_CAP } }
@@ -240,7 +241,7 @@ export function registerFilesHandlers(): void {
     }
   })
 
-  ipcMain.handle('files:process', async (_event, paths: string[]) => {
+  ipcMain.handle('files:process', async (_event, paths: string[], conversationId?: string | null) => {
     try {
       if (!Array.isArray(paths)) return { success: false, error: 'paths must be an array' }
       const safePaths: string[] = []
@@ -248,7 +249,7 @@ export function registerFilesHandlers(): void {
         if (typeof candidate !== 'string') {
           return { success: false, error: 'paths must be an array of strings' }
         }
-        const safe = confineToWorkspace(candidate)
+        const safe = confineToWorkspace(candidate, getTaskWorkspace(conversationId))
         if (!safe) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
         safePaths.push(safe)
       }
@@ -259,13 +260,13 @@ export function registerFilesHandlers(): void {
     }
   })
 
-  ipcMain.handle('files:getWorkdir', async () => {
+  ipcMain.handle('files:getWorkdir', async (_event, conversationId?: string | null) => {
     try {
       // Resolve the active workspace from the persisted state, falling back
       // to process.cwd() when nothing is set. This is the source of truth
       // tool execution (workspace_context / shell_command / apply_patch)
       // reads through ToolExecutionContext.workspacePath.
-      const cwd = getActiveWorkspace()
+      const cwd = getTaskWorkspace(conversationId)
       return { success: true, data: { path: cwd, name: path.basename(cwd) } }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'Could not read working directory' }
@@ -350,10 +351,11 @@ export function registerFilesHandlers(): void {
     }
   })
 
-  ipcMain.handle('files:openInVSCode', async (_event, args?: { targetPath?: string }) => {
+  ipcMain.handle('files:openInVSCode', async (_event, args?: { targetPath?: string; conversationId?: string | null }) => {
     try {
-      const requested = args?.targetPath || getActiveWorkspace()
-      const target = confineToWorkspace(requested)
+      const workspace = getTaskWorkspace(args?.conversationId)
+      const requested = args?.targetPath || workspace
+      const target = confineToWorkspace(requested, workspace)
       if (!target) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
       const codePath = await probeCodeBinary()
       if (!codePath) {
@@ -381,12 +383,14 @@ export function registerFilesHandlers(): void {
     }
   })
 
-  ipcMain.handle('files:openInExplorer', async (_event, args?: { targetPath?: string }) => {
+  ipcMain.handle('files:openInExplorer', async (_event, args?: { targetPath?: string; conversationId?: string | null }) => {
     try {
-      const requested = args?.targetPath || getActiveWorkspace()
-      const target = confineToWorkspace(requested)
+      const workspace = getTaskWorkspace(args?.conversationId)
+      const requested = args?.targetPath || workspace
+      const target = confineToWorkspace(requested, workspace)
       if (!target) return { success: false, error: OUTSIDE_WORKSPACE_ERROR }
-      await shell.openPath(target)
+      const error = await shell.openPath(target)
+      if (error) return { success: false, error }
       return { success: true, data: { path: target } }
     } catch (err: any) {
       return { success: false, error: err?.message ?? 'Could not open file explorer' }

@@ -1,6 +1,5 @@
 import { useChatStore } from '@/stores/chat-store'
 import { useSkillsStore } from '@/stores/skills-store'
-import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
 import { AttachmentPreview } from './AttachmentPreview'
@@ -22,20 +21,7 @@ import { FollowUpQueue } from './FollowUpQueue'
 // the comfortable-reading width; `px-6` keeps content off the column edge.
 export const CHAT_COLUMN_CLASS = 'mx-auto w-full max-w-4xl px-6'
 
-interface ChatViewProps {
-  // Pixels of right-side padding applied to the chat-column. When the
-  // floating Environment card is visible the parent passes the card's
-  // width here so the centered max-w-4xl content (messages + input pill)
-  // re-centers within the remaining space — same effect as expanding
-  // the right sidebar would have, but achieved by padding the chat-
-  // column itself (inside its border, on the same bg-primary surface)
-  // so no separator line appears between chat and card. Animates in
-  // lockstep with the card's entry/exit.
-  rightInset?: number
-}
-
-export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
-  const reducedMotion = usePrefersReducedMotion()
+export function ChatView() {
   // JM-24 (RD-6) — per-field selectors. The old selector-less useChatStore()
   // subscribed to the ENTIRE store, so streamingVitals heartbeats (every ~2s)
   // and every tool-call update re-rendered the whole chat tree. Each selector
@@ -57,10 +43,6 @@ export function ChatView({ rightInset = 0 }: ChatViewProps = {}) {
   return (
     <div
       className="chat-column relative flex flex-1 flex-col overflow-hidden bg-transparent"
-      style={{
-        paddingRight: rightInset,
-        transition: reducedMotion ? undefined : 'padding-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1)'
-      }}
     >
       <FileDropZone />
       <TaskHeader />

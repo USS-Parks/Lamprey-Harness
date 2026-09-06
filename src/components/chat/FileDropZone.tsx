@@ -59,7 +59,7 @@ export function FileDropZone() {
           toast.error('Could not read the dropped file paths. Use Add file to select these files.', 8000)
           return
         }
-        const result = await window.api.files.process(paths)
+        const result = await window.api.files.process(paths, useChatStore.getState().activeConversationId)
         if (result.success) {
           addAttachments(result.data as ProcessedFile[])
         } else {

@@ -7,7 +7,6 @@ interface FileIndex {
   truncated: boolean
 }
 
-let CACHED: FileIndex | null = null
 
 function score(query: string, candidate: string): number {
   // Lightweight subsequence scorer. Returns -Infinity if not a subsequence.
@@ -46,11 +45,13 @@ function rank(query: string, files: string[]): string[] {
 }
 
 export function QuickOpenPalette() {
+  const owner = useUiStore(s => s.activeRightPanelConvId)
+  const contextRevision = useUiStore(s => s.workspaceContextRevision)
   const visible = useUiStore((s) => s.quickOpenVisible)
   const closeQuickOpen = useUiStore((s) => s.closeQuickOpen)
   const requestOpenFile = useUiStore((s) => s.requestOpenFile)
   const [query, setQuery] = useState('')
-  const [index, setIndex] = useState<FileIndex | null>(CACHED)
+  const [index, setIndex] = useState<FileIndex | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeIdx, setActiveIdx] = useState(0)
@@ -58,37 +59,23 @@ export function QuickOpenPalette() {
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!visible) {
-      setQuery('')
-      setActiveIdx(0)
-      return
-    }
-    setActiveIdx(0)
+    if (!visible) { setQuery(''); setActiveIdx(0); return }
+    let cancelled = false
+    setIndex(null); setActiveIdx(0); setLoading(true); setError(null)
     requestAnimationFrame(() => inputRef.current?.focus())
-    if (index || !window.api) return
-    setLoading(true)
-    setError(null)
     void (async () => {
-      const wd = await window.api.files.getWorkdir()
-      if (!wd.success || !wd.data) {
-        setLoading(false)
-        setError(wd.success ? 'No workspace.' : (wd.error ?? 'getWorkdir failed'))
-        return
-      }
-      const root = wd.data.path
-      const w = await window.api.files.walkProject(root)
-      if (!w.success) {
-        setLoading(false)
-        setError(w.error ?? 'walkProject failed')
-        return
-      }
-      const data = w.data as { files: string[]; truncated: boolean }
-      const next: FileIndex = { root, files: data.files, truncated: data.truncated }
-      CACHED = next
-      setIndex(next)
-      setLoading(false)
+      try {
+        const wd = await window.api.files.getWorkdir(owner)
+        if (!wd.success || !wd.data) throw new Error(wd.error ?? 'No workspace.')
+        const root = wd.data.path
+        const result = await window.api.files.walkProject(root, owner)
+        if (!result.success) throw new Error(result.error ?? 'Could not index files')
+        if (!cancelled) setIndex({ root, files: result.data.files, truncated: result.data.truncated })
+      } catch (failure) { if (!cancelled) setError(String(failure)) }
+      finally { if (!cancelled) setLoading(false) }
     })()
-  }, [visible, index])
+    return () => { cancelled = true }
+  }, [visible, owner, contextRevision])
 
   const matches = useMemo(() => {
     if (!index) return [] as string[]

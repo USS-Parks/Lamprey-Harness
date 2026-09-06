@@ -67,6 +67,8 @@ function Chevron({ expanded }: { expanded: boolean }): React.ReactElement {
 }
 
 export function FilesPanel({ filePath }: { filePath?: string } = {}) {
+  const contextRevision = useUiStore(s => s.workspaceContextRevision)
+  const owner = useUiStore(s => s.activeRightPanelConvId)
   const generation = useRef(0)
   const preview = useRef<HTMLPreElement>(null)
   const line = useUiStore(s => s.requestedOpenFileLine)
@@ -83,9 +85,10 @@ export function FilesPanel({ filePath }: { filePath?: string } = {}) {
   // Load workspace root once on mount.
   useEffect(() => {
     let cancelled = false
+    setTree([]); setRootError(null); setRootPath(null); setRootLoading(true)
     const load = async () => {
       if (!window.api) return
-      const wd = await window.api.files.getWorkdir()
+      const wd = await window.api.files.getWorkdir(owner)
       if (cancelled) return
       if (!wd.success || !wd.data) {
         setRootError(wd.success ? 'No workspace directory.' : (wd.error ?? 'getWorkdir failed'))
@@ -93,7 +96,7 @@ export function FilesPanel({ filePath }: { filePath?: string } = {}) {
       }
       setRootPath(wd.data.path)
       if (filePath) { setRootLoading(false); return }
-      const ls = await window.api.files.listDir(wd.data.path)
+      const ls = await window.api.files.listDir(wd.data.path, owner)
       if (cancelled) return
       if (!ls.success) {
         setRootError(ls.error ?? 'listDir failed')
@@ -107,7 +110,7 @@ export function FilesPanel({ filePath }: { filePath?: string } = {}) {
     return () => {
       cancelled = true
     }
-  }, [filePath])
+  }, [filePath, owner, contextRevision])
 
   const toggleDir = useCallback(async (node: TreeNode) => {
     if (node.entry.type !== 'dir') return
@@ -122,20 +125,20 @@ export function FilesPanel({ filePath }: { filePath?: string } = {}) {
       return
     }
     setLoadingPath(node.entry.path)
-    const res = await window.api?.files.listDir(node.entry.path)
+    const res = await window.api?.files.listDir(node.entry.path, owner)
     setLoadingPath(null)
     if (!res?.success) return
     const entries = res.data as FsEntry[]
     node.children = entries.map((e) => makeNode(e, node.depth + 1))
     node.expanded = true
     setTree((t) => [...t])
-  }, [])
+  }, [owner])
 
   const openFileAt = useCallback(async (entry: FsEntry) => {
     const request = ++generation.current
     setLoadingPath(entry.path)
     setOpenFile(null)
-    const res = await window.api?.files.readText(entry.path)
+    const res = await window.api?.files.readText(entry.path, owner)
     if (request !== generation.current) return
     setLoadingPath(null)
     if (!res) return
@@ -145,7 +148,7 @@ export function FilesPanel({ filePath }: { filePath?: string } = {}) {
     }
     const data = res.data as { content: string; size: number }
     setOpenFile({ path: entry.path, name: entry.name, content: data.content, size: data.size })
-  }, [])
+  }, [owner])
 
   useEffect(() => () => { generation.current++ }, [])
 

@@ -190,6 +190,8 @@ interface UiState {
   setTerminalHeight: (height: number) => void
   consumeTerminalFocus: () => void
   workspaces: Workspaces
+  workspaceContextRevision: number
+  refreshWorkspaceContext: () => void
   browserAddressDrafts: Record<string, string>
   setBrowserAddressDraft: (tabId: string, draft: string | null) => void
   workspaceFocusRequested: boolean
@@ -313,6 +315,8 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ terminalFocusRequested: open })
   },
   workspaces: readWorkspaces(),
+  workspaceContextRevision: 0,
+  refreshWorkspaceContext: () => set(state => ({ workspaceContextRevision: state.workspaceContextRevision + 1 })),
   browserAddressDrafts: {},
   setBrowserAddressDraft: (tabId, draft) => {
     const browserAddressDrafts = { ...get().browserAddressDrafts }

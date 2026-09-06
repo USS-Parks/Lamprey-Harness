@@ -1,0 +1,14 @@
+{
+  "prompt": "UX-13",
+  "sourceBase": "d73abdfdc03ee0f9f896bcda96404bd1b09cd475",
+  "status": "local-pass",
+  "affectedUnitTests": 35,
+  "fullSuitePassed": 3036,
+  "fullSuiteExplicitSkips": 176,
+  "evidence": [
+    "UX13_RUN3/CONTEXT.json",
+    "UX13_RUN3/RUNTIME.json",
+    "UX13_RUN3/LIFECYCLE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX13.json"
+}

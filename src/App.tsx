@@ -16,7 +16,6 @@ import { approvalKey, routeApproval } from '@/lib/approval-routing'
 import { useInlineApprovalsStore } from '@/stores/inline-approvals-store'
 import { MemoryModal } from '@/components/memory/MemoryModal'
 import { ToastContainer } from '@/components/ui/Toast'
-import { FloatingEnvironmentCard } from '@/components/workspace/FloatingEnvironmentCard'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { useSettingsStore } from '@/stores/settings-store'
@@ -85,59 +84,11 @@ function App(): React.ReactElement {
   // content is wide enough to fit a 180px floating card without
   // overlapping message bubbles. ResizeObserver re-fires on sidebar
   // resize / window resize / DPI change.
-  const chatWorkspaceRef = useRef<HTMLDivElement>(null)
-  const [chatWorkspaceWidth, setChatWorkspaceWidth] = useState(0)
 
   // D12 — subscribe the renderer to research:progress / completed / failed
   // event streams. Mounted once at App root; banner subscribers read
   // snapshots from the resulting Zustand store.
   useResearchProgressSubscription()
-
-  useEffect(() => {
-    // The main app — and the chatWorkspaceRef div with it — doesn't render
-    // until needsApiKey resolves out of `null`. Without this guard + dep,
-    // the effect ran once at first commit (loading screen, ref=null), bailed,
-    // and never re-ran when the main app actually mounted — so width stayed
-    // 0 and the gutter check kept the card permanently hidden.
-    if (needsApiKey === null) return
-    const node = chatWorkspaceRef.current
-    if (!node || typeof ResizeObserver === 'undefined') return
-    setChatWorkspaceWidth(node.getBoundingClientRect().width)
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0]
-      if (!entry) return
-      setChatWorkspaceWidth(entry.contentRect.width)
-    })
-    ro.observe(node)
-    return () => ro.disconnect()
-  }, [needsApiKey])
-
-  // Card width tracks (rightPanelWidth - rail width). When the right
-  // panel is expanded the chat workspace shrinks by exactly that delta;
-  // setting the card to the same width makes the chat content area
-  // identical in both states, so collapsing or expanding the panel
-  // doesn't shift the input pill or any message bubble. ChatView gets
-  // the same value as its `rightInset` so chat-column padding-right
-  // and card width move together.
-  const RAIL_WIDTH = 32
-  const envCardWidth = Math.max(0, rightPanelWidth - RAIL_WIDTH)
-
-  // Visibility check: the card only shows if the remaining chat content
-  // area (chatColumn minus the card slot) is still wide enough to host
-  // a usable dialogue. With padding-based recenter (ChatView pads its
-  // chat-column by envCardWidth) the card no longer overlaps message
-  // bubbles — so the gate is just "is the leftover chat area
-  // workable?" instead of the old margin-overlap arithmetic.
-  const CHAT_SURROUND_PADDING_X = 16 // chat surround `p-2` left + right
-  const MIN_CHAT_CONTENT_WIDTH = 480
-  const chatColumnWidth = Math.max(0, chatWorkspaceWidth - CHAT_SURROUND_PADDING_X)
-  const chatHasRoomForEnvCard =
-    chatColumnWidth > 0 && chatColumnWidth - envCardWidth >= MIN_CHAT_CONTENT_WIDTH
-  // Single boolean the card animates around. Includes every "we don't
-  // float in this mode" exclusion: narrow drawer mode, expanded right
-  // panel (docked EnvironmentPanel owns Environment then), and not
-  // enough chat-column width to host the card without squeezing chat.
-  const shouldShowEnvCard = !isNarrow && rightPanelCollapsed && chatHasRoomForEnvCard
 
   const handleRightResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -449,12 +400,12 @@ function App(): React.ReactElement {
 
         <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 gap-[var(--panel-gap)]">
-        <div ref={chatWorkspaceRef} className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col">
           <IntegrityBanner />
           <SecurityBanner />
           <UpdateBanner />
           <div className="flex flex-1 overflow-hidden bg-transparent p-2">
-            <ChatView rightInset={shouldShowEnvCard ? envCardWidth : 0} />
+            <ChatView />
           </div>
         </div>
 
@@ -548,7 +499,6 @@ function App(): React.ReactElement {
           rightward as it fades — instead of being dragged leftward by a
           shrinking parent. The right panel mounts underneath it and is
           revealed as the card fades out. */}
-      <FloatingEnvironmentCard visible={shouldShowEnvCard} width={envCardWidth} />
 
       <ToastContainer />
     </div>

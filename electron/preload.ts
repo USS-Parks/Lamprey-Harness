@@ -660,19 +660,19 @@ const api = {
   },
 
   files: {
-    process: (paths: string[]) => ipcRenderer.invoke('files:process', paths),
+    process: (paths: string[], conversationId?: string | null) => ipcRenderer.invoke('files:process', paths, conversationId),
     openPicker: () => ipcRenderer.invoke('files:openPicker'),
-    getWorkdir: () => ipcRenderer.invoke('files:getWorkdir'),
+    getWorkdir: (conversationId?: string | null) => ipcRenderer.invoke('files:getWorkdir', conversationId),
     pickWorkdir: () => ipcRenderer.invoke('files:pickWorkdir'),
     setWorkdir: (path: string) => ipcRenderer.invoke('files:setWorkdir', path),
     clearWorkdir: () => ipcRenderer.invoke('files:clearWorkdir'),
-    openInVSCode: (args?: { targetPath?: string }) =>
+    openInVSCode: (args?: { targetPath?: string; conversationId?: string | null }) =>
       ipcRenderer.invoke('files:openInVSCode', args),
-    openInExplorer: (args?: { targetPath?: string }) =>
+    openInExplorer: (args?: { targetPath?: string; conversationId?: string | null }) =>
       ipcRenderer.invoke('files:openInExplorer', args),
-    listDir: (dirPath: string) => ipcRenderer.invoke('files:listDir', dirPath),
-    readText: (filePath: string) => ipcRenderer.invoke('files:readText', filePath),
-    walkProject: (rootPath: string) => ipcRenderer.invoke('files:walkProject', rootPath),
+    listDir: (dirPath: string, conversationId?: string | null) => ipcRenderer.invoke('files:listDir', dirPath, conversationId),
+    readText: (filePath: string, conversationId?: string | null) => ipcRenderer.invoke('files:readText', filePath, conversationId),
+    walkProject: (rootPath: string, conversationId?: string | null) => ipcRenderer.invoke('files:walkProject', rootPath, conversationId),
     getPathForFile: (file: File) => {
       try {
         return webUtils.getPathForFile(file)

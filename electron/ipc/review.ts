@@ -1,5 +1,4 @@
-import { getConversation } from '../services/conversation-store'
-import { getProject } from '../services/projects-store'
+import { getTaskWorkspace } from '../services/task-workspace'
 import { getActiveWorkspace } from '../services/workspace-state'
 import { ipcMain, BrowserWindow } from 'electron'
 import chokidar, { type FSWatcher } from 'chokidar'
@@ -99,12 +98,7 @@ function parsePorcelain(stdout: string): FileStatus[] {
 }
 
 function reviewDirectory(args?: { cwd?: string; conversationId?: string | null }): string {
-  if (args?.conversationId) {
-    const task = getConversation(args.conversationId)
-    if (!task) throw new Error('The review task no longer exists.')
-    const project = task.projectId ? getProject(task.projectId) : null
-    return task.worktreePath || project?.path || getActiveWorkspace()
-  }
+  if (args?.conversationId) return getTaskWorkspace(args.conversationId)
   return args?.cwd || getActiveWorkspace()
 }
 
@@ -148,7 +142,7 @@ export function registerReviewHandlers(): void {
     'review:diff',
     async (_e, args: { cwd?: string; path?: string; staged?: boolean }) => {
       try {
-        const cwd = args?.cwd || process.cwd()
+        const cwd = args?.cwd || getActiveWorkspace()
         const gitArgs = ['diff', '--no-color']
         if (args?.staged) gitArgs.push('--cached')
         if (args?.path) gitArgs.push('--', args.path)
@@ -187,7 +181,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:stage', async (_e, args: { cwd?: string; path: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       const res = await runGit(['add', '--', args.path], cwd)
       if (res.code !== 0) return { success: false, error: res.stderr.trim() }
       return { success: true, data: true }
@@ -198,7 +192,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:unstage', async (_e, args: { cwd?: string; path: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       const res = await runGit(['restore', '--staged', '--', args.path], cwd)
       if (res.code !== 0) return { success: false, error: res.stderr.trim() }
       return { success: true, data: true }
@@ -209,7 +203,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:discard', async (_e, args: { cwd?: string; path: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       const res = await runGit(['checkout', '--', args.path], cwd)
       if (res.code !== 0) return { success: false, error: res.stderr.trim() }
       return { success: true, data: true }
@@ -220,7 +214,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:branches', async (_e, args?: { cwd?: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       // %(HEAD) = '*' for current branch, ' ' otherwise. %(upstream:short) is
       // blank for branches with no upstream, which is fine.
       const fmt = '%(HEAD) %(refname:short)\t%(upstream:short)'
@@ -250,7 +244,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:checkout', async (_e, args: { cwd?: string; name: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       if (!args?.name) return { success: false, error: 'name required' }
       const res = await runGit(['checkout', args.name], cwd)
       if (res.code !== 0) return { success: false, error: res.stderr.trim() || 'checkout failed' }
@@ -262,7 +256,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:createBranch', async (_e, args: { cwd?: string; name: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       if (!args?.name) return { success: false, error: 'name required' }
       const res = await runGit(['checkout', '-b', args.name], cwd)
       if (res.code !== 0)
@@ -308,7 +302,7 @@ export function registerReviewHandlers(): void {
     'review:commit',
     async (_e, args: { cwd?: string; message: string; stageAll?: boolean }) => {
       try {
-        const cwd = args?.cwd || process.cwd()
+        const cwd = args?.cwd || getActiveWorkspace()
         if (!args?.message) return { success: false, error: 'message required' }
         if (args.stageAll) {
           const st = await runGit(['add', '-A'], cwd)
@@ -325,7 +319,7 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:push', async (_e, args?: { cwd?: string }) => {
     try {
-      const cwd = args?.cwd || process.cwd()
+      const cwd = args?.cwd || getActiveWorkspace()
       // Try plain push first; fall back to setting upstream if the branch has none.
       const first = await runGit(['push'], cwd)
       if (first.code === 0) return { success: true, data: { stdout: first.stdout.trim() } }

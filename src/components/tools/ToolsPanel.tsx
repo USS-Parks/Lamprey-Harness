@@ -124,7 +124,7 @@ export function ToolsPanel({ onCollapse }: ToolsPanelProps) {
         {(Object.keys(TOOL_LABELS) as ToolId[]).map(tool => <button key={tool} className="min-h-8 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => { open(tool); setAdding(false) }}>{TOOL_LABELS[tool]}</button>)}
         <button className="min-h-8 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => {
           setAdding(false)
-          void window.api.files.openInVSCode({}).then(result => { if (!result.success) toast.error(result.error ?? 'Could not open VS Code') }).catch(failure => toast.error(String(failure)))
+          void window.api.files.openInVSCode({ conversationId: taskId }).then(result => { if (!result.success) toast.error(result.error ?? 'Could not open VS Code') }).catch(failure => toast.error(String(failure)))
         }}>Open in VS Code</button>
       </div>}
       <div ref={content} id="workspace-content" role={active ? 'tabpanel' : 'region'} aria-label={active ? undefined : 'Workspace'} aria-labelledby={active ? `workspace-tab-${workspace.tabs.indexOf(active)}` : undefined} tabIndex={-1} className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">

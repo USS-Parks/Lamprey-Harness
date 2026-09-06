@@ -1,5 +1,4 @@
-import { getConversation } from '../services/conversation-store'
-import { getProject } from '../services/projects-store'
+import { getTaskWorkspace } from '../services/task-workspace'
 import { getActiveWorkspace } from '../services/workspace-state'
 import { ipcMain, BrowserWindow } from 'electron'
 import { ptySpawn, ptyWrite, ptyResize, ptyKill, ptySnapshot, type ShellKind } from '../services/pty-manager'
@@ -15,10 +14,7 @@ export function registerTerminalHandlers(): void {
         }
         const win = BrowserWindow.fromWebContents(event.sender)
         if (!win) return { success: false, error: 'no window' }
-        const conversation = args.conversationId ? getConversation(args.conversationId) : null
-        if (args.conversationId && !conversation) throw new Error('The terminal task no longer exists.')
-        const project = conversation?.projectId ? getProject(conversation.projectId) : null
-        const cwd = conversation?.worktreePath || project?.path || args.cwd || getActiveWorkspace()
+        const cwd = args.conversationId ? getTaskWorkspace(args.conversationId) : args.cwd || getActiveWorkspace()
         const info = ptySpawn(args.id, win, { cwd, shellKind: args.shellKind, conversationId: args.conversationId ?? null })
         return { success: true, data: info }
       } catch (err: any) {

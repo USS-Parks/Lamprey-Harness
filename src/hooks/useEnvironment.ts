@@ -1,3 +1,4 @@
+import { useUiStore } from '@/stores/ui-store'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import type { EnvironmentSnapshot } from '@/lib/types'
@@ -37,6 +38,7 @@ interface ReviewSummary {
 // as a safety net (chokidar on Windows can miss events when files are atomic
 // -replaced by git). Refreshes status + summary in parallel.
 export function useEnvironment(): UseEnvironmentResult {
+  const contextRevision = useUiStore(s => s.workspaceContextRevision)
   const conversationId = useChatStore(s => s.activeConversationId)
   const [changedFileCount, setChangedFileCount] = useState(0)
   const [snapshot, setSnapshot] = useState<EnvironmentSnapshot>(EMPTY)
@@ -51,11 +53,13 @@ export function useEnvironment(): UseEnvironmentResult {
     setLoading(true)
     try {
       if (!window.api?.review) throw new Error('Review API unavailable')
-      const [statusRes, summaryRes] = await Promise.all([
+      const [statusRes, summaryRes, folderRes] = await Promise.all([
         window.api.review.status({ conversationId }),
-        window.api.review.summary?.({ conversationId }) ?? Promise.resolve({ success: false } as const)
+        window.api.review.summary?.({ conversationId }) ?? Promise.resolve({ success: false } as const),
+        window.api.files.getWorkdir(conversationId)
       ])
       if (!mountedRef.current || request !== requestRef.current) return
+      if (folderRes.success && folderRes.data) setSnapshot({ ...EMPTY, cwd: folderRes.data.path })
       if (!statusRes.success) throw new Error(statusRes.error || 'Repository status unavailable')
       if (!summaryRes.success) throw new Error('Repository summary unavailable')
       const status = statusRes.data as ReviewStatus
@@ -78,7 +82,7 @@ export function useEnvironment(): UseEnvironmentResult {
     } finally {
       if (mountedRef.current && request === requestRef.current) setLoading(false)
     }
-  }, [conversationId])
+  }, [conversationId, contextRevision])
 
   useEffect(() => {
     mountedRef.current = true

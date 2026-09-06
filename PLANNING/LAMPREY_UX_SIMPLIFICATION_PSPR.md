@@ -401,7 +401,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone F — Settings
 
 #### UX-27 — Regroup all settings into six sections
-- [ ] **Objective:** replace the flat 24-section navigation while retaining every leaf.
+- [x] **Objective:** replace the flat 24-section navigation while retaining every leaf.
 - **Work:** implement the complete settings map in section 1 with searchable-friendly labels and logical subheadings. Reuse existing leaf components and values; place Customize entry points under Tools & Extensions without duplicating forms.
 - **Seams/output:** SettingsDialog and leaf navigation metadata; existing Customize route.
 - **Gate:** G1/G2; all 24 old IDs open the correct new location; old settingsInitialTab callers still work; existing values/validation/save behavior remain intact; no reset or policy change occurs on opening or switching groups.

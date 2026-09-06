@@ -1,0 +1,16 @@
+{
+  "prompt": "UX-27",
+  "sourceBase": "fcc774c73ddd385060a4b2cedbc27953ff4faeb7",
+  "status": "local-pass",
+  "testsPassed": 3106,
+  "nativeAbiSkips": 176,
+  "settingsLeaves": 24,
+  "groups": 6,
+  "evidence": [
+    "UX27_TARGETED.log",
+    "UX27_RUN3/SETTINGS.json",
+    "UX27_RUN3/LIFECYCLE.json",
+    "UX27_PROOF_PUSH23_RETRY.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX27.json"
+}

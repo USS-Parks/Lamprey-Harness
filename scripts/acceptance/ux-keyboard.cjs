@@ -75,7 +75,7 @@ module.exports = async function keyboardScenario({ page, app, ids, trackPid }) {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   for (const theme of ['Light', 'Dark']) {
     await input.focus(); await page.keyboard.press('Control+,')
-    await settings.getByRole('tab', { name: 'Appearance', exact: true }).click()
+    await settings.getByRole('button', { name: 'Appearance', exact: true }).click()
     await settings.getByRole('button', { name: theme, exact: true }).click(); await page.keyboard.press('Escape')
     for (const [width, height] of [[1440, 900], [1024, 768], [800, 600], [1920, 1080]]) for (const zoom of [1, 1.5, 2]) {
       await app.evaluate(({ BrowserWindow }, { width, height, zoom }) => { const win = BrowserWindow.getAllWindows()[0]; win.setContentSize(width, height); win.webContents.setZoomFactor(zoom) }, { width, height, zoom })

@@ -23,7 +23,7 @@ import { ToolSettings } from './ToolSettings'
 import { ReasoningAuditSettings } from './ReasoningAuditSettings'
 import { PersistenceSettings } from './PersistenceSettings'
 import { SeedBudgetSettings } from './SeedBudgetSettings'
-import { SETTINGS_LEAVES as TABS } from '@/lib/settings-navigation'
+import { SETTINGS_LEAVES as TABS, SETTINGS_GROUPS, settingsLeaf } from '@/lib/settings-navigation'
 import { useUiStore } from '@/stores/ui-store'
 
 interface SettingsDialogProps {
@@ -35,6 +35,9 @@ type TabId = (typeof TABS)[number]['id']
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const initialTab = useUiStore((s) => s.settingsInitialTab)
   const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? 'general')
+  const activeGroup = settingsLeaf(activeTab).group
+  const groupLeaves = TABS.filter(leaf => leaf.group === activeGroup)
+  useEffect(() => { if (initialTab) setActiveTab(initialTab) }, [initialTab])
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         aria-labelledby="settings-heading"
         className="flex h-[560px] max-h-[calc(100vh-2rem)] w-[720px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-2xl"
         onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) return
           if (event.key === 'Escape') {
             event.preventDefault()
             event.stopPropagation()
@@ -78,43 +82,27 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           }
         }}
       >
-        {/* Sidebar tabs */}
-        <div
-          role="tablist"
-          aria-label="Settings sections"
-          aria-orientation="vertical"
-          className="flex min-h-0 w-40 shrink-0 flex-col overflow-y-auto bg-[var(--bg-primary)] py-2"
-          onKeyDown={(event) => {
-            const index = TABS.findIndex((tab) => tab.id === activeTab)
-            const next = event.key === 'Home' ? 0 : event.key === 'End' ? TABS.length - 1
-              : event.key === 'ArrowDown' ? (index + 1) % TABS.length
-                : event.key === 'ArrowUp' ? (index + TABS.length - 1) % TABS.length : null
-            if (next === null) return
-            event.preventDefault()
-            const id = TABS[next].id
-            setActiveTab(id)
-            document.getElementById(`settings-tab-${id}`)?.focus()
-          }}
-        >
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              id={`settings-tab-${tab.id}`}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls="settings-panel"
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-left font-mono text-xs transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <nav aria-label="Settings groups" className="flex min-h-0 w-48 max-w-[45%] shrink-0 flex-col overflow-y-auto bg-[var(--bg-primary)] p-2">
+          {SETTINGS_GROUPS.map(group => <div key={group.id}>
+            <button type="button" data-settings-group={group.id} aria-expanded={activeGroup === group.id} aria-controls={`settings-group-${group.id}`} className={`min-h-9 w-full rounded px-2 py-2 text-left text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${activeGroup === group.id ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} onClick={() => setActiveTab(TABS.find(leaf => leaf.group === group.id)!.id)} onKeyDown={event => {
+              const index = SETTINGS_GROUPS.findIndex(item => item.id === group.id)
+              const next = event.key === 'ArrowDown' ? (index + 1) % SETTINGS_GROUPS.length : event.key === 'ArrowUp' ? (index + SETTINGS_GROUPS.length - 1) % SETTINGS_GROUPS.length : null
+              if (next === null) return
+              event.preventDefault(); dialogRef.current?.querySelector<HTMLElement>(`[data-settings-group="${SETTINGS_GROUPS[next].id}"]`)?.focus()
+            }}>{group.label}</button>
+            {activeGroup === group.id && <div id={`settings-group-${group.id}`} role="tablist" aria-label="Settings sections" aria-orientation="vertical" className="my-1 flex flex-col border-l border-[var(--panel-border)] pl-2" onKeyDown={event => {
+              const index = groupLeaves.findIndex(tab => tab.id === activeTab)
+              const next = event.key === 'Home' ? 0 : event.key === 'End' ? groupLeaves.length - 1 : event.key === 'ArrowDown' ? (index + 1) % groupLeaves.length : event.key === 'ArrowUp' ? (index + groupLeaves.length - 1) % groupLeaves.length : null
+              if (next === null) return
+              event.preventDefault(); event.stopPropagation()
+              const id = groupLeaves[next].id; setActiveTab(id)
+              document.getElementById(`settings-tab-${id}`)?.focus()
+            }}>
+              {groupLeaves.map(tab => <button key={tab.id} id={`settings-tab-${tab.id}`} role="tab" aria-selected={activeTab === tab.id} aria-controls="settings-panel" tabIndex={activeTab === tab.id ? 0 : -1} onClick={() => setActiveTab(tab.id)} className={`min-h-8 rounded px-2 py-1.5 text-left text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${activeTab === tab.id ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}>{tab.label}</button>)}
+            </div>}
+            {activeGroup === 'extensions' && group.id === 'extensions' && <div className="mb-2 flex flex-col border-t border-[var(--panel-border)] pt-1">{(['skills', 'connectors', 'plugins'] as const).map(column => <button key={column} className="min-h-8 rounded px-2 text-left text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]" onClick={() => { onClose(); useUiStore.getState().openCustomize(column) }}>Manage {column}</button>)}</div>}
+          </div>)}
+        </nav>
 
         {/* Content */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">

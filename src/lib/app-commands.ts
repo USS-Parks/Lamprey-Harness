@@ -48,7 +48,7 @@ export const APP_COMMANDS: AppCommand[] = [
   { id: 'app.github', label: 'View Lamprey on GitHub', kind: 'command', run: () => openProjectLink('https://github.com/USS-Parks/Lamprey-Harness') },
   { id: 'app.issue', label: 'Report an issue', kind: 'command', run: () => openProjectLink('https://github.com/USS-Parks/Lamprey-Harness/issues') },
   ...TOOL_COMMANDS,
-  ...SETTINGS_LEAVES.map(leaf => ({ id: `settings.${leaf.id}`, label: leaf.label, kind: 'settings' as const, run: () => ui().openSettings(leaf.id) })),
+  ...SETTINGS_LEAVES.map(leaf => ({ id: `settings.${leaf.id}`, label: leaf.label, aliases: leaf.aliases, kind: 'settings' as const, run: () => ui().openSettings(leaf.id) })),
   ...(['skills', 'connectors', 'plugins'] as const).map(column => ({ id: `customize.${column}`, label: column[0].toUpperCase() + column.slice(1), aliases: ['Customize', column === 'connectors' ? 'MCP' : column], kind: 'command' as const, run: () => ui().openCustomize(column) }))
 ]
 export function workflowCommands(entries: WorkflowLibraryEntry[]): AppCommand[] {

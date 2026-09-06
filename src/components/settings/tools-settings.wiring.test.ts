@@ -1,3 +1,4 @@
+import { SETTINGS_LEAVES } from '@/lib/settings-navigation'
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -6,7 +7,7 @@ const root = join(__dirname, '..', '..', '..')
 const read = (p: string): string => readFileSync(join(root, p), 'utf-8')
 
 describe('AC-20/AC-22/AC-23/AC-24 settings and tool-search wiring', () => {
-  it('SettingsDialog has a Tools tab next to Timeouts', () => {
+  it('SettingsDialog retains the Tools section in grouped navigation', () => {
     const src = read('src/components/settings/SettingsDialog.tsx')
     expect(src).toMatch(/import \{ ToolSettings \}/)
     expect(read('src/lib/settings-navigation.ts')).toMatch(/id: 'tools', label: 'Tools'/)
@@ -16,8 +17,7 @@ describe('AC-20/AC-22/AC-23/AC-24 settings and tool-search wiring', () => {
 
   it('SettingsTabId includes every SettingsDialog tab', () => {
     const ui = read('src/stores/ui-store.ts')
-    const dialog = read('src/lib/settings-navigation.ts')
-    const tabIds = [...dialog.matchAll(/id: '([a-zA-Z]+)'/g)].map((m) => m[1])
+    const tabIds = SETTINGS_LEAVES.map(leaf => leaf.id)
     expect(tabIds).toHaveLength(24)
     for (const id of tabIds) {
       expect(ui, `SettingsTabId missing '${id}'`).toMatch(new RegExp(`\\|\\s*'${id}'`))

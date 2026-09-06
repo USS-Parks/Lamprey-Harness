@@ -133,7 +133,7 @@ module.exports = async function integratedComposer({ page, app, ids, profile, re
     if (width === 1440) {
       await page.getByRole('button', { name: 'Settings', exact: true }).first().click()
       const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
-      await settings.getByRole('tab', { name: 'Appearance', exact: true }).click()
+      await settings.getByRole('button', { name: 'Appearance', exact: true }).click()
       await settings.getByRole('button', { name: theme, exact: true }).click()
       await settings.getByRole('button', { name: 'Close settings', exact: true }).click()
     }

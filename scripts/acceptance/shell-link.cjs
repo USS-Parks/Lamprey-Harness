@@ -344,7 +344,7 @@ async function main() {
         await page.keyboard.press('End')
         await page.waitForFunction(() => document.activeElement?.textContent === 'Activity')
         await page.keyboard.press('Home')
-        await dialog.getByRole('tab', { name: 'Appearance', exact: true }).click()
+        await dialog.getByRole('button', { name: 'Appearance', exact: true }).click()
         const colors = []
         for (const mode of ['Light', 'Dark']) {
           await dialog.getByRole('button', { name: mode, exact: true }).click()

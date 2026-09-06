@@ -45,7 +45,7 @@ module.exports = async function routeScenario({ page, app, ids, trackPid }) {
     assert.equal((await app.evaluate(() => globalThis.uxEditorCalls)).length, 1)
     await page.getByRole('button', { name: 'Settings', exact: true }).first().click()
     const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
-    await settings.getByRole('tab', { name: 'Appearance', exact: true }).click()
+    await settings.getByRole('button', { name: 'Appearance', exact: true }).click()
     await settings.getByRole('button', { name: 'Light', exact: true }).waitFor()
     await settings.getByRole('button', { name: 'Dark', exact: true }).waitFor()
     await settings.getByRole('button', { name: 'Close settings', exact: true }).click()

@@ -1,0 +1,106 @@
+[
+  {
+    "id": "idle-history",
+    "proof": "Real preload creates 50 tasks; isolated SQLite supplies 1000 messages and 200 tool entries; renderer shows history."
+  },
+  {
+    "id": "running-local-stream",
+    "proof": "Real provider dispatch reaches loopback SSE; visible Stop cancels; scrolling stays anchored while typing."
+  },
+  {
+    "id": "review-real-git",
+    "proof": "Real temporary Git repository diff is displayed by production ReviewPanel."
+  },
+  {
+    "id": "task-switch-history",
+    "proof": "Switch away and back through sidebar; 200 completed tool entries render after a turn."
+  },
+  {
+    "id": "timing-capture",
+    "proof": "Five raw runs after warmup record typing, streaming, task switching and cached panel presentation."
+  },
+  {
+    "id": "workspace-shell",
+    "proof": "Actual Electron tab add/select/keyboard close, focus recovery, per-task restoration and keyboard resize/collapse persistence."
+  },
+  {
+    "id": "direct-file-artifact-links",
+    "proof": "Actual Markdown links open real files with line scroll, deduplicate, distinguish basenames, report deleted and denied paths, and render durable artifacts in the existing sandbox."
+  },
+  {
+    "id": "browser-task-lifecycle",
+    "proof": "Real local HTTP navigation, history/reload, ten hide/show cycles, address drafts, task ownership and distinct outer/inner close behavior."
+  },
+  {
+    "id": "terminal-dock-lifecycle",
+    "proof": "Real keyboard input to an owned shell, hidden output, same-process reattachment after renderer reload, project path isolation, terminate/restart and app shutdown process cleanup."
+  },
+  {
+    "id": "review-task-continuity",
+    "proof": "Real two-repository selection, stage/unstage, clean/error states, and existing controlled PR fixture with same-task composer feedback."
+  },
+  {
+    "id": "workspace-capability-routes",
+    "proof": "All thirteen existing tools open through the compact workspace menu; terminal shell selection, editor launch action and settings/appearance routes remain reachable."
+  },
+  {
+    "id": "compact-composer-controls",
+    "proof": "Text and multiline paste, IME non-submission, real picked attachments, independent permission/coding controls, persisted plan gate and preserved draft."
+  },
+  {
+    "id": "compact-follow-up-controls",
+    "proof": "Real active-turn steering and durable queue, mixed inputs, explicit menu preference, rejection, recovery, cancellation and management actions."
+  },
+  {
+    "id": "task-context-actions",
+    "proof": "Real task/project/worktree location, confined file reads, branch changes, model instructions, folder persistence and context actions."
+  },
+  {
+    "id": "compact-model-picker",
+    "description": "Authoritative catalog search, keyless/keyed selection, real local authentication, refreshed key state and keyboard navigation."
+  },
+  {
+    "id": "active-composer-affordances",
+    "description": "Visible composer controls have real outcomes; voice placeholder removed, customization wired and keyboard help discoverable."
+  },
+  {
+    "id": "integrated-composer",
+    "description": "Task-owned drafts, attachments, send failures and active-task transitions across reload and narrow scaled layouts."
+  },
+  {
+    "id": "current-task-status",
+    "description": "One honest status through real completion, failure, cancellation, approval, reload and stale events."
+  },
+  {
+    "id": "tool-history",
+    "description": "Full tool results and honest outcomes survive new turns and reload; deliberate expansion remains stable."
+  },
+  {
+    "id": "task-attention",
+    "description": "Approvals, failures and unread completions link to their actual owner; failed acknowledgement stays actionable."
+  },
+  {
+    "id": "notices-approvals",
+    "description": "Concurrent real approvals survive the obsolete deadline, cancellation rejects late grants, repeated notices dedupe and critical warning surfaces remain visible."
+  },
+  {
+    "id": "task-data",
+    "description": "Real project, archive, pin and fork metadata remains one task identity across reload and navigation projections."
+  },
+  {
+    "id": "task-navigation",
+    "description": "Historical project/archive search, query and selection races, draft ownership, deleted history targets, retry and persisted keyboard pin order."
+  },
+  {
+    "id": "command-menu",
+    "description": "Unified command discovery, project-scoped task and file search, keyboard selection, named workflow execution and source error recovery."
+  },
+  {
+    "id": "keyboard-navigation",
+    "description": "Shared navigation bindings retain composer drafts, IME, terminal and dialog ownership, with accurate keyboard help."
+  },
+  {
+    "id": "settings-navigation",
+    "description": "All 24 legacy settings destinations open in six groups without changing values; existing saves and Customize routes work."
+  }
+]

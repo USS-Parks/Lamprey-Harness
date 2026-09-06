@@ -1,0 +1,15 @@
+{
+  "prompt": "UX-28",
+  "sourceBase": "b4708ba3c34d7dca8d5479024f580f02a1b4a428",
+  "status": "local-pass",
+  "testsPassed": 3107,
+  "nativeAbiSkips": 176,
+  "evidence": [
+    "UX28_TARGETED.log",
+    "UX28_BUILD_FINAL.log",
+    "UX28_PROOF.log",
+    "UX28_RUN2/SETTINGS.json",
+    "UX28_RUN2/LIFECYCLE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX28.json"
+}

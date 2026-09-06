@@ -23,7 +23,7 @@ import { ToolSettings } from './ToolSettings'
 import { ReasoningAuditSettings } from './ReasoningAuditSettings'
 import { PersistenceSettings } from './PersistenceSettings'
 import { SeedBudgetSettings } from './SeedBudgetSettings'
-import { SETTINGS_LEAVES as TABS, SETTINGS_GROUPS, settingsLeaf } from '@/lib/settings-navigation'
+import { SETTINGS_LEAVES as TABS, SETTINGS_GROUPS, settingsLeaf, searchSettings } from '@/lib/settings-navigation'
 import { useUiStore } from '@/stores/ui-store'
 
 interface SettingsDialogProps {
@@ -35,9 +35,19 @@ type TabId = (typeof TABS)[number]['id']
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const initialTab = useUiStore((s) => s.settingsInitialTab)
   const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? 'general')
+  const [query, setQuery] = useState('')
+  const [lastQuery, setLastQuery] = useState('')
+  const [searchIndex, setSearchIndex] = useState(0)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const results = searchSettings(query)
+  const chooseResult = (id: TabId) => {
+    setLastQuery(query); setQuery(''); setActiveTab(id)
+    requestAnimationFrame(() => document.getElementById('settings-panel')?.focus())
+  }
+  useEffect(() => { if (query) document.getElementById(`settings-result-${searchIndex}`)?.scrollIntoView({ block: 'nearest' }) }, [query, searchIndex])
   const activeGroup = settingsLeaf(activeTab).group
   const groupLeaves = TABS.filter(leaf => leaf.group === activeGroup)
-  useEffect(() => { if (initialTab) setActiveTab(initialTab) }, [initialTab])
+  useEffect(() => { if (initialTab) { setActiveTab(initialTab); setQuery(''); setLastQuery('') } }, [initialTab])
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -83,7 +93,20 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         }}
       >
         <nav aria-label="Settings groups" className="flex min-h-0 w-48 max-w-[45%] shrink-0 flex-col overflow-y-auto bg-[var(--bg-primary)] p-2">
-          {SETTINGS_GROUPS.map(group => <div key={group.id}>
+          <div className="mb-2 flex shrink-0 flex-col gap-1">
+            <input ref={searchInput} type="search" role="combobox" aria-expanded={!!query} aria-controls="settings-search-results" aria-autocomplete="list" aria-activedescendant={query && results[searchIndex] ? `settings-result-${searchIndex}` : undefined} aria-label="Search settings" placeholder="Search settings" value={query} onChange={event => { setQuery(event.target.value); setSearchIndex(0); setLastQuery('') }} onKeyDown={event => {
+              if (event.nativeEvent.isComposing) return
+              if (event.key === 'Escape' && query) { event.preventDefault(); event.stopPropagation(); setQuery(''); setLastQuery(''); return }
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setSearchIndex(index => Math.max(0, Math.min(results.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)))) }
+              if (event.key === 'Enter' && results[searchIndex]) { event.preventDefault(); chooseResult(results[searchIndex].id) }
+            }} className="min-h-9 w-full min-w-0 rounded border border-[var(--panel-border)] bg-[var(--bg-secondary)] px-2 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]" />
+            {query && <button className="min-h-8 px-2 text-left text-xs text-[var(--text-secondary)]" onClick={() => { setQuery(''); setLastQuery(''); searchInput.current?.focus() }}>Clear settings search</button>}
+            {!query && lastQuery && <button className="min-h-8 px-2 text-left text-xs text-[var(--text-secondary)]" onClick={() => { setQuery(lastQuery); searchInput.current?.focus() }}>Back to search results</button>}
+          </div>
+          {query ? <div id="settings-search-results" role="listbox" aria-label="Settings search results" className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+            <p role="status" className="px-2 py-1 text-xs text-[var(--text-muted)]">{results.length ? `${results.length} sections found` : 'No matching settings.'}</p>
+            {results.map((leaf, index) => <button key={leaf.id} id={`settings-result-${index}`} role="option" aria-selected={index === searchIndex} data-settings-result={leaf.id} className={`min-h-10 w-full rounded px-2 py-2 text-left text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${index === searchIndex ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`} onMouseEnter={() => setSearchIndex(index)} onClick={() => chooseResult(leaf.id)}><span className="block font-medium text-[var(--text-primary)]">{leaf.label}</span><span className="block text-[var(--text-muted)]">{SETTINGS_GROUPS.find(group => group.id === leaf.group)?.label}</span><span className="mt-1 block text-[var(--text-secondary)]">{leaf.description}</span></button>)}
+          </div> : SETTINGS_GROUPS.map(group => <div key={group.id}>
             <button type="button" data-settings-group={group.id} aria-expanded={activeGroup === group.id} aria-controls={`settings-group-${group.id}`} className={`min-h-9 w-full rounded px-2 py-2 text-left text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${activeGroup === group.id ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} onClick={() => setActiveTab(TABS.find(leaf => leaf.group === group.id)!.id)} onKeyDown={event => {
               const index = SETTINGS_GROUPS.findIndex(item => item.id === group.id)
               const next = event.key === 'ArrowDown' ? (index + 1) % SETTINGS_GROUPS.length : event.key === 'ArrowUp' ? (index + SETTINGS_GROUPS.length - 1) % SETTINGS_GROUPS.length : null
@@ -128,7 +151,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             </button>
           </div>
 
-          <div id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${activeTab}`} className="min-h-0 flex-1 overflow-y-auto p-4">
+          <div id="settings-panel" role="tabpanel" tabIndex={-1} aria-labelledby={`settings-tab-${activeTab}`} className="min-h-0 flex-1 overflow-y-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]">
             {activeTab === 'general' && <GeneralSettings />}
             {activeTab === 'models' && <ModelSettings />}
             {activeTab === 'agenticCoding' && <AgenticCodingSettings />}

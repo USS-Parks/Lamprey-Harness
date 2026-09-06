@@ -1,0 +1,125 @@
+{
+  "searchAliases": [
+    "General",
+    "Automations",
+    "Appearance",
+    "Models",
+    "API Keys",
+    "GitHub",
+    "Web Tools",
+    "Current Info",
+    "Image Gen",
+    "Tools",
+    "Library",
+    "RAG",
+    "Permissions",
+    "Coding Mode",
+    "Plans & Goals",
+    "Hooks",
+    "Loops",
+    "Orchestration",
+    "Snip",
+    "Timeouts",
+    "Seed Budget",
+    "Reasoning Audit",
+    "Persistence",
+    "Activity"
+  ],
+  "privateValuesNotIndexed": true,
+  "searchFocusBackReset": true,
+  "activityDistinguished": true,
+  "responsive": [
+    {
+      "width": 1440,
+      "height": 900,
+      "zoom": 1
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "zoom": 2
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "zoom": 1
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "zoom": 2
+    },
+    {
+      "width": 800,
+      "height": 600,
+      "zoom": 1
+    },
+    {
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5
+    },
+    {
+      "width": 800,
+      "height": 600,
+      "zoom": 2
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2
+    }
+  ],
+  "visited": [
+    "general",
+    "automations",
+    "appearance",
+    "models",
+    "api",
+    "github",
+    "webTools",
+    "currentInfo",
+    "imageGen",
+    "tools",
+    "library",
+    "rag",
+    "permissions",
+    "agenticCoding",
+    "planGoal",
+    "hooks",
+    "loops",
+    "orchestration",
+    "snip",
+    "timeouts",
+    "seedBudget",
+    "reasoning",
+    "persistence",
+    "activity"
+  ],
+  "groups": 6,
+  "allLegacySectionIds": true,
+  "correctActiveGroup": true,
+  "navigationDoesNotSaveOrReset": true,
+  "existingSaveAndSwitchBehavior": true,
+  "existingCustomizeRoutes": true
+}

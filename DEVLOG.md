@@ -1,3 +1,11 @@
+## 2026-09-06 - UX-28: Search settings by familiar names
+
+Added settings search over static labels, descriptions, groups and legacy aliases. Search does not inspect saved values or keychain contents. Results name the destination group, distinguish diagnostic Activity History from current task attention, and focus the selected section. Back to search results restores the query; Clear and Escape reset it. The search field stays visible while long results scroll independently, with active-result announcements and keyboard selection.
+
+UX28_RUN2 passes all 24 legacy names, actual private model-preference exclusion, result focus/back/reset, long-result keyboard navigation, and 24 light/dark/window/zoom combinations. It repeats the existing leaf navigation, save/restore and Customize-route checks. Full source proof passes lint, both TypeScript projects, 3,107 tests and both smokes (UX28_PROOF.log); 176 explicit ABI skips remain. Fixture profiles and processes were cleaned.
+
+Files: settings metadata/search and tests, existing SettingsDialog and settings acceptance scenario. Commit: resolve the introducing commit of UX28.json. UX-23 remains in hosted verification; later prompts remain queued as focused commits. Contextual setup and recovery routes follow in UX-29.
+
 ## 2026-09-06 - UX-27: Six settings groups with preserved sections
 
 Grouped the existing 24 settings leaves under General, Appearance, Models & Connections, Tools & Extensions, Permissions and Advanced. Only the active group expands. Existing leaf IDs, form components and settingsInitialTab callers remain valid; changed destinations while the dialog is open update the selected leaf. Renamed sections retain their familiar aliases in commands. Tools & Extensions links to the existing Skills, Connectors and Plugins screens. Group/leaf keyboard navigation and focus indicators remain available.

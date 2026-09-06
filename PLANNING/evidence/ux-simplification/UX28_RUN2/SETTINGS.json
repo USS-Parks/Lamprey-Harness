@@ -1,0 +1,209 @@
+{
+  "searchAliases": [
+    "General",
+    "Automations",
+    "Appearance",
+    "Models",
+    "API Keys",
+    "GitHub",
+    "Web Tools",
+    "Current Info",
+    "Image Gen",
+    "Tools",
+    "Library",
+    "RAG",
+    "Permissions",
+    "Coding Mode",
+    "Plans & Goals",
+    "Hooks",
+    "Loops",
+    "Orchestration",
+    "Snip",
+    "Timeouts",
+    "Seed Budget",
+    "Reasoning Audit",
+    "Persistence",
+    "Activity"
+  ],
+  "privateValuesNotIndexed": true,
+  "searchFocusBackReset": true,
+  "activityDistinguished": true,
+  "responsive": [
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1
+    },
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Light",
+      "width": 1440,
+      "height": 900,
+      "zoom": 2
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Light",
+      "width": 1024,
+      "height": 768,
+      "zoom": 2
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 1
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Light",
+      "width": 800,
+      "height": 600,
+      "zoom": 2
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Light",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Dark",
+      "width": 1440,
+      "height": 900,
+      "zoom": 2
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Dark",
+      "width": 1024,
+      "height": 768,
+      "zoom": 2
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 1
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Dark",
+      "width": 800,
+      "height": 600,
+      "zoom": 2
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 1.5
+    },
+    {
+      "theme": "Dark",
+      "width": 1920,
+      "height": 1080,
+      "zoom": 2
+    }
+  ],
+  "visited": [
+    "general",
+    "automations",
+    "appearance",
+    "models",
+    "api",
+    "github",
+    "webTools",
+    "currentInfo",
+    "imageGen",
+    "tools",
+    "library",
+    "rag",
+    "permissions",
+    "agenticCoding",
+    "planGoal",
+    "hooks",
+    "loops",
+    "orchestration",
+    "snip",
+    "timeouts",
+    "seedBudget",
+    "reasoning",
+    "persistence",
+    "activity"
+  ],
+  "groups": 6,
+  "allLegacySectionIds": true,
+  "correctActiveGroup": true,
+  "navigationDoesNotSaveOrReset": true,
+  "existingSaveAndSwitchBehavior": true,
+  "existingCustomizeRoutes": true
+}

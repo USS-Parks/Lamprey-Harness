@@ -407,7 +407,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; all 24 old IDs open the correct new location; old settingsInitialTab callers still work; existing values/validation/save behavior remain intact; no reset or policy change occurs on opening or switching groups.
 
 #### UX-28 — Add settings search with old-name aliases
-- [ ] **Objective:** find a setting by the terminology users already know.
+- [x] **Objective:** find a setting by the terminology users already know.
 - **Work:** search labels, descriptions and explicit aliases such as RAG, Snip, Seed Budget and Reasoning Audit. Results lead to the relevant control/section with focus and context; distinguish operational Activity from diagnostic history.
 - **Seams/output:** settings navigation metadata and existing settings content; lightweight search UI.
 - **Gate:** G1/G2/G4; every old section is discoverable, no-results/reset/back behavior works, results open and focus correct content, and search never indexes API keys or private values.

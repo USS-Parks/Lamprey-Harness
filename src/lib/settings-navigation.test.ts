@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { SETTINGS_GROUPS, SETTINGS_LEAVES, settingsLeaf } from './settings-navigation'
+import { SETTINGS_GROUPS, SETTINGS_LEAVES, settingsLeaf, searchSettings } from './settings-navigation'
 it('preserves all old settings IDs in exactly six nonempty groups', () => {
   const ids = ['general','models','agenticCoding','api','github','appearance','webTools','currentInfo','imageGen','permissions','planGoal','hooks','automations','loops','orchestration','library','rag','snip','timeouts','tools','seedBudget','reasoning','persistence','activity']
   expect(SETTINGS_LEAVES.map(leaf => leaf.id).sort()).toEqual(ids.sort())
@@ -13,4 +13,14 @@ it('retains familiar names when a leaf is renamed', () => {
   expect(settingsLeaf('seedBudget').aliases).toContain('Seed Budget')
   expect(settingsLeaf('persistence').aliases).toContain('Persistence')
   expect(settingsLeaf('agenticCoding').aliases).toContain('Coding Mode')
+})
+
+it('finds every old leaf label without consulting stored preference values', () => {
+  for (const leaf of SETTINGS_LEAVES) {
+    for (const query of [leaf.label, ...leaf.aliases]) expect(searchSettings(query).map(result => result.id)).toContain(leaf.id)
+  }
+  expect(searchSettings('private-key-ux28')).toEqual([])
+  expect(searchSettings('')).toEqual([])
+  expect(searchSettings('diagnostic history').map(leaf => leaf.id)).toContain('activity')
+  expect(searchSettings('token budget').map(leaf => leaf.id)).toContain('seedBudget')
 })

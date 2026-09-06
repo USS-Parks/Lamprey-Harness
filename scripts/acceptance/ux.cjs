@@ -146,7 +146,7 @@ async function main() {
     assert.equal(seeded.tools, 200)
     await page.reload()
     if (process.argv.includes('--settings-only')) {
-      const result = await require('./ux-settings.cjs')({ page })
+      const result = await require('./ux-settings.cjs')({ page, app })
       fs.writeFileSync(path.join(output, 'SETTINGS.json'), JSON.stringify(result, null, 2) + '\n')
       fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'settings-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['settings-navigation'] }, null, 2) + '\n')
       lifecycle.passed = true
@@ -447,7 +447,7 @@ async function main() {
     const keyboard = await require('./ux-keyboard.cjs')({ page, app, ids, trackPid: pid => { if (pid) fixturePids.push(pid) } })
     fs.writeFileSync(path.join(output, 'KEYBOARD.json'), JSON.stringify(keyboard, null, 2) + '\n')
     record('keyboard-navigation')
-    const settingsNavigation = await require('./ux-settings.cjs')({ page })
+    const settingsNavigation = await require('./ux-settings.cjs')({ page, app })
     fs.writeFileSync(path.join(output, 'SETTINGS.json'), JSON.stringify(settingsNavigation, null, 2) + '\n')
     record('settings-navigation')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())

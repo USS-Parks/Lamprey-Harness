@@ -227,7 +227,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G0; screenshots identify build/theme/viewport; latency is measured rather than inferred; v0.32.0 publication and remaining documentation debt are distinguished. No unrelated file changes.
 
 #### UX-01 — Freeze capability destinations and interaction contracts
-- [ ] **Objective:** make simplification lossless at the behavior level.
+- [x] **Objective:** make simplification lossless at the behavior level.
 - **Work:** validate every row in both relocation maps against current source; inventory all callers/shortcuts/deep links. Specify task identity, tab close versus resource stop, queue/steer/stop, permission and plan/coding distinctions, review commenting, draft recovery and focus ownership. Record exact before/after action paths.
 - **Seams/output:** `ui-store`, `ToolsPanel`, `ChatInput`, Sidebar, settings/shortcut handlers; `UX_CONTRACTS.md` with a source-to-destination matrix and named behavioral scenarios.
 - **Gate:** every existing ToolId and all 24 settings leaves map to a reachable destination; every preserved operation has an acceptance scenario; no authority/default changes hidden in presentation wording.
@@ -515,6 +515,6 @@ Record the installed Codex build and owner-observed interaction differences at U
 | 2026-09-05 | Revision 1: granular plan covering all suggestions, concrete mockup checkpoint, 40 prompts, full relocation maps and verification gates | Draft requested; **STS not approved** |
 | 2026-09-05 | User: "Approved for full STS and Bucket as v0.33.0 along with gh repo release notes update in humanized form." | Full source STS, prompt commits/pushes, v0.33.0 Bucket and release notes approved; UX-02 design checkpoint retained |
 
-**Execution started:** UX-00 baseline verified; commit/remote evidence resolved from its receipt. UX-01 is next. **Design approved:** No. **New release/Bucket approved:** Yes, v0.33.0.
+**Execution started:** UX-00 baseline and UX-01 contracts locally verified; commit/remote evidence resolved from their receipts. UX-02 design review is next. **Design approved:** No. **New release/Bucket approved:** Yes, v0.33.0.
 
 Authored and reviewed by Basho Parks, copyright 2026

@@ -1,3 +1,13 @@
+## 2026-09-05 — UX-01: Freeze capability destinations and interaction contracts
+
+**Files changed:** UX simplification PSPR; `PLANNING/evidence/ux-simplification/UX_CONTRACTS.md`, `UX01.json`, `validate-contracts.py`; DEVLOG.
+
+**Verification:** `python PLANNING/evidence/ux-simplification/validate-contracts.py` passed exact set equality for all 13 ToolIds and all 24 SettingsTabIds against both UI state and SettingsDialog. Thirty behavior scenarios plus 24 settings cases resolve; eight explicit source paths exist; 83 production caller lines are captured. This is documentation completeness, not implementation acceptance. No product source changed. Commit hooks require lint and both TypeScript projects.
+
+**Notes:** Contracts preserve Steer/Queue/Stop, independent permissions/plan/coding state, draft recovery, resource ownership, existing Git and browser developer actions, workflows, Memory and all rare tools. Baseline review-directory, loading-state and historical-tool access findings have named acceptance cases. UX-00 is pushed at 5159466b1528868bfee467375eb9aa17207e80bf; its hosted test/lint/native jobs passed while platform builds remain pending at this entry. UX-02 must present the design for explicit approval before UX-03.
+
+**Commit:** resolve with `git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX01.json`; exact hosted outcomes are recorded after push.
+
 ## 2026-09-05 — UX-00: Record the approved v0.33.0 UX baseline
 
 **Files changed:** UX simplification PSPR; `PLANNING/evidence/ux-simplification/` baseline runner, source/storage/release handoff receipts, three screenshots and measured runtime evidence; DEVLOG.

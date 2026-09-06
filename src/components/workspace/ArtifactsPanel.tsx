@@ -4,11 +4,7 @@ import thinkingIconUrl from '@assets/Lamprey Thinking Icon.png'
 import { ActivityFeed } from '@/components/artifacts/ActivityFeed'
 import { PanelEmptyState } from '@/components/ui/PanelEmptyState'
 
-// Docked Artifacts mode. Shows the live ActivityFeed while a tool is
-// running, otherwise an empty state directing the user to ask the assistant
-// for a renderable artifact. The transient <ArtifactPanel /> in App.tsx
-// still hijacks the right column when one is actually generated — this is
-// the "no artifact yet" home.
+// Activity remains available here; explicit previews open durable artifact tabs.
 export function ArtifactsPanel(): React.ReactElement {
   const isStreaming = useChatStore((s) => s.isStreaming)
   const toolCalls = useChatStore((s) => s.toolCalls)

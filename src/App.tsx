@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Titlebar, SecondaryToolbar } from '@/components/layout/Titlebar'
 import { ChatView } from '@/components/chat/ChatView'
-import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel'
 import { ToolsPanel } from '@/components/tools/ToolsPanel'
 import { QuickOpenPalette } from '@/components/tools/QuickOpenPalette'
 import { WorkflowPalette } from '@/components/workflows/WorkflowPalette'
@@ -45,9 +44,6 @@ function App(): React.ReactElement {
   const [needsApiKey, setNeedsApiKey] = useState<boolean | null>(null)
   const [initializationError, setInitializationError] = useState('')
   const [initializationAttempt, setInitializationAttempt] = useState(0)
-  const [artifactOpen, setArtifactOpen] = useState(false)
-  const [artifactType, setArtifactType] = useState<string | null>(null)
-  const [artifactSource, setArtifactSource] = useState<string | null>(null)
   // JM-23 (RD-4) — a QUEUE, not a single slot. setApprovalRequest used to
   // overwrite any modal-routed request already showing; the replaced one had
   // no surface and died to the main-process 30s auto-deny unseen (e.g. main
@@ -187,21 +183,15 @@ function App(): React.ReactElement {
   const activeConversationId = useChatStore((s) => s.activeConversationId)
   const workspaceProjectId = useChatStore((s) => s.conversations.find(conversation => conversation.id === s.activeConversationId)?.projectId ?? null)
 
-  const handleArtifactOpen = useCallback(
-    (type: string, source: string) => {
-      setArtifactType(type)
-      setArtifactSource(source)
-      setArtifactOpen(true)
-      // Fluidity J11: artifact emit is a trigger that should auto-open
-      // the right panel. The trigger key combines type + source so two
-      // different artifacts each get one auto-open attempt.
-      const convId = useChatStore.getState().activeConversationId
-      if (convId) {
-        autoOpenRightPanel(convId, `artifact:${type}:${source}`)
-      }
-    },
-    [autoOpenRightPanel]
-  )
+  const handleArtifactOpen = useCallback(async (type: string, source: string) => {
+    const owner = useChatStore.getState().activeConversationId
+    try {
+      const result = await window.api.artifact.render(type, source, { preview: false })
+      if (!result.success || !result.data?.artifactId) throw new Error(result.error ?? 'The artifact could not be saved. Try opening it again.')
+      if (useChatStore.getState().activeConversationId !== owner) return
+      useUiStore.getState().openWorkspaceResource('artifact', result.data.artifactId, `${type} artifact`)
+    } catch (error) { toast.error(String(error)) }
+  }, [])
 
   useEffect(() => {
     ;(window as unknown as Record<string, unknown>).__openArtifact = handleArtifactOpen
@@ -209,15 +199,6 @@ function App(): React.ReactElement {
       delete (window as unknown as Record<string, unknown>).__openArtifact
     }
   }, [handleArtifactOpen])
-
-  // When a tool opens while an artifact's WebContentsView is mounted, the
-  // OS-level overlay would stay pinned to the (now-hidden) artifact slot.
-  // Hide the view so the tool panel renders cleanly underneath.
-  useEffect(() => {
-    if (activeTool && window.api) {
-      void window.api.artifact?.hide?.()
-    }
-  }, [activeTool])
 
   // Fluidity J11: a tool launch is a trigger that should auto-open the
   // right panel — same one-pop-per-trigger rule the artifact emit uses.
@@ -465,7 +446,7 @@ function App(): React.ReactElement {
           Row 1 of the Titlebar, forming one clean horizontal divider.
           SecondaryToolbar now lives at the top of the right panel only
           (suppressed when the right panel is collapsed or showing a
-          transient ArtifactPanel). */}
+          contextual resource tabs). */}
       <div className="flex flex-1 gap-[var(--panel-gap)] overflow-hidden p-[var(--panel-gap)]">
         <Sidebar />
 
@@ -496,7 +477,7 @@ function App(): React.ReactElement {
             <img src={artifactsPlaceholderUrl} alt="" aria-hidden className="icon-asset themed-variant-light mt-2 h-[25px] w-[25px] object-contain opacity-60" />
           </div>
         )}
-        {!isNarrow && !rightPanelCollapsed && activeTool && (
+        {!isNarrow && !rightPanelCollapsed && (
           <div
             className="panel-shadow relative flex flex-col overflow-hidden rounded-[var(--panel-radius)] bg-[var(--panel-bg)]"
             style={{ width: rightPanelWidth, minWidth: rightPanelWidth }}
@@ -524,41 +505,7 @@ function App(): React.ReactElement {
             <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
           </div>
         )}
-        {!isNarrow && !rightPanelCollapsed && !activeTool && artifactOpen && (
-          <ArtifactPanel
-            artifactType={artifactType}
-            artifactSource={artifactSource}
-            onClose={() => setArtifactOpen(false)}
-          />
-        )}
-        {!isNarrow && !rightPanelCollapsed && !activeTool && !artifactOpen && (
-          <div
-            className="panel-shadow relative flex flex-col overflow-hidden rounded-[var(--panel-radius)] bg-[var(--panel-bg)]"
-            style={{ width: rightPanelWidth, minWidth: rightPanelWidth }}
-          >
-            <div
-              onMouseDown={handleRightResizeStart}
-              onDoubleClick={() => setRightPanelWidth(RIGHT_PANEL_BOUNDS.default)}
-              title="Drag to resize · double-click to reset"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Workspace width"
-              aria-valuenow={rightPanelWidth}
-              aria-valuemin={RIGHT_PANEL_BOUNDS.min}
-              aria-valuemax={RIGHT_PANEL_BOUNDS.max}
-              tabIndex={0}
-              onKeyDown={event => {
-                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                  event.preventDefault()
-                  setRightPanelWidth(rightPanelWidth + (event.key === 'ArrowLeft' ? 20 : -20))
-                } else if (event.key === 'Home') setRightPanelWidth(RIGHT_PANEL_BOUNDS.default)
-              }}
-              className="resize-handle-v resize-handle-v-left"
-            />
-            <SecondaryToolbar onSettingsClick={openSettings} />
-            <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
-          </div>
-        )}
+
       </div>
 
       {/* Narrow-viewport drawer. Slides in from the right with a backdrop
@@ -583,17 +530,7 @@ function App(): React.ReactElement {
             }}
           >
             <SecondaryToolbar onSettingsClick={openSettings} />
-            {activeTool ? (
-              <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
-            ) : artifactOpen ? (
-              <ArtifactPanel
-                artifactType={artifactType}
-                artifactSource={artifactSource}
-                onClose={() => setArtifactOpen(false)}
-              />
-            ) : (
-              <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
-            )}
+            <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
           </aside>
         </>
       )}

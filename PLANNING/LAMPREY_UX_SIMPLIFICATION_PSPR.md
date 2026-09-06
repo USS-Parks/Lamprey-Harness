@@ -265,7 +265,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; task switching preserves the correct tabs; tab close restores sensible focus; collapse/expand and resize work; empty/invalid resource recovery is visible. Existing functional panel routes remain available until replaced.
 
 #### UX-06 — Route file and artifact links directly into tabs
-- [ ] **Objective:** remove the extra navigation step between conversation output and its content.
+- [x] **Objective:** remove the extra navigation step between conversation output and its content.
 - **Work:** reuse file previews, artifact viewers and existing open-file requests; route file:line references, artifacts and source links to the correct tab. Preserve browser-versus-file distinctions and sandbox boundaries.
 - **Seams/output:** FilesPanel, ArtifactPanel, workspace artifacts/sources and current message-link handlers.
 - **Gate:** G1/G2 with real temporary files; existing file, missing/deleted file, duplicate basename, line jump, generated artifact and denied external path all behave correctly. Artifact links do not bypass existing sandbox/IPC rules.

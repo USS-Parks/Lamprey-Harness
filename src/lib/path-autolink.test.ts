@@ -1,3 +1,4 @@
+import { parseFileLink } from './path-autolink'
 import { describe, expect, it } from 'vitest'
 import { autolinkText } from './path-autolink'
 
@@ -89,5 +90,18 @@ describe('autolinkText — segmentation', () => {
 
   it('returns an empty array for empty input', () => {
     expect(autolinkText('')).toEqual([])
+  })
+})
+
+
+describe('explicit file link routing', () => {
+  it('retains Windows, relative, escaped and file URL line targets', () => {
+    expect(parseFileLink('C:/My Project/a.ts:42')).toEqual({ path: 'C:/My Project/a.ts', line: 42 })
+    expect(parseFileLink('./src/a.ts#L3')).toEqual({ path: './src/a.ts', line: 3 })
+    expect(parseFileLink('file:///C:/My%20Project/a.ts#L9')).toEqual({ path: 'C:/My Project/a.ts', line: 9 })
+    expect(parseFileLink('a.ts:0')).toEqual({ path: 'a.ts' })
+  })
+  it('keeps network and unsafe schemes out of file dispatch', () => {
+    for (const url of ['https://example.test/a.ts', '//example.test/a.ts', 'javascript:alert(1)', 'artifact://research/a.md', 'mailto:user@example.test', 'file://remote/share/a.ts', '#heading']) expect(parseFileLink(url)).toBeNull()
   })
 })

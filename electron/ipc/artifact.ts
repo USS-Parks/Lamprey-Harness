@@ -123,18 +123,19 @@ export function registerArtifactHandlers(): void {
     }
   )
 
-  ipcMain.handle('artifact:render', async (_event, type: string, content: string) => {
+  ipcMain.handle('artifact:render', async (_event, type: string, content: string, options?: { preview?: boolean }) => {
     try {
       // VA-1 — preserve the old two-argument preview surface while migrating
       // its process-local source into the durable artifact ledger. Rendering
       // remains available if persistence is temporarily unavailable.
+      let artifactId: string | null = null
       try {
-        mirrorEphemeralArtifact(type, content)
+        artifactId = mirrorEphemeralArtifact(type, content).id
       } catch (err) {
         console.warn('[artifact] failed to mirror ephemeral source:', err)
       }
-      artifactSandbox.render(type, content)
-      return { success: true, data: null }
+      if (options?.preview !== false) artifactSandbox.render(type, content)
+      return { success: true, data: { artifactId } }
     } catch (err) {
       return { success: false, error: String(err) }
     }

@@ -1,0 +1,19 @@
+{
+  "prompt": "UX-06",
+  "sourceBase": "c4f98c46a51d626eec2473e52f1081a248806996",
+  "status": "local-pass",
+  "acceptedEvidence": "UX06_FINAL2/RUNTIME.json",
+  "failedAttempt": "UX06_FINAL/LIFECYCLE.json",
+  "cases": [
+    "actual Markdown file links",
+    "line jump scroll",
+    "repeated open dedup",
+    "duplicate basename identity",
+    "deleted file error",
+    "outside-workspace denial",
+    "durable artifact sandbox rendering",
+    "source excluded from tab metadata",
+    "task restoration"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX06.json"
+}

@@ -1,5 +1,6 @@
+import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel'
 import { useEffect, useRef, useState } from 'react'
-import { EMPTY_WORKSPACE, workspaceKey } from '@/lib/workspace-state'
+import { EMPTY_WORKSPACE, workspaceKey, type WorkspaceResource } from '@/lib/workspace-state'
 import { RightPanelHome } from '@/components/artifacts/RightPanelHome'
 import { useUiStore, type ToolId } from '@/stores/ui-store'
 import { FilesPanel } from './panels/FilesPanel'
@@ -32,10 +33,11 @@ const TOOL_LABELS: Record<ToolId, string> = {
   agents: 'Agents'
 }
 
-function renderToolBody(tool: ToolId): React.ReactElement {
+function renderToolBody(tool: ToolId, resource?: WorkspaceResource): React.ReactElement {
+  if (resource?.kind === 'artifact') return <ArtifactPanel artifactId={resource.ref} />
   switch (tool) {
     case 'files':
-      return <FilesPanel />
+      return <FilesPanel filePath={resource?.kind === 'file' ? resource.ref : undefined} />
     case 'sidechat':
       return <SideChatPanel />
     case 'browser':
@@ -137,7 +139,7 @@ export function ToolsPanel({ onCollapse }: ToolsPanelProps) {
         {(Object.keys(TOOL_LABELS) as ToolId[]).map(tool => <button key={tool} className="min-h-8 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => { open(tool); setAdding(false) }}>{TOOL_LABELS[tool]}</button>)}
       </div>}
       <div ref={content} id="workspace-content" role={active ? 'tabpanel' : 'region'} aria-label={active ? undefined : 'Workspace'} aria-labelledby={active ? `workspace-tab-${workspace.tabs.indexOf(active)}` : undefined} tabIndex={-1} className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">
-        {activeTool ? <div key={`${taskId}:${active?.id ?? activeTool}`} className="flex min-h-0 flex-1 flex-col overflow-hidden">{renderToolBody(activeTool)}</div> : <>
+        {activeTool ? <div key={`${taskId}:${active?.id ?? activeTool}`} className="flex min-h-0 flex-1 flex-col overflow-hidden">{renderToolBody(activeTool, active)}</div> : <>
           <p className="px-3 pt-3 text-xs text-[var(--text-muted)]">Open a file or add a workspace tab.</p>
           <RightPanelHome onCollapse={onCollapse} />
         </>}

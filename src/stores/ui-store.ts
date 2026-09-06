@@ -249,7 +249,8 @@ interface UiState {
   setPlanMode: (v: boolean) => void
   requestedOpenFilePath: string | null
   requestedOpenFileToken: number
-  requestOpenFile: (path: string) => void
+  requestedOpenFileLine: number | undefined
+  requestOpenFile: (path: string, line?: number) => void
   convFilters: ConvFilters
   setConvFilters: (partial: Partial<ConvFilters>) => void
   resetConvFilters: () => void
@@ -314,7 +315,7 @@ export const useUiStore = create<UiState>((set, get) => ({
     const resource = workspace.tabs.find(tab => tab.id === id)
     if (!resource) return
     get().updateWorkspace({ ...workspace, activeId: id })
-    if (resource.kind === 'file') set(state => ({ requestedOpenFilePath: resource.ref, requestedOpenFileToken: state.requestedOpenFileToken + 1 }))
+    if (resource.kind === 'file') set(state => ({ requestedOpenFilePath: resource.ref, requestedOpenFileLine: resource.ref === state.requestedOpenFilePath ? state.requestedOpenFileLine : undefined, requestedOpenFileToken: state.requestedOpenFileToken + 1 }))
     get().setRightPanelCollapsed(false)
   },
   closeWorkspaceResource: (id) => {
@@ -358,6 +359,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   workflowPaletteVisible: false,
   requestedOpenFilePath: null,
   requestedOpenFileToken: 0,
+  requestedOpenFileLine: undefined,
   worktreeModalOpen: false,
   planMode: false,
   convFilters: readConvFilters(),
@@ -447,6 +449,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       activeWorkspaceProjectId: projectId,
       activeTool: active ? resourceTool(active) : null,
       requestedOpenFilePath: active?.kind === 'file' ? active.ref : null,
+      requestedOpenFileLine: undefined,
       requestedOpenFileToken: get().requestedOpenFileToken + 1
     })
   },
@@ -506,11 +509,12 @@ export const useUiStore = create<UiState>((set, get) => ({
   closeWorktreeModal: () => set({ worktreeModalOpen: false }),
   togglePlanMode: () => set((s) => ({ planMode: !s.planMode })),
   setPlanMode: (v: boolean) => set({ planMode: v }),
-  requestOpenFile: (path: string) => {
+  requestOpenFile: (path: string, line?: number) => {
     get().openWorkspaceResource('file', path, path.split(/[\\/]/).pop() || path)
     set((s) => ({
       activeTool: 'files',
       requestedOpenFilePath: path,
+      requestedOpenFileLine: Number.isSafeInteger(line) && line! > 0 ? line : undefined,
       requestedOpenFileToken: s.requestedOpenFileToken + 1,
       quickOpenVisible: false
     }))

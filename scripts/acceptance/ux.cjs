@@ -30,6 +30,11 @@ async function main() {
     fs.writeFileSync(path.join(repo, 'example.txt'), 'Before review\n')
     for (const args of [['init'], ['add', '.'], ['-c', 'user.name=UX Fixture', '-c', 'user.email=fixture@localhost', 'commit', '-m', 'Fixture baseline']]) execFileSync('git', args, { cwd: repo })
     fs.writeFileSync(path.join(repo, 'example.txt'), 'After review\n')
+    for (const folder of ['first', 'second']) {
+      fs.mkdirSync(path.join(repo, folder))
+      fs.writeFileSync(path.join(repo, folder, 'example.ts'), Array.from({ length: 120 }, (_, index) => `${folder} line ${index+1}`).join('\n'))
+    }
+    fs.writeFileSync(path.join(profile, 'outside.txt'), 'Must remain outside workspace')
     fs.writeFileSync(path.join(profile, 'mcp-servers.json'), JSON.stringify([{ id: 'node-repl', name: 'Node REPL', transport: 'stdio', command: process.execPath, auth: 'none', enabled: false }]))
     const plugins = Object.fromEntries(fs.readdirSync(path.join(root, 'resources/plugins'), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => [JSON.parse(fs.readFileSync(path.join(root, 'resources/plugins', e.name, 'plugin.json'))).id, false]))
     fs.writeFileSync(path.join(profile, 'plugins.json'), JSON.stringify(plugins))
@@ -82,6 +87,7 @@ async function main() {
         const msg = db.prepare('INSERT INTO messages (id,conversation_id,role,content,model,created_at) VALUES (?,?,?,?,?,?)')
         for (let i = 0; i < 1000; i++) msg.run(`ux-message-${i}`, ids[0], i % 2 ? 'assistant' : 'user', `Baseline message ${i}: inspect the fixture and explain its changes.`, 'fixture-stream', now + i)
         msg.run('ux-alternate-message', ids[1], 'assistant', 'Baseline alternate task ready.', 'fixture-stream', now)
+        msg.run('ux-file-links', ids[2], 'assistant', 'UX file links ready.\n\n[Open first](first/example.ts:80) [Open second](second/example.ts) [Outside file](../outside.txt)\n\n```html\n<div id="ux-artifact">UX generated artifact</div>\n```', 'fixture-stream', now)
         const tool = db.prepare('INSERT INTO tool_calls (id,tool_id,name,conversation_id,args_json,status,result_preview,started_at,finished_at,duration_ms) VALUES (?,?,?,?,?,?,?,?,?,?)')
         for (let i = 0; i < 200; i++) tool.run(`ux-tool-${i}`, 'read_file', 'read_file', ids[0], '{"path":"example.txt"}', 'done', 'Before review', now+i, now+i+1, 1)
         const invocation = db.prepare('UPDATE messages SET role=?,tool_calls=? WHERE id=?')
@@ -236,11 +242,58 @@ async function main() {
     assert.equal(await page.getByRole('tab').count(), 2)
     await page.screenshot({ path: path.join(output, 'WORKSPACE.png') })
     record('workspace-shell')
+    await switchTask('UX baseline task 02', 'UX file links ready.')
+    await page.getByRole('link', { name: 'Open first', exact: true }).click()
+    await page.getByLabel('File preview', { exact: true }).getByText('first line 80', { exact: false }).waitFor()
+    assert.equal(await page.getByLabel('File preview', { exact: true }).getAttribute('data-line'), '80')
+    assert(await page.getByLabel('File preview', { exact: true }).evaluate(node => node.scrollTop > 1000))
+    await page.getByRole('link', { name: 'Open first', exact: true }).click()
+    assert.equal(await page.getByRole('tab', { name: 'example.ts', exact: true }).count(), 1)
+    await page.getByRole('link', { name: 'Open second', exact: true }).click()
+    await page.getByLabel('File preview', { exact: true }).getByText('second line 1', { exact: false }).waitFor()
+    assert.equal(await page.getByRole('tab', { name: 'example.ts', exact: true }).count(), 2)
+    fs.unlinkSync(path.join(repo, 'first/example.ts'))
+    await page.getByRole('link', { name: 'Open first', exact: true }).click()
+    await page.getByText(/ENOENT/).waitFor()
+    await page.getByRole('link', { name: 'Outside file', exact: true }).click()
+    await page.getByText('Path is outside the active workspace. File access is confined to the project root.', { exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Open artifact', exact: true }).click()
+    await page.getByRole('tab', { name: 'html artifact', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Copy source', exact: true }).waitFor({ state: 'visible' })
+    const artifactVisible = await app.evaluate(async ({ webContents }) => {
+      for (let attempt = 0; attempt < 40; attempt++) {
+        for (const contents of webContents.getAllWebContents()) {
+          try {
+            if (await contents.executeJavaScript('!!document.querySelector("#ux-artifact")')) return true
+          } catch { /* A view may still be navigating. */ }
+        }
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      return false
+    })
+    assert(artifactVisible, 'Existing sandbox must render the generated artifact')
+    const savedTabs = await page.evaluate(() => JSON.parse(localStorage.getItem('lamprey.ui.workspaces')))
+    assert(!JSON.stringify(savedTabs).includes('UX generated artifact'), 'Tab metadata must not contain artifact source')
+    await page.screenshot({ path: path.join(output, 'DIRECT_OPEN.png') })
+    await switchTask('UX baseline task 01', 'Baseline alternate task ready.')
+    await switchTask('UX baseline task 02', 'UX file links ready.')
+    await page.getByRole('tab', { name: 'html artifact', exact: true }).waitFor()
+    record('direct-file-artifact-links')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks: await page.evaluate(() => window.uxLongTasks), limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'Ten simultaneous workspace tabs are unsupported in v0.32.0; measure them after UX-04/05.', 'Browser/terminal lifecycle extensions are tracked by UX-07/08 and UX-33; not claimed by representative cases.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')
     lifecycle.passed = true
     console.log('UX acceptance capture complete.')
+  } catch (error) {
+    const page = app?.windows()[0]
+    if (page && !page.isClosed()) {
+      try {
+        const diagnostic = await page.evaluate(() => ({ activeElement: document.activeElement?.outerHTML?.slice(0, 500), draft: document.querySelector('textarea')?.value, timings: window.uxTimings, longTasks: window.uxLongTasks }))
+        fs.writeFileSync(path.join(output, 'FAILURE.json'), JSON.stringify({ error: String(error), diagnostic }, null, 2) + '\n')
+        await page.screenshot({ path: path.join(output, 'FAILURE.png'), timeout: 3000 })
+      } catch (captureError) { console.error('Failure capture:', captureError.message) }
+    }
+    throw error
   } finally {
     try {
       if (app) {

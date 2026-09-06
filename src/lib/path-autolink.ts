@@ -116,3 +116,22 @@ export function autolinkText(text: string): AutolinkSegment[] {
   if (lastIdx < text.length) out.push({ kind: 'text', value: text.slice(lastIdx) })
   return out
 }
+
+/** Explicit Markdown file links retain their optional line target; network URLs stay external. */
+export function parseFileLink(href: string): { path: string; line?: number } | null {
+  if (!href || href.startsWith('#') || href.startsWith('//')) return null
+  let candidate = href
+  if (href.startsWith('file:')) {
+    try {
+      const url = new URL(href)
+      if (url.hostname && url.hostname !== 'localhost') return null
+      candidate = url.pathname.replace(/^\/([a-z]:\/)/i, '$1') + url.hash
+    } catch { return null }
+  } else if (/^[a-z][a-z\d+.-]*:/i.test(href) && !/^[a-z]:[\\/]/i.test(href) && !/^[^:]+\.[a-z\d]+:\d+$/i.test(href)) return null
+  const match = candidate.match(/^(.*?)(?::(\d+)|#L(\d+))?$/)
+  if (!match?.[1]) return null
+  let path = match[1]
+  try { path = decodeURIComponent(path) } catch { /* Preserve literal percent signs in file names. */ }
+  const line = Number(match[2] ?? match[3])
+  return { path, ...(Number.isSafeInteger(line) && line > 0 ? { line } : {}) }
+}

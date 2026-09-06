@@ -1249,7 +1249,7 @@ const api = {
       endOffset: number
       body: string
     }) => ipcRenderer.invoke('artifact:annotate', input),
-    render: (type: string, content: string) => ipcRenderer.invoke('artifact:render', type, content),
+    render: (type: string, content: string, options?: { preview?: boolean }) => ipcRenderer.invoke('artifact:render', type, content, options),
     hide: () => ipcRenderer.invoke('artifact:hide'),
     resize: (bounds: { x: number; y: number; width: number; height: number }) =>
       ipcRenderer.invoke('artifact:resize', bounds),

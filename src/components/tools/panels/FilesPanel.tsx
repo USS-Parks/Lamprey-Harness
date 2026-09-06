@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
 
 interface FsEntry {
@@ -66,7 +66,12 @@ function Chevron({ expanded }: { expanded: boolean }): React.ReactElement {
   )
 }
 
-export function FilesPanel() {
+export function FilesPanel({ filePath }: { filePath?: string } = {}) {
+  const generation = useRef(0)
+  const preview = useRef<HTMLPreElement>(null)
+  const line = useUiStore(s => s.requestedOpenFileLine)
+  const requestOpen = useUiStore(s => s.requestOpenFile)
+  const [rootLoading, setRootLoading] = useState(true)
   const [rootPath, setRootPath] = useState<string | null>(null)
   const [tree, setTree] = useState<TreeNode[]>([])
   const [openFile, setOpenFile] = useState<OpenFile | null>(null)
@@ -87,6 +92,7 @@ export function FilesPanel() {
         return
       }
       setRootPath(wd.data.path)
+      if (filePath) { setRootLoading(false); return }
       const ls = await window.api.files.listDir(wd.data.path)
       if (cancelled) return
       if (!ls.success) {
@@ -95,12 +101,13 @@ export function FilesPanel() {
       }
       const entries = ls.data as FsEntry[]
       setTree(entries.map((e) => makeNode(e, 0)))
+      setRootLoading(false)
     }
     void load()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [filePath])
 
   const toggleDir = useCallback(async (node: TreeNode) => {
     if (node.entry.type !== 'dir') return
@@ -125,8 +132,11 @@ export function FilesPanel() {
   }, [])
 
   const openFileAt = useCallback(async (entry: FsEntry) => {
+    const request = ++generation.current
     setLoadingPath(entry.path)
+    setOpenFile(null)
     const res = await window.api?.files.readText(entry.path)
+    if (request !== generation.current) return
     setLoadingPath(null)
     if (!res) return
     if (!res.success) {
@@ -137,14 +147,21 @@ export function FilesPanel() {
     setOpenFile({ path: entry.path, name: entry.name, content: data.content, size: data.size })
   }, [])
 
+  useEffect(() => () => { generation.current++ }, [])
+
+  useEffect(() => {
+    if (!openFile || !line || !preview.current) return
+    preview.current.scrollTop = (line - 1) * parseFloat(getComputedStyle(preview.current).lineHeight)
+  }, [openFile, line, requestedOpenFileToken])
+
   // Handle quick-open palette selections — opens any file by absolute path.
   useEffect(() => {
-    if (!requestedOpenFilePath || requestedOpenFileToken === 0) return
-    const path = requestedOpenFilePath
+    const path = filePath ?? requestedOpenFilePath
+    if (!path) return
     const sepIdx = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
     const name = sepIdx >= 0 ? path.slice(sepIdx + 1) : path
     void openFileAt({ name, type: 'file', path })
-  }, [requestedOpenFileToken, requestedOpenFilePath, openFileAt])
+  }, [filePath, requestedOpenFileToken, requestedOpenFilePath, openFileAt])
 
   const flat = flatten(tree)
 
@@ -157,12 +174,12 @@ export function FilesPanel() {
       )}
 
       <div className="flex min-h-0 flex-1">
-        <div className="w-1/2 min-w-0 overflow-auto border-r border-[var(--panel-border)] py-1">
+        {!filePath && <div className="w-1/2 min-w-0 overflow-auto border-r border-[var(--panel-border)] py-1">
           {rootError && (
             <p className="px-3 py-2 text-[12px] text-[var(--error)]">{rootError}</p>
           )}
           {!rootError && flat.length === 0 && (
-            <p className="px-3 py-2 text-[12px] text-[var(--text-muted)]">Loading…</p>
+            <p className="px-3 py-2 text-[12px] text-[var(--text-muted)]">{rootLoading ? 'Loading…' : 'No files in this directory.'}</p>
           )}
           {flat.map((node) => {
             const isOpen = openFile?.path === node.entry.path
@@ -172,7 +189,7 @@ export function FilesPanel() {
                 key={node.entry.path}
                 onClick={() => {
                   if (node.entry.type === 'dir') void toggleDir(node)
-                  else void openFileAt(node.entry)
+                  else requestOpen(node.entry.path)
                 }}
                 className={`flex w-full items-center gap-1 px-2 py-0.5 text-left text-[13px] transition-colors ${
                   isOpen
@@ -195,13 +212,14 @@ export function FilesPanel() {
               </button>
             )
           })}
-        </div>
+        </div>}
 
-        <div className="flex w-1/2 min-w-0 flex-col">
+        <div className={`flex ${filePath ? 'w-full' : 'w-1/2'} min-w-0 flex-col`}>
           {openFile ? (
             <>
               <div className="border-b border-[var(--panel-border)] px-3 py-1.5 text-[12px] text-[var(--text-secondary)]">
                 <span className="font-medium">{openFile.name}</span>
+                {line && <span className="ml-2">Line {line}</span>}
                 {!openFile.error && (
                   <span className="ml-2 text-[var(--text-muted)]">
                     {(openFile.size / 1024).toFixed(1)} KB
@@ -211,14 +229,14 @@ export function FilesPanel() {
               {openFile.error ? (
                 <p className="px-3 py-3 text-[12px] text-[var(--text-muted)]">{openFile.error}</p>
               ) : (
-                <pre className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre px-3 py-2 font-mono text-[12px] leading-relaxed text-[var(--text-primary)]">
+                <pre ref={preview} aria-label="File preview" data-line={line} className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre px-3 py-2 font-mono text-[12px] leading-relaxed text-[var(--text-primary)]">
                   {openFile.content}
                 </pre>
               )}
             </>
           ) : (
             <p className="m-auto px-3 py-3 text-[12px] text-[var(--text-muted)]">
-              Select a file to view.
+              {loadingPath ? 'Loading file…' : 'Select a file to view.'}
             </p>
           )}
         </div>

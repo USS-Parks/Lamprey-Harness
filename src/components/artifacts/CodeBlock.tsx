@@ -117,7 +117,6 @@ export function CodeBlock({ code, language, sourceMessageId }: CodeBlockProps) {
 
   const handleOpenArtifact = () => {
     if (!detectedType) return
-    window.api?.artifact?.render(detectedType, code)
     const opener = (window as unknown as Record<string, unknown>).__openArtifact
     if (typeof opener === 'function') {
       ;(opener as (t: string, s: string) => void)(detectedType, code)

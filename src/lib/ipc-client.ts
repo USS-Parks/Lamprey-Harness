@@ -330,7 +330,7 @@ export const statusline = {
 }
 
 export const artifact = {
-  render: (type: ArtifactType, content: string): Promise<IpcResponse<void>> =>
+  render: (type: ArtifactType, content: string): Promise<IpcResponse<{ artifactId: string | null }>> =>
     api.artifact.render(type, content),
   hide: (): Promise<IpcResponse<void>> => api.artifact.hide(),
   resize: (bounds: ArtifactBounds): Promise<IpcResponse<void>> => api.artifact.resize(bounds),

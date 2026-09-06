@@ -1,134 +1,53 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
-import codeWindowIconUrl from '@assets/Lamprey Code Window Icon.png'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from '@/stores/toast-store'
 
-interface ArtifactPanelProps {
-  artifactType: string | null
-  artifactSource: string | null
-  onClose: () => void
-}
+interface ArtifactSource { type: string; content: string }
 
-export function ArtifactPanel({ artifactType, artifactSource, onClose }: ArtifactPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const [panelWidth, setPanelWidth] = useState(420)
-  const dragging = useRef(false)
-  const [copied, setCopied] = useState(false)
+/** Hosts the existing sandbox view; durable source remains in the artifact ledger. */
+export function ArtifactPanel({ artifactId }: { artifactId: string }) {
+  const region = useRef<HTMLDivElement>(null)
+  const [source, setSource] = useState<ArtifactSource | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const reportBounds = useCallback(() => {
-    if (!panelRef.current || !window.api) return
-    const rect = panelRef.current.getBoundingClientRect()
-    window.api.artifact.resize({
-      x: Math.round(rect.left),
-      y: Math.round(rect.top),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
-    })
+    const rect = region.current?.getBoundingClientRect()
+    if (!rect) return
+    void window.api.artifact.resize({ x: Math.round(rect.left), y: Math.round(rect.top), width: Math.round(rect.width), height: Math.round(rect.height) })
   }, [])
 
   useEffect(() => {
-    if (!panelRef.current) return
+    let cancelled = false
+    setSource(null)
+    setError(null)
+    void (async () => {
+      try {
+        const result = await window.api.artifact.read(artifactId)
+        if (cancelled) return
+        if (!result.success) throw new Error(result.error)
+        const next = { type: result.data.artifact.artifactType, content: result.data.revision.content }
+        const rendered = await window.api.artifact.render(next.type, next.content)
+        if (cancelled) return
+        if (!rendered.success) throw new Error(rendered.error)
+        setSource(next)
+        reportBounds()
+      } catch (failure) { if (!cancelled) setError(String(failure)) }
+    })()
     const observer = new ResizeObserver(reportBounds)
-    observer.observe(panelRef.current)
-    reportBounds()
-    return () => observer.disconnect()
-  }, [reportBounds])
-
-  useEffect(() => {
-    reportBounds()
-  }, [panelWidth, reportBounds])
-
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    dragging.current = true
-    const startX = e.clientX
-    const startWidth = panelWidth
-
-    const onMove = (me: MouseEvent) => {
-      if (!dragging.current) return
-      const delta = startX - me.clientX
-      const newWidth = Math.max(280, Math.min(800, startWidth + delta))
-      setPanelWidth(newWidth)
+    if (region.current) observer.observe(region.current)
+    return () => {
+      cancelled = true
+      observer.disconnect()
+      void window.api.artifact.hide()
     }
+  }, [artifactId, reportBounds])
 
-    const onUp = () => {
-      dragging.current = false
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }, [panelWidth])
-
-  const handleCopySource = async () => {
-    if (artifactSource) {
-      await navigator.clipboard.writeText(artifactSource)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const handleOpenInWindow = () => {
-    if (artifactType && artifactSource && window.api) {
-      window.api.artifact.openInWindow(artifactType, artifactSource)
-    }
-  }
-
-  const handleHide = () => {
-    window.api?.artifact?.hide()
-    onClose()
-  }
-
-  return (
-    <div
-      className="flex flex-col overflow-hidden rounded-[var(--panel-radius)] bg-[var(--panel-bg)]"
-      style={{ width: panelWidth }}
-    >
-      {/* Drag handle */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)] transition-colors z-10"
-        style={{ position: 'relative', width: 4, minWidth: 4, cursor: 'col-resize' }}
-        onMouseDown={handleDragStart}
-      />
-
-      <div className="flex flex-1 flex-col" style={{ marginLeft: -4 }}>
-        {/* Header */}
-        <div className="flex h-12 items-center justify-between bg-[var(--bg-tertiary)] px-4">
-          <div className="flex items-center gap-2">
-            <img src={codeWindowIconUrl} alt="" aria-hidden className="icon-asset h-9 w-9 object-contain" />
-            <span className="text-sm font-medium text-[var(--text-secondary)]">Artifact</span>
-            {artifactType && (
-              <span className="rounded bg-[var(--accent-dim)] px-1.5 py-0.5 text-[12px] font-mono text-[var(--accent)]">
-                {artifactType}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleCopySource}
-              className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-              title="Copy source"
-            >
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-            <button
-              onClick={handleOpenInWindow}
-              className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-              title="Open in new window"
-            >
-              Window
-            </button>
-            <button
-              onClick={handleHide}
-              className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-              title="Close panel"
-            >
-              X
-            </button>
-          </div>
-        </div>
-
-        {/* BrowserView overlay region */}
-        <div ref={panelRef} className="flex-1 bg-[#1a1a2e]" />
-      </div>
+  return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-10 shrink-0 items-center gap-2 border-b border-[var(--panel-border)] px-3 text-xs text-[var(--text-secondary)]">
+      <span className="flex-1">{source?.type ?? 'Artifact'}</span>
+      <button disabled={!source} className="min-h-8 rounded px-2 hover:bg-[var(--bg-tertiary)] disabled:opacity-50" onClick={() => { if (source) void navigator.clipboard.writeText(source.content).then(() => toast.success('Source copied.'), failure => toast.error(String(failure))) }}>Copy source</button>
+      <button disabled={!source} className="min-h-8 rounded px-2 hover:bg-[var(--bg-tertiary)] disabled:opacity-50" onClick={() => { if (source) void window.api.artifact.openInWindow(source.type, source.content) }}>Open in window</button>
     </div>
-  )
+    {error && <p role="alert" className="p-3 text-sm text-[var(--error)]">{error} Close this tab and reopen the artifact to retry.</p>}
+    {!source && !error && <p role="status" className="p-3 text-sm text-[var(--text-muted)]">Loading artifact…</p>}
+    <div ref={region} aria-label="Artifact preview" className="min-h-0 flex-1" />
+  </div>
 }

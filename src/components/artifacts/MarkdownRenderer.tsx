@@ -1,8 +1,9 @@
+import { useUiStore } from '@/stores/ui-store'
 import { Fragment, type ReactNode } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CodeBlock } from './CodeBlock'
-import { autolinkText } from '@/lib/path-autolink'
+import { autolinkText, parseFileLink } from '@/lib/path-autolink'
 import '@/styles/markdown.css'
 
 interface MarkdownRendererProps {
@@ -11,8 +12,7 @@ interface MarkdownRendererProps {
 }
 
 // Fluidity J10: turn bare `path/file.ext[:line]` references in prose into
-// clickable spans that fire `file:open` (the host handles routing it back
-// through requestOpenFile so the file panel opens to the right line).
+// clickable links routed through the existing workspace file action.
 // Walks the children of prose-level components (p / li / td / strong / em
 // / blockquote) and replaces string segments with autolinked variants.
 // Text inside `<code>` / `<pre>` is not touched — those components are
@@ -50,19 +50,7 @@ function transformChildren(children: ReactNode): ReactNode {
 }
 
 function openFileRef(path: string, line?: number): void {
-  const w = window as unknown as {
-    __openArtifact?: (type: string, source: string) => void
-    api?: { files?: { openInVSCode?: (a: { targetPath?: string }) => Promise<unknown> } }
-  }
-  // Prefer the in-app file panel via the same dispatcher the rest of the
-  // app uses; falls back to the VS Code IPC if available.
-  const event = new CustomEvent('file:open', { detail: { path, line } })
-  window.dispatchEvent(event)
-  // Soft fallback for when no listener is attached yet (artifact panels
-  // mount lazily). Open externally only if the dispatcher didn't claim it.
-  if (!w.__openArtifact && w.api?.files?.openInVSCode) {
-    void w.api.files.openInVSCode({ targetPath: path })
-  }
+  useUiStore.getState().requestOpenFile(path, line)
 }
 
 function FileRefSpan({
@@ -103,6 +91,7 @@ export function MarkdownRenderer({ content, sourceMessageId }: MarkdownRendererP
     <div className="markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        urlTransform={href => parseFileLink(href) || href.startsWith('artifact://research/') ? href : defaultUrlTransform(href)}
         components={{
           pre({ children }) {
             return <>{children}</>
@@ -148,6 +137,11 @@ export function MarkdownRenderer({ content, sourceMessageId }: MarkdownRendererP
                     .catch((err) => console.warn('[MarkdownRenderer] research:read failed', err))
                   return
                 }
+              }
+              const local = parseFileLink(href)
+              if (local) {
+                openFileRef(local.path, local.line)
+                return
               }
               if (window.api?.artifact?.openExternal) {
                 window.api.artifact.openExternal(href)

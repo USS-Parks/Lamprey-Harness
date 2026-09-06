@@ -44,7 +44,7 @@ export function isGroupable(tc: ToolCallState): boolean {
   if (tc.status === 'pending' || tc.status === 'running') return false
   // Errored and denied calls stay individual: the user needs to see the
   // red/grey border on its own card, not buried inside a "6 calls" group.
-  if (tc.status === 'error' || tc.status === 'denied') return false
+  if (tc.status === 'error' || tc.status === 'denied' || tc.status === 'unknown') return false
   if (tc.risks && tc.risks.includes('destructive')) return false
   return true
 }

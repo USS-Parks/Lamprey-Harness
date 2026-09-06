@@ -1,3 +1,4 @@
+import { PopoverMenu } from '@/components/ui/PopoverMenu'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { groupConsecutiveToolCalls } from '@/lib/tool-call-grouping'
@@ -25,6 +26,12 @@ interface ToolActivityChipProps {
 }
 
 export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChipProps) {
+  const owner = useChatStore(s => s.activeConversationId)
+  const loading = useChatStore(s => s.toolHistoryLoading)
+  const error = useChatStore(s => s.toolHistoryError)
+  const refresh = useChatStore(s => s.refreshToolHistory)
+  const [expansions, setExpansions] = useState<Record<string, boolean>>({})
+  const changeExpansion = (id: string, expanded: boolean) => setExpansions(state => ({ ...state, [id]: expanded }))
   const toolCalls = useChatStore((s) => s.toolCalls)
   const followUps = useChatStore((s) => s.followUps)
 
@@ -34,23 +41,10 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
   const followUpActivity = useMemo(() => presentFollowUpActivity(followUps), [followUps])
 
   const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLButtonElement>(null)
   const prevCountRef = useRef(0)
 
-  // Click-outside dismiss. Inline implementation — useClickOutside lives
-  // in ChatInput's file and isn't exported; keep this component self-
-  // contained so the cross-file dependency stays one-way.
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      const el = wrapRef.current
-      if (!el) return
-      if (e.target instanceof Node && el.contains(e.target)) return
-      setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
+  useEffect(() => { setOpen(false); prevCountRef.current = 0 }, [owner])
 
   // Auto-open on first new activity within a turn, opt-in.
   useEffect(() => {
@@ -66,6 +60,7 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
   const errored =
     visible.some((tc) => tc.status === 'error' || tc.status === 'denied') ||
     followUpActivity.some((item) => item.status === 'rejected' || item.status === 'recovered')
+  const unknown = loading || !!error || visible.some(tc => tc.status === 'unknown')
   const count = visible.length + followUpActivity.length
 
   const grouped = groupConsecutiveToolCalls(visible)
@@ -79,8 +74,10 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
         : 'border-[var(--panel-border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]'
 
   return (
-    <div ref={wrapRef} className="relative ml-auto">
+    <div className="relative ml-auto">
       <button
+        ref={anchorRef}
+        aria-label="Tool activity"
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={
@@ -94,7 +91,7 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
           open ? 'border-[var(--accent)] text-[var(--text-primary)]' : ''
         }`}
       >
-        <StatusDot running={running} errored={errored} isEmpty={isEmpty} />
+        <StatusDot running={running} errored={errored} isEmpty={isEmpty} unknown={unknown} />
         <span className="font-mono tabular-nums leading-none">{count}</span>
         <span className="leading-none">activit{count === 1 ? 'y' : 'ies'}</span>
         <svg
@@ -113,12 +110,8 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
         </svg>
       </button>
 
-      {open && (
-        <div
-          role="dialog"
-          aria-label="Turn activity"
-          className="absolute bottom-full right-0 z-30 mb-1 flex w-[min(520px,calc(100vw-2rem))] max-h-[60vh] flex-col overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-secondary)] shadow-xl"
-        >
+      <PopoverMenu open={open} onClose={() => setOpen(false)} anchorRef={anchorRef} align="top-end" width={520} role="dialog" ariaLabel="Turn activity" autoFocus>
+        <div className="flex max-h-[60vh] flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-3 py-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
               Turn activity · {count} item{count === 1 ? '' : 's'}
@@ -133,7 +126,9 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
               ×
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-2 py-1">
+          <div className="flex-1 overflow-y-auto px-2 py-1" data-tool-history-scroll>
+            {loading && <p role="status" className="p-2 text-xs">Loading stored outcomes...</p>}
+            {error && <p role="alert" className="p-2 text-xs text-[var(--error)]">{error} <button className="min-h-8 underline" onClick={() => void refresh()}>Retry history</button></p>}
             {isEmpty ? (
               <div className="px-3 py-6 text-center text-[12px] text-[var(--text-muted)]">
                 No turn activity in this conversation yet.
@@ -173,22 +168,22 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
                     ))}
                   </section>
                 )}
-                {grouped.map((item, idx) => {
+                {grouped.map((item) => {
                   if (item.kind === 'group') {
-                    return <ToolUseGroup key={`g-${idx}-${item.items[0].callId}`} group={item} />
+                    return <ToolUseGroup key={`group:${item.items[0].callId}`} group={item} expansions={expansions} onExpansionChange={changeExpansion} />
                   }
                   const tc = item.toolCall
                   return tc.toolName === 'multi_agent_run' ? (
                     <MultiAgentRunCard key={tc.callId} toolCall={tc} />
                   ) : (
-                    <ToolUseCard key={tc.callId} toolCall={tc} />
+                    <ToolUseCard key={tc.callId} toolCall={tc} expansion={expansions[tc.callId]} onExpansionChange={value => changeExpansion(tc.callId, value)} />
                   )
                 })}
               </>
             )}
           </div>
         </div>
-      )}
+      </PopoverMenu>
     </div>
   )
 }
@@ -196,11 +191,13 @@ export function ToolActivityChip({ autoOpenOnActivity = false }: ToolActivityChi
 function StatusDot({
   running,
   errored,
-  isEmpty
+  isEmpty,
+  unknown
 }: {
   running: boolean
   errored: boolean
   isEmpty: boolean
+  unknown: boolean
 }) {
   if (isEmpty) {
     return (
@@ -226,6 +223,7 @@ function StatusDot({
       />
     )
   }
+  if (unknown) return <span className="inline-block h-2 w-2 rounded-full bg-[var(--text-muted)]" aria-label="tool outcomes unavailable" />
   return (
     <span
       className="inline-block h-2 w-2 rounded-full bg-[var(--success)]"

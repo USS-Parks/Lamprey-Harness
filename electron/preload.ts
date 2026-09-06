@@ -539,8 +539,8 @@ const api = {
     search: (payload: { query: string; maxResults?: number }) =>
       ipcRenderer.invoke('tools:search', payload),
     getRecentCalls: (limit?: number) => ipcRenderer.invoke('tools:getRecentCalls', limit),
-    getCallsForConversation: (conversationId: string, limit?: number) =>
-      ipcRenderer.invoke('tools:getCallsForConversation', conversationId, limit),
+    getCallsForConversation: (conversationId: string, limit?: number, offset?: number) =>
+      ipcRenderer.invoke('tools:getCallsForConversation', conversationId, limit, offset),
     /**
      * Subscribe to approval requests. Returns an unsubscribe function so
      * effect cleanup (hot reload, dialog remount) can detach the listener

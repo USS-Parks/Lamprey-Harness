@@ -24,6 +24,8 @@ const SERVER_LETTER: Record<string, string> = {
 
 interface ToolUseCardProps {
   toolCall: ToolCallState
+  expansion?: boolean
+  onExpansionChange?: (expanded: boolean) => void
 }
 
 function StatusIndicator({ status }: { status: ToolCallState['status'] }) {
@@ -54,6 +56,8 @@ function StatusIndicator({ status }: { status: ToolCallState['status'] }) {
           &#10005;
         </span>
       )
+    case 'unknown':
+      return <span className="text-[var(--text-muted)]" aria-label="outcome unavailable" title="Outcome unavailable">?</span>
     case 'denied':
       return (
         <span className="text-[var(--text-muted)]" aria-label="denied">
@@ -100,7 +104,7 @@ function useLiveElapsed(startedAt: number | undefined, active: boolean): string 
   return formatElapsed(now - startedAt)
 }
 
-export function ToolUseCard({ toolCall }: ToolUseCardProps) {
+export function ToolUseCard({ toolCall, expansion, onExpansionChange }: ToolUseCardProps) {
   // Fluidity J6: auto-collapse on success unless the tool is destructive
   // (or the result is an error). Failures + destructive successes mount
   // expanded — those are the cases a reviewer needs to see without a
@@ -131,7 +135,7 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
   const searchView = isToolSearch ? parseToolSearchMatches(result) : null
   const autoExpanded =
     isError || (status === 'success' && (isDestructive || isPrPatch || isToolSearch))
-  const expanded = userToggled !== null ? userToggled : autoExpanded
+  const expanded = expansion ?? userToggled ?? autoExpanded
 
   // Plain-English label first. Fall back to the bare tool name if the
   // descriptor didn't ship a title (unknown / stale entry).
@@ -149,7 +153,7 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
       ? formatElapsed(duration)
       : null
 
-  const argsSummary = collapsedSummary(args)
+  const argsSummary = toolCall.rawArguments?.slice(0, 140) ?? collapsedSummary(args)
 
   const preview = previewResult(result, { lineCap: 4, charCap: 240 })
 
@@ -160,6 +164,7 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
       : 'border-transparent'
 
   const argsJson = (() => {
+    if (toolCall.rawArguments !== undefined) return toolCall.rawArguments
     try {
       return JSON.stringify(args ?? {}, null, 2)
     } catch {
@@ -168,9 +173,9 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
   })()
 
   return (
-    <div className="my-2 mx-auto w-full max-w-[80%]">
+    <div data-tool-call-id={toolCall.callId} data-tool-outcome={status} className="my-2 mx-auto w-full max-w-[80%]">
       <button
-        onClick={() => setUserToggled(!expanded)}
+        onClick={() => { setUserToggled(!expanded); onExpansionChange?.(!expanded) }}
         aria-expanded={expanded}
         className={
           'flex w-full items-start gap-2 rounded-lg border bg-[var(--bg-tertiary)] px-3 py-2 text-left transition-colors hover:bg-[var(--bg-secondary)] ' +
@@ -231,6 +236,8 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
             {argsJson}
           </pre>
 
+          {status === 'unknown' && <p className="mb-2 text-xs text-[var(--text-muted)]">The stored outcome is unavailable; this is not a success receipt.</p>}
+          {toolCall.resultIsPreview && <p className="mb-2 text-xs text-[var(--text-muted)]">Stored preview only. The full result is not available in this record.</p>}
           {(result || isError || isDenied) && (
             <>
               <div className="mb-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider">
@@ -284,7 +291,7 @@ export function ToolUseCard({ toolCall }: ToolUseCardProps) {
                 {result || (isDenied ? 'Denied by user.' : '')}
               </pre>
               )}
-              {preview.truncated && (
+              {preview.truncated && !toolCall.resultIsPreview && (
                 <div className="mt-1 text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
                   showing full result (collapsed preview was truncated)
                 </div>

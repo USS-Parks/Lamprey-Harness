@@ -1,3 +1,4 @@
+import { hydrateToolHistory, mergeToolHistory, loadToolLedger } from '@/lib/tool-history'
 import { useComposerStore, composerOwnerKey, EMPTY_COMPOSER_DRAFT } from './composer-store'
 import { create } from 'zustand'
 import type {
@@ -47,8 +48,10 @@ export interface ToolCallState {
   serverId: string
   toolName: string
   args: Record<string, unknown>
-  status: 'pending' | 'running' | 'success' | 'error' | 'denied'
+  status: 'pending' | 'running' | 'success' | 'error' | 'denied' | 'unknown'
   result?: string
+  rawArguments?: string
+  resultIsPreview?: boolean
   duration?: number
   // Descriptor metadata mirrored from the chat:tool-call event so the
   // card renders plain-English label, risk badges, and a live elapsed
@@ -101,6 +104,9 @@ interface ChatState {
   } | null
   activeModel: string
   toolCalls: ToolCallState[]
+  toolHistoryLoading: boolean
+  toolHistoryError: string | null
+  refreshToolHistory: () => Promise<void>
   pendingAttachments: ProcessedFile[]
   attachmentsProcessing: boolean
   // Codex-style run-phase pill source. Null when no run is active; set by the
@@ -168,6 +174,7 @@ interface ChatState {
   }) => void
 }
 
+let toolHistoryGeneration = 0
 const turnHydrationGenerations = new Map<string, number>()
 
 export type FollowUpActionResult = { success: true } | { success: false; error: string }
@@ -180,54 +187,6 @@ function errorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) return err.message
   if (typeof err === 'string' && err.trim()) return err
   return fallback
-}
-
-// Walk a freshly-loaded message list and synthesize ToolCallState entries
-// for every recorded tool invocation, pairing each assistant tool_call with
-// its matching tool-role result message. Used by selectConversation so the
-// ToolActivityChip re-populates on conversation reopen — without this the
-// chip stays empty until a new live event arrives, hiding every prior turn's
-// work from the user. Descriptor metadata (title, risks, providerKind) is
-// not persisted, so historical entries leave those undefined; the cards
-// gracefully fall back to toolName + args.
-function hydrateToolCallsFromHistory(messages: Message[]): ToolCallState[] {
-  const resultsByCallId = new Map<string, { result: string; timestamp: number }>()
-  for (const m of messages) {
-    if (m.role === 'tool' && m.toolCallId) {
-      resultsByCallId.set(m.toolCallId, {
-        result: m.content,
-        timestamp: m.timestamp
-      })
-    }
-  }
-  const out: ToolCallState[] = []
-  for (const m of messages) {
-    if (m.role !== 'assistant' || !m.toolCalls) continue
-    for (const tc of m.toolCalls) {
-      let args: Record<string, unknown> = {}
-      try {
-        const parsed = JSON.parse(tc.function.arguments)
-        if (parsed && typeof parsed === 'object') args = parsed as Record<string, unknown>
-      } catch {
-        // Arguments string isn't valid JSON — leave args empty. ToolUseCard
-        // renders the raw arguments string as a fallback when args is empty.
-      }
-      const r = resultsByCallId.get(tc.id)
-      out.push({
-        callId: tc.id,
-        // Descriptor data isn't persisted; 'history' is a neutral marker that
-        // tells the renderer this entry came from a reopen, not a live run.
-        serverId: 'history',
-        toolName: tc.function.name,
-        args,
-        status: r ? 'success' : 'error',
-        result: r?.result,
-        startedAt: m.timestamp,
-        duration: r ? Math.max(0, r.timestamp - m.timestamp) : undefined
-      })
-    }
-  }
-  return out
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -248,6 +207,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   streamingVitals: null,
   activeModel: 'deepseek-v4-pro',
   toolCalls: [],
+  toolHistoryLoading: false,
+  toolHistoryError: null,
   pendingAttachments: [],
   attachmentsProcessing: false,
   runPhase: null,
@@ -273,6 +234,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       activeTurn: cachedTurnControl.activeTurn,
       followUps: cachedTurnControl.followUps,
       toolCalls: [],
+      toolHistoryLoading: true,
+      toolHistoryError: null,
       runPhase: null,
       isStreaming: cachedTurnControl.activeTurn !== null,
       streamingContent: '',
@@ -296,7 +259,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // previously-finished conversation still shows what work the model
         // did, not an empty chip. Live events from a new turn will append
         // to this list via addToolCall.
-        toolCalls: hydrateToolCallsFromHistory(result.data)
+        toolCalls: mergeToolHistory(hydrateToolHistory(result.data, []), get().toolCalls)
       })
     }
     const conv = get().conversations.find((c) => c.id === id)
@@ -306,7 +269,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Load the plan for the new active conversation. Fire-and-forget — the
     // plan checklist renders empty until the snapshot arrives, which is fine.
     void usePlanStore.getState().loadForConversation(id)
-    await turnHydration
+    await Promise.all([turnHydration, get().refreshToolHistory()])
+  },
+
+  refreshToolHistory: async () => {
+    const owner = get().activeConversationId
+    if (!owner) return
+    const generation = ++toolHistoryGeneration
+    set({ toolHistoryLoading: true, toolHistoryError: null })
+    try {
+      const records = await loadToolLedger(owner, (id, limit, offset) => window.api.tools.getCallsForConversation(id, limit, offset))
+      if (get().activeConversationId !== owner || generation !== toolHistoryGeneration) return
+      const historical = hydrateToolHistory(get().messages, records, get().activeTurn?.startedAt)
+      set(state => ({ toolCalls: mergeToolHistory(historical, state.toolCalls.filter(call => call.serverId !== 'history')), toolHistoryLoading: false }))
+    } catch (error) {
+      if (get().activeConversationId === owner && generation === toolHistoryGeneration) set({ toolHistoryLoading: false, toolHistoryError: errorMessage(error, 'Tool history could not be loaded') })
+    }
   },
 
   hydrateTurnControl: async (conversationId: string) => {
@@ -709,7 +687,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         streamingVisualizations: [],
         streamingVitals: null,
         streamStartedAt: Date.now(),
-        toolCalls: [],
         runPhase: 'understanding'
       }) : {})
 
@@ -940,9 +917,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   addToolCall: (event: ToolCallEvent) => {
-    set((state) => ({
+    set((state) => state.toolCalls.some(call => call.callId === event.callId && call.serverId !== 'history') ? state : ({
       toolCalls: [
-        ...state.toolCalls,
+        ...state.toolCalls.filter(call => call.callId !== event.callId),
         {
           callId: event.callId,
           serverId: event.serverId,

@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Allow this action?', exact: true }).or(locator('[data-inline-approval]')).getByRole('button', { name: 'Allow', exact: true })\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<div tabindex=\"0\" data-inline-approval=\"ux-approval-4\" class=\"mb-3 flex flex-col gap-2 rounded-lg border border-[var(--accent)] bg-[var(--accent-dim)] px-3 py-2 outline-none transition-colors focus:ring-1 focus:ring-[var(--accent)]\"><div class=\"flex items-baseline gap-2 text-[12px]\"><span class=\"font-medium text-[var(--text-primary)]\">Lamprey</span><span class=\"text-[var(--text-muted)]\">/</span><span class=\"font-mono text-[var(--text-secondary)]\">shell_command</span><div class=\"flex flex-wrap ga",
+    "draft": ""
+  }
+}

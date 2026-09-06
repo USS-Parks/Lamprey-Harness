@@ -187,18 +187,20 @@ export function listRecentToolCalls(limit?: number): LampreyToolCall[] {
 
 export function listToolCallsForConversation(
   conversationId: string,
-  limit?: number
+  limit?: number,
+  offset = 0
 ): LampreyToolCall[] {
+  if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Invalid tool history offset')
   const db = getDb()
   const cap = typeof limit === 'number' && limit > 0 ? Math.min(limit, 500) : 200
   const rows = db
     .prepare(
       `SELECT * FROM tool_calls
        WHERE conversation_id = ?
-       ORDER BY started_at DESC
-       LIMIT ?`
+       ORDER BY started_at DESC, id DESC
+       LIMIT ? OFFSET ?`
     )
-    .all(conversationId, cap) as ToolCallRow[]
+    .all(conversationId, cap, offset) as ToolCallRow[]
   return rows.map(toToolCall)
 }
 

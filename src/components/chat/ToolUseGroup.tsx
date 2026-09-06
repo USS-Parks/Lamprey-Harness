@@ -19,6 +19,8 @@ const SERVER_LETTER: Record<string, string> = {
 
 interface ToolUseGroupProps {
   group: Extract<GroupedToolCallItem, { kind: 'group' }>
+  expansions?: Record<string, boolean>
+  onExpansionChange?: (id: string, expanded: boolean) => void
 }
 
 /**
@@ -29,8 +31,10 @@ interface ToolUseGroupProps {
  * Collapsed (default): single header row with the count + total elapsed.
  * Expanded: each call renders as its normal ToolUseCard inside the group.
  */
-export function ToolUseGroup({ group }: ToolUseGroupProps) {
-  const [expanded, setExpanded] = useState(false)
+export function ToolUseGroup({ group, expansions, onExpansionChange }: ToolUseGroupProps) {
+  const [localExpanded, setExpanded] = useState(false)
+  const groupId = `group:${group.items[0].callId}`
+  const expanded = expansions ? expansions[groupId] ?? group.items.some(call => expansions[call.callId] === true) : localExpanded
 
   const total = groupTotalDurationMs(group.items)
   const elapsedLabel = formatElapsed(total)
@@ -42,9 +46,9 @@ export function ToolUseGroup({ group }: ToolUseGroupProps) {
     group.serverId && group.serverId !== 'internal' ? group.serverId : null
 
   return (
-    <div className="my-2 mx-auto w-full max-w-[80%]">
+    <div data-tool-group-id={groupId} className="my-2 mx-auto w-full max-w-[80%]">
       <button
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => { setExpanded(!expanded); onExpansionChange?.(groupId, !expanded) }}
         aria-expanded={expanded}
         className="flex w-full items-center gap-2 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-tertiary)] px-3 py-2 text-left transition-colors hover:bg-[var(--bg-secondary)]"
       >
@@ -78,7 +82,7 @@ export function ToolUseGroup({ group }: ToolUseGroupProps) {
       {expanded && (
         <div className="mt-1 flex flex-col gap-0 border-l border-[var(--panel-border)] pl-2">
           {group.items.map((tc: ToolCallState) => (
-            <ToolUseCard key={tc.callId} toolCall={tc} />
+            <ToolUseCard key={tc.callId} toolCall={tc} expansion={expansions?.[tc.callId]} onExpansionChange={value => onExpansionChange?.(tc.callId, value)} />
           ))}
         </div>
       )}

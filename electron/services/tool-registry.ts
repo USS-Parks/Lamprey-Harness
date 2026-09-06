@@ -671,14 +671,10 @@ class ToolRegistry {
     }
   }
 
-  getCallsForConversation(conversationId: string, limit?: number): LampreyToolCall[] {
-    try {
-      return listToolCallsForConversation(conversationId, limit)
-    } catch (err) {
-      console.error('[tool-registry] getCallsForConversation failed:', err)
-      return []
-    }
+  getCallsForConversation(conversationId: string, limit?: number, offset?: number): LampreyToolCall[] {
+    return listToolCallsForConversation(conversationId, limit, offset)
   }
+
 }
 
 export const toolRegistry = new ToolRegistry()

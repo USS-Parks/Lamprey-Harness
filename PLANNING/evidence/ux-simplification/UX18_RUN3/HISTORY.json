@@ -1,0 +1,12 @@
+{
+  "seededCalls": 200,
+  "retainedAcrossNewTurn": true,
+  "expansionAndScrollStableDuringStreaming": true,
+  "realMixedOutcomes": [
+    "success",
+    "error",
+    "denied"
+  ],
+  "chronologicalAfterReload": true,
+  "fullResultBeyond4096Recovered": true
+}

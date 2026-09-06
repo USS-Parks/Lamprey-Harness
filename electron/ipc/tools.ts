@@ -73,14 +73,15 @@ export function registerToolsHandlers(): void {
 
   ipcMain.handle(
     'tools:getCallsForConversation',
-    async (_event, conversationId: string, limit?: number) => {
+    async (_event, conversationId: string, limit?: number, offset?: number) => {
       try {
         if (!conversationId || typeof conversationId !== 'string') {
           return { success: false, error: 'conversationId is required' }
         }
         const data = toolRegistry.getCallsForConversation(
           conversationId,
-          typeof limit === 'number' ? limit : undefined
+          typeof limit === 'number' ? limit : undefined,
+          offset
         )
         return { success: true, data }
       } catch (err: any) {

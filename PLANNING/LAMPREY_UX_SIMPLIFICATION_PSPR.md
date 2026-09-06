@@ -341,7 +341,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; controlled transitions and stale events cannot produce false success, false idle or another task's status. Loading/unknown state stays explicit. Token/context/spend diagnostics remain accessible without duplicating routine chrome.
 
 #### UX-18 — Consolidate expandable tool history and diagnostics
-- [ ] **Objective:** retain inspectability without flooding the conversation with completed machinery.
+- [x] **Objective:** retain inspectability without flooding the conversation with completed machinery.
 - **Work:** group completed tool activity behind compact summaries; preserve order, full result access, running entries, failure details, After action and reasoning records. Preserve deliberate user expansion and scroll position during streaming.
 - **Seams/output:** MessageList, existing tool cards/activity chips, AfterActionPanel and diagnostic components.
 - **Gate:** G1/G2; real mixed tool success/failure/approval sequence remains ordered and inspectable; all content is recoverable; expanding one group does not jump the reader or collapse their selection; summaries do not hide an outstanding decision.

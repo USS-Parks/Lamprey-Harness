@@ -1,0 +1,14 @@
+{
+  "prompt": "UX-18",
+  "sourceBase": "fbd143912c77392157b437b48c0c7f1b5fc0cc4f",
+  "status": "local-pass",
+  "fullTestsPassed": 3066,
+  "evidence": [
+    "UX18_RUN3/HISTORY.json",
+    "UX18_RUN3/RUNTIME.json",
+    "UX18_RUN3/LIFECYCLE.json",
+    "UX18_BUILD.log",
+    "UX18_PROOF_PUSH16.log"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX18.json"
+}

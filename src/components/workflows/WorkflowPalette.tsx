@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { APP_COMMANDS, executeCommand, shortcutHint, validateCommands, workflowCommands, type AppCommand } from '@/lib/app-commands'
 import { searchCommands, type CommandFilter } from '@/lib/command-search'
 import { rankWorkspaceFiles } from '@/lib/file-search'
@@ -43,12 +43,12 @@ export function WorkflowPalette() {
   const dialog = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!visible) return
     const previous = document.activeElement as HTMLElement | null
     setQuery(''); setFilter('all'); setActive(0); setEditorOpen(false)
-    const frame = requestAnimationFrame(() => input.current?.focus())
-    return () => { cancelAnimationFrame(frame); if (previous?.isConnected) previous.focus() }
+    input.current?.focus()
+    return () => { if (previous?.isConnected) previous.focus() }
   }, [visible])
   useEffect(() => {
     if (!visible) return
@@ -92,8 +92,9 @@ export function WorkflowPalette() {
   }, [visible, projectId, query, retry])
 
   const matches = useMemo(() => {
+    if (!visible) return []
     const tasks = taskSnapshot?.query === query && taskSnapshot.projectId === projectId ? taskSnapshot.rows : []
-    const taskCommands: AppCommand[] = reconcileTaskRows([...tasks, ...conversations.filter(task => (projectId === undefined || (task.projectId ?? null) === projectId) && task.title.toLowerCase().includes(query.toLowerCase().trim()))]).map(task => ({
+    const taskCommands: AppCommand[] = reconcileTaskRows([...tasks, ...conversations.filter(task => (projectId === undefined || (task.projectId ?? null) === projectId) && (task.title ?? '').toLowerCase().includes(query.toLowerCase().trim()))]).map(task => ({
       id: `task.${task.id}`, label: task.title || 'Untitled task', aliases: [task.archived ? 'Archived' : '', task.pinnedAt ? 'Pinned' : ''], kind: 'task', run: async () => {
         const sessions = useSessionsStore.getState()
         sessions.setQuery(''); sessions.setProject(task.projectId ?? undefined); sessions.setTab(task.archived ? 'archived' : task.pinnedAt ? 'pinned' : 'recent')
@@ -107,7 +108,7 @@ export function WorkflowPalette() {
     const commands = [...APP_COMMANDS.filter(command => command.id !== 'app.commands'), ...workflowCommands(library)]
     validateCommands([...commands, ...taskCommands, ...fileCommands])
     return [...searchCommands(commands, query, filter), ...searchCommands([...taskCommands, ...fileCommands], '', filter)].slice(0, 120)
-  }, [taskSnapshot, conversations, files, owner, contextRevision, projectId, query, filter, library])
+  }, [visible, taskSnapshot, conversations, files, owner, contextRevision, projectId, query, filter, library])
   useEffect(() => { setActive(0) }, [query, filter, owner])
   useEffect(() => { setActive(index => Math.min(index, Math.max(0, matches.length - 1))) }, [matches.length])
   useEffect(() => { list.current?.querySelector<HTMLElement>(`[data-command-index="${active}"]`)?.scrollIntoView({ block: 'nearest' }) }, [active])

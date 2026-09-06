@@ -184,6 +184,8 @@ function readWorkspaces(): Workspaces {
 }
 
 interface UiState {
+  modelMenuRequest: number
+  requestModelMenu: () => void
   terminalHeight: number
   terminalFocusRequested: boolean
   setTerminalOpen: (open: boolean) => void
@@ -301,6 +303,8 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
+  modelMenuRequest: 0,
+  requestModelMenu: () => set(state => ({ modelMenuRequest: state.modelMenuRequest + 1 })),
   terminalHeight: readNumber(TERMINAL_HEIGHT_KEY, 240, 120, 600),
   terminalFocusRequested: false,
   consumeTerminalFocus: () => set({ terminalFocusRequested: false }),

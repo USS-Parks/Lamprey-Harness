@@ -1,0 +1,6 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n51 !== 50\n",
+  "diagnostic": {
+    "activeElement": "<body>\n    <div id=\"root\"></div>\n  \n\n</body>"
+  }
+}

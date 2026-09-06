@@ -1,0 +1,17 @@
+{
+  "prompt": "UX-26",
+  "sourceBase": "c6fc60d28c7941c5067d58ab94ef91db59ba59c5",
+  "status": "local-pass",
+  "testsPassed": 3104,
+  "nativeAbiSkips": 176,
+  "evidence": [
+    "UX26_TARGETED.log",
+    "UX26_BUILD_FINAL.log",
+    "UX26_PROOF.log",
+    "UX26_RUN7/KEYBOARD.json",
+    "UX26_RUN7/LIFECYCLE.json",
+    "UX26_STORAGE.json"
+  ],
+  "viewportThemeZoomCombinations": 24,
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX26.json"
+}

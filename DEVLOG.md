@@ -1,3 +1,13 @@
+## 2026-09-06 - UX-26: Keyboard navigation and input ownership
+
+Added Ctrl+Shift+P for commands, Ctrl+J for the terminal dock and Ctrl+Shift+M for model selection. Memory remains available on Ctrl+Alt+M. Keyboard help consumes the command registry; Sidebar New task now uses the same guarded command as its shortcut. IME, held keys, dialogs, ordinary form fields, terminal/editor input and browser address editing retain local ownership. Worktrees receives focus and handles Escape locally. Command-menu focus is synchronous so immediate Escape works at narrow zoom.
+
+Live acceptance also caught a UX-25 regression: a new task's null title crashed command search even while the menu was closed. Search now handles untitled tasks and avoids computing hidden results. UX26_RUN7 verifies the fix by creating a task and finding it in commands. The run passes command/model/Memory bindings, modal and input isolation, real terminal attachment/termination, review/file navigation, draft preservation, accurate help, no duplicate new task, and all 24 light/dark/window/zoom combinations with reduced motion. Earlier failures retain the wrong Add label, disabled browser-field fixture, focus race and null-title exception; all profiles and fixture processes were cleaned.
+
+Full source proof: lint, both TypeScript projects, 3,104 tests and both smokes passed (UX26_PROOF.log); 176 explicit Node ABI skips remain, with unchanged native authority. UX26_STORAGE.json records the canonical lane and four retained audit worktrees: each old tree is clean, preserved on main, has no unpublished commits, shares dependencies, and retains approximately 0.49/0.52/0.50/61.41 MB of output. No removal is authorized. Canonical generated artifacts and free-space totals are recorded in that receipt.
+
+Files: command metadata/context and tests, keyboard hook, existing composer/model/sidebar/memory/worktree/menu surfaces, UI request state, acceptance driver and receipts. Commit: resolve the introducing commit of UX26.json. UX-22 is all green on GitHub; UX-23 through UX-26 retain separate commits awaiting ordered pushes. Settings regrouping continues in UX-27.
+
 ## 2026-09-06 - UX-25: Unified command menu
 
 Expanded the existing workflow palette into searchable commands, tasks, files, settings and workflows. All 24 settings leaves and 13 workspace tools remain discoverable; task history and file indexes follow the active project and reject stale responses. File quick-open retains its direct shortcut. Named workflows still use the existing runner, and selecting a command closes the menu before the existing action or approval surface opens. Source failures show Retry; empty and loading states are explicit. Keyboard selection, Escape and focus restoration are retained.

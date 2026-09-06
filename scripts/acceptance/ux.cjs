@@ -145,6 +145,13 @@ async function main() {
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
     await page.reload()
+    if (process.argv.includes('--keyboard-only')) {
+      const result = await require('./ux-keyboard.cjs')({ page, app, ids, trackPid: pid => { if (pid) fixturePids.push(pid) } })
+      fs.writeFileSync(path.join(output, 'KEYBOARD.json'), JSON.stringify(result, null, 2) + '\n')
+      fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ scope: 'keyboard-only', runtime: await app.evaluate(() => process.versions), seeded, completed: ['keyboard-navigation'] }, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--commands-only')) {
       const result = await require('./ux-commands.cjs')({ page, app, ids, repo })
       fs.writeFileSync(path.join(output, 'COMMANDS.json'), JSON.stringify(result, null, 2) + '\n')
@@ -430,6 +437,9 @@ async function main() {
     const commands = await require('./ux-commands.cjs')({ page, app, ids, repo })
     fs.writeFileSync(path.join(output, 'COMMANDS.json'), JSON.stringify(commands, null, 2) + '\n')
     record('command-menu')
+    const keyboard = await require('./ux-keyboard.cjs')({ page, app, ids, trackPid: pid => { if (pid) fixturePids.push(pid) } })
+    fs.writeFileSync(path.join(output, 'KEYBOARD.json'), JSON.stringify(keyboard, null, 2) + '\n')
+    record('keyboard-navigation')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

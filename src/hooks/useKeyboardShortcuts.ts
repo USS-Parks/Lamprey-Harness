@@ -1,3 +1,4 @@
+import { canHandleAppShortcut } from '@/lib/shortcut-context'
 import { useEffect } from 'react'
 import { useChatStore } from '@/stores/chat-store'
 import { useUiStore } from '@/stores/ui-store'
@@ -14,9 +15,16 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return
+      if (e.defaultPrevented || e.isComposing || e.keyCode === 229 || e.repeat) return
       const command = shortcutCommand(e)
       if (command) {
+        const target = e.target instanceof HTMLElement ? e.target : null
+        if (!canHandleAppShortcut({
+          composing: e.isComposing, repeat: e.repeat,
+          dialog: Array.from(document.querySelectorAll('[aria-modal="true"]')).some(element => element.getClientRects().length > 0) || !!target?.closest('[role="dialog"], [role="menu"]'),
+          localSurface: !!target?.closest('[data-terminal-id], .monaco-editor, .cm-editor, [data-keyboard-scope="local"]'),
+          editable: isEditableTarget(e.target), composer: target?.getAttribute('aria-label') === 'Message Lamprey'
+        })) return
         e.preventDefault()
         void executeCommand(command, 'shortcut')
         return
@@ -33,6 +41,7 @@ export function useKeyboardShortcuts(): void {
           ui.closeWorktreeModal()
           return
         }
+        if ((e.target as HTMLElement | null)?.closest?.('[data-terminal-id], .monaco-editor, .cm-editor, [data-keyboard-scope="local"]')) return
         if (chat.isStreaming) {
           e.preventDefault()
           chat.cancelStream()

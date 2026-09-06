@@ -22,7 +22,7 @@ async function openProjectLink(url: string): Promise<void> {
   const result = await window.api.artifact.openExternal(url)
   if (!result.success) throw new Error(result.error ?? 'Could not open the project page')
 }
-const toolBindings: Partial<Record<ToolId, string[]>> = { browser: ['Mod+T'], review: ['Mod+Shift+G'], terminal: ['Mod+`'], environment: ['Mod+Shift+E'], sources: ['Mod+Shift+S'] }
+const toolBindings: Partial<Record<ToolId, string[]>> = { browser: ['Mod+T'], review: ['Mod+Shift+G'], terminal: ['Mod+`', 'Mod+J'], environment: ['Mod+Shift+E'], sources: ['Mod+Shift+S'] }
 export const TOOL_COMMANDS: AppCommand[] = (Object.entries(TOOL_LABELS) as [ToolId, string][]).map(([id, label]) => ({
   id: `tool.${id}`, label, kind: 'tool', shortcuts: toolBindings[id], run: () => ui().setActiveTool(id), onShortcut: () => ui().toggleTool(id)
 }))
@@ -33,7 +33,7 @@ export const APP_COMMANDS: AppCommand[] = [
     await useChatStore.getState().createConversation()
   } },
   { id: 'task.search', label: 'Search tasks', aliases: ['Sessions', 'Search conversations', 'Archived tasks'], kind: 'command', run: () => ui().requestSearchFocus() },
-  { id: 'app.commands', label: 'Commands', aliases: ['Workflow commands', 'Command palette'], kind: 'command', shortcuts: ['Mod+K'], run: () => ui().openWorkflowPalette() },
+  { id: 'app.commands', label: 'Commands', aliases: ['Workflow commands', 'Command palette'], kind: 'command', shortcuts: ['Mod+K', 'Mod+Shift+P'], run: () => ui().openWorkflowPalette() },
   { id: 'files.find', label: 'Find workspace files', aliases: ['Quick open'], kind: 'command', shortcuts: ['Mod+P'], run: () => ui().openQuickOpen() },
   { id: 'files.attach', label: 'Attach files', aliases: ['Photos', 'Add file'], kind: 'command', shortcuts: ['Mod+U'], run: pickAndAttachFiles },
   { id: 'files.editor', label: 'Open in VS Code', kind: 'command', unavailable: () => typeof window === 'undefined' || !window.api?.files?.openInVSCode ? 'Editor integration unavailable' : null, run: async () => {
@@ -42,7 +42,8 @@ export const APP_COMMANDS: AppCommand[] = [
   } },
   { id: 'app.sidebar', label: 'Toggle sidebar', kind: 'command', shortcuts: ['Mod+B'], run: () => ui().toggleSidebar() },
   { id: 'app.settings', label: 'Settings', kind: 'command', shortcuts: ['Mod+,'], run: () => ui().openSettings() },
-  { id: 'app.memory', label: 'Memory', kind: 'command', shortcuts: ['Mod+Shift+M'], run: () => ui().openMemory() },
+  { id: 'app.model', label: 'Switch model', kind: 'command', shortcuts: ['Mod+Shift+M'], run: () => ui().requestModelMenu() },
+  { id: 'app.memory', label: 'Memory', kind: 'command', shortcuts: ['Mod+Alt+M'], run: () => ui().openMemory() },
   { id: 'app.worktrees', label: 'Manage task worktrees', aliases: ['Branches', 'Worktree manager'], kind: 'command', unavailable: () => useChatStore.getState().activeConversationId ? null : 'Select a task first', run: () => ui().openWorktreeModal() },
   { id: 'app.github', label: 'View Lamprey on GitHub', kind: 'command', run: () => openProjectLink('https://github.com/USS-Parks/Lamprey-Harness') },
   { id: 'app.issue', label: 'Report an issue', kind: 'command', run: () => openProjectLink('https://github.com/USS-Parks/Lamprey-Harness/issues') },

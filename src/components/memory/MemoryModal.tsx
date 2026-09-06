@@ -30,7 +30,7 @@ export function MemoryModal() {
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented && !e.isComposing) {
         e.preventDefault()
         close()
       }

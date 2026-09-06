@@ -1,3 +1,4 @@
+import { commandById, executeCommand } from '@/lib/app-commands'
 import { useEffect, useRef, useState } from 'react'
 import { useChatStore, navigateTaskHistory } from '@/stores/chat-store'
 import { useUiStore, SIDEBAR_BOUNDS } from '@/stores/ui-store'
@@ -78,8 +79,7 @@ export function Sidebar() {
     if (creating) return
     setCreating(true)
     try {
-      useUiStore.getState().closeProjectView(); useUiStore.getState().closeCustomize()
-      await useChatStore.getState().createConversation()
+      await executeCommand(commandById('task.new'))
       if (narrow) setCollapsed(true)
     } finally { setCreating(false) }
   }

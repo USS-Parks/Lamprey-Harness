@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useUiStore } from '@/stores/ui-store'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { canUseProvider, useProvidersStore } from '@/stores/providers-store'
@@ -6,6 +7,8 @@ import { PopoverMenu } from '@/components/ui/PopoverMenu'
 import { toast } from '@/stores/toast-store'
 
 export function ModelDropdown({ onRequestKey }: { onRequestKey: (providerId: string) => void }) {
+  const modelMenuRequest = useUiStore(s => s.modelMenuRequest)
+  const handledRequest = useRef(modelMenuRequest)
   const activeModel = useChatStore(s => s.activeModel)
   const setModel = useChatStore(s => s.setModel)
   const models = useModelStore(s => s.models)
@@ -22,6 +25,11 @@ export function ModelDropdown({ onRequestKey }: { onRequestKey: (providerId: str
   const anchor = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (modelMenuRequest === handledRequest.current) return
+    handledRequest.current = modelMenuRequest
+    setQuery(''); setOpen(true)
+  }, [modelMenuRequest])
   const close = useCallback(() => setOpen(false), [])
   const active = models.find(model => model.id === activeModel)
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { APP_COMMANDS } from '@/lib/app-commands'
 import { useComposerStore, composerOwnerKey, EMPTY_COMPOSER_DRAFT } from '@/stores/composer-store'
 import { ModelDropdown } from './ModelDropdown'
 import { TaskContext } from '@/components/workspace/TaskContext'
@@ -290,7 +291,7 @@ function AddMenu({ onPickFile, onInsertSlash }: { onPickFile: () => void; onInse
           <dt>Shift+Tab</dt><dd>Cycle permissions and plan mode in an empty prompt</dd>
           <dt>Ctrl/Cmd+U</dt><dd>Attach files</dd><dt>@file</dt><dd>Attach a workspace file</dd>
           <dt>/command</dt><dd>Find a slash command</dd><dt>#note</dt><dd>Open the memory editor</dd>
-          <dt>Ctrl/Cmd+K</dt><dd>Workflow commands</dd><dt>Ctrl/Cmd+P</dt><dd>Find workspace files</dd>
+          {APP_COMMANDS.filter(command => command.shortcuts?.length && command.id !== 'files.attach').map(command => <span key={command.id} className="contents"><dt>{command.shortcuts?.map(binding => binding.replace('Mod', 'Ctrl/Cmd')).join(' / ')}</dt><dd>{command.label}</dd></span>)}
           <dt>Escape</dt><dd>Close the current menu or stop the active turn</dd>
         </dl>
         <p className="text-[var(--text-muted)]">During a turn, use Steer or Queue to submit a follow-up. Stop stays beside them.</p>

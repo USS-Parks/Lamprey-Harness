@@ -393,7 +393,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; keyboard search/select/Escape, no-results/loading/error and project switching work; selection opens the intended task/file/action; dangerous actions retain existing decisions; all UX-01 destinations can be found by familiar names.
 
 #### UX-26 — Align keyboard behavior and visible shortcut hints
-- [ ] **Objective:** provide predictable Codex-like Windows navigation without input conflicts.
+- [x] **Objective:** provide predictable Codex-like Windows navigation without input conflicts.
 - **Work:** align supported defaults: Ctrl+K/Ctrl+Shift+P command menu, Ctrl+P files, Ctrl+B sidebar, Ctrl+J bottom panel, Ctrl+backtick terminal, Ctrl+Shift+G review, Ctrl+, settings, Ctrl+N new task. Resolve current conflicts explicitly, including Ctrl+Shift+M Memory versus proposed model selection; retain Memory through a documented alternate. Update hints/help from the same metadata. Keep user overrides if already supported; no new general keybinding editor is required.
 - **Seams/output:** useKeyboardShortcuts, relevant renderer/menu/preload handlers and shortcut help.
 - **Gate:** G1/G2/G4; editor/terminal/browser inputs and IME keep their local shortcuts; highest-priority dialog handles Escape; no double execution, accidental send or approval; help matches actual behavior. Milestone E passes keyboard-only start/find/steer/review flow and storage closeout.

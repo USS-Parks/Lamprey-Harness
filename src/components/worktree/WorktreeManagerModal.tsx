@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useUiStore } from '@/stores/ui-store'
 import { useChatStore } from '@/stores/chat-store'
 import { useProjectsStore } from '@/stores/projects-store'
@@ -11,6 +11,7 @@ interface Worktree {
 }
 
 export function WorktreeManagerModal() {
+  const dialog = useRef<HTMLDivElement>(null)
   const visible = useUiStore((s) => s.worktreeModalOpen)
   const projectId = useUiStore(s => s.worktreeModalProjectId)
   const projectPath = useProjectsStore(s => s.projects.find(project => project.id === projectId)?.path)
@@ -47,6 +48,13 @@ export function WorktreeManagerModal() {
   useEffect(() => {
     if (visible) void refresh()
   }, [visible, refresh])
+
+  useEffect(() => {
+    if (!visible) return
+    const previous = document.activeElement as HTMLElement | null
+    dialog.current?.querySelector<HTMLElement>('button, input')?.focus()
+    return () => { if (previous?.isConnected) previous.focus() }
+  }, [visible])
 
   if (!visible) return null
 
@@ -106,7 +114,7 @@ export function WorktreeManagerModal() {
         if (e.target === e.currentTarget) close()
       }}
     >
-      <div role="dialog" aria-label="Worktrees" aria-modal="true" className="flex w-full max-w-lg flex-col overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl">
+      <div ref={dialog} role="dialog" aria-label="Worktrees" aria-modal="true" onKeyDown={event => { if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); event.stopPropagation(); close() } }} className="flex w-full max-w-lg flex-col overflow-hidden rounded-lg border border-[var(--panel-border)] bg-[var(--bg-primary)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-4 py-3">
           <h2 className="text-[14px] font-medium text-[var(--text-primary)]">Worktrees</h2>
           <button

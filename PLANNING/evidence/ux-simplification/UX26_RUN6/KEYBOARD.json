@@ -1,0 +1,16 @@
+{
+  "commandAliases": true,
+  "modelAndMemoryBindings": true,
+  "modalOwnership": true,
+  "compositionAndRepeatIgnored": true,
+  "sidebarAndTerminalBindings": true,
+  "terminalInputOwnership": true,
+  "reviewAndFiles": true,
+  "fileInputOwnership": true,
+  "browserInputOwnership": true,
+  "narrowZoomKeyboard": true,
+  "worktreeEscape": true,
+  "helpUsesMetadata": true,
+  "newTaskOnce": true,
+  "previousDraftRetained": true
+}

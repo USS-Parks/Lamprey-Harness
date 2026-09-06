@@ -54,3 +54,8 @@ it('matches exact modifiers and catches reordered equivalent shortcut declaratio
   const command = commandById('tool.review')
   expect(() => validateCommands([command, { ...command, id: 'other', shortcuts: ['Shift+Ctrl+G'] }])).toThrow('Conflicting shortcut')
 })
+
+it('aligns navigation bindings and retains Memory on its documented alternate', () => {
+  const bindings = [['p', true, false, 'app.commands'], ['j', false, false, 'tool.terminal'], ['m', true, false, 'app.model'], ['m', false, true, 'app.memory'] ] as const
+  for (const [key, shiftKey, altKey, id] of bindings) expect(shortcutCommand({ key, ctrlKey: true, metaKey: false, shiftKey, altKey })?.id).toBe(id)
+})

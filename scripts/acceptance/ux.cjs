@@ -151,7 +151,18 @@ async function main() {
     }, { root, ids, profile })
     assert.equal(seeded.messages, 1000)
     assert.equal(seeded.tools, 200)
+    if (process.argv.includes('--performance-only')) {
+      const probe = path.join(profile, 'ux-listener-probe.cjs')
+      fs.writeFileSync(probe, "const { contextBridge, ipcRenderer } = require('electron'); contextBridge.exposeInMainWorld('uxListenerCounts', () => Object.fromEntries(ipcRenderer.eventNames().filter(name => typeof name === 'string').sort().map(name => [name, ipcRenderer.listenerCount(name)])))")
+      await app.evaluate(({ BrowserWindow }, filePath) => BrowserWindow.getAllWindows()[0].webContents.session.registerPreloadScript({ type: 'frame', filePath }), probe)
+    }
     await page.reload()
+    if (process.argv.includes('--performance-only')) {
+      const result = await require('./ux-performance.cjs')({ page, app, ids, repo, root, output, seeded, trackPid: pid => { if (pid) fixturePids.push(pid) } })
+      fs.writeFileSync(path.join(output, 'PERFORMANCE.json'), JSON.stringify(result, null, 2) + '\n')
+      lifecycle.passed = true
+      return
+    }
     if (process.argv.includes('--accessibility-only')) {
       const result = await require('./ux-accessibility.cjs')({ page, app, ids, profile, output })
       fs.writeFileSync(path.join(output, 'ACCESSIBILITY.json'), JSON.stringify(result, null, 2) + '\n')

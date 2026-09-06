@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-task-id=\"5a88f463-5040-485b-aebb-b9c71306191b\"]').getByRole('button', { name: /^UX baseline/ }).first()\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<input aria-label=\"Search tasks\" placeholder=\"Search tasks…\" class=\"min-h-8 w-full rounded border border-[var(--panel-border)] bg-[var(--bg-primary)] px-2 pr-8 text-xs focus:border-[var(--accent)]\" type=\"search\" value=\"UX baseline task 0\">",
+    "draft": ""
+  }
+}

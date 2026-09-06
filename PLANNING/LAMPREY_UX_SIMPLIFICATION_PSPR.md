@@ -439,7 +439,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** full G4 on actual app; keyboard-only three-state workflow passes; 200% scale and minimum supported window retain essential controls; status announced once per meaningful transition. Record manual assistive-technology checks separately from automated accessibility scans.
 
 #### UX-33 — Measure the integrated UX against baseline
-- [ ] **Objective:** identify whether perceived simplification also improved interaction latency.
+- [x] **Objective:** identify whether perceived simplification also improved interaction latency.
 - **Work:** rerun the exact G5 fixture and five-run measurements, compare UX-00 timings and record traces for missed targets. Measure task switch, composer typing, tab opening, streaming/scrolling and resource lifecycle independently.
 - **Seams/output:** existing acceptance/performance helper and `UX_PERFORMANCE_BEFORE_AFTER.md`.
 - **Gate:** measurement provenance is reproducible, no confounding provider/network latency is called renderer time, and every failed threshold identifies an actionable trace. This prompt completes the measurement only; failed performance remains open for UX-34.

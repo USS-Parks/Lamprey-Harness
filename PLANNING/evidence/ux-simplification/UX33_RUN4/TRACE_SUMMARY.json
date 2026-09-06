@@ -1,0 +1,368 @@
+{
+  "TASK_SWITCH.cpuprofile": [
+    {
+      "selfMilliseconds": 1206.49,
+      "function": "(idle)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 646.18,
+      "function": "(program)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 261.43,
+      "function": "formatTime$2",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 41109
+    },
+    {
+      "selfMilliseconds": 237.01,
+      "function": "",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 41783
+    },
+    {
+      "selfMilliseconds": 221.58,
+      "function": "setAttribute",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 156.47,
+      "function": "appendChild",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 94.86,
+      "function": "syntaxExtension",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 28726
+    },
+    {
+      "selfMilliseconds": 59.38,
+      "function": "(garbage collector)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 48.35,
+      "function": "query",
+      "url": "",
+      "zeroBasedLine": 5446
+    },
+    {
+      "selfMilliseconds": 48.21,
+      "function": "removeChild",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 43.9,
+      "function": "commitHostMount",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 7055
+    },
+    {
+      "selfMilliseconds": 29.59,
+      "function": "completeWork",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 6531
+    },
+    {
+      "selfMilliseconds": 26.04,
+      "function": "querySelectorAll",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 18.96,
+      "function": "setInitialProperties",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 10457
+    },
+    {
+      "selfMilliseconds": 18.48,
+      "function": "createElement",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 16.27,
+      "function": "setProp",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 10148
+    },
+    {
+      "selfMilliseconds": 15.77,
+      "function": "insertBefore",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 13.61,
+      "function": "commitPassiveUnmountEffectsInsideOfDeletedTree_begin",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 8435
+    },
+    {
+      "selfMilliseconds": 13.32,
+      "function": "reconcileChildFibersImpl",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 3573
+    },
+    {
+      "selfMilliseconds": 12.48,
+      "function": "write",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 32248
+    }
+  ],
+  "PANEL_OPEN.cpuprofile": [
+    {
+      "selfMilliseconds": 1369.96,
+      "function": "getTextAlternativeInternal",
+      "url": "",
+      "zeroBasedLine": 3403
+    },
+    {
+      "selfMilliseconds": 990.22,
+      "function": "(program)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 268.14,
+      "function": "(idle)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 117.51,
+      "function": "query",
+      "url": "",
+      "zeroBasedLine": 5140
+    },
+    {
+      "selfMilliseconds": 107.11,
+      "function": "getCSSContent",
+      "url": "",
+      "zeroBasedLine": 3247
+    },
+    {
+      "selfMilliseconds": 102.87,
+      "function": "isElementHiddenForAria",
+      "url": "",
+      "zeroBasedLine": 3175
+    },
+    {
+      "selfMilliseconds": 96.92,
+      "function": "checkVisibility",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 84.58,
+      "function": "getElementComputedStyle",
+      "url": "",
+      "zeroBasedLine": 2785
+    },
+    {
+      "selfMilliseconds": 79.2,
+      "function": "elementsFromPoint",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 78.23,
+      "function": "getComputedStyle",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 70.27,
+      "function": "belongsToDisplayNoneOrAriaHiddenOrNonSlotted",
+      "url": "",
+      "zeroBasedLine": 3194
+    },
+    {
+      "selfMilliseconds": 63.92,
+      "function": "(garbage collector)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 51.92,
+      "function": "isElementStyleVisibilityVisible",
+      "url": "",
+      "zeroBasedLine": 2793
+    },
+    {
+      "selfMilliseconds": 49.52,
+      "function": "getAttribute",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 48.67,
+      "function": "elementSafeTagName",
+      "url": "",
+      "zeroBasedLine": 2837
+    },
+    {
+      "selfMilliseconds": 39.57,
+      "function": "normalizeWhiteSpace",
+      "url": "",
+      "zeroBasedLine": 1935
+    },
+    {
+      "selfMilliseconds": 35.91,
+      "function": "elementFromPoint",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 31.4,
+      "function": "parentElementOrShadowHost",
+      "url": "",
+      "zeroBasedLine": 2755
+    },
+    {
+      "selfMilliseconds": 29.84,
+      "function": "",
+      "url": "",
+      "zeroBasedLine": 3236
+    },
+    {
+      "selfMilliseconds": 28.67,
+      "function": "",
+      "url": "",
+      "zeroBasedLine": 3153
+    }
+  ],
+  "STREAM_TYPING.cpuprofile": [
+    {
+      "selfMilliseconds": 1033.64,
+      "function": "(idle)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 527.91,
+      "function": "(program)",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 37.76,
+      "function": "",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 41783
+    },
+    {
+      "selfMilliseconds": 23.97,
+      "function": "",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 44271
+    },
+    {
+      "selfMilliseconds": 12.62,
+      "function": "queryRole",
+      "url": "",
+      "zeroBasedLine": 5098
+    },
+    {
+      "selfMilliseconds": 5.8,
+      "function": "ModelDropdown",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 41908
+    },
+    {
+      "selfMilliseconds": 4.78,
+      "function": "",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 4278
+    },
+    {
+      "selfMilliseconds": 3.29,
+      "function": "querySelectorAll",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 3.15,
+      "function": "commitHostUpdate",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 7072
+    },
+    {
+      "selfMilliseconds": 3.14,
+      "function": "syntaxExtension",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 28726
+    },
+    {
+      "selfMilliseconds": 3.13,
+      "function": "getAttribute",
+      "url": "",
+      "zeroBasedLine": -1
+    },
+    {
+      "selfMilliseconds": 3.11,
+      "function": "updateSyncExternalStore",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 4232
+    },
+    {
+      "selfMilliseconds": 3.1,
+      "function": "setState",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 12549
+    },
+    {
+      "selfMilliseconds": 3.08,
+      "function": "groupConsecutiveToolCalls",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 43015
+    },
+    {
+      "selfMilliseconds": 3.08,
+      "function": "elementSafeTagName",
+      "url": "",
+      "zeroBasedLine": 2837
+    },
+    {
+      "selfMilliseconds": 3.04,
+      "function": "jsxProd",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 10
+    },
+    {
+      "selfMilliseconds": 2.67,
+      "function": "bailoutOnAlreadyFinishedWork",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 6046
+    },
+    {
+      "selfMilliseconds": 2.49,
+      "function": "TaskAttention",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 24324
+    },
+    {
+      "selfMilliseconds": 1.93,
+      "function": "commitMutationEffectsOnFiber",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 7597
+    },
+    {
+      "selfMilliseconds": 1.71,
+      "function": "",
+      "url": "file:///C:/Users/17076/Documents/Claude/Lamprey%20Harness/out/renderer/assets/index-CCmCRZT7.js",
+      "zeroBasedLine": 42002
+    }
+  ]
+}

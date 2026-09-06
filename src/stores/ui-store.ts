@@ -184,6 +184,8 @@ function readWorkspaces(): Workspaces {
 
 interface UiState {
   workspaces: Workspaces
+  workspaceFocusRequested: boolean
+  consumeWorkspaceFocus: () => void
   activeWorkspaceProjectId: string | null
   openWorkspaceResource: (kind: ResourceKind, ref: string, title: string, activate?: boolean) => void
   selectWorkspaceResource: (id: string) => void
@@ -288,6 +290,8 @@ interface UiState {
 
 export const useUiStore = create<UiState>((set, get) => ({
   workspaces: readWorkspaces(),
+  workspaceFocusRequested: false,
+  consumeWorkspaceFocus: () => set({ workspaceFocusRequested: false }),
   activeWorkspaceProjectId: null,
   updateWorkspace: (workspace) => {
     const key = workspaceKey(get().activeRightPanelConvId)
@@ -300,7 +304,10 @@ export const useUiStore = create<UiState>((set, get) => ({
     const state = get()
     const workspace = state.workspaces[workspaceKey(state.activeRightPanelConvId)] ?? EMPTY_WORKSPACE
     get().updateWorkspace(openResource(workspace, resourceDescriptor(kind, ref, title, state.activeWorkspaceProjectId), activate))
-    if (activate) get().setRightPanelCollapsed(false)
+    if (activate) {
+      set({ workspaceFocusRequested: true })
+      get().setRightPanelCollapsed(false)
+    }
   },
   selectWorkspaceResource: (id) => {
     const workspace = get().workspaces[workspaceKey(get().activeRightPanelConvId)] ?? EMPTY_WORKSPACE

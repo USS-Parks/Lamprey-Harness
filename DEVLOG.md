@@ -1,3 +1,11 @@
+## 2026-09-05 — UX-05: Contextual workspace tab host
+
+Replaced the tool title header with a keyboard-accessible tab strip, close controls and compact add-tab choices. Existing panel components and legacy launcher routes remain reachable. Explicit opens focus the content; selecting/closing tabs restores sensible tab focus. Both desktop host states and the narrow drawer use the same component. The existing width control now supports keyboard resizing and reports its bounds.
+
+Verification: real production Electron run `UX05_RUN` passed add/select, arrow navigation, Delete-to-close, focus recovery, per-task tab restoration and width retention through collapse/expand, along with all prior idle/streaming/review/history cases. Build passed; focused lint passed after removing an unused initial assignment. Full proof during UX-03 push passed 3,015 tests (175 explicitly reported skips), lint, both TypeScript projects and bundle/renderer smokes. Native DB remains a separate final gate. Screenshot reviewed: the remaining old sidebar/composer/toolbar presentation is covered by later roster prompts, not claimed modernized here.
+
+Files: ToolsPanel, App, UI store, shared acceptance runner/manifest, UX05 evidence and ledgers. Commit: resolve the introducing commit of `UX05.json`. UX-02 all ten hosted checks are green (`UX02_HOSTED.json`). UX-03 pushed separately at 6a6956d; UX-04 remains committed locally pending its sequential hosted handoff. No unrelated files staged.
+
 ## 2026-09-05 — UX-04: Task-scoped workspace state
 
 Added resource descriptors and validated metadata reload to the existing UI store. Tool/file opens now deduplicate by project, resource kind and identity; tasks retain their own tab order and selection. Windows path spelling is normalized for identity. Close selects the neighboring resource; incidental opens preserve selection/collapse. Background-task auto-open no longer changes the foreground task's collapse state. App supplies the owning project alongside the conversation. Existing permission, plan and layout preferences remain independent.

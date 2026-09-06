@@ -1,10 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
+import { EMPTY_WORKSPACE, workspaceKey } from '@/lib/workspace-state'
+import { RightPanelHome } from '@/components/artifacts/RightPanelHome'
 import { useUiStore, type ToolId } from '@/stores/ui-store'
-import filesIcon from '@assets/Lamprey Add File Icon.png'
-import reviewIcon from '@assets/Lamprey Auto-Review Icon.png'
-import chatIcon from '@assets/Lamprey Chat Window Icon.png'
-import planIcon from '@assets/Lamprey Plan Icon.png'
-import backgroundIcon from '@assets/Lamprey Background Tasks Icon.png'
-import reasoningTraceIcon from '@assets/Lamprey Reasoning Trace Icon Light View.png'
 import { FilesPanel } from './panels/FilesPanel'
 import { SideChatPanel } from './panels/SideChatPanel'
 import { BrowserPanel } from './panels/BrowserPanel'
@@ -33,198 +30,6 @@ const TOOL_LABELS: Record<ToolId, string> = {
   afterAction: 'After action',
   loop: 'Loops',
   agents: 'Agents'
-}
-
-function BrowserGlyph(): React.ReactElement {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="9" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <path d="M12 3a14 14 0 0 1 0 18" />
-      <path d="M12 3a14 14 0 0 0 0 18" />
-    </svg>
-  )
-}
-
-function TerminalGlyph(): React.ReactElement {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <polyline points="7 9 10 12 7 15" />
-      <line x1="13" y1="16" x2="17" y2="16" />
-    </svg>
-  )
-}
-
-function ToolHeaderIcon({ tool }: { tool: ToolId }): React.ReactElement {
-  switch (tool) {
-    case 'files':
-      return (
-        <img src={filesIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
-      )
-    case 'sidechat':
-      return <img src={chatIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
-    case 'review':
-      return (
-        <img src={reviewIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
-      )
-    case 'browser':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <BrowserGlyph />
-        </span>
-      )
-    case 'terminal':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <TerminalGlyph />
-        </span>
-      )
-    case 'environment':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <rect x="2" y="4" width="20" height="13" rx="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
-        </span>
-      )
-    case 'sources':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M3 7l9-4 9 4-9 4-9-4z" />
-            <path d="M3 12l9 4 9-4" />
-            <path d="M3 17l9 4 9-4" />
-          </svg>
-        </span>
-      )
-    case 'artifacts':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="3" y1="9" x2="21" y2="9" />
-            <circle cx="6" cy="6" r="0.5" fill="currentColor" />
-            <circle cx="8" cy="6" r="0.5" fill="currentColor" />
-            <circle cx="10" cy="6" r="0.5" fill="currentColor" />
-          </svg>
-        </span>
-      )
-    case 'plan':
-      return <img src={planIcon} alt="" aria-hidden className="icon-asset h-7 w-7 object-contain" />
-    case 'background':
-      return (
-        <img
-          src={backgroundIcon}
-          alt=""
-          aria-hidden
-          className="icon-asset h-7 w-7 object-contain"
-        />
-      )
-    case 'afterAction':
-      return (
-        <img
-          src={reasoningTraceIcon}
-          alt=""
-          aria-hidden
-          className="icon-asset h-7 w-7 object-contain"
-        />
-      )
-    case 'loop':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <polyline points="17 1 21 5 17 9" />
-            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-            <polyline points="7 23 3 19 7 15" />
-            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-          </svg>
-        </span>
-      )
-    case 'agents':
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)]">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <circle cx="9" cy="7" r="3" />
-            <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-            <circle cx="18" cy="8" r="2" />
-            <path d="M22 21v-1a3 3 0 0 0-3-3" />
-          </svg>
-        </span>
-      )
-  }
 }
 
 function renderToolBody(tool: ToolId): React.ReactElement {
@@ -263,63 +68,80 @@ interface ToolsPanelProps {
 }
 
 export function ToolsPanel({ onCollapse }: ToolsPanelProps) {
-  const activeTool = useUiStore((s) => s.activeTool)
-  const closeActiveTool = useUiStore((s) => s.closeActiveTool)
+  const activeTool = useUiStore(s => s.activeTool)
+  const taskId = useUiStore(s => s.activeRightPanelConvId)
+  const workspace = useUiStore(s => s.workspaces[workspaceKey(s.activeRightPanelConvId)] ?? EMPTY_WORKSPACE)
+  const select = useUiStore(s => s.selectWorkspaceResource)
+  const close = useUiStore(s => s.closeWorkspaceResource)
+  const open = useUiStore(s => s.setActiveTool)
+  const focusRequested = useUiStore(s => s.workspaceFocusRequested)
+  const consumeFocus = useUiStore(s => s.consumeWorkspaceFocus)
+  const [adding, setAdding] = useState(false)
+  const content = useRef<HTMLDivElement>(null)
+  const strip = useRef<HTMLDivElement>(null)
+  const add = useRef<HTMLButtonElement>(null)
+  const active = workspace.tabs.find(tab => tab.id === workspace.activeId)
 
-  if (!activeTool) return null
+  useEffect(() => {
+    if (!focusRequested) return
+    content.current?.focus({ preventScroll: true })
+    consumeFocus()
+  }, [focusRequested, consumeFocus])
+
+  const focusTab = (id: string | null) => {
+    requestAnimationFrame(() => {
+      const tabs = strip.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      const target = Array.from(tabs ?? []).find(tab => tab.dataset.resourceId === id)
+      ;(target ?? add.current)?.focus()
+    })
+  }
+  const closeTab = (id: string) => {
+    close(id)
+    const next = useUiStore.getState().workspaces[workspaceKey(taskId)]
+    focusTab(next?.activeId ?? null)
+  }
 
   return (
     <>
-      <div className="flex h-12 items-center justify-between pl-3 pr-[28px] text-sm font-medium text-[var(--text-secondary)]">
-        <span className="flex items-center gap-2">
-          <ToolHeaderIcon tool={activeTool} />
-          {TOOL_LABELS[activeTool]}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={closeActiveTool}
-            title="Close tool"
-            aria-label="Close tool"
-            className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-          <button
-            onClick={onCollapse}
-            title="Collapse panel"
-            aria-label="Collapse panel"
-            className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
+      <div className="flex min-h-10 shrink-0 items-center border-b border-[var(--panel-border)] px-1">
+        <div ref={strip} role="tablist" aria-label="Workspace resources" className="flex min-w-0 flex-1 overflow-x-auto">
+          {workspace.tabs.map((tab, index) => (
+            <div key={tab.id} className="flex shrink-0 items-center">
+              <button role="tab" id={`workspace-tab-${index}`} aria-controls="workspace-content"
+                aria-selected={tab.id === workspace.activeId} tabIndex={tab.id === workspace.activeId ? 0 : -1}
+                data-resource-id={tab.id} title={tab.ref} onClick={() => select(tab.id)}
+                onKeyDown={event => {
+                  let next: number
+                  if (event.key === 'ArrowRight') next = (index + 1) % workspace.tabs.length
+                  else if (event.key === 'ArrowLeft') next = (index - 1 + workspace.tabs.length) % workspace.tabs.length
+                  else if (event.key === 'Home') next = 0
+                  else if (event.key === 'End') next = workspace.tabs.length - 1
+                  else if (event.key === 'Delete') { event.preventDefault(); closeTab(tab.id); return }
+                  else return
+                  event.preventDefault()
+                  select(workspace.tabs[next].id)
+                  focusTab(workspace.tabs[next].id)
+                }}
+                className={`min-h-8 max-w-40 truncate rounded px-2 text-xs ${tab.id === workspace.activeId ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}>
+                {tab.kind === 'file' || tab.kind === 'artifact' ? tab.title : TOOL_LABELS[tab.kind]}
+              </button>
+              <button aria-label={`Close ${tab.kind === 'file' || tab.kind === 'artifact' ? tab.title : TOOL_LABELS[tab.kind]} tab`}
+                onClick={() => closeTab(tab.id)} className="h-8 w-6 shrink-0 rounded text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]">×</button>
+            </div>
+          ))}
         </div>
+        <button ref={add} aria-label="Add workspace tab" aria-expanded={adding} onClick={() => setAdding(!adding)} className="h-8 w-8 shrink-0 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">+</button>
+        <button onClick={onCollapse} aria-label="Collapse panel" title="Collapse panel" className="h-8 w-8 shrink-0 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">›</button>
       </div>
-      {renderToolBody(activeTool)}
+      {adding && <div role="group" aria-label="Add workspace resource" onKeyDown={event => { if (event.key === 'Escape') { setAdding(false); add.current?.focus() } }} className="flex shrink-0 flex-wrap gap-1 border-b border-[var(--panel-border)] p-2">
+        {(Object.keys(TOOL_LABELS) as ToolId[]).map(tool => <button key={tool} className="min-h-8 rounded px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]" onClick={() => { open(tool); setAdding(false) }}>{TOOL_LABELS[tool]}</button>)}
+      </div>}
+      <div ref={content} id="workspace-content" role={active ? 'tabpanel' : 'region'} aria-label={active ? undefined : 'Workspace'} aria-labelledby={active ? `workspace-tab-${workspace.tabs.indexOf(active)}` : undefined} tabIndex={-1} className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">
+        {activeTool ? <div key={`${taskId}:${active?.id ?? activeTool}`} className="flex min-h-0 flex-1 flex-col overflow-hidden">{renderToolBody(activeTool)}</div> : <>
+          <p className="px-3 pt-3 text-xs text-[var(--text-muted)]">Open a file or add a workspace tab.</p>
+          <RightPanelHome onCollapse={onCollapse} />
+        </>}
+      </div>
     </>
   )
 }

@@ -3,7 +3,6 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { Titlebar, SecondaryToolbar } from '@/components/layout/Titlebar'
 import { ChatView } from '@/components/chat/ChatView'
 import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel'
-import { RightPanelHome } from '@/components/artifacts/RightPanelHome'
 import { ToolsPanel } from '@/components/tools/ToolsPanel'
 import { QuickOpenPalette } from '@/components/tools/QuickOpenPalette'
 import { WorkflowPalette } from '@/components/workflows/WorkflowPalette'
@@ -508,6 +507,17 @@ function App(): React.ReactElement {
               title="Drag to resize · double-click to reset"
               role="separator"
               aria-orientation="vertical"
+              aria-label="Workspace width"
+              aria-valuenow={rightPanelWidth}
+              aria-valuemin={RIGHT_PANEL_BOUNDS.min}
+              aria-valuemax={RIGHT_PANEL_BOUNDS.max}
+              tabIndex={0}
+              onKeyDown={event => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault()
+                  setRightPanelWidth(rightPanelWidth + (event.key === 'ArrowLeft' ? 20 : -20))
+                } else if (event.key === 'Home') setRightPanelWidth(RIGHT_PANEL_BOUNDS.default)
+              }}
               className="resize-handle-v resize-handle-v-left"
             />
             <SecondaryToolbar onSettingsClick={openSettings} />
@@ -532,10 +542,21 @@ function App(): React.ReactElement {
               title="Drag to resize · double-click to reset"
               role="separator"
               aria-orientation="vertical"
+              aria-label="Workspace width"
+              aria-valuenow={rightPanelWidth}
+              aria-valuemin={RIGHT_PANEL_BOUNDS.min}
+              aria-valuemax={RIGHT_PANEL_BOUNDS.max}
+              tabIndex={0}
+              onKeyDown={event => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault()
+                  setRightPanelWidth(rightPanelWidth + (event.key === 'ArrowLeft' ? 20 : -20))
+                } else if (event.key === 'Home') setRightPanelWidth(RIGHT_PANEL_BOUNDS.default)
+              }}
               className="resize-handle-v resize-handle-v-left"
             />
             <SecondaryToolbar onSettingsClick={openSettings} />
-            <RightPanelHome onCollapse={() => setRightPanelCollapsed(true)} />
+            <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
           </div>
         )}
       </div>
@@ -571,7 +592,7 @@ function App(): React.ReactElement {
                 onClose={() => setArtifactOpen(false)}
               />
             ) : (
-              <RightPanelHome onCollapse={() => setRightPanelCollapsed(true)} />
+              <ToolsPanel onCollapse={() => setRightPanelCollapsed(true)} />
             )}
           </aside>
         </>

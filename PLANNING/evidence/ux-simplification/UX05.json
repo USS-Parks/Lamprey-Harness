@@ -1,0 +1,17 @@
+{
+  "prompt": "UX-05",
+  "sourceBase": "f66119ec17cc60b4b02e36d86c24f53d02ccd87f",
+  "status": "local-pass",
+  "evidence": "UX05_RUN/RUNTIME.json",
+  "cases": [
+    "tab add/select",
+    "arrow navigation",
+    "Delete close and neighbor focus",
+    "explicit-open content focus",
+    "keyboard resize",
+    "collapse and expand width retention",
+    "per-task tab restore"
+  ],
+  "build": "npm run build passed",
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX05.json"
+}

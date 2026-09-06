@@ -259,7 +259,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1 plus state tests for repeated opens, identical filenames in different projects, task switching, close/reopen, corrupt persisted state and safe legacy migration. No credentials or entire file contents persisted in tab metadata.
 
 #### UX-05 — Host contextual tabs in the shell
-- [ ] **Objective:** make the optional side panel display the selected work directly.
+- [x] **Objective:** make the optional side panel display the selected work directly.
 - **Work:** integrate the tab strip, add-tab menu, panel toggle, resizing and empty state into App. Keep user collapse/focus preferences; explicit open actions focus content, incidental events do not. Route old open requests through the same host.
 - **Seams/output:** `App.tsx`, `Titlebar.tsx`, `ToolsPanel.tsx`, UI state.
 - **Gate:** G1/G2; task switching preserves the correct tabs; tab close restores sensible focus; collapse/expand and resize work; empty/invalid resource recovery is visible. Existing functional panel routes remain available until replaced.

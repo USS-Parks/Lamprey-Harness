@@ -40,6 +40,8 @@ async function main() {
     const plugins = Object.fromEntries(fs.readdirSync(path.join(root, 'resources/plugins'), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => [JSON.parse(fs.readFileSync(path.join(root, 'resources/plugins', e.name, 'plugin.json'))).id, false]))
     fs.writeFileSync(path.join(profile, 'plugins.json'), JSON.stringify(plugins))
     let requests = 0
+    const streamFinishers = new Set()
+    const providerBodies = []
     server = createServer((req, res) => {
       if (req.url.startsWith('/browser/')) {
         res.writeHead(200, { 'Content-Type': 'text/html' })
@@ -48,12 +50,16 @@ async function main() {
       }
       if (req.url !== '/v1/chat/completions') { res.writeHead(404); res.end(); return }
       requests++
-      req.resume()
+      let body = ''
+      req.on('data', chunk => { body += chunk })
+      req.on('end', () => providerBodies.push(JSON.parse(body)))
       res.writeHead(200, { 'Content-Type': 'text/event-stream' })
       const send = () => res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Measured local stream. ' }, finish_reason: null }] })}\n\n`)
       send()
       const timer = setInterval(send, 100)
-      res.on('close', () => clearInterval(timer))
+      const finish = () => { clearInterval(timer); streamFinishers.delete(finish); res.end('data: [DONE]\n\n') }
+      streamFinishers.add(finish)
+      res.on('close', () => { clearInterval(timer); streamFinishers.delete(finish) })
     })
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
     fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }], customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }] }))
@@ -307,6 +313,9 @@ async function main() {
     const composer = await require('./ux-composer.cjs')({ page, app, ids, profile, requestCount: () => requests })
     fs.writeFileSync(path.join(output, 'COMPOSER.json'), JSON.stringify(composer, null, 2) + '\n')
     record('compact-composer-controls')
+    const followUp = await require('./ux-follow-up.cjs')({ page, app, ids, profile, requestCount: () => requests, finishStreams: () => [...streamFinishers].forEach(finish => finish()), providerBodies })
+    fs.writeFileSync(path.join(output, 'FOLLOW_UP.json'), JSON.stringify(followUp, null, 2) + '\n')
+    record('compact-follow-up-controls')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

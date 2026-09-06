@@ -1,0 +1,279 @@
+{
+  "error": "TimeoutError: page.waitForFunction: Timeout 15000ms exceeded.",
+  "diagnostic": {
+    "activeElement": "<body>\n    <div id=\"root\"><div class=\"flex h-screen w-screen flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]\"><div class=\"flex flex-col bg-transparent\" style=\"app-region: drag;\"><div class=\"relative flex h-9 items-stretch\"><div class=\"flex items-center gap-3 pl-3\" style=\"app-region: no-drag;\"><button type=\"button\" title=\"Collapse sidebar (Ctrl+B)\" aria-label=\"Toggle sidebar\" class=\"flex h-7 w-7 items-center justify-center rounded transition-colors text-[var(--text-secondar",
+    "draft": "",
+    "timings": [
+      22.200000047683716,
+      10.799999952316284,
+      12.900000095367432,
+      9.600000143051147,
+      12.5,
+      18.40000009536743,
+      15.900000095367432,
+      9.900000095367432,
+      9.699999809265137,
+      22.299999952316284,
+      11.700000047683716,
+      10.899999856948853,
+      12.400000095367432,
+      11.299999952316284,
+      14.900000095367432,
+      14.300000190734863
+    ],
+    "longTasks": [
+      {
+        "start": 3687.899999856949,
+        "duration": 584
+      },
+      {
+        "start": 4427,
+        "duration": 488
+      },
+      {
+        "start": 6996.799999952316,
+        "duration": 503
+      },
+      {
+        "start": 7649.099999904633,
+        "duration": 455
+      },
+      {
+        "start": 10188.700000047684,
+        "duration": 487
+      },
+      {
+        "start": 10828.700000047684,
+        "duration": 453
+      },
+      {
+        "start": 13416.599999904633,
+        "duration": 478
+      },
+      {
+        "start": 14054.200000047684,
+        "duration": 473
+      },
+      {
+        "start": 16600.200000047684,
+        "duration": 471
+      },
+      {
+        "start": 17228.599999904633,
+        "duration": 453
+      },
+      {
+        "start": 17947.099999904633,
+        "duration": 168
+      },
+      {
+        "start": 25048.5,
+        "duration": 58
+      },
+      {
+        "start": 25156.700000047684,
+        "duration": 68
+      },
+      {
+        "start": 25228.700000047684,
+        "duration": 63
+      },
+      {
+        "start": 25329.700000047684,
+        "duration": 147
+      },
+      {
+        "start": 26238.099999904633,
+        "duration": 151
+      },
+      {
+        "start": 26507.099999904633,
+        "duration": 56
+      },
+      {
+        "start": 26571,
+        "duration": 61
+      },
+      {
+        "start": 26637.700000047684,
+        "duration": 51
+      },
+      {
+        "start": 26694.299999952316,
+        "duration": 54
+      },
+      {
+        "start": 26748.599999904633,
+        "duration": 168
+      },
+      {
+        "start": 27136.200000047684,
+        "duration": 172
+      },
+      {
+        "start": 27757.89999985695,
+        "duration": 58
+      },
+      {
+        "start": 28115,
+        "duration": 50
+      },
+      {
+        "start": 28341,
+        "duration": 53
+      },
+      {
+        "start": 28394.5,
+        "duration": 158
+      },
+      {
+        "start": 28553,
+        "duration": 51
+      },
+      {
+        "start": 28716,
+        "duration": 54
+      },
+      {
+        "start": 28819.299999952316,
+        "duration": 153
+      },
+      {
+        "start": 29092.200000047684,
+        "duration": 52
+      },
+      {
+        "start": 29351.89999985695,
+        "duration": 69
+      },
+      {
+        "start": 29551,
+        "duration": 54
+      },
+      {
+        "start": 29605.299999952316,
+        "duration": 182
+      },
+      {
+        "start": 29787.700000047684,
+        "duration": 51
+      },
+      {
+        "start": 29965.099999904633,
+        "duration": 56
+      },
+      {
+        "start": 30334.599999904633,
+        "duration": 88
+      },
+      {
+        "start": 30451.5,
+        "duration": 84
+      },
+      {
+        "start": 30541,
+        "duration": 76
+      },
+      {
+        "start": 30853.799999952316,
+        "duration": 66
+      },
+      {
+        "start": 31008.799999952316,
+        "duration": 71
+      },
+      {
+        "start": 31088.700000047684,
+        "duration": 63
+      },
+      {
+        "start": 31528.200000047684,
+        "duration": 65
+      },
+      {
+        "start": 31940.700000047684,
+        "duration": 91
+      },
+      {
+        "start": 32094.599999904633,
+        "duration": 60
+      },
+      {
+        "start": 32175.599999904633,
+        "duration": 60
+      },
+      {
+        "start": 32694.599999904633,
+        "duration": 68
+      },
+      {
+        "start": 32846,
+        "duration": 74
+      },
+      {
+        "start": 32925.5,
+        "duration": 72
+      },
+      {
+        "start": 33239.39999985695,
+        "duration": 60
+      },
+      {
+        "start": 33334.39999985695,
+        "duration": 80
+      },
+      {
+        "start": 33420.700000047684,
+        "duration": 68
+      },
+      {
+        "start": 34302.700000047684,
+        "duration": 73
+      },
+      {
+        "start": 34503.39999985695,
+        "duration": 691
+      },
+      {
+        "start": 35340.09999990463,
+        "duration": 312
+      },
+      {
+        "start": 36544.200000047684,
+        "duration": 65
+      },
+      {
+        "start": 36625.09999990463,
+        "duration": 167
+      },
+      {
+        "start": 36919.09999990463,
+        "duration": 76
+      },
+      {
+        "start": 37059.5,
+        "duration": 51
+      },
+      {
+        "start": 37111.5,
+        "duration": 52
+      },
+      {
+        "start": 37295.5,
+        "duration": 73
+      },
+      {
+        "start": 37374.09999990463,
+        "duration": 58
+      },
+      {
+        "start": 37528.200000047684,
+        "duration": 614
+      },
+      {
+        "start": 38445.299999952316,
+        "duration": 50
+      }
+    ]
+  }
+}

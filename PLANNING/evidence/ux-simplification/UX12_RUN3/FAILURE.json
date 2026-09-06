@@ -1,0 +1,7 @@
+{
+  "error": "TimeoutError: locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('article', { name: 'Steering follow-up pending delivery' }).filter({ hasText: 'Queue second draft' }) to be visible\u001b[22m\n",
+  "diagnostic": {
+    "activeElement": "<button type=\"button\" title=\"Send at the current turn’s next safe boundary\" class=\"rounded-md px-2 py-1 text-[11px] text-[var(--accent)] hover:bg-[var(--accent-dim)] disabled:opacity-30\">Send now</button>",
+    "draft": ""
+  }
+}

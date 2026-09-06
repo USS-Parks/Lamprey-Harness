@@ -488,7 +488,7 @@ describe('ST-4 typed Steering and Queue actions', () => {
       })
     ).toMatchObject({
       success: true,
-      data: { status: 'accepted', turnId: 'turn-1', expectedTurnId: 'turn-1' }
+      data: { status: 'accepted', turnId: 'turn-1', expectedTurnId: null }
     })
     expect(runtime.pendingSteers.map((item) => item.followUpId)).toEqual(['follow-up-1'])
   })

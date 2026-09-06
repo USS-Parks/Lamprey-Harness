@@ -498,8 +498,9 @@ export function createTurnControlActions(deps: TurnControlDependencies) {
       let accepted: FollowUpRecord
       try {
         accepted = deps.store.transitionFollowUp(existing.data.id, 'accepted', deps.now(), {
-          turnId: runtime.turnId,
-          expectedTurnId: runtime.turnId
+          // Preserve the original queue request fields; the guarded runtime
+          // is recorded as delivery turn_id, not a steer-only expected_turn_id.
+          turnId: runtime.turnId
         })
       } catch (err) {
         return fromError(err, 'turn:sendFollowupNow failed')

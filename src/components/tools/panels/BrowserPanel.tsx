@@ -69,7 +69,6 @@ export function BrowserPanel() {
   const ownerId = useUiStore(s => s.activeRightPanelConvId)
   const [tabs, setTabs] = useState<TabInfo[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [urlDraft, setUrlDraft] = useState('')
   const browserDraft = useUiStore(s => activeId ? s.browserAddressDrafts[activeId] : undefined)
   const setBrowserDraft = useUiStore(s => s.setBrowserAddressDraft)
   const [developerOpen, setDeveloperOpen] = useState(false)
@@ -204,23 +203,22 @@ export function BrowserPanel() {
     return () => { window.clearInterval(timer); statusRequest.current++ }
   }, [activeId, developerOpen, refreshDeveloperStatus])
 
-  // Keep address bar synced to the active tab's URL when the user isn't typing.
-  useEffect(() => {
-    const active = tabs.find((t) => t.id === activeId)
-    setUrlDraft(browserDraft ?? active?.url ?? '')
-  }, [activeId, tabs, browserDraft])
-
   // Re-report bounds whenever the panel chrome rearranges (tabs added etc).
   useEffect(() => {
     reportBounds()
   }, [tabs.length, developerOpen, developerStatus?.evidence.length, reportBounds])
 
   const active = tabs.find((t) => t.id === activeId) ?? null
+  const urlDraft = browserDraft ?? active?.url ?? ''
 
   const handleNavigate = () => {
     if (!active) return
-    setBrowserDraft(active.id, null)
-    void window.api?.browser?.navigate({ id: active.id, url: urlDraft })
+    const id = active.id
+    const submitted = urlDraft
+    void window.api.browser.navigate({ id, url: submitted }).then(result => {
+      if (!result.success) throw new Error(result.error ?? 'Navigation failed')
+      if (useUiStore.getState().browserAddressDrafts[id] === submitted) setBrowserDraft(id, null)
+    }).catch(error => { if (mounted.current) setBrowserError(String(error)) })
   }
 
   return (
@@ -313,9 +311,9 @@ export function BrowserPanel() {
         <input
           type="text"
           value={urlDraft}
+          disabled={!activeId}
           onChange={(e) => {
             if (activeId) setBrowserDraft(activeId, e.target.value)
-            setUrlDraft(e.target.value)
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -324,7 +322,6 @@ export function BrowserPanel() {
             }
             if (e.key === 'Escape') {
               if (activeId) setBrowserDraft(activeId, null)
-                      setUrlDraft(active?.url ?? '')
             }
           }}
           placeholder="Search Google or type a URL"

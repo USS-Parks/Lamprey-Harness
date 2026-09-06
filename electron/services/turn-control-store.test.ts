@@ -72,6 +72,16 @@ describe.skipIf(!HAS_NATIVE_SQLITE)('TurnControlStore (native SQLite)', () => {
     expect(store.getTurn('turn-1')?.status).toBe('completed')
   })
 
+  it('keeps queue request identity when send-now assigns a delivery turn', () => {
+    store.createTurn({ id: 'turn-1' as TurnId, conversationId: 'conversation-1', kind: 'regular', startedAt: 1 })
+    const queued = store.createFollowUp({ id: 'send-now' as FollowUpId, submission: submission('queue', 'Queued input', 'queue-client'), createdAt: 2 }).record
+    const accepted = store.transitionFollowUp(queued.id, 'accepted', 3, { turnId: 'turn-1' as TurnId })
+    expect(accepted).toMatchObject({ status: 'accepted', deliveryMode: 'queue', turnId: 'turn-1', expectedTurnId: null, position: 0, clientUserMessageId: 'queue-client' })
+    expect(store.recoverOrphans(4, 'restart').followUps).toBe(1)
+    expect(store.getFollowUp(queued.id)?.status).toBe('recovered')
+    expect(store.getFollowUp(queued.id)?.input).toEqual(queued.input)
+  })
+
   it('enforces one running turn per conversation', () => {
     store.createTurn({
       id: 'turn-1' as TurnId,

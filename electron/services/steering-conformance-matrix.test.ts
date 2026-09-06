@@ -174,7 +174,7 @@ const rows: SteeringContractRow[] = [
         file: 'electron/services/follow-up-composer-wiring.test.ts',
         contains: [
           'locks Steer as the main and renderer default',
-          'renders working Steer and Queue controls'
+          'renders one preferred action with a non-submitting preference menu'
         ]
       }
     ]

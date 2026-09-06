@@ -1,0 +1,18 @@
+{
+  "prompt": "UX-12",
+  "sourceBase": "c8fd02a8b9b1ea2110a356f6bbb55bc425d89076",
+  "status": "local-pass",
+  "affectedUnitTests": 35,
+  "fullSuitePassed": 3032,
+  "fullSuiteExplicitSkips": 176,
+  "nativeTestsPassed": 171,
+  "nativeTestsSkipped": 0,
+  "evidence": [
+    "UX12_RUN4/FOLLOW_UP.json",
+    "UX12_RUN4/BROWSER.json",
+    "UX12_RUN4/RUNTIME.json",
+    "UX12_RUN4/LIFECYCLE.json",
+    "UX12_NATIVE_RESULTS.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX12.json"
+}

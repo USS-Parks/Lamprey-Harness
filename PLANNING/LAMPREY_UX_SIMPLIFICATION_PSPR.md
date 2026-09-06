@@ -303,7 +303,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2; text, multiline paste, IME composition, attachments, plan state, coding state and all permission modes remain correct. Changing presentation or mode never escalates permissions or clears a draft.
 
 #### UX-12 — Compact Steering and Queue without changing semantics
-- [ ] **Objective:** use one preferred follow-up action and an alternate menu while retaining both operations.
+- [x] **Objective:** use one preferred follow-up action and an alternate menu while retaining both operations.
 - **Work:** replace equal-weight follow-up buttons with a labeled primary action/menu and separate Stop. Retain current saved preference, keyboard semantics, expectedTurnId, client message identity and ordered mixed input. Show rejection/recovery clearly.
 - **Seams/output:** ChatInput, FollowUpQueue, existing typed turn IPC/store.
 - **Gate:** G1/G2/G3; real active-turn steer, durable queue, edit/reorder/delete/send-now, double-submit, stale turn, cancellation, failed IPC, unreadable attachment and reload recovery all pass. No fallback to a fresh chat send; menu navigation never submits accidentally.

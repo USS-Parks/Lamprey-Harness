@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { followUpText, moveQueuedFollowUp, replaceFollowUpText } from '@/lib/follow-up-state'
 import type { TurnFollowUpRecord } from '@/lib/turn-control-types'
 import { useChatStore } from '@/stores/chat-store'
 import { toast } from '@/stores/toast-store'
-import { useUiStore } from '@/stores/ui-store'
 
 function attachmentLabel(record: TurnFollowUpRecord): string | null {
   const attachments = record.input.filter((item) => item.type !== 'text')
@@ -42,7 +41,7 @@ function PendingSteerCard({ record }: { record: TurnFollowUpRecord }) {
       )}
       <span className="flex shrink-0 items-center gap-1 text-[12px] text-[var(--text-muted)]">
         <span aria-hidden>↪</span>
-        Steer
+        {record.deliveryMode === 'queue' ? 'Send now' : 'Steer'}
       </span>
     </article>
   )
@@ -66,7 +65,19 @@ function FollowUpCard({
   const reorder = useChatStore((state) => state.reorderQueuedFollowUps)
   const sendNow = useChatStore((state) => state.sendFollowUpNow)
   const deleteFollowUp = useChatStore((state) => state.deleteFollowUp)
-  const seedComposeDraft = useUiStore((state) => state.seedComposeDraft)
+  const retryFollowUp = useChatStore(state => state.retryFollowUp)
+  const retryBusy = useRef(false)
+  const [retryStatus, setRetryStatus] = useState<'idle' | 'pending' | 'queued'>('idle')
+  const retry = async () => {
+    if (retryBusy.current || retryStatus === 'queued') return
+    retryBusy.current = true
+    setRetryStatus('pending')
+    try {
+      const result = await retryFollowUp(record.id)
+      if (!result.success) toast.error(result.error ?? 'Could not queue recovery draft.')
+      setRetryStatus(result.success ? 'queued' : 'idle')
+    } finally { retryBusy.current = false }
+  }
   const isQueued = record.status === 'queued'
   const attachment = attachmentLabel(record)
 
@@ -199,10 +210,11 @@ function FollowUpCard({
         {!isQueued && (
           <button
             type="button"
-            onClick={() => seedComposeDraft(followUpText(record.input))}
+            disabled={editing || retryStatus !== 'idle'}
+            onClick={() => void retry()}
             className="rounded-md px-2 py-1 text-[11px] text-[var(--accent)] hover:bg-[var(--accent-dim)]"
           >
-            Use draft
+            {retryStatus === 'queued' ? 'Draft queued' : 'Queue draft'}
           </button>
         )}
 
@@ -226,7 +238,7 @@ export function FollowUpQueue() {
   const followUps = useChatStore((state) => state.followUps)
   const pendingSteers = useMemo(
     () =>
-      followUps.filter((record) => record.deliveryMode === 'steer' && record.status === 'accepted'),
+      followUps.filter((record) => record.status === 'accepted'),
     [followUps]
   )
   const queued = useMemo(

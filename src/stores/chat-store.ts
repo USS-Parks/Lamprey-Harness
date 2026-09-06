@@ -114,6 +114,7 @@ interface ChatState {
     mode: FollowUpDeliveryMode,
     clientUserMessageId?: string
   ) => Promise<FollowUpActionResult>
+  retryFollowUp: (followUpId: string) => Promise<FollowUpActionResult>
   updateFollowUpDraft: (followUpId: string, input: TurnInputItem[]) => Promise<FollowUpActionResult>
   reorderQueuedFollowUps: (orderedIds: string[]) => Promise<FollowUpActionResult>
   sendFollowUpNow: (followUpId: string) => Promise<FollowUpActionResult>
@@ -464,10 +465,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
             })
       await get().hydrateTurnControl(conversationId)
       if (!result.success) return { success: false, error: result.error ?? `${mode} failed.` }
-      get().clearAttachments()
+      set(current => current.activeConversationId === conversationId ? {
+        pendingAttachments: current.pendingAttachments.filter(file => !state.pendingAttachments.includes(file))
+      } : {})
       return { success: true }
     } catch (error) {
       return followUpFailure(error, `${mode} failed.`)
+    }
+  },
+
+  retryFollowUp: async (followUpId) => {
+    const { activeConversationId: conversationId, followUps } = get()
+    const record = followUps.find(item => item.id === followUpId)
+    if (!conversationId || !record || record.conversationId !== conversationId || !['rejected', 'recovered'].includes(record.status)) {
+      return { success: false, error: 'This recovery draft is no longer available.' }
+    }
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([record.id, record.input])))
+      const clientUserMessageId = 'recovery:' + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+      const result = await window.api.turn.queue({
+        conversationId, deliveryMode: 'queue', clientUserMessageId,
+        actor: 'user', sourceConversationId: conversationId, input: record.input
+      })
+      if (result.success) {
+        const removed = await window.api.turn.deleteFollowup({ conversationId, followUpId: record.id })
+        if (!removed.success) toast.error('Draft queued, but the old recovery card could not be dismissed. Retrying will not queue a duplicate.')
+      }
+      await get().hydrateTurnControl(conversationId)
+      return result.success ? { success: true } : { success: false, error: result.error ?? 'Could not queue the recovery draft.' }
+    } catch (error) {
+      return followUpFailure(error, 'Could not queue the recovery draft.')
     }
   },
 

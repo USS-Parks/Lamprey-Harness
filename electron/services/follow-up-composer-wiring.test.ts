@@ -29,7 +29,7 @@ describe('ST-9 follow-up composer UX wiring', () => {
     expect(canSend).not.toContain('!isStreaming')
   })
 
-  it('renders working Steer and Queue controls beside the separate Stop button', () => {
+  it('renders one preferred action with a non-submitting preference menu and separate Stop', () => {
     const input = read('src/components/chat/ChatInput.tsx')
     const actions = input.slice(
       input.indexOf('{isStreaming ? ('),
@@ -38,8 +38,10 @@ describe('ST-9 follow-up composer UX wiring', () => {
     expect(actions).toContain('className="flex h-9 w-9')
     expect(actions).toContain('data-follow-up-action={followUpBehavior}')
     expect(actions).toContain('onClick={() => handleSubmit(followUpBehavior)}')
-    expect(actions).toContain('data-follow-up-action={alternateFollowUpBehavior}')
-    expect(actions).toContain('onClick={() => handleSubmit(alternateFollowUpBehavior)}')
+    expect(actions).toContain('data-follow-up-choice={mode}')
+    expect(actions).toContain('updateSettings({ followUpBehavior: mode })')
+    expect(actions).not.toContain('handleSubmit(alternateFollowUpBehavior)')
+    expect(actions).toContain('aria-label="Choose Steer or Queue"')
     expect(actions).toContain('disabled={!canSend || followUpSubmitting}')
     expect(actions).toContain('min-w-[72px]')
     expect(actions).toContain('aria-label="Stop current turn"')
@@ -60,7 +62,7 @@ describe('ST-9 follow-up composer UX wiring', () => {
     expect(queue).toContain("['rejected', 'recovered']")
     expect(queue).toContain("'Recoverable follow-up draft'")
     expect(queue).toContain('aria-label="Steering follow-up pending delivery"')
-    expect(queue).toContain("record.deliveryMode === 'steer' && record.status === 'accepted'")
+    expect(queue).toContain("record.status === 'accepted'")
     expect(queue).toContain('Steer')
     expect(queue).toContain('role="status"')
     expect(view.indexOf('<FollowUpQueue />')).toBeLessThan(view.indexOf('<ChatInput'))

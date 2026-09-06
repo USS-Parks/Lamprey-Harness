@@ -829,7 +829,10 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const [pasteOffer, setPasteOffer] = useState<string | null>(null)
   const [keyPromptProvider, setKeyPromptProvider] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const followUpClientIdRef = useRef<string | null>(null)
+  const followUpClientIdRef = useRef<{ key: string; id: string } | null>(null)
+  const followUpBusyRef = useRef(false)
+  const [followUpMenuOpen, setFollowUpMenuOpen] = useState(false)
+  const followUpAnchor = useRef<HTMLButtonElement>(null)
   // Fluidity J1: ↑/↓ walks past user prompts. Index tracking lives in a ref
   // so re-renders triggered by setContent() don't reset our position.
   const historyRef = useRef<PromptHistoryState>(emptyHistoryState)
@@ -846,7 +849,7 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
   const pendingAttachments = useChatStore((s) => s.pendingAttachments)
   const submitFollowUp = useChatStore((s) => s.submitFollowUp)
   const followUpBehavior = useSettingsStore((s) => s.settings.followUpBehavior)
-  const alternateFollowUpBehavior = followUpBehavior === 'steer' ? 'queue' : 'steer'
+  const updateSettings = useSettingsStore(s => s.updateSettings)
   const allModels = useModelStore((s) => s.models)
   const activeModelInfo = allModels.find((m) => m.id === activeModel)
   const activeProvider = activeModelInfo?.provider
@@ -1111,22 +1114,33 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     const hasSubmittableInput = trimmed.length > 0 || (isStreaming && pendingAttachments.length > 0)
     if (!hasSubmittableInput || disabled) return
     if (isStreaming) {
-      if (followUpSubmitting) return
+      if (followUpBusyRef.current) return
+      followUpBusyRef.current = true
+      const owner = useChatStore.getState().activeConversationId
+      const submittedContent = content
+      const key = JSON.stringify([owner, activeTurn?.turnId, followUpMode, trimmed, pendingAttachments])
       setFollowUpError(null)
       setFollowUpSubmitting(true)
-      followUpClientIdRef.current ??= crypto.randomUUID()
-      void submitFollowUp(trimmed, followUpMode, followUpClientIdRef.current)
+      if (followUpClientIdRef.current?.key !== key) followUpClientIdRef.current = { key, id: crypto.randomUUID() }
+      void submitFollowUp(trimmed, followUpMode, followUpClientIdRef.current.id)
         .then((result) => {
           if (!result.success) {
-            setFollowUpError(result.error)
+            if (useChatStore.getState().activeConversationId === owner) setFollowUpError(result.error)
             toast.error(result.error)
             return
           }
           followUpClientIdRef.current = null
-          setContent('')
-          historyRef.current = emptyHistoryState
+          if (useChatStore.getState().activeConversationId === owner) {
+            setContent(current => current === submittedContent ? '' : current)
+            historyRef.current = emptyHistoryState
+          }
         })
-        .finally(() => setFollowUpSubmitting(false))
+        .catch(error => {
+          const message = error instanceof Error ? error.message : String(error)
+          if (useChatStore.getState().activeConversationId === owner) setFollowUpError(message)
+          toast.error(message)
+        })
+        .finally(() => { followUpBusyRef.current = false; setFollowUpSubmitting(false) })
       return
     }
     if (activeProvider && !activeProviderHasKey) {
@@ -1357,7 +1371,6 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
     (content.trim().length > 0 || (isStreaming && pendingAttachments.length > 0)) && !disabled
   const planMode = useUiStore((s) => s.planMode)
   const followUpLabel = followUpBehavior === 'steer' ? 'Steer' : 'Queue'
-  const alternateFollowUpLabel = alternateFollowUpBehavior === 'steer' ? 'Steer' : 'Queue'
 
   return (
     <div className="w-full">
@@ -1531,16 +1544,28 @@ export function ChatInput({ onSend, onCancel, isStreaming, disabled }: ChatInput
                 {followUpLabel}
               </button>
               <button
+                ref={followUpAnchor}
                 type="button"
-                data-follow-up-action={alternateFollowUpBehavior}
-                onClick={() => handleSubmit(alternateFollowUpBehavior)}
-                disabled={!canSend || followUpSubmitting}
-                title={`${alternateFollowUpLabel} this turn`}
-                aria-label={`${alternateFollowUpLabel} this turn`}
-                className="flex h-9 min-w-[72px] shrink-0 items-center justify-center rounded-full bg-[var(--bg-tertiary)] px-3 text-sm font-medium text-[var(--text-secondary)] transition-[background-color,color,opacity,transform] hover:scale-[1.03] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:hover:scale-100"
-              >
-                {alternateFollowUpLabel}
-              </button>
+                aria-label="Choose Steer or Queue"
+                aria-haspopup="menu"
+                aria-expanded={followUpMenuOpen}
+                onClick={() => setFollowUpMenuOpen(!followUpMenuOpen)}
+                className="flex h-9 w-8 items-center justify-center rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+              ><ChevronDown /></button>
+              <PopoverMenu open={followUpMenuOpen} onClose={() => setFollowUpMenuOpen(false)} anchorRef={followUpAnchor} align="top-end" ariaLabel="Follow-up action">
+                {(['steer', 'queue'] as const).map(mode => <button
+                  key={mode}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={followUpBehavior === mode}
+                  data-follow-up-choice={mode}
+                  onClick={() => { void updateSettings({ followUpBehavior: mode }); setFollowUpMenuOpen(false); followUpAnchor.current?.focus() }}
+                  className="flex min-h-9 w-full flex-col items-start rounded px-3 py-2 text-left text-xs text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                >
+                  <span>{mode === 'steer' ? 'Steer' : 'Queue'}</span>
+                  <span className="text-[var(--text-muted)]">{mode === 'steer' ? 'Guide the current turn' : 'Run after the current turn'}</span>
+                </button>)}
+              </PopoverMenu>
               <button
                 type="button"
                 onClick={onCancel}

@@ -43,6 +43,12 @@ async function main() {
     const streamFinishers = new Set()
     const providerBodies = []
     server = createServer((req, res) => {
+      if (req.url === '/v1/models') {
+        const authorized = req.headers.authorization === 'Bearer fixture-provider-key'
+        res.writeHead(authorized ? 200 : 401, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify(authorized ? { object: 'list', data: [{ id: 'fixture-keyed-model', object: 'model' }] } : { error: { message: 'Fixture key rejected' } }))
+        return
+      }
       if (req.url.startsWith('/browser/')) {
         res.writeHead(200, { 'Content-Type': 'text/html' })
         res.end(`<html><head><title>Local ${req.url}</title></head><body><p>Browser fixture ${req.url}</p><input id="draft"><a href="/browser/b">Continue</a></body></html>`)
@@ -52,7 +58,7 @@ async function main() {
       requests++
       let body = ''
       req.on('data', chunk => { body += chunk })
-      req.on('end', () => providerBodies.push(JSON.parse(body)))
+      req.on('end', () => providerBodies.push({ ...JSON.parse(body), _fixtureKeyAccepted: req.headers.authorization === 'Bearer fixture-provider-key' }))
       res.writeHead(200, { 'Content-Type': 'text/event-stream' })
       const send = () => res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Measured local stream. ' }, finish_reason: null }] })}\n\n`)
       send()
@@ -62,7 +68,7 @@ async function main() {
       res.on('close', () => { clearInterval(timer); streamFinishers.delete(finish) })
     })
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }], customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }] }))
+    fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ defaultModel: 'fixture-stream', toolSurface: 'full', orchestrationEnabled: false, customProviders: [{ id: 'fixture-provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: false }, { id: 'fixture-keyed', label: 'Fixture Keyed Provider', baseURL: `http://127.0.0.1:${server.address().port}/v1`, requiresKey: true }], customModels: [{ id: 'fixture-stream', name: 'Fixture', provider: 'fixture-provider', contextWindow: 131072, supportsTools: false }, { id: 'fixture-keyed-model', name: 'Fixture keyed model with a deliberately long display name for bounded selection', provider: 'fixture-keyed', contextWindow: 131072, supportsTools: false }] }))
     const env = { ...process.env, LAMPREY_ACCEPTANCE_PROFILE: profile }
     delete env.ELECTRON_RUN_AS_NODE
     const entry = path.join(profile, 'baseline-entry.cjs')
@@ -319,6 +325,9 @@ async function main() {
     const context = await require('./ux-context.cjs')({ page, app, ids, profile, repo, providerBodies })
     fs.writeFileSync(path.join(output, 'CONTEXT.json'), JSON.stringify(context, null, 2) + '\n')
     record('task-context-actions')
+    const models = await require('./ux-models.cjs')({ page, providerBodies })
+    fs.writeFileSync(path.join(output, 'MODELS.json'), JSON.stringify(models, null, 2) + '\n')
+    record('compact-model-picker')
     assert.deepEqual(completed.slice().sort(), scenarios.map(scenario => scenario.id).sort())
     console.log('Completed history entries rendered:', renderedToolEntries)
     fs.writeFileSync(path.join(output, 'RUNTIME.json'), JSON.stringify({ capturedAt: new Date().toISOString(), source: execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding:'utf8' }).trim(), runtime: await app.evaluate(() => process.versions), platform: { release:os.release(), cpu:os.cpus()[0].model }, viewport: await page.evaluate(() => ({width:window.innerWidth,height:window.innerHeight,dpr:window.devicePixelRatio})), presentation:'Visible via showInactive, no keyboard focus requested; background throttling disabled', isolatedProfile: true, seeded, renderedToolEntries, taskCount: ids.length, runs, streamingRuns, scrollAnchor, streamingWindow:{start:streamingStart,end:streamingEnd}, longTasks, limitations: ['Typing measures input event to two animation frames, not physical display latency.', 'Cached panel shell opening excludes asynchronous resource loading.', 'The full performance, viewport and contract matrix remains UX-33 through UX-35; completed lists identify the cases actually run.'], status: 'representative-cases-passed', completed }, null, 2)+'\n')

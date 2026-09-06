@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 
-const source = readFileSync(join(__dirname, 'ChatInput.tsx'), 'utf8')
+const source = readFileSync(join(__dirname, 'ModelDropdown.tsx'), 'utf8')
 const apiKeySettings = readFileSync(join(__dirname, '..', 'settings', 'ApiKeySettings.tsx'), 'utf8')
 
 describe('model dropdown viewport contract', () => {
@@ -23,11 +23,13 @@ describe('model dropdown viewport contract', () => {
     expect(source).toContain("data-active-model={m.id === activeModel ? 'true' : undefined}")
   })
 
-  it('refreshes key state whenever the menu opens and keeps fallbacks direct', () => {
+  it('refreshes key state and uses the authoritative catalog without fallback aliases', () => {
     expect(source).toContain('}, [open, refreshProviders])')
     expect(apiKeySettings).toContain('useProvidersStore.getState().setProviders(entries)')
-    expect(source).toContain("id: 'kimi-k3'")
-    expect(source).toContain("provider: 'moonshot'")
+    expect(source).toContain('useModelStore(s => s.models)')
+    expect(source).not.toContain('fallback:')
+    expect(source).toContain('await setModel(id)')
+    expect(source).toContain('onRequestKey(model.provider)')
     expect(source).not.toContain("provider: 'openrouter'")
   })
 })

@@ -315,7 +315,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G1/G2 using real temporary Git operations; external branch changes refresh, failed actions are visible, task switch updates context, and no dirty work is discarded. The conversation no longer shifts to accommodate a floating context card.
 
 #### UX-14 — Make model choice compact and searchable
-- [ ] **Objective:** select the actual provider/model with minimal navigation.
+- [x] **Objective:** select the actual provider/model with minimal navigation.
 - **Work:** reuse current model/provider resolution and connection state in the compact picker. Add search if absent, reveal the selected row, and make ready-to-use models easy to identify while keeping the full catalog accessible. Preserve direct-provider defaults and the existing key-setup path.
 - **Seams/output:** ModelDropdown and model/provider stores; existing API-key modal.
 - **Gate:** G1/G2; local/keyless and configured-provider selection, missing-key setup, search/empty results, long labels, keyboard selection and externally refreshed key state work. A display label never changes provider routing or advertises unproven capabilities.

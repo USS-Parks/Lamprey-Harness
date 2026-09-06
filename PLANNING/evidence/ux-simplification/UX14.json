@@ -1,0 +1,14 @@
+{
+  "prompt": "UX-14",
+  "sourceBase": "b1908a7eb042addfc84bf9575a7f623b2db2af1c",
+  "status": "local-pass",
+  "affectedContractTests": 3,
+  "fullSuitePassed": 3036,
+  "fullSuiteExplicitSkips": 176,
+  "evidence": [
+    "UX14_RUN/MODELS.json",
+    "UX14_RUN/RUNTIME.json",
+    "UX14_RUN/LIFECYCLE.json"
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX14.json"
+}

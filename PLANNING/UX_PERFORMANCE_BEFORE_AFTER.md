@@ -45,3 +45,15 @@ G1 on this repair: both TypeScript projects, eslint, and 24 focused tests. G5 is
 `node scripts/acceptance/ux.cjs PLANNING/evidence/ux-simplification/UX34_RUN --performance-only`
 
 Do not treat this section as performance acceptance. `performanceAccepted` stays false until that capture’s comparison object passes every absolute and relative target.
+
+## UX-34 G5 accepted (Fire-Starter)
+
+Same machine as UX-00/UX-33: AMD Ryzen 7 5800H, Windows 10.0.26200, Electron 43, 1440×902 CSS at DPR 1.25. Source `b06a016eaf07eda5bda9434acabc02df6d175596`. Capture path on the owner worktree: `PLANNING/evidence/ux-simplification/UX34_G5/` under `C:\Users\17076\Documents\Claude\Lamprey-Harness-ux34-measure`. `LIFECYCLE.passed` is true.
+
+| Interaction | UX-33 median p95 | UX-34 G5 median p95 | Absolute limit | Disposition |
+|---|---:|---:|---:|---|
+| Warm task switch | 686.8 ms | 57 ms | 250 ms | Pass (absolute and relative vs UX-00 446.2 ms) |
+| Task loading feedback | 618.2 ms | 39.9 ms | 100 ms | Pass |
+| Idle typing | 12.1 ms | 77.4 ms | 100 ms | Median under limit; one run 100.5 ms. Not an UX-34 remainingFailure. |
+
+UX-33 remainingFailures were only `taskSwitch` and `taskFeedback`. Those are closed. Raw PERFORMANCE.json remains on the owner worktree; `UX34_G5/COMPARISON.json` records the reported comparison object without inventing sample arrays.

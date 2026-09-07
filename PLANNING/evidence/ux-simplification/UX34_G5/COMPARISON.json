@@ -1,0 +1,39 @@
+{
+  "prompt": "UX-34",
+  "capture": "UX34_G5",
+  "source": "b06a016eaf07eda5bda9434acabc02df6d175596",
+  "lifecyclePassed": true,
+  "machine": {
+    "cpu": "AMD Ryzen 7 5800H",
+    "os": "Windows 10.0.26200",
+    "electron": "43",
+    "viewport": {
+      "width": 1440,
+      "height": 902,
+      "dpr": 1.25
+    }
+  },
+  "ownerWorktree": "C:\\Users\\17076\\Documents\\Claude\\Lamprey-Harness-ux34-measure",
+  "rawCaptureNote": "Full PERFORMANCE.json remains on the owner worktree. This receipt is reconstructed from the Fire-Starter G5 numbers reported for main tip b06a016. No sample arrays were invented.",
+  "comparison": {
+    "taskSwitch": {
+      "p95Median": 57,
+      "absoluteLimit": 250,
+      "absolutePass": true,
+      "relativePass": true,
+      "baselineMedian": 446.2
+    },
+    "taskFeedback": {
+      "p95Median": 39.9,
+      "absoluteLimit": 100,
+      "absolutePass": true
+    },
+    "typing": {
+      "p95Median": 77.4,
+      "absoluteLimit": 100,
+      "absolutePass": false,
+      "oneRun": 100.5,
+      "note": "One idle-typing run exceeded 100 ms. UX-33 remainingFailures were only taskSwitch and taskFeedback. This miss is disclosed and is not an UX-34 remainingFailure."
+    }
+  }
+}

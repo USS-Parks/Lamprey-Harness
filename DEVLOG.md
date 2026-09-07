@@ -1,3 +1,16 @@
+## 2026-09-07 - UX-34: G5 accepted on Fire-Starter
+
+Fire-Starter reran `ux.cjs --performance-only` against main tip `b06a016` on the UX-00 Windows machine. `LIFECYCLE.passed` is true. Warm task switch median p95 is 57 ms (limit 250; baseline 446.2). Task loading feedback median p95 is 39.9 ms (limit 100). UX-33 remainingFailures are closed. Idle typing median p95 is 77.4 ms with one run at 100.5 ms; that miss is disclosed and is not an UX-34 remainingFailure.
+
+Raw PERFORMANCE.json stays on `C:\Users\17076\Documents\Claude\Lamprey-Harness-ux34-measure` at `PLANNING/evidence/ux-simplification/UX34_G5/`. This checkout records the reported comparison object only.
+
+**Files changed:** `PLANNING/evidence/ux-simplification/UX34.json`, `PLANNING/evidence/ux-simplification/UX34_G5/COMPARISON.json`, `PLANNING/UX_PERFORMANCE_BEFORE_AFTER.md`, `PLANNING/LAMPREY_UX_SIMPLIFICATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- hosted CI on `b06a016` already green (CI 34075382897, Build 34075382916)
+- user-verification-needed: none for the assigned remainingFailures; typing one-run miss is recorded
+
+**Notes:** G5 is accepted for UX-34. UX-35 may start. Commit: this evidence commit.
+
 ## 2026-09-07 - UX-34: Measured task-switch and loading-feedback repair
 
 UX-33 left warm task switch at 686.8 ms (limit 250) and loading feedback at 618.2 ms (limit 100). The TASK_SWITCH profile pointed at per-row `formatTime`, markdown parsing, and mounting the 1,000-message fixture. This prompt changes only those seams.

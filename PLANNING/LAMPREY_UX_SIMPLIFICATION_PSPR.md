@@ -445,7 +445,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** measurement provenance is reproducible, no confounding provider/network latency is called renderer time, and every failed threshold identifies an actionable trace. This prompt completes the measurement only; failed performance remains open for UX-34.
 
 #### UX-34 — Resolve measured responsiveness regressions
-- [ ] **Objective:** meet G5 by fixing the observed bottlenecks with the smallest changes.
+- [x] **Objective:** meet G5 by fixing the observed bottlenecks with the smallest changes.
 - **Work:** use traces to narrow subscriptions, batch stream presentation, defer hidden work or bound expensive rendering only where justified. If no performance target fails, record a justified no-op. Reuse current performance patterns; avoid new caches or virtualization without evidence.
 - **Seams/output:** only components/stores identified in UX-33 and the existing runner.
 - **Gate:** G1/G2 and all G5 absolute/relative targets pass; correctness, scroll anchoring, focus, searching and accessible history remain intact. If a fix needs a backend/architecture change outside scope, record a blocker and request a scoped addendum. Milestone G includes storage closeout.

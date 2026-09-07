@@ -23,24 +23,32 @@ Conversations and control state live in SQLite on your machine. API keys are sto
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.31.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.32.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.32.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.32.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.32.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.31.0 — Triple Lane.** Claude Code inventory pinned at **2.1.241**
+**New in v0.32.0 — Reliability and verification repairs.** The production
+embedding worker is packaged, and sqlite-vec loads from the unpacked ASAR
+path so vector retrieval works in the stock installer. Cancellation stops
+later tool dispatch; unknown MCP tools fail closed; research synthesis
+rejects uncited output. GitHub Latest is **v0.32.0** (source
+`bc78ec984205695480568b5e2a7097b676265a52`); README download links point
+there. CDN/R2 closeout is still TL-W4 until GitHub asset sha256 == local
+dist/ == CDN is proven. Published CI bytes have not been install-smoked.
+
+**Previously in v0.31.0 — Triple Lane.** Claude Code inventory pinned at **2.1.241**
 with an empty pick list (K12). OpenRouter opt-in path gains fallbacks,
 provider sort/order/ignore, and `openrouter/auto`; direct-provider default
 is unchanged and `MODEL_CATALOG` still has zero OpenRouter rows. Local
 Ollama / LM Studio / Unsloth Studio presets, loud connection-refused probe
 copy, and tools/vision off by default on live local imports. No training UI
-in core. GitHub installers and README download links are on v0.31.0.
-CDN/R2 closeout is TL-W4 until GitHub asset sha256 == local dist/ ==
-CDN is proven.
+in core. The v0.31.0 packaged build is not the current download: it omitted
+`worker.js` and failed sqlite-vec from ASAR.
 
 **Previously in v0.30.1 — Tools + MCP Roster.** The curated Add-connector catalog
 is ten templates: Linear, Sentry, Notion, and Slack are new; GitHub /

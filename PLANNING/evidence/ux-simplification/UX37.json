@@ -1,0 +1,18 @@
+{
+  "prompt": "UX-37",
+  "sourceBase": "cc17f8c66125cbd666fbda42e0c88b039f43c3db",
+  "status": "complete",
+  "version": "0.33.0",
+  "tagExists": false,
+  "releaseExists": false,
+  "readmeDownloads": "v0.32.0 until UX-38 publication",
+  "notes": "RELEASE_NOTES/v0.33.0.md",
+  "candidate": "PLANNING/evidence/ux-simplification/UX37_CANDIDATE.md",
+  "limitations": [
+    "Tag is uncreated. No installer hashes yet.",
+    "README download URLs still point at published v0.32.0 so they do not 404.",
+    "CDN/TL-W4 is not closed.",
+    "No current-Codex feature-parity claim."
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX37.json"
+}

@@ -1,3 +1,16 @@
+## 2026-09-07 - UX-37: v0.33.0 release metadata
+
+Package and lockfile are 0.33.0. Remote tag and GitHub release are absent. Notes are in `RELEASE_NOTES/v0.33.0.md`. README download links still serve published v0.32.0. Current-state docs name the unpublished candidate. No Codex-parity or CDN/TL-W4-closed claim.
+
+**Files changed:** `package.json`, `package-lock.json`, `RELEASE_NOTES/v0.33.0.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `openwiki/operations/ship-and-bucket.md`, `PLANNING/evidence/ux-simplification/UX37.json`, `UX37_CANDIDATE.md`, `PLANNING/LAMPREY_UX_SIMPLIFICATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- versions agree at 0.33.0
+- `gh release view v0.33.0` not found
+- remote tag `v0.33.0` absent
+- docs-only; tsc/lint run by the commit hook
+
+**Notes:** Tag stays uncreated until UX-38. Commit: this metadata commit.
+
 ## 2026-09-07 - UX-36: Final source candidate
 
 G6 on the integrated tree: default vitest 3147 passed / 171 skipped / 0 failed; `test:native-db` 171 passed / 0 skipped under Electron ABI; `verify:all` lint, both tsc projects, build, proof, bundle smoke and renderer smoke passed. The 171 default skips are the ABI-guarded native suites executed by the native-db command.

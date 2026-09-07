@@ -32,6 +32,12 @@ Conversations and control state live in SQLite on your machine. API keys are sto
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
+**Preparing v0.33.0 — Simpler daily work.** Source is versioned for the
+authorized UX simplification release (task sidebar, conversation-first
+shell, six settings groups, Commands). The GitHub tag is not created yet.
+Download links below still serve published **v0.32.0**. They will move
+when v0.33.0 is published. This is not a CDN/TL-W4 closeout.
+
 **New in v0.32.0 — Reliability and verification repairs.** The production
 embedding worker is packaged, and sqlite-vec loads from the unpacked ASAR
 path so vector retrieval works in the stock installer. Cancellation stops

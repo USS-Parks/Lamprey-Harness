@@ -465,7 +465,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** full default/native suites, type checks, lint, build/proof/smokes and required UI/performance scenarios pass; exact pushed SHA has green required hosted checks under G7. No unexplained skips or unverified package claims.
 
 #### UX-37 — Prepare release metadata and accurate documentation
-- [ ] **Objective:** produce a reviewable release candidate that accurately describes the new UX.
+- [x] **Objective:** produce a reviewable release candidate that accurately describes the new UX.
 - **Work:** confirm the proposed next version is unused, update package/lock together, author notes in the established Lamprey release style, and update README, relevant OpenWiki pages, AGENTS/CLAUDE current-state references and shortcut/help documentation. Draft the GitHub blurb if needed; keep website work parked.
 - **Seams/output:** versioned release notes, current docs, candidate receipt; tag remains uncreated until authorized publication.
 - **Gate:** versions agree, links/commands/shortcuts are valid, no claims of complete current-Codex feature parity, and retired UI wording is reconciled. Build final versioned candidate; exact candidate CI/build checks pass. Documentation records capabilities retained and known platform limitations.

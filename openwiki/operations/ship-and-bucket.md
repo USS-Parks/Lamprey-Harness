@@ -8,6 +8,8 @@ resource: repo://scripts/bucket.ps1
 
 Run `pwsh scripts/bucket.ps1` from the canonical checkout after the release candidate is committed, pushed and verified. The wrapper delegates to `scripts/bucket.cjs`. Publication requires the user's STS/Bucket authorization.
 
+The authorized next version is **v0.33.0**. Published operator downloads remain **v0.32.0** until that tag exists. Do not overwrite v0.32.0. CDN/TL-W4 stays open until all six GitHub/local/CDN hashes match.
+
 ## Prerequisites
 
 - Windows, Node 22.12 or later, installed project dependencies, Git, authenticated GitHub CLI, curl and AWS CLI v2.

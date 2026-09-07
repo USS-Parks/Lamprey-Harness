@@ -1,0 +1,39 @@
+{
+  "prompt": "UX-36",
+  "sourceBase": "06d25de435736df5684867ce472032d526c0f2e2",
+  "status": "complete",
+  "defaultSuite": {
+    "passed": 3147,
+    "skipped": 171,
+    "failed": 0
+  },
+  "nativeDb": {
+    "files": 22,
+    "passed": 171,
+    "skipped": 0,
+    "failed": 0
+  },
+  "verifyAll": {
+    "lint": true,
+    "tscNode": true,
+    "tscWeb": true,
+    "build": true,
+    "proof": true,
+    "smokeBundle": true,
+    "smokeRenderer": true
+  },
+  "skipDisposition": "Default-suite 171 skips are the ABI-guarded native-DB cases. npm run test:native-db executed those 22 files under Electron (171 passed, 0 skipped). See UX36_SKIPS.json.",
+  "evidence": [
+    "UX36_TEST.log",
+    "UX36_NATIVE.log",
+    "UX36_NATIVE_RESULTS.json",
+    "UX36_VERIFY_ALL.log",
+    "UX36_SKIPS.json"
+  ],
+  "limitations": [
+    "No packaged Windows installer smoke in this Linux session.",
+    "G5 remains the Fire-Starter UX-34 capture; not remeasured here.",
+    "verify:proof still reports Node ABI mismatch for better-sqlite3; native coverage is the Electron-ABI native-db run, not the default Node suite."
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX36.json"
+}

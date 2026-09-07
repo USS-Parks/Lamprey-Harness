@@ -1,3 +1,18 @@
+## 2026-09-07 - UX-36: Final source candidate
+
+G6 on the integrated tree: default vitest 3147 passed / 171 skipped / 0 failed; `test:native-db` 171 passed / 0 skipped under Electron ABI; `verify:all` lint, both tsc projects, build, proof, bundle smoke and renderer smoke passed. The 171 default skips are the ABI-guarded native suites executed by the native-db command.
+
+**Files changed:** `PLANNING/evidence/ux-simplification/UX36.json`, `UX36_TEST.log`, `UX36_NATIVE.log`, `UX36_NATIVE_RESULTS.json`, `UX36_VERIFY_ALL.log`, `UX36_SKIPS.json`, `PLANNING/LAMPREY_UX_SIMPLIFICATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- lint ✓
+- vitest default 3147 passed / 171 skipped
+- test:native-db 171 passed
+- verify:all ✓ (smokes included)
+
+**Notes:** No package install smoke. G5 not remeasured. Version remains 0.32.0 until UX-37. Commit: this evidence commit.
+
 ## 2026-09-07 - UX-35: Complete daily-work workflow ledger
 
 The PSPR daily-work steps, thirteen tool destinations and twenty-four settings leaves are source-locked to the existing acceptance scenarios. Each cited Windows lifecycle receipt still records `passed: true`. G5 remains the Fire-Starter UX-34 capture. Default follow-up (`steer`) and coding mode (`false`) are unchanged.

@@ -459,7 +459,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** G2/G3/G4/G5; owner evaluates the approved three-state design in the working application. Every capability/settings relocation row is checked. No lost drafts, duplicated turns, inaccessible decisions or altered permission defaults. Source/runtime limitations are explicit.
 
 #### UX-36 — Certify the final source candidate
-- [ ] **Objective:** establish a single source candidate with complete regression evidence.
+- [x] **Objective:** establish a single source candidate with complete regression evidence.
 - **Work:** run G6 on the integrated tree, reconcile skips and original authority/data regression coverage, remove only owned disposable fixture remnants, and resolve all blocking acceptance defects before versioning.
 - **Seams/output:** existing test/build/proof scripts, final source receipt and defect/disposition ledger.
 - **Gate:** full default/native suites, type checks, lint, build/proof/smokes and required UI/performance scenarios pass; exact pushed SHA has green required hosted checks under G7. No unexplained skips or unverified package claims.

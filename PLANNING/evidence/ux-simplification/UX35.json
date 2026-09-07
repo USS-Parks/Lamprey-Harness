@@ -1,0 +1,41 @@
+{
+  "prompt": "UX-35",
+  "sourceBase": "7697f535ff3ed309c0fe3d73de0059f7c0c36096",
+  "status": "complete",
+  "g5": "accepted at UX-34 / UX34_G5",
+  "testsPassed": 7,
+  "affectedTests": [
+    "src/lib/ux35-daily-work.test.ts",
+    "src/lib/settings-navigation.test.ts"
+  ],
+  "walkthrough": "PLANNING/evidence/ux-simplification/UX35_WALKTHROUGH.md",
+  "dailyWork": [
+    "task-context-actions",
+    "compact-model-picker",
+    "compact-composer-controls",
+    "running-local-stream",
+    "current-task-status",
+    "compact-follow-up-controls",
+    "notices-approvals",
+    "direct-file-artifact-links",
+    "browser-task-lifecycle",
+    "terminal-dock-lifecycle",
+    "review-real-git",
+    "review-task-continuity",
+    "task-navigation",
+    "task-data"
+  ],
+  "relocation": {
+    "tools": "workspace-capability-routes via UX10_RUN2",
+    "settings": "settings-navigation via UX32_SETTINGS2",
+    "keyboard": "UX32_KEYBOARD2",
+    "setup": "UX29_KEYLESS2"
+  },
+  "limitations": [
+    "This Linux session did not relaunch the isolated Electron daily-work fixture. The walkthrough is the union of already-passed Windows lifecycle receipts plus Fire-Starter G5.",
+    "No new owner screen recording was produced.",
+    "Manual screen-reader listening was not repeated.",
+    "Permission, follow-up and coding defaults were source-locked, not live-mutated in a new profile."
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX35.json"
+}

@@ -1,3 +1,16 @@
+## 2026-09-07 - UX-35: Complete daily-work workflow ledger
+
+The PSPR daily-work steps, thirteen tool destinations and twenty-four settings leaves are source-locked to the existing acceptance scenarios. Each cited Windows lifecycle receipt still records `passed: true`. G5 remains the Fire-Starter UX-34 capture. Default follow-up (`steer`) and coding mode (`false`) are unchanged.
+
+This session did not relaunch Electron. The walkthrough is the union of those receipts, not a new screen recording.
+
+**Files changed:** `src/lib/ux35-daily-work.test.ts`, `PLANNING/evidence/ux-simplification/UX35.json`, `PLANNING/evidence/ux-simplification/UX35_WALKTHROUGH.md`, `PLANNING/LAMPREY_UX_SIMPLIFICATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- vitest `src/lib/ux35-daily-work.test.ts` `src/lib/settings-navigation.test.ts` ✓ (7 tests)
+- user-verification-needed: none beyond the already-accepted Windows fixtures
+
+**Notes:** G3/G4/G5 reuse prior accepted evidence plus UX-34 G5. No product chrome change. Commit: this evidence commit.
+
 ## 2026-09-07 - UX-34: G5 accepted on Fire-Starter
 
 Fire-Starter reran `ux.cjs --performance-only` against main tip `b06a016` on the UX-00 Windows machine. `LIFECYCLE.passed` is true. Warm task switch median p95 is 57 ms (limit 250; baseline 446.2). Task loading feedback median p95 is 39.9 ms (limit 100). UX-33 remainingFailures are closed. Idle typing median p95 is 77.4 ms with one run at 100.5 ms; that miss is disclosed and is not an UX-34 remainingFailure.

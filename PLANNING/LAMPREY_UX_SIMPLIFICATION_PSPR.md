@@ -453,7 +453,7 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 ### Milestone H — Acceptance and release
 
 #### UX-35 — Accept the complete daily-work workflow
-- [ ] **Objective:** prove the redesigned surfaces work together in real use.
+- [x] **Objective:** prove the redesigned surfaces work together in real use.
 - **Work:** run a complete task: choose project/model, attach file, start controlled coding work, inspect live status, steer, queue/edit/reorder, approve an action, open file/browser/terminal, review a real diff, add contextual feedback, handle failure/cancel, find another task and return after reload. Exercise a second active task to check ownership.
 - **Seams/output:** existing extended acceptance fixtures and a concise owner walkthrough recording.
 - **Gate:** G2/G3/G4/G5; owner evaluates the approved three-state design in the working application. Every capability/settings relocation row is checked. No lost drafts, duplicated turns, inaccessible decisions or altered permission defaults. Source/runtime limitations are explicit.

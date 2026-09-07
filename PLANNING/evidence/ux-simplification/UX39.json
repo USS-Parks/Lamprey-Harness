@@ -1,0 +1,35 @@
+{
+  "prompt": "UX-39",
+  "sourceBase": "ad16e098a56ae3cb21ed71fc5d8be6398955d378",
+  "status": "complete",
+  "initiative": "source-and-github-complete-g8-open",
+  "tag": "v0.33.0",
+  "tagPeeled": "0b49c399a45e3aeffc94280b2dcd3e429179f83a",
+  "docsAfterTag": [
+    "e213c294e07d3f1f16edd54f4cbd9749e797ee43",
+    "ad16e098a56ae3cb21ed71fc5d8be6398955d378"
+  ],
+  "g8": false,
+  "report": "PLANNING/evidence/ux-simplification/UX39_REPORT.md",
+  "receiptIndex": "PLANNING/evidence/ux-simplification/UX39_RECEIPT_INDEX.md",
+  "storage": "PLANNING/evidence/ux-simplification/UX39_STORAGE.md",
+  "pausedWork": [
+    "September SR-37 package smoke",
+    "September SR-38 CDN/storage closeout",
+    "islandmountain.io download-page proposal",
+    "M4 / Code Mode"
+  ],
+  "installer": {
+    "path": "dist/Lamprey-0.33.0-x64.exe",
+    "sha256": "2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f",
+    "releaseUrl": "https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.33.0"
+  },
+  "limitations": [
+    "G8 / TL-W4 remain open. This session had no Bucket/R2/CDN secrets.",
+    "Owner Windows worktrees were not refreshed; UX39_STORAGE.md cites UX-00 plus the later UX-34 measure worktree.",
+    "No NSIS/macOS/Linux GUI proof.",
+    "No current-Codex feature-parity claim.",
+    "September and site work were not resumed."
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX39.json"
+}

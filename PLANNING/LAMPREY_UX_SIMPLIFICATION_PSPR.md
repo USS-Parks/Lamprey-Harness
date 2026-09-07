@@ -478,10 +478,11 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Disposition (2026-09-07):** GitHub tag `v0.33.0` and six assets exist from producer `34078809766` on source `0b49c399a45e3aeffc94280b2dcd3e429179f83a`. Local `dist/Lamprey-0.33.0-x64.exe` sha256 matches the GitHub EXE. README downloads point at v0.33.0. `v0.32.0` was not overwritten. G8 remains open: this session has no Bucket/R2/CDN secrets, and Windows package smoke was not run. Owner leftover is in `PLANNING/evidence/ux-simplification/UX38.json`.
 
 #### UX-39 — Close the UX roster and publish the final evidence
-- [ ] **Objective:** leave an auditable release and an honest workspace handoff.
+- [x] **Objective:** leave an auditable release and an honest workspace handoff.
 - **Work:** reconcile all prompt receipts/commit SHAs, DEVLOG, plan statuses, final acceptance and retained limitations. Record worktree/storage inventories and the status of earlier paused September/site work without silently resuming it. Commit only scoped closeout files and push through normal checks.
 - **Seams/output:** final UX report, receipt index, this PSPR's execution history and documentation closeout.
 - **Gate:** all approved prompts have verified dispositions; exact final main SHA and required GitHub checks are green; tag remains bound to its tested release source with any later docs-only delta disclosed. Report directly visible installer path, manifest, source/release URLs, preserved dirty files and each retained worktree's purpose/state/unpublished work/size/blocker. Completion does not imply deletion authorization or an absence of all possible defects.
+- **Disposition (2026-09-07):** Source roster UX-00–UX-37 is complete. GitHub v0.33.0 is published from `0b49c39`. UX-38 leftover (G8 / CDN / Windows package smoke) is named in `UX38.json` and `UX39_REPORT.md`. Worktree inventory is `UX39_STORAGE.md`. September/site work was not resumed. Tag was not moved.
 
 ## 6. Suggestion coverage and acceptance ledger
 
@@ -533,5 +534,9 @@ Execution update: UX-02 technical mockup checks passed; user explicitly waived t
 Authored and reviewed by Basho Parks, copyright 2026
 
 Execution update 2026-09-07: UX-38 GitHub tag `v0.33.0` and six assets exist from producer `34078809766`. G8 / CDN / Windows package smoke remain open. Owner leftover is in `PLANNING/evidence/ux-simplification/UX38.json`. UX-39 is next.
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+Execution update 2026-09-07: UX-39 closeout is recorded. Initiative status is source-and-GitHub complete, G8 open. See `PLANNING/evidence/ux-simplification/UX39_REPORT.md`.
 
 Authored and reviewed by Basho Parks, copyright 2026

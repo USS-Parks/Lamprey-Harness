@@ -1,3 +1,27 @@
+## 2026-09-07 - UX-39: Close the UX simplification roster
+
+Receipt index, storage inventory and final report are in `PLANNING/evidence/ux-simplification/`. Tag `v0.33.0` remains peeled to `0b49c39`. Docs after the tag are UX-38 `e213c29` and the AST-timeout retry `ad16e09`. G8 / TL-W4 stay open. September and site leftovers were not resumed. No worktree was deleted.
+
+**Files changed:** `PLANNING/evidence/ux-simplification/UX39.json`, `UX39_RECEIPT_INDEX.md`, `UX39_REPORT.md`, `UX39_STORAGE.md`, `PLANNING/LAMPREY_UX_SIMPLIFICATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- hosted CI+Build on `ad16e09` green (CI 34079950889, Build 34079950970)
+- docs-only closeout; tsc/lint run by the commit hook
+- user-verification-needed: owner Bucket `-NoTag` plus optional Windows package smoke
+
+**Notes:** Initiative is source-and-GitHub complete, not G8 complete.
+
+## 2026-09-07 - UX-38: PowerShell AST inspect timeout on Windows CI
+
+Hosted `test (windows-latest)` on `e213c29` failed two BD-4 cases because `spawnSync powershell.exe` returned `ETIMEDOUT` at the 3s cap. The inspector correctly failed closed as `uninspectable`. The timeout is now 15s with one retry so a cold Windows runner can still parse ordinary commands.
+
+**Files changed:** `electron/services/dangerous-command-policy.ts`, `DEVLOG.md`
+**Verify gate:**
+- hosted CI `34079669510` windows-latest failed on ETIMEDOUT
+- ubuntu + native-db on that run succeeded
+- follow-up hosted CI on this commit
+
+**Notes:** Docs-only UX-38 did not cause the flake. Fail-closed behavior is unchanged when both attempts time out.
+
 ## 2026-09-07 - UX-38: GitHub v0.33.0 published, CDN leftover
 
 Tag `v0.33.0` is bound to source `0b49c399a45e3aeffc94280b2dcd3e429179f83a`. Actions run `34078809766` attached all six assets. Local `dist/Lamprey-0.33.0-x64.exe` sha256 `2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f` matches the GitHub EXE. README download links point at v0.33.0. Tag `v0.32.0` and its six files remain. This Linux session has no `.bucket.json`, AWS credentials or Cloudflare token, so G8 / TL-W4 stay open. Windows NSIS/portable GUI smoke was not run. Exact owner leftover is in `PLANNING/evidence/ux-simplification/UX38.json`.

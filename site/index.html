@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Lamprey</title>
+<meta name="description" content="Lamprey — an open-source desktop coding harness. Download for Windows, macOS, and Linux.">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --panel: #ffffff;
+    --ink: #1d2321;
+    --muted: #5d6a64;
+    --accent: #2e7d5b;
+    --accent-ink: #ffffff;
+    --edge: #e3ded4;
+    --code-bg: #eeebe3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161a18;
+      --panel: #1f2523;
+      --ink: #e8ebe8;
+      --muted: #9aa8a1;
+      --accent: #3f9e75;
+      --accent-ink: #0d1411;
+      --edge: #2c3431;
+      --code-bg: #121614;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 20px 64px; }
+  header { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }
+  header img { width: 72px; height: 72px; border-radius: 16px; }
+  h1 { margin: 0; font-size: 2rem; letter-spacing: -0.5px; }
+  .tagline { color: var(--muted); margin: 2px 0 0; }
+  .version { color: var(--muted); font-size: 0.95rem; margin: 18px 0 26px; }
+  .version strong { color: var(--ink); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card h2 { margin: 0; font-size: 1.05rem; }
+  .card .sub { color: var(--muted); font-size: 0.88rem; margin: 0; flex: 1; }
+  .btn {
+    display: inline-block;
+    text-align: center;
+    background: var(--accent);
+    color: var(--accent-ink);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+  .btn.alt { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  section { margin-top: 40px; }
+  section h2 { font-size: 1.25rem; margin-bottom: 8px; }
+  ol { padding-left: 22px; }
+  ol li { margin: 8px 0; }
+  code, pre {
+    background: var(--code-bg);
+    border-radius: 8px;
+    font: 0.9rem/1.5 ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  code { padding: 2px 6px; }
+  pre { padding: 12px 14px; overflow-x: auto; }
+  .note { color: var(--muted); font-size: 0.92rem; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--edge); padding-top: 18px; }
+  footer a, section a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="" width="72" height="72">
+    <div>
+      <h1>Lamprey</h1>
+      <p class="tagline">An open-source desktop coding harness. 33 providers, your keys, your machine.</p>
+    </div>
+  </header>
+
+  <p class="version">Latest release: <strong id="version">v0.33.1</strong><span id="reldate"></span> &middot; <a id="notes" href="https://github.com/USS-Parks/Lamprey-Harness/releases/latest">release notes</a></p>
+
+  <div class="cards">
+    <div class="card" data-os="win">
+      <h2>Windows</h2>
+      <p class="sub">x64 &middot; installer or portable ZIP</p>
+      <a class="btn" href="https://github.com/USS-Parks/Lamprey-Harness/releases/latest/download/Lamprey-x64.exe">Download installer</a>
+      <a class="btn alt" href="https://github.com/USS-Parks/Lamprey-Harness/releases/latest/download/Lamprey-x64.zip">Portable ZIP</a>
+    </div>
+    <div class="card" data-os="mac">
+      <h2>macOS</h2>
+      <p class="sub">Apple Silicon &middot; DMG &middot; see first-launch steps below</p>
+      <a class="btn" href="https://github.com/USS-Parks/Lamprey-Harness/releases/latest/download/Lamprey-arm64.dmg">Download DMG</a>
+    </div>
+    <div class="card" data-os="linux">
+      <h2>Linux</h2>
+      <p class="sub">x64 &middot; AppImage &middot; <code>chmod +x</code>, then run</p>
+      <a class="btn" href="https://github.com/USS-Parks/Lamprey-Harness/releases/latest/download/Lamprey-x86_64.AppImage">Download AppImage</a>
+    </div>
+  </div>
+
+  <section id="mac-first-launch">
+    <h2>macOS first launch</h2>
+    <p>Lamprey is open source and not yet notarized with Apple, so macOS asks before the first run. Once, then never again:</p>
+    <ol>
+      <li>Open the DMG and drag <strong>Lamprey</strong> into <strong>Applications</strong>.</li>
+      <li>Right-click <strong>Lamprey</strong> in Applications and choose <strong>Open</strong>, then <strong>Open</strong> again.</li>
+      <li>If macOS still declines: open <strong>System Settings &rarr; Privacy &amp; Security</strong>, scroll down, and press <strong>Open Anyway</strong> next to Lamprey.</li>
+    </ol>
+    <p>Prefer the Terminal? This one line clears the first-launch prompt entirely:</p>
+    <pre>xattr -cr /Applications/Lamprey.app</pre>
+    <p class="note">If you downloaded a DMG before v0.33.1 and saw &ldquo;Lamprey is damaged and can&rsquo;t be opened&rdquo;, that build had a packaging defect &mdash; delete it and download again above.</p>
+  </section>
+
+  <section>
+    <h2>Windows note</h2>
+    <p class="note">The installer is not yet code-signed, so SmartScreen may interject: choose <strong>More info &rarr; Run anyway</strong>. Auto-update keeps you current after that.</p>
+  </section>
+
+  <footer>
+    <p><a href="https://github.com/USS-Parks/Lamprey-Harness">Source on GitHub</a> &middot; <a href="https://github.com/USS-Parks/Lamprey-Harness/releases">All releases</a></p>
+    <p>Authored and reviewed by Basho Parks, copyright 2026</p>
+  </footer>
+</main>
+<script>
+  // Highlight the visitor's platform card.
+  (function () {
+    var ua = navigator.userAgent;
+    var os = /Macintosh|Mac OS X/.test(ua) ? 'mac' : /Linux/.test(ua) && !/Android/.test(ua) ? 'linux' : /Windows/.test(ua) ? 'win' : null;
+    if (os) {
+      var card = document.querySelector('.card[data-os="' + os + '"]');
+      if (card) card.classList.add('mine');
+    }
+  })();
+  // Live version text; the download links are evergreen either way.
+  fetch('https://api.github.com/repos/USS-Parks/Lamprey-Harness/releases/latest')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rel) {
+      if (!rel || !rel.tag_name) return;
+      document.getElementById('version').textContent = rel.tag_name;
+      if (rel.published_at) {
+        document.getElementById('reldate').textContent = ' (' + rel.published_at.slice(0, 10) + ')';
+      }
+      document.getElementById('notes').href = rel.html_url;
+    })
+    .catch(function () {});
+</script>
+</body>
+</html>

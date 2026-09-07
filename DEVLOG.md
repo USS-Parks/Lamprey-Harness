@@ -1,3 +1,16 @@
+## 2026-09-07 - Pages download page with evergreen links and macOS first-launch flow
+
+The repo's GitHub Pages site 404ed at its root (legacy branch build, no index ever committed) while customers hunted for working installers. New `site/index.html` is a self-contained download page: evergreen `releases/latest/download/` links that never go stale, the visitor's platform highlighted, live version text from the GitHub releases API (static v0.33.1 fallback), a three-step macOS first-launch section with the `xattr -cr` one-liner, and the SmartScreen note for Windows. Deployment moves off the racing legacy path onto `.github/workflows/pages.yml` (Pages `build_type: workflow`) with `concurrency: { group: pages, cancel-in-progress: false }` per CANON §12. README's stale "GitHub Latest is v0.33.0" sentence corrected.
+
+**Files changed:** `site/index.html`, `site/icon.png` (copy of `ASSETS/Lamprey Desktop Icon-1.png`), `.github/workflows/pages.yml`, `README.md`, `DEVLOG.md`
+**Verify gate:**
+- Deploy Pages run green on main; page serves 200 at the Pages URL
+- DMG link resolves through `releases/latest/download/` to the v0.33.1 asset (content-length 312621874)
+- Pages `build_type` reads `workflow` via the API after the flip
+- docs/site-only; tsc/lint run by the commit hook
+
+**Notes:** Real macOS de-clunking beyond copy is notarization — an owner action (Apple Developer enrollment); CI is ready to grow an env-gated sign+notarize step once credentials exist.
+
 ## 2026-09-07 - v0.33.1: macOS DMG install fix (ad-hoc re-sign in afterPack)
 
 Customers reported v0.33.0 install failures, loudest from DMG users, with all four installers suspected corrupt. Verification cleared the bytes: the GitHub v0.33.0 EXE sha512 matches `latest.yml`, the DMG carries a valid `koly` trailer, the AppImage is a well-formed type-2 ELF, the ZIP's 577 entries match v0.32.0's listing, and the CDN DMG is sha256-identical to the GitHub DMG. The ~15 MB per-artifact shrink against v0.32.0 is entirely `resources/app.asar`: sixteen launcher/env-card icon PNGs stopped being bundled when UX simplification deleted the eleven-card launcher that imported them. Benign.

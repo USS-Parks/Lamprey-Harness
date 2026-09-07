@@ -44,10 +44,10 @@ paid certificate and unnotarized.
 **Previously in v0.33.0 — Simpler daily work.** One task sidebar, a conversation
 column and an optional workspace replace the old eleven-card launcher as
 the daily path. Settings are six searchable groups; Commands (`Ctrl+K`)
-still find old names. GitHub Latest is **v0.33.0** (source
-`0b49c399a45e3aeffc94280b2dcd3e429179f83a`); README download links point
-there. v0.32.0 remains published and was not overwritten. CDN/R2 closeout
-is still TL-W4. These CI bytes have not been install-smoked on Windows.
+still find old names. Published from source
+`0b49c399a45e3aeffc94280b2dcd3e429179f83a`; superseded by v0.33.1, whose
+GitHub and CDN bytes are hash-verified against one source-bound manifest.
+v0.32.0 remains published and was not overwritten.
 
 **Previously in v0.32.0 — Reliability and verification repairs.** The production
 embedding worker is packaged, and sqlite-vec loads from the unpacked ASAR

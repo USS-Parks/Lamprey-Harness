@@ -12,9 +12,9 @@ After the user explicitly approves a P-SPR or says to run it STS, execute the ro
 
 | File | Role |
 |------|------|
-| `LAMPREY_UX_SIMPLIFICATION_PSPR.md` | **Current approved P-SPR** — UX-00–UX-39, authorized v0.33.0. Source candidate is versioned; tag unpublished until UX-38. README downloads still serve v0.32.0. |
+| `LAMPREY_UX_SIMPLIFICATION_PSPR.md` | **Current approved P-SPR** — UX-00–UX-39. GitHub **v0.33.0** is published; README downloads point there. CDN/TL-W4 remains open. |
 | `LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md` | September remediation P-SPR — SR-00 through SR-38. Publication succeeded as v0.32.0; leftover CDN/TL-W4 and install-smoke rows remain open. |
-| `LAMPREY_TRIPLE_LANE_PLAN.md` | Triple Lane B/C shipped as **v0.31.0** (not source-wrap-only). GitHub tag v0.31.0 still exists (tag workflow 32671185022). Current advertised GitHub installer is **v0.32.0**; README download links point there. Auto-update follows GitHub, not CDN. A Bucket run attempted R2 + CDN purge and then lost the GitHub Windows upload race to CI (PR #5). `scripts/bucket.ps1` later gained retry/reconcile; that does not close TL-W4. TL-W4 stays [ ] until GitHub asset sha256 == local dist/ == CDN is proven, or Bucket is re-run. Do not send operators to the v0.31.0 installer. |
+| `LAMPREY_TRIPLE_LANE_PLAN.md` | Triple Lane B/C shipped as **v0.31.0** (not source-wrap-only). GitHub tag v0.31.0 still exists (tag workflow 32671185022). Current advertised GitHub installer is **v0.33.0**; README download links point there. v0.32.0 remains published. Auto-update follows GitHub, not CDN. A Bucket run attempted R2 + CDN purge and then lost the GitHub Windows upload race to CI (PR #5). `scripts/bucket.ps1` later gained retry/reconcile; that does not close TL-W4. TL-W4 stays [ ] until GitHub asset sha256 == local dist/ == CDN is proven, or Bucket is re-run. Do not send operators to the v0.31.0 installer. |
 | `LAMPREY_AUGUST_2026_AUDIT_PLAN.md` | Draft P-SPR — August 2026 Audit Closure (OA-1 … OA-WRAP). **PENDING** approval. Target v0.32.0. |
 | `TL_BASELINE.md` | Triple Lane baseline (tip, touchpoints, Lane C audit) |
 | `TL_CLAUDE_CODE_INVENTORY.md` | Lane A inventory + empty pick list (K12) |

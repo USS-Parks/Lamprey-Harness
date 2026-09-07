@@ -1,0 +1,50 @@
+{
+  "prompt": "UX-38",
+  "version": "0.33.0",
+  "tag": "v0.33.0",
+  "source": "0b49c399a45e3aeffc94280b2dcd3e429179f83a",
+  "producer": 34078809766,
+  "producerUrl": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34078809766",
+  "releaseUrl": "https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.33.0",
+  "v0320Preserved": true,
+  "assets": [
+    {
+      "name": "Lamprey-x64.exe",
+      "size": 287475011,
+      "sha256": "2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f"
+    },
+    {
+      "name": "Lamprey-x64.exe.blockmap",
+      "size": 298470,
+      "sha256": "8d403f5cdb89cbc7b1306901b162a32e3611105cb7ac8191e11378ffaf953cb1"
+    },
+    {
+      "name": "Lamprey-x64.zip",
+      "size": 388410562,
+      "sha256": "757db054c6a41a110b1f8ae2b61b9ed29238c1ed14c0012d3857c9f63252e9b4"
+    },
+    {
+      "name": "latest.yml",
+      "size": 328,
+      "sha256": "8c1e951ebc5342093f144a9e03887706b301d5482f7cd0f033c40f9f9e169416"
+    },
+    {
+      "name": "Lamprey-arm64.dmg",
+      "size": 313704950,
+      "sha256": "690a5939c479ce90d69a6fefe74c1accf4ba558a8196035333c3e460987afee4"
+    },
+    {
+      "name": "Lamprey-x86_64.AppImage",
+      "size": 525442898,
+      "sha256": "a529d46307d1ced8d548803ed740344f904f1c09ec5777bc7b99983e4ee7ad98"
+    }
+  ],
+  "versionedInstaller": {
+    "name": "Lamprey-0.33.0-x64.exe",
+    "size": 287475011,
+    "sha256": "2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f",
+    "matchesExe": true
+  },
+  "latestYmlSha512MatchesExe": true,
+  "cdn": "blocked: no .bucket.json, AWS credentials, or Cloudflare token in this session"
+}

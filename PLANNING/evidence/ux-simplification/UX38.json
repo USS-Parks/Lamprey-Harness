@@ -1,0 +1,45 @@
+{
+  "prompt": "UX-38",
+  "sourceBase": "0b49c399a45e3aeffc94280b2dcd3e429179f83a",
+  "status": "github-published-g8-blocked",
+  "g8": false,
+  "tlW4": false,
+  "version": "0.33.0",
+  "tag": "v0.33.0",
+  "tagAnnotated": "8e9d3baafcc1f3b2b58d195bbde92f4ac022f577",
+  "tagPeeled": "0b49c399a45e3aeffc94280b2dcd3e429179f83a",
+  "producer": 34078809766,
+  "producerUrl": "https://github.com/USS-Parks/Lamprey-Harness/actions/runs/34078809766",
+  "releaseUrl": "https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.33.0",
+  "v0320Preserved": true,
+  "v0320Url": "https://github.com/USS-Parks/Lamprey-Harness/releases/tag/v0.32.0",
+  "readmeDownloads": "v0.33.0",
+  "hashes": "PLANNING/evidence/ux-simplification/UX38_GITHUB_HASHES.json",
+  "localDist": {
+    "versionedInstaller": "dist/Lamprey-0.33.0-x64.exe",
+    "sha256": "2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f",
+    "matchesGithubExe": true,
+    "nestedBucket": "dist/bucket-v0.33.0-0b49c39",
+    "latestYmlSha256": "8c1e951ebc5342093f144a9e03887706b301d5482f7cd0f033c40f9f9e169416"
+  },
+  "cdn": "blocked: no .bucket.json, AWS credentials, or Cloudflare token in this Linux session",
+  "packageSmoke": false,
+  "macosLinuxGuiSmoke": false,
+  "ownerOnlyLeftover": [
+    "On the Windows primary checkout (not a worktree): run pwsh scripts/bucket-setup.ps1 if .bucket.json or R2 credentials are missing.",
+    "Fast-forward that checkout to origin/main. Do not move tag v0.33.0; it already points at 0b49c399a45e3aeffc94280b2dcd3e429179f83a.",
+    "pwsh scripts/bucket.ps1 -NoTag — download the six producer files, mirror to R2, purge CDN, prove GitHub sha256 == local dist/ == CDN.",
+    "Confirm dist/Lamprey-0.33.0-x64.exe sha256 2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f.",
+    "Paste RELEASE_NOTES/v0.33.0.md into the GitHub release body (this session cannot edit releases).",
+    "Optional: Windows portable/NSIS install smoke of those exact bytes.",
+    "Do not overwrite, retag, or delete v0.32.0."
+  ],
+  "limitations": [
+    "G8 is not closed. CDN/R2 hashes were not measured.",
+    "Windows packaged install smoke was not run.",
+    "macOS DMG and Linux AppImage were not GUI-smoked.",
+    "No current-Codex feature-parity claim.",
+    "gh in this session is read-only, so the GitHub release body was not rewritten from RELEASE_NOTES/v0.33.0.md."
+  ],
+  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX38.json"
+}

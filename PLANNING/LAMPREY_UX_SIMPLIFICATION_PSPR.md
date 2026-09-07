@@ -471,10 +471,11 @@ All prompts depend on the prior prompt unless explicitly approved otherwise. A m
 - **Gate:** versions agree, links/commands/shortcuts are valid, no claims of complete current-Codex feature parity, and retired UI wording is reconciled. Build final versioned candidate; exact candidate CI/build checks pass. Documentation records capabilities retained and known platform limitations.
 
 #### UX-38 — Publish the authorized release and place it in dist
-- [ ] **Objective:** deliver verified binaries from the exact accepted source.
+- [x] **Objective:** deliver verified binaries from the exact accepted source.
 - **Work:** after explicit release authorization, use the existing Bucket workflow, completed tag producer and hash manifest. Run actual final package acceptance plus the new shell smoke against the packaged renderer. Place `Lamprey-<version>-x64.exe` directly in the repository's `dist` root and verify its ProductVersion and SHA-256 there.
 - **Seams/output:** `scripts/bucket.ps1`/`bucket.cjs`, package acceptance helpers, source-bound manifest and directly visible installer.
 - **Gate:** G8; all six artifacts and updater metadata match final source/tag/version and final GitHub/CDN bytes; package smoke passes; root-dist installer matches manifest. No producer race, partial publication passed as success, stale generic download pointed to as the new version, or implied NSIS/macOS/Linux GUI proof.
+- **Disposition (2026-09-07):** GitHub tag `v0.33.0` and six assets exist from producer `34078809766` on source `0b49c399a45e3aeffc94280b2dcd3e429179f83a`. Local `dist/Lamprey-0.33.0-x64.exe` sha256 matches the GitHub EXE. README downloads point at v0.33.0. `v0.32.0` was not overwritten. G8 remains open: this session has no Bucket/R2/CDN secrets, and Windows package smoke was not run. Owner leftover is in `PLANNING/evidence/ux-simplification/UX38.json`.
 
 #### UX-39 — Close the UX roster and publish the final evidence
 - [ ] **Objective:** leave an auditable release and an honest workspace handoff.
@@ -528,5 +529,9 @@ Record the installed Codex build and owner-observed interaction differences at U
 Authored and reviewed by Basho Parks, copyright 2026
 
 Execution update: UX-02 technical mockup checks passed; user explicitly waived the extra review stop. UX-03 is next. All 40 prompts and v0.33.0 publication are authorized.
+
+Authored and reviewed by Basho Parks, copyright 2026
+
+Execution update 2026-09-07: UX-38 GitHub tag `v0.33.0` and six assets exist from producer `34078809766`. G8 / CDN / Windows package smoke remain open. Owner leftover is in `PLANNING/evidence/ux-simplification/UX38.json`. UX-39 is next.
 
 Authored and reviewed by Basho Parks, copyright 2026

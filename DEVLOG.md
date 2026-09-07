@@ -1,3 +1,18 @@
+## 2026-09-07 - UX-38: GitHub v0.33.0 published, CDN leftover
+
+Tag `v0.33.0` is bound to source `0b49c399a45e3aeffc94280b2dcd3e429179f83a`. Actions run `34078809766` attached all six assets. Local `dist/Lamprey-0.33.0-x64.exe` sha256 `2eb7f57ebc97643b5f0d1db3feda215a77580472a44da6ab66094f902b5ee42f` matches the GitHub EXE. README download links point at v0.33.0. Tag `v0.32.0` and its six files remain. This Linux session has no `.bucket.json`, AWS credentials or Cloudflare token, so G8 / TL-W4 stay open. Windows NSIS/portable GUI smoke was not run. Exact owner leftover is in `PLANNING/evidence/ux-simplification/UX38.json`.
+
+**Files changed:** `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `RELEASE_NOTES/v0.33.0.md`, `openwiki/operations/ship-and-bucket.md`, `PLANNING/evidence/ux-simplification/UX38.json`, `UX38_GITHUB_HASHES.json`, `PLANNING/LAMPREY_UX_SIMPLIFICATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- `gh release view v0.33.0` six uploaded assets; digests match `UX38_GITHUB_HASHES.json`
+- `gh release view v0.32.0` still has six assets
+- `sha256sum dist/Lamprey-0.33.0-x64.exe` matches GitHub EXE
+- CDN hashes: blocked
+- package smoke: not run
+- docs-only; tsc/lint run by the commit hook
+
+**Notes:** Do not treat GitHub upload as G8. Commit: this publication-record commit.
+
 ## 2026-09-07 - UX-37: v0.33.0 release metadata
 
 Package and lockfile are 0.33.0. Remote tag and GitHub release are absent. Notes are in `RELEASE_NOTES/v0.33.0.md`. README download links still serve published v0.32.0. Current-state docs name the unpublished candidate. No Codex-parity or CDN/TL-W4-closed claim.

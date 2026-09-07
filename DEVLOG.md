@@ -1,3 +1,16 @@
+## [Docs] Point README downloads at GitHub v0.32.0  —  2026-09-07
+
+**Files changed:** `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node — docs-only; not rerun
+- tsc web — docs-only; not rerun
+- vitest — docs-only; not rerun
+- GitHub Latest `v0.32.0` confirmed; `latest.yml` version 0.32.0; EXE size 301943045 matches the published asset digest. No EXE/AppImage download or packaged install smoke in this session.
+
+**Notes:** Homepage table and New-in copy now serve GitHub v0.32.0. Current-state docs stop claiming README points at Triple Lane. SR-38 leftover recorded: README retarget done; CDN/TL-W4, SR-37 install smoke, and storage inventory stay open. Historical evidence JSON left untouched. No tag or release created.
+
+**Commit:** `9166903`
+
 ## 2026-09-06 - UX-33: Integrated performance measurement
 
 The existing isolated Electron runner now has a focused performance mode, retaining the UX-00 history, tools, task count, local streaming source, timing boundaries and five repeat runs. Ten actual workspace resources are open. Separate CPU profiles cover task switching, cached panel opening and streaming typing after the timed runs. A fixture-only session preload counts IPC listeners without changing production preload code. Native browser views, terminal PID and all 52 IPC channel counts stay stable across ten close/open/task-switch cycles; final profile/server/process cleanup passes.

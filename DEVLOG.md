@@ -1,3 +1,18 @@
+## 2026-09-07 - v0.33.1: macOS DMG install fix (ad-hoc re-sign in afterPack)
+
+Customers reported v0.33.0 install failures, loudest from DMG users, with all four installers suspected corrupt. Verification cleared the bytes: the GitHub v0.33.0 EXE sha512 matches `latest.yml`, the DMG carries a valid `koly` trailer, the AppImage is a well-formed type-2 ELF, the ZIP's 577 entries match v0.32.0's listing, and the CDN DMG is sha256-identical to the GitHub DMG. The ~15 MB per-artifact shrink against v0.32.0 is entirely `resources/app.asar`: sixteen launcher/env-card icon PNGs stopped being bundled when UX simplification deleted the eleven-card launcher that imported them. Benign.
+
+The real defect: CI skips macOS signing (`CSC_IDENTITY_AUTO_DISCOVERY: false`, June-era), and electron-builder's pack step edits Info.plist and renames the executable, breaking the upstream Electron ad-hoc seal. A quarantined app with a broken seal is refused by macOS with "Lamprey is damaged and can't be opened" and no bypass — reported as a corrupt DMG. Fix: the afterPack hook (renamed `scripts/embed-win-icon.js` → `scripts/after-pack.js`) now ad-hoc signs and codesign-verifies the .app on darwin before DMG creation; the Windows rcedit branch is unchanged. Right-click → Open / Privacy & Security approval works again. Developer ID + notarization remain owner actions.
+
+**Files changed:** `scripts/after-pack.js` (renamed from `scripts/embed-win-icon.js`), `electron-builder.yml`, `package.json`, `package-lock.json`, `README.md`, `RELEASE_NOTES/v0.33.1.md`, `DEVLOG.md`
+**Verify gate:**
+- byte verification of all four published v0.33.0 artifacts (hashes, container magic, zip/asar content diffs) as above
+- darwin hook path exercised only on the tag CI run: its log must show `[after-pack] ad-hoc signing` + `codesign verify passed`
+- post-publication: download the v0.33.1 DMG and confirm the app bundle carries a signature
+- user-verification-needed: a real macOS first-launch check
+
+**Notes:** v0.32.0's DMG has the same defect; v0.33.1 is the fixed channel. CDN mirror update follows publication.
+
 ## 2026-09-07 - UX-39: Close the UX simplification roster
 
 Receipt index, storage inventory and final report are in `PLANNING/evidence/ux-simplification/`. Tag `v0.33.0` remains peeled to `0b49c39`. Docs after the tag are UX-38 `e213c29` and the AST-timeout retry `ad16e09`. G8 / TL-W4 stay open. September and site leftovers were not resumed. No worktree was deleted.

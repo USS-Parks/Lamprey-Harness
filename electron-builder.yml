@@ -2,7 +2,7 @@ appId: com.lamprey.harness
 productName: Lamprey
 copyright: Copyright © 2026 Basho Parks
 
-afterPack: scripts/embed-win-icon.js
+afterPack: scripts/after-pack.js
 
 directories:
   output: dist

@@ -23,16 +23,25 @@ Conversations and control state live in SQLite on your machine. API keys are sto
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.0/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.0/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.0/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.0/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-x86_64.AppImage) |
 
-> **macOS note:** The DMG is unsigned. On first launch, right-click the app &rarr; Open &rarr; Open to bypass Gatekeeper.
+> **macOS note:** The app is ad-hoc signed, not notarized. On first launch, right-click the app &rarr; Open &rarr; Open, or approve it under System Settings &rarr; Privacy & Security.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.33.0 — Simpler daily work.** One task sidebar, a conversation
+**New in v0.33.1 — macOS install fix.** The v0.32.0 and v0.33.0 DMGs shipped
+an app whose code seal was broken by packaging (signing was skipped in CI),
+so quarantined installs failed with macOS's "Lamprey is damaged and can't be
+opened" — no bypass offered. The build now ad-hoc re-signs the app bundle
+before the DMG is created, restoring the normal unidentified-developer open
+flow. Windows, ZIP and AppImage bytes were verified intact; their content is
+unchanged from v0.33.0 apart from the version. Builds remain unsigned by a
+paid certificate and unnotarized.
+
+**Previously in v0.33.0 — Simpler daily work.** One task sidebar, a conversation
 column and an optional workspace replace the old eleven-card launcher as
 the daily path. Settings are six searchable groups; Commands (`Ctrl+K`)
 still find old names. GitHub Latest is **v0.33.0** (source

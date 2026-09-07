@@ -1,56 +1,21 @@
 {
   "prompt": "UX-34",
   "sourceBase": "54eae2cf4eec13b7c08df0c1d4bd5827d7be8a57",
-  "status": "source-repair",
-  "performanceAccepted": false,
-  "remainingFailures": [
-    "taskSwitch",
-    "taskFeedback"
-  ],
-  "remainingGate": "G5 same-hardware remeasure",
-  "remeasureCommand": "node scripts/acceptance/ux.cjs PLANNING/evidence/ux-simplification/UX34_RUN --performance-only",
-  "remeasureMachine": "UX-00/UX-33 AMD Ryzen 7 5800H Windows 10.0.26200 Electron 43 / 1440x902 CSS at DPR 1.25",
-  "testsPassed": 24,
-  "affectedTests": [
-    "src/lib/transcript-window.test.ts",
-    "src/lib/format-message-time.test.ts",
-    "src/lib/renderer-paint.test.ts",
-    "src/lib/transcript-reveal.test.ts",
-    "src/components/chat/ux34-responsiveness.test.ts",
-    "src/components/chat/era-chrome.test.ts",
-    "electron/services/renderer-turn-state-wiring.test.ts"
-  ],
-  "changedPaths": [
-    "src/lib/transcript-window.ts",
-    "src/lib/transcript-window.test.ts",
-    "src/lib/format-message-time.ts",
-    "src/lib/format-message-time.test.ts",
-    "src/lib/renderer-paint.ts",
-    "src/lib/renderer-paint.test.ts",
-    "src/lib/transcript-reveal.ts",
-    "src/lib/transcript-reveal.test.ts",
-    "src/stores/chat-store.ts",
-    "src/components/chat/MessageList.tsx",
-    "src/components/chat/MessageBubble.tsx",
-    "src/components/chat/ChapterSidebar.tsx",
-    "src/components/chat/ChapterQuickJumper.tsx",
-    "src/components/chat/ux34-responsiveness.test.ts",
-    "electron/services/renderer-turn-state-wiring.test.ts",
-    "PLANNING/UX_PERFORMANCE_BEFORE_AFTER.md",
-    "PLANNING/evidence/ux-simplification/UX34.json",
-    "DEVLOG.md"
-  ],
-  "fix": {
-    "taskFeedback": "selectConversation waits two animation frames after clearing the transcript and setting messagesLoading so Loading task can paint before 1,000 rows apply",
-    "taskSwitch": "MessageList mounts the newest 36 rows first, then reveals older rows in batches of 48 after three frames; chapter jumps reveal the full transcript first",
-    "formatTime": "MessageBubble uses a per-minute cache instead of toLocaleTimeString on every row"
+  "sourceSha": "b06a016eaf07eda5bda9434acabc02df6d175596",
+  "status": "complete",
+  "performanceAccepted": true,
+  "remainingFailures": [],
+  "capture": {
+    "path": "PLANNING/evidence/ux-simplification/UX34_G5",
+    "machine": "AMD Ryzen 7 5800H",
+    "platform": "10.0.26200",
+    "electron": "43.0.0",
+    "viewport": { "width": 1440, "height": 902, "dpr": 1.25 },
+    "lifecyclePassed": true
   },
-  "limitations": [
-    "G5 absolute and relative targets are not accepted. This session is a Linux cloud agent and cannot rerun the UX-33 Electron fixture on the UX-00 Windows machine.",
-    "No production bundle, Electron binary, or isolated fixture profile was launched here.",
-    "Virtualization was not added. Older history is deferred and then revealed, which is the traced mount cost.",
-    "Milestone G storage closeout of the owner's worktrees was not refreshed from this machine."
-  ],
-  "commitLookup": "git log -1 --diff-filter=A --format=%H -- PLANNING/evidence/ux-simplification/UX34.json",
-  "review": "source-repair"
+  "comparison": {
+    "taskSwitch": { "p95Median": 57, "absoluteLimit": 250, "absolutePass": true, "relativePass": true, "baselineMedian": 446.2 },
+    "taskFeedback": { "p95Median": 39.9, "absoluteLimit": 100, "absolutePass": true }
+  },
+  "notes": "G5 Fire-Starter capture 2026-09-07. UX-33 remainingFailures (taskSwitch, taskFeedback) cleared. typing absolutePass false on one-run 100.5 spike (median 77.4) is outside UX-34 remainingFailures."
 }

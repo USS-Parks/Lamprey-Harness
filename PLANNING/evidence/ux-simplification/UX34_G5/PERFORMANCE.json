@@ -1,0 +1,1501 @@
+{
+  "capturedAt": "2026-09-07T02:46:43.178Z",
+  "source": "b06a016eaf07eda5bda9434acabc02df6d175596",
+  "runtime": {
+    "node": "24.17.0",
+    "acorn": "8.16.0",
+    "ada": "3.4.4",
+    "amaro": "1.1.9",
+    "ares": "1.34.6",
+    "brotli": "1.2.0",
+    "cldr": "48.0",
+    "icu": "78.2",
+    "llhttp": "9.4.2",
+    "merve": "1.2.2",
+    "modules": "148",
+    "napi": "10",
+    "nbytes": "0.1.4",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.69.0",
+    "nghttp3": "",
+    "ngtcp2": "",
+    "openssl": "0.0.0",
+    "simdjson": "4.6.1",
+    "simdutf": "7.7.0",
+    "sqlite": "3.53.0",
+    "tz": "2025c",
+    "undici": "7.28.0",
+    "unicode": "17.0",
+    "uv": "1.52.1",
+    "uvwasi": "0.0.23",
+    "v8": "15.0.245.13-electron.0",
+    "zlib": "1.3.2.1-motley",
+    "zstd": "1.6.0",
+    "electron": "43.0.0",
+    "chrome": "150.0.7871.46"
+  },
+  "platform": {
+    "release": "10.0.26200",
+    "cpu": "AMD Ryzen 7 5800H with Radeon Graphics         "
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 902,
+    "dpr": 1.25
+  },
+  "seeded": {
+    "messages": 1000,
+    "tools": 200
+  },
+  "taskCount": 50,
+  "resourceNames": [
+    "Files",
+    "Side chat",
+    "Browser",
+    "Review",
+    "Environment",
+    "Sources",
+    "Artifacts",
+    "Plan",
+    "Background tasks",
+    "After action"
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "typing": {
+        "samples": [
+          66.60000014305115,
+          64.90000009536743,
+          74.40000009536743,
+          77.40000009536743,
+          96.5,
+          11.399999856948853,
+          8.700000047683716,
+          10,
+          9.899999856948853,
+          9.899999856948853,
+          11.200000047683716,
+          10.099999904632568,
+          9.799999952316284,
+          9.800000190734863,
+          8.799999952316284,
+          9.899999856948853,
+          14.599999904632568,
+          9.700000047683716,
+          14.599999904632568,
+          13.399999856948853,
+          14.199999809265137,
+          10.799999952316284,
+          12,
+          11.799999952316284,
+          13.799999952316284,
+          9.900000095367432,
+          9,
+          9.700000047683716,
+          10.799999952316284,
+          10.799999952316284
+        ],
+        "p50": 10.799999952316284,
+        "p95": 77.40000009536743
+      },
+      "taskSwitch": {
+        "samples": [
+          42.299999952316284,
+          57,
+          38,
+          49.60000014305115
+        ],
+        "p50": 42.299999952316284,
+        "p95": 57
+      },
+      "taskFeedback": {
+        "samples": [
+          37.39999985694885,
+          39.89999985694885,
+          35.799999952316284,
+          36.80000019073486
+        ],
+        "p50": 36.80000019073486,
+        "p95": 39.89999985694885
+      },
+      "cachedPanelShell": {
+        "samples": [
+          55,
+          53.799999952316284,
+          48.89999985694885
+        ],
+        "p50": 53.799999952316284,
+        "p95": 55
+      }
+    },
+    {
+      "run": 2,
+      "typing": {
+        "samples": [
+          86,
+          70.70000004768372,
+          76.79999995231628,
+          81.70000004768372,
+          35.39999985694885,
+          11.5,
+          10.299999952316284,
+          10,
+          9.599999904632568,
+          10.200000047683716,
+          10.299999952316284,
+          8.599999904632568,
+          9.600000143051147,
+          8.200000047683716,
+          11.700000047683716,
+          10.600000143051147,
+          9.799999952316284,
+          10,
+          9.599999904632568,
+          8.700000047683716,
+          11,
+          11.300000190734863,
+          9.200000047683716,
+          9.400000095367432,
+          9.900000095367432,
+          9.299999952316284,
+          9.099999904632568,
+          8.5,
+          8.299999952316284,
+          9.800000190734863
+        ],
+        "p50": 9.900000095367432,
+        "p95": 81.70000004768372
+      },
+      "taskSwitch": {
+        "samples": [
+          34.89999985694885,
+          51.60000014305115,
+          45.09999990463257,
+          48
+        ],
+        "p50": 45.09999990463257,
+        "p95": 51.60000014305115
+      },
+      "taskFeedback": {
+        "samples": [
+          30,
+          37.90000009536743,
+          38.299999952316284,
+          36.90000009536743
+        ],
+        "p50": 36.90000009536743,
+        "p95": 38.299999952316284
+      },
+      "cachedPanelShell": {
+        "samples": [
+          55.60000014305115,
+          49.60000014305115,
+          62.299999952316284
+        ],
+        "p50": 55.60000014305115,
+        "p95": 62.299999952316284
+      }
+    },
+    {
+      "run": 3,
+      "typing": {
+        "samples": [
+          60.799999952316284,
+          59.89999985694885,
+          70.90000009536743,
+          72.09999990463257,
+          66.10000014305115,
+          12.300000190734863,
+          9.200000047683716,
+          8.200000047683716,
+          8.700000047683716,
+          8.400000095367432,
+          8.400000095367432,
+          8.300000190734863,
+          7.900000095367432,
+          8.299999952316284,
+          8.799999952316284,
+          8.400000095367432,
+          8.100000143051147,
+          8.700000047683716,
+          10,
+          8.5,
+          8.599999904632568,
+          14.700000047683716,
+          9.400000095367432,
+          8.900000095367432,
+          14.400000095367432,
+          13.600000143051147,
+          9.700000047683716,
+          9.200000047683716,
+          9.400000095367432,
+          11.699999809265137
+        ],
+        "p50": 9.200000047683716,
+        "p95": 70.90000009536743
+      },
+      "taskSwitch": {
+        "samples": [
+          62.59999990463257,
+          57.799999952316284,
+          47.69999980926514,
+          43.5
+        ],
+        "p50": 47.69999980926514,
+        "p95": 62.59999990463257
+      },
+      "taskFeedback": {
+        "samples": [
+          57.09999990463257,
+          45,
+          35.799999952316284,
+          28.699999809265137
+        ],
+        "p50": 35.799999952316284,
+        "p95": 57.09999990463257
+      },
+      "cachedPanelShell": {
+        "samples": [
+          44.40000009536743,
+          55,
+          81.5
+        ],
+        "p50": 55,
+        "p95": 81.5
+      }
+    },
+    {
+      "run": 4,
+      "typing": {
+        "samples": [
+          47.69999980926514,
+          67.60000014305115,
+          60.5,
+          69.20000004768372,
+          75.90000009536743,
+          11.700000047683716,
+          9.100000143051147,
+          9.5,
+          8.599999904632568,
+          10,
+          9.200000047683716,
+          11.5,
+          9,
+          9.799999952316284,
+          9,
+          10,
+          9.200000047683716,
+          11.400000095367432,
+          8.700000047683716,
+          9,
+          9,
+          8.600000143051147,
+          10,
+          9,
+          7.799999952316284,
+          8.5,
+          8.599999904632568,
+          10.300000190734863,
+          11.700000047683716,
+          9.400000095367432
+        ],
+        "p50": 9.400000095367432,
+        "p95": 69.20000004768372
+      },
+      "taskSwitch": {
+        "samples": [
+          35.89999985694885,
+          41.80000019073486,
+          48.5,
+          41.5
+        ],
+        "p50": 41.5,
+        "p95": 48.5
+      },
+      "taskFeedback": {
+        "samples": [
+          31,
+          32.700000047683716,
+          41.5,
+          30
+        ],
+        "p50": 31,
+        "p95": 41.5
+      },
+      "cachedPanelShell": {
+        "samples": [
+          60.30000019073486,
+          62.89999985694885,
+          91.19999980926514
+        ],
+        "p50": 62.89999985694885,
+        "p95": 91.19999980926514
+      }
+    },
+    {
+      "run": 5,
+      "typing": {
+        "samples": [
+          94.90000009536743,
+          87.59999990463257,
+          100.5,
+          107.79999995231628,
+          86.59999990463257,
+          37.799999952316284,
+          11.899999856948853,
+          12.299999952316284,
+          11.700000047683716,
+          8.899999856948853,
+          8.5,
+          7.599999904632568,
+          9.799999952316284,
+          7.8999998569488525,
+          10.700000047683716,
+          7.900000095367432,
+          16.5,
+          8.400000095367432,
+          8.5,
+          9.599999904632568,
+          8.299999952316284,
+          8.200000047683716,
+          9,
+          8.899999856948853,
+          9.400000095367432,
+          8.799999952316284,
+          14.099999904632568,
+          9.400000095367432,
+          8.5,
+          8.299999952316284
+        ],
+        "p50": 9.400000095367432,
+        "p95": 100.5
+      },
+      "taskSwitch": {
+        "samples": [
+          36.09999990463257,
+          45.299999952316284,
+          63.200000047683716,
+          38.19999980926514
+        ],
+        "p50": 38.19999980926514,
+        "p95": 63.200000047683716
+      },
+      "taskFeedback": {
+        "samples": [
+          29.799999952316284,
+          33.799999952316284,
+          29.200000047683716,
+          30.199999809265137
+        ],
+        "p50": 29.799999952316284,
+        "p95": 33.799999952316284
+      },
+      "cachedPanelShell": {
+        "samples": [
+          58.59999990463257,
+          53.09999990463257,
+          57.59999990463257
+        ],
+        "p50": 57.59999990463257,
+        "p95": 58.59999990463257
+      }
+    }
+  ],
+  "streamingRuns": [
+    {
+      "run": 1,
+      "samples": [
+        25.199999809265137,
+        37.5,
+        30.90000009536743,
+        16.59999990463257,
+        14.5,
+        15.400000095367432,
+        16.59999990463257,
+        30.200000047683716,
+        18.299999952316284,
+        15.799999952316284,
+        16.700000047683716,
+        11.700000047683716,
+        16.59999990463257,
+        18.299999952316284,
+        30.200000047683716
+      ],
+      "p50": 16.700000047683716,
+      "p95": 37.5
+    },
+    {
+      "run": 2,
+      "samples": [
+        42.40000009536743,
+        11.100000143051147,
+        22.100000143051147,
+        35.700000047683716,
+        15.599999904632568,
+        27.5,
+        25,
+        29.800000190734863,
+        12.799999952316284,
+        13.899999856948853,
+        16.199999809265137,
+        15.100000143051147,
+        14.700000047683716,
+        19.200000047683716,
+        19.59999990463257,
+        30.5
+      ],
+      "p50": 19.200000047683716,
+      "p95": 42.40000009536743
+    },
+    {
+      "run": 3,
+      "samples": [
+        10.400000095367432,
+        40.59999990463257,
+        26.5,
+        22.5,
+        19.09999990463257,
+        15.900000095367432,
+        30.200000047683716,
+        15.300000190734863,
+        27.90000009536743,
+        12.800000190734863,
+        11.699999809265137,
+        38.59999990463257,
+        26.40000009536743,
+        25.5,
+        13.599999904632568
+      ],
+      "p50": 22.5,
+      "p95": 40.59999990463257
+    },
+    {
+      "run": 4,
+      "samples": [
+        25.600000143051147,
+        11.299999952316284,
+        38.60000014305115,
+        12.200000047683716,
+        16.700000047683716,
+        26.40000009536743,
+        9.099999904632568,
+        14.399999856948853,
+        11.700000047683716,
+        31.600000143051147,
+        31.899999856948853,
+        9.200000047683716,
+        36.30000019073486,
+        18.700000047683716,
+        23.5,
+        18.90000009536743
+      ],
+      "p50": 18.700000047683716,
+      "p95": 38.60000014305115
+    },
+    {
+      "run": 5,
+      "samples": [
+        20.59999990463257,
+        15.299999952316284,
+        29.5,
+        14.5,
+        11,
+        8.599999904632568,
+        13.100000143051147,
+        24.299999952316284,
+        23.799999952316284,
+        14.099999904632568,
+        16.300000190734863,
+        30.399999856948853,
+        39.59999990463257,
+        13.699999809265137,
+        23.199999809265137
+      ],
+      "p50": 16.300000190734863,
+      "p95": 39.59999990463257
+    }
+  ],
+  "scrollAnchor": {
+    "before": 55448.80078125,
+    "after": 55448.80078125,
+    "stable": true
+  },
+  "streamingWindow": {
+    "start": 27171.300000190735,
+    "end": 33696.10000014305
+  },
+  "streamLongTasks": [],
+  "longTasks": [
+    {
+      "start": 16399,
+      "duration": 53
+    },
+    {
+      "start": 26970.10000014305,
+      "duration": 57
+    },
+    {
+      "start": 27031.400000095367,
+      "duration": 118
+    },
+    {
+      "start": 27383.900000095367,
+      "duration": 54
+    },
+    {
+      "start": 34053.10000014305,
+      "duration": 126
+    },
+    {
+      "start": 34249,
+      "duration": 60
+    },
+    {
+      "start": 35115.700000047684,
+      "duration": 55
+    },
+    {
+      "start": 35405.90000009537,
+      "duration": 50
+    },
+    {
+      "start": 35999.800000190735,
+      "duration": 54
+    },
+    {
+      "start": 36063.700000047684,
+      "duration": 52
+    },
+    {
+      "start": 36961.40000009537,
+      "duration": 57
+    },
+    {
+      "start": 37509.300000190735,
+      "duration": 64
+    },
+    {
+      "start": 37586,
+      "duration": 56
+    },
+    {
+      "start": 38232.5,
+      "duration": 63
+    },
+    {
+      "start": 38520.300000190735,
+      "duration": 53
+    },
+    {
+      "start": 38843.5,
+      "duration": 53
+    },
+    {
+      "start": 42155.300000190735,
+      "duration": 91
+    },
+    {
+      "start": 42642.40000009537,
+      "duration": 61
+    },
+    {
+      "start": 42974,
+      "duration": 55
+    },
+    {
+      "start": 43515.700000047684,
+      "duration": 54
+    },
+    {
+      "start": 44510.200000047684,
+      "duration": 51
+    },
+    {
+      "start": 45067.800000190735,
+      "duration": 59
+    },
+    {
+      "start": 45328.800000190735,
+      "duration": 52
+    },
+    {
+      "start": 45583.10000014305,
+      "duration": 66
+    },
+    {
+      "start": 46520,
+      "duration": 52
+    },
+    {
+      "start": 46884,
+      "duration": 59
+    },
+    {
+      "start": 47062.200000047684,
+      "duration": 174
+    },
+    {
+      "start": 49116,
+      "duration": 134
+    },
+    {
+      "start": 49494,
+      "duration": 135
+    },
+    {
+      "start": 49649.40000009537,
+      "duration": 59
+    },
+    {
+      "start": 50435.700000047684,
+      "duration": 51
+    },
+    {
+      "start": 51836.800000190735,
+      "duration": 51
+    },
+    {
+      "start": 52081.800000190735,
+      "duration": 150
+    },
+    {
+      "start": 52294.90000009537,
+      "duration": 54
+    },
+    {
+      "start": 54062.700000047684,
+      "duration": 146
+    },
+    {
+      "start": 55997,
+      "duration": 141
+    },
+    {
+      "start": 56389.10000014305,
+      "duration": 51
+    },
+    {
+      "start": 57853.300000190735,
+      "duration": 85
+    },
+    {
+      "start": 58155.90000009537,
+      "duration": 149
+    },
+    {
+      "start": 60171.60000014305,
+      "duration": 140
+    },
+    {
+      "start": 60563.800000190735,
+      "duration": 52
+    },
+    {
+      "start": 62183.200000047684,
+      "duration": 146
+    },
+    {
+      "start": 62562.90000009537,
+      "duration": 51
+    },
+    {
+      "start": 64177.40000009537,
+      "duration": 61
+    },
+    {
+      "start": 64263.800000190735,
+      "duration": 59
+    },
+    {
+      "start": 64444.5,
+      "duration": 146
+    },
+    {
+      "start": 64852.60000014305,
+      "duration": 50
+    },
+    {
+      "start": 66401.80000019073,
+      "duration": 144
+    },
+    {
+      "start": 68443.10000014305,
+      "duration": 144
+    },
+    {
+      "start": 68613.60000014305,
+      "duration": 51
+    },
+    {
+      "start": 68901.80000019073,
+      "duration": 52
+    }
+  ],
+  "listenerCounts": {
+    "agent:run:notify": 2,
+    "app:error": 1,
+    "app:warning": 1,
+    "ask-user:awaiting": 1,
+    "async-event:received": 1,
+    "browser:activeTab": 1,
+    "browser:tabClosed": 1,
+    "browser:tabUpdated": 1,
+    "chat:artifact-edit-proposed": 1,
+    "chat:chapter-marked": 1,
+    "chat:chunk": 1,
+    "chat:document-created": 1,
+    "chat:done": 1,
+    "chat:error": 2,
+    "chat:phase": 1,
+    "chat:reasoning": 1,
+    "chat:round-complete": 1,
+    "chat:streaming-vitals": 1,
+    "chat:tool-call": 1,
+    "chat:tool-call-result": 1,
+    "chat:turn-settled": 1,
+    "chat:turn-started": 1,
+    "chat:user-message": 1,
+    "chat:visualization-state": 1,
+    "github:tokenRejected": 1,
+    "loop:wakeup:fired": 2,
+    "mcp:authStatusChanged": 1,
+    "mcp:elicitationChanged": 1,
+    "mcp:resourceChanged": 1,
+    "mcp:statusChanged": 1,
+    "memory:added": 1,
+    "notifications:clicked": 1,
+    "plan:mode-changed": 1,
+    "plan:updated": 1,
+    "rag:document:progress": 1,
+    "research:completed": 1,
+    "research:failed": 1,
+    "research:progress": 1,
+    "review:changed": 2,
+    "sessions:incoming-message": 1,
+    "shortcut:copyLastAssistant": 1,
+    "skills:changed": 1,
+    "tasks:spawned": 1,
+    "terminal:data": 1,
+    "terminal:exit": 1,
+    "tools:approvalRequired": 1,
+    "tools:approvalResolved": 1,
+    "tray:newConversation": 1,
+    "update:available": 1,
+    "update:downloaded": 1,
+    "window:maximizedChanged": 1,
+    "workflow:progress": 1
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 2,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 3,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 4,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 5,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 6,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 7,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 8,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 9,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    },
+    {
+      "cycle": 10,
+      "pid": 95432,
+      "children": 2,
+      "contents": 3,
+      "listeners": {
+        "agent:run:notify": 2,
+        "app:error": 1,
+        "app:warning": 1,
+        "ask-user:awaiting": 1,
+        "async-event:received": 1,
+        "browser:activeTab": 1,
+        "browser:tabClosed": 1,
+        "browser:tabUpdated": 1,
+        "chat:artifact-edit-proposed": 1,
+        "chat:chapter-marked": 1,
+        "chat:chunk": 1,
+        "chat:document-created": 1,
+        "chat:done": 1,
+        "chat:error": 2,
+        "chat:phase": 1,
+        "chat:reasoning": 1,
+        "chat:round-complete": 1,
+        "chat:streaming-vitals": 1,
+        "chat:tool-call": 1,
+        "chat:tool-call-result": 1,
+        "chat:turn-settled": 1,
+        "chat:turn-started": 1,
+        "chat:user-message": 1,
+        "chat:visualization-state": 1,
+        "github:tokenRejected": 1,
+        "loop:wakeup:fired": 2,
+        "mcp:authStatusChanged": 1,
+        "mcp:elicitationChanged": 1,
+        "mcp:resourceChanged": 1,
+        "mcp:statusChanged": 1,
+        "memory:added": 1,
+        "notifications:clicked": 1,
+        "plan:mode-changed": 1,
+        "plan:updated": 1,
+        "rag:document:progress": 1,
+        "research:completed": 1,
+        "research:failed": 1,
+        "research:progress": 1,
+        "review:changed": 2,
+        "sessions:incoming-message": 1,
+        "shortcut:copyLastAssistant": 1,
+        "skills:changed": 1,
+        "tasks:spawned": 1,
+        "terminal:data": 1,
+        "terminal:exit": 1,
+        "tools:approvalRequired": 1,
+        "tools:approvalResolved": 1,
+        "tray:newConversation": 1,
+        "update:available": 1,
+        "update:downloaded": 1,
+        "window:maximizedChanged": 1,
+        "workflow:progress": 1
+      },
+      "nativeStable": true,
+      "listenersStable": true
+    }
+  ],
+  "comparison": {
+    "typing": {
+      "perRunP95": [
+        77.40000009536743,
+        81.70000004768372,
+        70.90000009536743,
+        69.20000004768372,
+        100.5
+      ],
+      "p95Median": 77.40000009536743,
+      "absoluteLimit": 100,
+      "absolutePass": false,
+      "baselineMedian": 23.90000009536743,
+      "relativeChange": 2.23849371491718,
+      "relativePass": false
+    },
+    "taskSwitch": {
+      "perRunP95": [
+        57,
+        51.60000014305115,
+        62.59999990463257,
+        48.5,
+        63.200000047683716
+      ],
+      "p95Median": 57,
+      "absoluteLimit": 250,
+      "absolutePass": true,
+      "baselineMedian": 446.2000000476837,
+      "relativeChange": -0.8722545943659601,
+      "relativePass": true
+    },
+    "cachedPanelShell": {
+      "perRunP95": [
+        55,
+        62.299999952316284,
+        81.5,
+        91.19999980926514,
+        58.59999990463257
+      ],
+      "p95Median": 62.299999952316284,
+      "absoluteLimit": 300,
+      "absolutePass": true,
+      "baselineMedian": 75.29999995231628,
+      "relativeChange": -0.1726427623935226,
+      "relativePass": true
+    },
+    "streamingTyping": {
+      "perRunP95": [
+        37.5,
+        42.40000009536743,
+        40.59999990463257,
+        38.60000014305115,
+        39.59999990463257
+      ],
+      "p95Median": 39.59999990463257,
+      "absoluteLimit": 100,
+      "absolutePass": true,
+      "baselineMedian": 45.40000009536743,
+      "relativeChange": -0.12775330789760697,
+      "relativePass": true
+    },
+    "taskFeedback": {
+      "perRunP95": [
+        39.89999985694885,
+        38.299999952316284,
+        57.09999990463257,
+        41.5,
+        33.799999952316284
+      ],
+      "p95Median": 39.89999985694885,
+      "absoluteLimit": 100,
+      "absolutePass": true,
+      "baselineMedian": null,
+      "relativeChange": null,
+      "relativePass": null
+    }
+  },
+  "traces": [
+    "TASK_SWITCH.cpuprofile",
+    "PANEL_OPEN.cpuprofile",
+    "STREAM_TYPING.cpuprofile"
+  ],
+  "limitations": [
+    "Two animation frames measure renderer scheduling, not physical display latency.",
+    "Cached panel timings exclude asynchronous content loading.",
+    "Baseline had no simultaneous resource tabs; ten existing resources are open in this integrated candidate.",
+    "Task search exposes the older fixture tasks in the paged sidebar; its queries run outside timing.",
+    "An isolated fixture-only session preload counts IPC listeners without wrapping callbacks or changing production preload code; counts are compared across all ten cycles.",
+    "Manual screen-reader listening is not a performance measurement."
+  ]
+}

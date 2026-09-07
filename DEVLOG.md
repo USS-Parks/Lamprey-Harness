@@ -9,7 +9,7 @@
 
 **Notes:** Homepage table and New-in copy now serve GitHub v0.32.0. Current-state docs stop claiming README points at Triple Lane. SR-38 leftover recorded: README retarget done; CDN/TL-W4, SR-37 install smoke, and storage inventory stay open. Historical evidence JSON left untouched. No tag or release created.
 
-**Commit:** `9166903`
+**Commit:** `1041dc0`
 
 ## 2026-09-06 - UX-33: Integrated performance measurement
 

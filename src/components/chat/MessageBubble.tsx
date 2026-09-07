@@ -15,6 +15,7 @@ import { SeedContextChip, parseSeedContext } from './SeedContextChip'
 import { useChatStore } from '@/stores/chat-store'
 import { useModelStore } from '@/stores/model-store'
 import { formatModelIdFallback } from '@/lib/model-label'
+import { formatMessageTime } from '@/lib/format-message-time'
 
 interface MessageBubbleProps {
   message: Message
@@ -22,10 +23,6 @@ interface MessageBubbleProps {
 
 const REMEMBER_MAX = 280
 const WAKEUP_PREFIX = '[scheduled wake-up]'
-
-function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
 
 function truncateForMemory(content: string): string {
   const trimmed = content.trim()
@@ -139,7 +136,7 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
           </>
         )}
         <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
-          <span>{formatTime(message.timestamp)}</span>
+          <span>{formatMessageTime(message.timestamp)}</span>
           {message.model && (
             <span
               className="max-w-[160px] truncate rounded bg-[var(--bg-primary)] px-1"

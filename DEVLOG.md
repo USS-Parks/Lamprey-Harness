@@ -1,3 +1,19 @@
+## 2026-09-07 - UX-34: Measured task-switch and loading-feedback repair
+
+UX-33 left warm task switch at 686.8 ms (limit 250) and loading feedback at 618.2 ms (limit 100). The TASK_SWITCH profile pointed at per-row `formatTime`, markdown parsing, and mounting the 1,000-message fixture. This prompt changes only those seams.
+
+`selectConversation` still clears messages and sets `messagesLoading` first. It now waits two animation frames beside the fetch so `Loading task…` can paint before the heavy apply. `MessageList` mounts the newest 36 rows first, then reveals older rows in batches of 48 after three frames, with a prefix spacer and a reveal path for chapter jumps. `MessageBubble` caches timestamps by minute.
+
+**Files changed:** `src/stores/chat-store.ts`, `src/components/chat/MessageList.tsx`, `src/components/chat/MessageBubble.tsx`, `src/components/chat/ChapterSidebar.tsx`, `src/components/chat/ChapterQuickJumper.tsx`, `src/lib/transcript-window.ts`, `src/lib/format-message-time.ts`, `src/lib/renderer-paint.ts`, `src/lib/transcript-reveal.ts`, focused tests, `PLANNING/UX_PERFORMANCE_BEFORE_AFTER.md`, `PLANNING/evidence/ux-simplification/UX34.json`
+**Verify gate:**
+- tsc node ✓
+- tsc web ✓
+- eslint ✓
+- vitest focused ✓ (24 tests)
+- user-verification-needed: rerun UX-33 `ux.cjs --performance-only` on the UX-00 Windows machine; do not accept G5 from this Linux session
+
+**Notes:** README v0.32.0 retarget merge `54eae2c` is the source base. No virtualization library. Performance is not accepted. Milestone G storage closeout of owner worktrees was not refreshed here. Commit: introducing commit of UX34.json.
+
 ## [Docs] Point README downloads at GitHub v0.32.0  —  2026-09-07
 
 **Files changed:** `README.md`, `CLAUDE.md`, `AGENTS.md`, `PLANNING/README.md`, `PLANNING/LAMPREY_SEPTEMBER_2026_REMEDIATION_PSPR.md`, `DEVLOG.md`

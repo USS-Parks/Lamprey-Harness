@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useChaptersStore, type Chapter } from '@/stores/chapters-store'
+import { scrollToChapter } from '@/lib/transcript-reveal'
 
 // Track 2 / E2 — Ctrl+G chapter quick-jumper modal. Filters chapters
 // by typed substring (title + summary) and scrolls to the picked one on
@@ -8,13 +9,6 @@ import { useChaptersStore, type Chapter } from '@/stores/chapters-store'
 
 interface ChapterQuickJumperProps {
   conversationId: string | null
-}
-
-function scrollToChapter(chapterId: string): void {
-  const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
-  if (el instanceof HTMLElement) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
 }
 
 function matchScore(c: Chapter, q: string): number {

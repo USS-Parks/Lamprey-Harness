@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Message } from '@/lib/types'
 import { MessageBubble } from './MessageBubble'
 import { StreamingText } from './StreamingText'
@@ -15,6 +15,13 @@ import { useChaptersStore, type Chapter } from '@/stores/chapters-store'
 import { CompressedRegionPill, isCompressedSummaryMessage } from './CompressedRegionPill'
 import { DeepResearchBanner } from './DeepResearchBanner'
 import thinkingIconUrl from '@assets/Lamprey Thinking Icon.png'
+import {
+  hiddenPrefixSpacerPx,
+  initialHiddenPrefix,
+  nextHiddenPrefix,
+  visibleTranscriptSlice
+} from '@/lib/transcript-window'
+import { onRevealTranscript } from '@/lib/transcript-reveal'
 
 interface MessageListProps {
   messages: Message[]
@@ -77,6 +84,12 @@ export function MessageList({
   // Mutable flag we update on user scroll — avoids a React state round-trip
   // (which would re-render the message list on every wheel tick).
   const stuckToBottomRef = useRef(true)
+  const hiddenPrefixRef = useRef(0)
+  const [epoch, setEpoch] = useState({
+    owner: null as string | null,
+    populated: false,
+    hidden: 0
+  })
 
   // Track whether the user is currently anchored at/near the bottom. We
   // use this to decide whether new chunks should drag the viewport down.
@@ -86,12 +99,21 @@ export function MessageList({
     const onScroll = () => {
       const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
       stuckToBottomRef.current = distanceFromBottom <= STICK_THRESHOLD_PX
+      if (el.scrollTop < 480 && hiddenPrefixRef.current > 0) {
+        setEpoch((current) => (
+          current.hidden === 0 ? current : { ...current, hidden: nextHiddenPrefix(current.hidden) }
+        ))
+      }
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     // Prime with current position.
     onScroll()
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => onRevealTranscript(() => {
+    setEpoch((current) => current.hidden === 0 ? current : { ...current, hidden: 0 })
+  }), [])
 
   // Auto-scroll new content into view, but ONLY if the user is still
   // anchored at the bottom. Scrolled-up readers stay where they are even
@@ -103,7 +125,7 @@ export function MessageList({
     // Use scrollTop = scrollHeight directly so we don't trigger a smooth
     // animation that lags behind the stream.
     el.scrollTop = el.scrollHeight
-  }, [messages, streamingContent, isStreaming])
+  }, [messages, streamingContent, isStreaming, epoch.hidden])
 
   // Keep provider-supplied reasoning separate from the answer stream.
   const streamingReasoning = useChatStore((s) => s.streamingReasoning)
@@ -157,6 +179,66 @@ export function MessageList({
     return { noticesByBefore: byBefore, noticesAfterAll: afterAll }
   }, [allNotices, activeConvId, messages])
 
+  const renderItems = useMemo(() => {
+    const items: Array<{ msg: Message; index: number }> = []
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i]
+      if (m.compressedInto) continue
+      items.push({ msg: m, index: i })
+    }
+    return items
+  }, [messages])
+
+  const ownerChanged = epoch.owner !== activeConvId
+  const becamePopulated = !ownerChanged && !epoch.populated && renderItems.length > 0
+  const becameEmpty = !ownerChanged && epoch.populated && renderItems.length === 0
+  if (ownerChanged) {
+    setEpoch({
+      owner: activeConvId,
+      populated: renderItems.length > 0,
+      hidden: initialHiddenPrefix(renderItems.length)
+    })
+  } else if (becamePopulated) {
+    setEpoch({
+      owner: activeConvId,
+      populated: true,
+      hidden: initialHiddenPrefix(renderItems.length)
+    })
+  } else if (becameEmpty) {
+    setEpoch({ owner: activeConvId, populated: false, hidden: 0 })
+  }
+
+  const hiddenPrefix = ownerChanged || becamePopulated
+    ? initialHiddenPrefix(renderItems.length)
+    : epoch.hidden
+  hiddenPrefixRef.current = hiddenPrefix
+  const visibleItems = visibleTranscriptSlice(renderItems, hiddenPrefix)
+  const spacerPx = hiddenPrefixSpacerPx(hiddenPrefix)
+
+  useEffect(() => {
+    if (hiddenPrefix <= 0) return
+    let cancelled = false
+    const raf = globalThis.requestAnimationFrame
+    if (typeof raf !== 'function') {
+      setEpoch((current) => current.hidden === 0 ? current : { ...current, hidden: 0 })
+      return
+    }
+    const reveal = () => {
+      if (cancelled) return
+      setEpoch((current) => {
+        if (current.hidden <= 0) return current
+        const hidden = nextHiddenPrefix(current.hidden)
+        if (hidden > 0) raf(reveal)
+        return { ...current, hidden }
+      })
+    }
+    const start = raf(() => raf(() => raf(reveal)))
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(start)
+    }
+  }, [hiddenPrefix > 0 ? activeConvId : null, renderItems.length])
+
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 [scrollbar-gutter:stable]">
       {/* Belt-and-suspenders centering: flex wrapper guarantees horizontal
@@ -166,46 +248,37 @@ export function MessageList({
         <div className={CHAT_COLUMN_CLASS}>
           {/* D12 — Deep Research Banner pinned at top of MessageList */}
           {activeConvId && <DeepResearchBanner conversationId={activeConvId} />}
-          {(() => {
-            // UB-6 (Unburdening Phase, 2026-06-10) — the R7 planner-attachment
-            // pre-walk ("Show pipeline trace" plumbing) is excised with the
-            // pipeline. Historical pipeline rows (stage planner/reviewer/
-            // composer) render as ordinary messages with a muted legacy chip
-            // (K3) so the audit trail is never lost.
-            const renderItems: Array<{ msg: Message; index: number }> = []
-            for (let i = 0; i < messages.length; i++) {
-              const m = messages[i]
-              if (m.compressedInto) continue
-              renderItems.push({ msg: m, index: i })
-            }
-
-            return renderItems.map((item) => {
-              const i = item.index
-              const msg = item.msg
-              const compressed = isCompressedSummaryMessage(msg)
-              return (
-                <div key={msg.id} data-message-id={msg.id}>
-                  {byBefore[i]?.map((c) => (
-                    <ChapterDivider key={c.id} chapter={c} />
-                  ))}
-                  {noticesByBefore[i]?.map((n) => (
-                    <TranscriptNotice
-                      key={n.id}
-                      notice={n}
-                      onDismiss={() => dismissNotice(n.conversationId, n.id)}
-                    />
-                  ))}
-                  {compressed ? (
-                    <CompressedRegionPill message={msg} />
-                  ) : msg.role === 'system' ? (
-                    <SystemMarker content={msg.content} />
-                  ) : (
-                    <MessageBubble message={msg} />
-                  )}
-                </div>
-              )
-            })
-          })()}
+          {spacerPx > 0 && (
+            <div aria-hidden="true" data-transcript-spacer style={{ height: spacerPx }} />
+          )}
+          {visibleItems.map((item) => {
+            // UB-6 — historical pipeline rows render as ordinary messages
+            // with a muted legacy chip so the audit trail is never lost.
+            const i = item.index
+            const msg = item.msg
+            const compressed = isCompressedSummaryMessage(msg)
+            return (
+              <div key={msg.id} data-message-id={msg.id}>
+                {byBefore[i]?.map((c) => (
+                  <ChapterDivider key={c.id} chapter={c} />
+                ))}
+                {noticesByBefore[i]?.map((n) => (
+                  <TranscriptNotice
+                    key={n.id}
+                    notice={n}
+                    onDismiss={() => dismissNotice(n.conversationId, n.id)}
+                  />
+                ))}
+                {compressed ? (
+                  <CompressedRegionPill message={msg} />
+                ) : msg.role === 'system' ? (
+                  <SystemMarker content={msg.content} />
+                ) : (
+                  <MessageBubble message={msg} />
+                )}
+              </div>
+            )
+          })}
           {afterAll.map((c) => (
             <ChapterDivider key={c.id} chapter={c} />
           ))}

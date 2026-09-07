@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useChaptersStore } from '@/stores/chapters-store'
+import { scrollToChapter } from '@/lib/transcript-reveal'
 
 // Track 2 / E2 — floating chapter TOC. Mounted by ChatView; visible on
 // the left edge of the chat column whenever the active conversation
@@ -8,15 +9,6 @@ import { useChaptersStore } from '@/stores/chapters-store'
 
 interface ChapterSidebarProps {
   conversationId: string | null
-}
-
-function scrollToChapter(chapterId: string): void {
-  // The divider rendered by MessageList carries data-chapter-id; use
-  // scrollIntoView with smooth behaviour so the jump feels intentional.
-  const el = document.querySelector(`[data-chapter-id="${chapterId}"]`)
-  if (el instanceof HTMLElement) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
 }
 
 export function ChapterSidebar({ conversationId }: ChapterSidebarProps) {

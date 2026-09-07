@@ -39,6 +39,7 @@ import type {
   TurnSettledEvent,
   TurnStartedEvent
 } from '@/lib/turn-control-types'
+import { waitForPaint } from '@/lib/renderer-paint'
 
 const submittingOwners = new Set<string>()
 const pendingSends = new Map<string, { text: string; attachments: ProcessedFile[]; messageId: string }>()
@@ -260,7 +261,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })
     const turnHydration = get().hydrateTurnControl(id)
     try {
-      const [result, record] = await Promise.all([window.api.conversation.getMessages(id), window.api.conversation.get(id)])
+      const [result, record] = await Promise.all([
+        window.api.conversation.getMessages(id),
+        window.api.conversation.get(id),
+        waitForPaint()
+      ])
       if (generation !== selectionGeneration || get().activeConversationId !== id) return
       if (!record.success) throw new Error(record.error || 'Task no longer exists')
       if (!result.success) throw new Error(result.error || 'Could not load task messages')

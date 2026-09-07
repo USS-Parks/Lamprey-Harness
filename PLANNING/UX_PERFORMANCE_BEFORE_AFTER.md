@@ -31,3 +31,17 @@ PANEL_OPEN.cpuprofile and STREAM_TYPING.cpuprofile are retained even though the 
 RUN1 failed only because the fixture used an incomplete task-search term. RUN2 and RUN3 completed before full trace/listener coverage. RUN2 reported a 110 ms panel median p95, a relative regression; RUN4 reports 63 ms without a product change. This is machine/run variability, not a claimed optimization. All captures remain retained; UX-34 must rerun the same final helper and satisfy both absolute and relative gates.
 
 The only current failing final targets are warm task switching and loading feedback. UX-34 remains open. A manual screen-reader listening test is not part of this timing result. API-equivalent task cost is unavailable because observed parent token usage is not exposed.
+
+## UX-34 source repair
+
+Source on `cursor/ux-34-task-switch-5801` applies the UX-33 traces without claiming a new G5 result.
+
+1. `selectConversation` still clears the transcript and sets `messagesLoading` immediately. It now also waits two animation frames, in parallel with the message fetch, so `Loading task…` can paint before the 1,000-row apply. That is the measured `taskFeedback` miss: local SQLite returned before the first paint, so the observer never saw the status and fell back to destination-complete time.
+2. `MessageList` mounts the newest 36 rows first (the destination row is in that tail) and reveals older rows 48 at a time after three frames. A prefix spacer keeps scroll height while hidden. Chapter sidebar and Ctrl+G jump reveal the full transcript before scrolling. This is deferred hidden work from the TASK_SWITCH profile (markdown, `setAttribute`, `appendChild`), not a new virtualization library.
+3. `MessageBubble` timestamps use a per-minute cache. The profile sampled 261 ms in `formatTime`.
+
+G1 on this repair: both TypeScript projects, eslint, and 24 focused tests. G5 is not remeasured here. The UX-33 Windows fixture (Ryzen 7 5800H, Electron 43, 1440×902 at DPR 1.25) must run:
+
+`node scripts/acceptance/ux.cjs PLANNING/evidence/ux-simplification/UX34_RUN --performance-only`
+
+Do not treat this section as performance acceptance. `performanceAccepted` stays false until that capture’s comparison object passes every absolute and relative target.

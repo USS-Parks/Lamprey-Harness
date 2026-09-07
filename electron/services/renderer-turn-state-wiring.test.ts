@@ -61,6 +61,7 @@ describe('ST-8 renderer reconciliation wiring', () => {
     }
     expect(select).toContain('if (generation !== selectionGeneration || get().activeConversationId !== id) return')
     expect(select).toContain('getConversationFollowUpState')
+    expect(select).toContain('waitForPaint()')
     expect(store).toContain('turnControlByConversation: FollowUpStateByConversation')
   })
 })

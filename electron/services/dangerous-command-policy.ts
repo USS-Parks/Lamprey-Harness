@@ -65,13 +65,18 @@ function runPowerShellParser(source: string, platform: NodeJS.Platform): PowerSh
     '[Console]::Out.Write(($payload|ConvertTo-Json -Compress -Depth 4))'
   ].join(';')
   const binary = platform === 'win32' ? 'powershell.exe' : 'pwsh'
-  const result = spawnSync(binary, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'], {
+  const spawnOptions = {
     input: script,
-    encoding: 'utf8',
+    encoding: 'utf8' as const,
     windowsHide: true,
-    timeout: 3_000,
+    timeout: 15_000,
     maxBuffer: 1024 * 1024
-  })
+  }
+  let result = spawnSync(binary, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'], spawnOptions)
+  const timedOut = result.error && (result.error as NodeJS.ErrnoException).code === 'ETIMEDOUT'
+  if (timedOut) {
+    result = spawnSync(binary, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'], spawnOptions)
+  }
   if (result.error) throw result.error
   if (result.status !== 0) throw new Error(String(result.stderr || `parser exited ${result.status}`))
   const parsed = JSON.parse(String(result.stdout || '{}')) as Record<string, unknown>

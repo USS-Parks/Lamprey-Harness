@@ -1,3 +1,27 @@
+## 2026-09-20 - [Workspace World Model — WM-12] Expected cost and online reordering
+
+`subtask-ordering.ts` is Eq. 7 with workspace units: located targets cost a flat
+constant, unlocated ones cost belief-weighted files-to-scan (dir sizes from the WM-11
+index), pairwise transitions apply a visited-scope discount (searching a directory
+once localizes everything in it), exact enumeration to N = 6 with ties breaking
+toward the cheaper first task, greedy nearest-next beyond. The product lever is
+ordering, not dispatch: `runFollowThroughCheck` re-ranks the unmet goals under
+CURRENT beliefs every continuation round — observations from the round just worked
+reprice the rest, the paper's online reordering — and the complaint says "listed
+cheapest-expected-effort first; work them in this order". Admissibility fall-through
+for a full ordering's concatenated plan belongs to the bench's multi-task runner
+(WM-15), where per-subtask plans exist; the product hint carries no such check and
+says nothing pretending otherwise.
+
+**Files changed:** `electron/services/subtask-ordering.ts` (new), `electron/services/subtask-ordering.test.ts` (new), `electron/services/goal-followthrough.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest subtask-ordering + goal-followthrough ✓ (14 tests)
+
+**Notes:** First defect caught by the suite: with zero scope overlap J is
+order-independent and the enumerator kept input order — the tie-breaker now prefers
+the quick win first, mirroring the paper's shortest-path tie-break.
+
 ## 2026-09-20 - [Workspace World Model — WM-11] Location beliefs
 
 `location-beliefs.ts` is the RSN analog run deterministically: a bounded filename

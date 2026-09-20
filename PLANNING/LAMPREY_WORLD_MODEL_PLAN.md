@@ -266,7 +266,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-12 — Expected cost and online subtask reordering**
-- [ ] `subtask-ordering.ts` + test: expected-effort score per candidate scope
+- [x] `subtask-ordering.ts` + test: expected-effort score per candidate scope
       (files-to-scan proxy), first-task costs h and pairwise transition costs A from
       shared-scope overlap, exact enumeration for N ≤ 6 (Eq. 7); execute the cheapest
       admissible first subtask only, update beliefs from its observations, re-rank the

@@ -13,11 +13,13 @@
 import { executeShellCommand } from './shell-tool'
 import {
   evaluateLedger,
+  getLedger,
   getOpenLedgerEntries,
   recordEvaluationOutcomes,
   type CommandRunner,
   type GoalEvaluation
 } from './goal-ledger'
+import { orderSubtasks } from './subtask-ordering'
 import { recordFollowThroughRound } from './world-model-budget'
 import { recordEvent } from './event-log'
 
@@ -61,6 +63,9 @@ export function buildUnmetComplaint(evaluations: GoalEvaluation[]): string {
     'Goal check: the following extracted goals are NOT met yet. Continue working — ',
     'fix what the evidence shows, then re-verify. Do not just restate the plan.'
   ]
+  if (unmet.length > 1) {
+    lines.push('They are listed cheapest-expected-effort first; work them in this order.')
+  }
   for (const e of unmet) {
     lines.push(`\nGoal: ${e.title}`)
     for (const r of e.results.filter((x) => !x.met).slice(0, COMPLAINT_RESULT_CAP)) {
@@ -130,13 +135,16 @@ export async function runFollowThroughCheck(
       }
     }
 
-    // Met goals settle now; unmet ones drive the continuation.
+    // Met goals settle now; unmet ones drive the continuation, re-ranked by
+    // expected effort under CURRENT beliefs each round (WM-12): observations
+    // from the round just finished reprice the remaining subtasks.
     recordEvaluationOutcomes(input.conversationId, evaluations, { final: false })
     emitFollowThroughEvent(input, 'continue', evaluations, roundsUsed)
+    const orderedEvaluations = reorderUnmet(input, evaluations)
     return {
       continue: true,
       evaluations,
-      complaint: buildUnmetComplaint(evaluations),
+      complaint: buildUnmetComplaint(orderedEvaluations),
       systemNote:
         `Follow-through round ${roundsUsed}/${input.maxRounds}: ` +
         `${evaluations.filter((e) => !e.met).length} goal(s) unmet — continuing.`
@@ -144,6 +152,32 @@ export async function runFollowThroughCheck(
   } catch (err) {
     console.error('[goal-followthrough] check failed; settling normally:', err)
     return none
+  }
+}
+
+/** WM-12 — cheapest-expected-effort-first order for the unmet goals. */
+function reorderUnmet(
+  input: FollowThroughInput,
+  evaluations: GoalEvaluation[]
+): GoalEvaluation[] {
+  const unmet = evaluations.filter((e) => !e.met)
+  if (unmet.length <= 1) return evaluations
+  try {
+    const targetsByGoal = new Map(getLedger(input.conversationId).map((e) => [e.goalId, e.targets]))
+    const ordering = orderSubtasks(
+      unmet.map((e) => ({
+        id: e.goalId,
+        title: e.title,
+        targets: targetsByGoal.get(e.goalId) ?? []
+      })),
+      { workspaceRoot: input.workspaceRoot, conversationId: input.conversationId }
+    )
+    const rank = new Map(ordering.order.map((s, i) => [s.id, i]))
+    return [...evaluations].sort(
+      (a, b) => (rank.get(a.goalId) ?? 99) - (rank.get(b.goalId) ?? 99)
+    )
+  } catch {
+    return evaluations
   }
 }
 

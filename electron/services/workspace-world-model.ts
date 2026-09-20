@@ -44,6 +44,8 @@ interface WorldState {
   writes: Set<string>
   obligations: RestorationObligation[]
   lastUnattributedMutationAt: number | null
+  /** Timestamp of the last recorded workspace write (shell or patch). */
+  lastWriteAt: number | null
 }
 
 const states = new Map<string, WorldState>()
@@ -60,7 +62,8 @@ function stateFor(conversationId: string): WorldState {
       searches: [],
       writes: new Set(),
       obligations: [],
-      lastUnattributedMutationAt: null
+      lastUnattributedMutationAt: null,
+      lastWriteAt: null
     }
     states.set(conversationId, s)
   }
@@ -266,7 +269,9 @@ export function recordShellOutcome(
 
   if (cls.mutationCapable && exitedCleanly) {
     s.lastUnattributedMutationAt = Date.now()
+    s.lastWriteAt = Date.now()
   }
+  if (cls.writes.length > 0 && exitedCleanly) s.lastWriteAt = Date.now()
 
   for (const w of cls.writes) {
     const abs = resolveInWorkspace(workspaceRoot, w)
@@ -301,6 +306,7 @@ export function recordPatchOutcome(
   workspaceRoot: string
 ): void {
   const s = stateFor(conversationId)
+  if (ops.length > 0) s.lastWriteAt = Date.now()
   for (const op of ops) {
     const abs = resolveInWorkspace(workspaceRoot, op.path)
     if (!abs) continue
@@ -368,6 +374,10 @@ export function getObligations(conversationId: string): RestorationObligation[] 
 
 export function getLastUnattributedMutationAt(conversationId: string): number | null {
   return states.get(conversationId)?.lastUnattributedMutationAt ?? null
+}
+
+export function getLastWriteAt(conversationId: string): number | null {
+  return states.get(conversationId)?.lastWriteAt ?? null
 }
 
 export function getDirsListed(conversationId: string): string[] {

@@ -1,3 +1,24 @@
+## 2026-09-20 - [Workspace World Model — WM-10] Search ledger and pruning
+
+`world-model-search-gate.ts` is belief-support pruning for searches: an EXACT repeat
+of a grep-family command that found nothing on an unchanged workspace returns a
+deterministic `redundant_search` result instead of re-executing. The safety property
+is triple-gated — exact normalized-whitespace repeat AND prior zero hits AND no
+workspace write since (any patch or shell write re-opens every search), so a legit
+re-run after an edit always executes. Zero-hit outcomes feed the ledger from dispatch
+(grep exits nonzero on no matches, so audit status carries found/not-found); at three
+zero-hit searches since the last edit the rejection escalates with the CR-9 posture:
+the search ledger, the top-level directories no search has mentioned, and the
+ask_user_question hint. Rejections count against the WM-6 intervention budget like
+any other verdict. `lastWriteAt` tracking added to the observation state (shell
+writes, unattributed mutations, and patch ops all bump it).
+
+**Files changed:** `electron/services/world-model-search-gate.ts` (new), `electron/services/world-model-search-gate.test.ts` (new), `electron/services/workspace-world-model.ts`, `electron/services/chat-tool-dispatch.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest search-gate + workspace-world-model + dispatch.world-model ✓ (47 tests)
+- verify:proof --no-tests exit 0 (dispatch touched)
+
 ## 2026-09-20 - [Workspace World Model — WM-9] Follow-through
 
 The turn now keeps working until unmet(g) reaches zero or a ceiling. Wiring in

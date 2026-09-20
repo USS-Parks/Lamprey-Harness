@@ -30,6 +30,10 @@ import {
   isWorldModelTurnDowngraded,
   recordWorldModelIntervention
 } from './world-model-budget'
+import {
+  checkSearchRedundancy,
+  recordSearchCommandOutcome
+} from './world-model-search-gate'
 import { recordEvent } from './event-log'
 
 /**
@@ -82,6 +86,9 @@ function recordWorldModelOutcome(
     if (resolveWorldModelConfig(readSettings()).mode === 'off') return
     if (toolName === 'shell_command' && typeof args.command === 'string') {
       recordShellOutcome(conversationId, args.command, status === 'done', workspacePath)
+      // WM-10 — a grep-family run's found/not-found feeds the search ledger
+      // (grep exits nonzero on no matches, so 'done' means matches existed).
+      recordSearchCommandOutcome(conversationId, args.command, status === 'done')
       return
     }
     if (toolName === 'apply_patch' && status === 'done' && typeof args.patch === 'string') {
@@ -244,6 +251,19 @@ export async function resolveSingleToolCall(
   try {
     const wmConfig = resolveWorldModelConfig(readSettings())
     if (modeAtLeast(wmConfig.mode, 'verify') && !isWorldModelTurnDowngraded(conversationId)) {
+      // WM-10 — redundant-search pruning: an exact repeat of a zero-hit
+      // search on an unchanged workspace returns the ledger instead of
+      // re-executing. Any workspace write re-opens every search.
+      if (toolName === 'shell_command' && typeof args.command === 'string') {
+        const gate = checkSearchRedundancy(conversationId, args.command, workspacePath)
+        if (gate.redundant && gate.message) {
+          trace('resolveToolCall.redundant-search', { callId: tc.id, conversationId })
+          recordInterventionAndMaybeDowngrade(
+            conversationId, wmConfig.repairBudget, tc.id, toolName, correlationId
+          )
+          return { callId: tc.id, result: gate.message }
+        }
+      }
       const analysis = analyzeToolCall(toolName, args)
       if (analysis) {
         let verdict = validateAnalysis(analysis, {

@@ -251,7 +251,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 ### Track C — Beliefs and ordering
 
 ### **WM-10 — Search ledger and pruning**
-- [ ] Zero-match pruning on WM-1 search records: exact-repeat searches return a
+- [x] Zero-match pruning on WM-1 search records: exact-repeat searches return a
       deterministic corrective result citing the ledger; after three zero-match searches
       (CR-9's threshold) the result includes covered and uncovered scopes.
 - Verify: gate 1–3.

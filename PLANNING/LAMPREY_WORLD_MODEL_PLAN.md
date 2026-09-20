@@ -220,7 +220,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–4.
 
 ### **WM-7 — Goal extraction**
-- [ ] `goal-extraction.ts` + test: at turn start (mutating-intent turns), decompose the
+- [x] `goal-extraction.ts` + test: at turn start (mutating-intent turns), decompose the
       instruction into subtasks and typed goal predicates — file-state (exists, contains,
       absent), command-exit (via the `verify-workspace` runner), restoration. Deterministic
       fast-path for explicitly stated predicates; otherwise one schema-validated

@@ -1,3 +1,23 @@
+## 2026-09-20 - [Workspace World Model — WM-7] Goal extraction
+
+`goal-extraction.ts` is the task-understanding stage without training: a mutating-
+intent gate (`looksMutatingIntent` — imperative coding verbs or file tokens; questions
+and chatter skip the model call entirely), a deterministic fast-path that lifts file
+mentions into subtask targets, and `extractGoals` — one schema-validated structured
+call through an injected chatOnce-shaped seam, one corrective retry ("ONLY the JSON
+object"), then honest degradation to the deterministic extraction. The predicate
+vocabulary IS the phase's predicate engine (file-exists / file-absent / file-contains
+/ file-not-contains / command-succeeds), shared verbatim by the ledger, follow-through
+and the bench so all four measure one mechanism. Schema rules: max 6 subtasks, max 8
+predicates each, malformed predicates fail the reply (retry), unknown kinds drop
+silently (forward compatibility), never invent paths. Wiring into runHeadlessTurn
+lands with WM-8's ledger so extraction output has somewhere durable to go.
+
+**Files changed:** `electron/services/goal-extraction.ts` (new), `electron/services/goal-extraction.test.ts` (new), `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest goal-extraction ✓ (14 tests)
+
 ## 2026-09-20 - [Workspace World Model — WM-6] Structured complaint and turn budget
 
 The budget T lands: `world-model-budget.ts` counts interventions (verdicts returned,

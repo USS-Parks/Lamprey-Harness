@@ -47,12 +47,21 @@ export interface ValidateContext {
   workspaceRoot: string
   conversationId: string
   overlay?: WorkspaceOverlay
+  /**
+   * WM-5 — paths whose simulated content is unknowable (a shell command's
+   * unattributable write). Optimistic by design: existence checks pass and
+   * anchor checks are skipped for these, because rollforward must never
+   * false-doom a later call on state it cannot simulate. The live per-call
+   * gate re-checks against real bytes at execution time.
+   */
+  unknownPaths?: Set<string>
 }
 
 const EVIDENCE_LINE_CAP = 12
 const EVIDENCE_CHAR_CAP = 800
 
 function overlayAwareExists(ctx: ValidateContext, abs: string): boolean {
+  if (ctx.unknownPaths?.has(abs)) return true
   if (ctx.overlay?.has(abs)) return ctx.overlay.get(abs) !== null
   return existsSync(abs)
 }
@@ -214,6 +223,10 @@ export function validateAnalysis(
       })
       continue
     }
+    if (req.kind === 'absent' && ctx.unknownPaths?.has(abs)) {
+      // Unknown simulated state: optimistic pass (see unknownPaths doc).
+      continue
+    }
     if (req.kind === 'absent' && overlayAwareExists(ctx, abs)) {
       violations.push({
         kind: 'absent',
@@ -229,6 +242,7 @@ export function validateAnalysis(
       continue
     }
     if (req.kind === 'anchors') {
+      if (ctx.unknownPaths?.has(abs)) continue
       const op = analysis.patchOps?.[req.opIndex ?? -1]
       if (!op || op.kind !== 'update') continue
       const raw = overlayAwareRead(ctx, abs)
@@ -284,10 +298,13 @@ export function applyEffectsToOverlay(analysis: ActionAnalysis, ctx: ValidateCon
   for (const eff of analysis.effects) {
     if (eff.kind === 'modifies' || eff.kind === 'removes') {
       const abs = resolvePathWithinWorkspace(ctx.workspaceRoot, eff.path)
-      // A shell write we cannot simulate degrades the overlay entry to
-      // "unknown": drop it so later checks fall back to disk, which will be
-      // current by the time the call actually runs.
-      if (abs) overlay.delete(abs)
+      // A shell write we cannot simulate degrades the path to "unknown":
+      // the overlay entry drops and later checks on it pass optimistically
+      // (WM-5) — the live per-call gate re-checks real bytes at run time.
+      if (abs) {
+        overlay.delete(abs)
+        ctx.unknownPaths?.add(abs)
+      }
     }
   }
 }

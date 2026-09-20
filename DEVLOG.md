@@ -1,3 +1,32 @@
+## 2026-09-20 - [Workspace World Model — WM-5] Plan rollforward
+
+`world-model-rollforward.ts` simulates a model turn's whole tool-call batch in order on
+a shared overlay (Alg. 1 lines 10-19): patch 2 validates against patch 1's simulated
+output, a delete dooms a later update, a duplicate add dooms the second add. The doom
+contract at `resolveToolCallWindows`: a violation at index > 0 executes NOTHING — the
+doomed call gets its verdict, every other call gets `batch_not_executed` — so an
+invalid plan never half-applies; an index-0 violation falls through to the per-call
+gate, which owns single-call causes including repair, and later independent calls
+still run against live state safely. Optimism rule implemented in the validate
+context (`unknownPaths`): a shell command's unattributable write marks its paths
+unknown, and unknown state passes exists/absent and skips anchors — rollforward can
+never false-doom a call on state it cannot simulate (echo > generated.txt followed by
+a patch of generated.txt passes). 'off' mode never rolls forward, locked by a test
+that reproduces the baseline half-applied behavior byte-for-byte.
+
+**Files changed:** `electron/services/world-model-rollforward.ts` (new), `electron/services/world-model-rollforward.test.ts` (new), `electron/services/world-model-validate.ts`, `electron/services/chat-tool-dispatch.ts`, `electron/services/chat-tool-dispatch.world-model.test.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest rollforward + dispatch.world-model + validate + repair ✓ (45 tests)
+- verify:proof --no-tests exit 0 (dispatch touched)
+
+**Notes:** Plan-mode step lists have no executable call shape to roll forward — plan
+mode already blocks mutating tools and the per-call gate covers execution after
+exit_plan_mode; the batch seam is where rollforward earns its keep. Batch-level
+repair inside the simulation is deliberately absent: live-fs repair at the per-call
+gate covers the single-cause cases, and repairing against simulated state would act
+on guesses.
+
 ## 2026-09-20 - [Workspace World Model — WM-4] REPAIR loop
 
 `world-model-repair.ts` is Alg. 2 for the workspace: validate → derive a deterministic

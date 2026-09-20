@@ -202,7 +202,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 ### Track B — Long horizon
 
 ### **WM-5 — Plan rollforward**
-- [ ] `world-model-rollforward.ts` + test: simulate an ordered sequence of tool calls on
+- [x] `world-model-rollforward.ts` + test: simulate an ordered sequence of tool calls on
       a copied graph via f(G, a); stop at first violation; return the trace verdict
       (violation step, state at failure, unmet goals at horizon, unrestored obligations).
       Applied to multi-call batches from one model turn and to plan-mode step lists

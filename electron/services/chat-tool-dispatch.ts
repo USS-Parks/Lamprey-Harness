@@ -21,6 +21,11 @@ import { recordPatchOutcome, recordShellOutcome } from './workspace-world-model'
 import { analyzeToolCall } from './tool-action-semantics'
 import { validateAnalysis, verdictToolResult } from './world-model-validate'
 import { repairToolCall } from './world-model-repair'
+import {
+  batchNotExecutedResult,
+  rollforwardCalls,
+  type BatchCall
+} from './world-model-rollforward'
 import { recordEvent } from './event-log'
 
 /**
@@ -497,6 +502,81 @@ export async function resolveToolCallWindows(
   signal: AbortSignal,
   correlationId?: string
 ): Promise<ResolvedToolCall[]> {
+  // WM-5 — whole-batch rollforward before the first dispatch. A violation
+  // at index > 0 means a later call is doomed by an earlier call's effects
+  // (or its own preconditions): the invalid plan executes NOTHING, the
+  // violating call gets its verdict, and every other call gets a
+  // batch_not_executed note. An index-0 violation falls through — the
+  // per-call gate (WM-3/WM-4, including repair) owns single-call causes.
+  // Never throws: a rollforward defect degrades to normal dispatch.
+  try {
+    if (calls.length > 1) {
+      const wmConfig = resolveWorldModelConfig(readSettings())
+      if (modeAtLeast(wmConfig.mode, 'verify')) {
+        const batch: BatchCall[] = calls.map((c) => {
+          try {
+            const parsed = JSON.parse(c.function.arguments)
+            return {
+              toolName: c.function.name,
+              args:
+                parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+            }
+          } catch {
+            return { toolName: c.function.name, args: null }
+          }
+        })
+        const rf = rollforwardCalls(batch, {
+          workspaceRoot: workspacePath,
+          conversationId
+        })
+        if (!rf.ok && rf.firstViolation && rf.firstViolation.index > 0) {
+          const v = rf.firstViolation
+          try {
+            recordEvent({
+              type: 'world_model.verdict',
+              actorKind: 'system',
+              severity: 'info',
+              conversationId,
+              correlationId,
+              toolCallId: calls[v.index].id,
+              entityKind: 'tool',
+              entityId: v.toolName,
+              payload: {
+                tool: v.toolName,
+                batch: true,
+                batchSize: calls.length,
+                violationIndex: v.index,
+                violationKinds: v.verdict.violations.map((x) => x.kind),
+                paths: v.verdict.violations.map((x) => x.path).filter(Boolean),
+                blocked: true
+              }
+            })
+          } catch {
+            // Audit failures never fail the verdict.
+          }
+          trace('resolveToolCallWindows.rollforward-blocked', {
+            conversationId,
+            batchSize: calls.length,
+            violationIndex: v.index,
+            tool: v.toolName
+          })
+          return calls.map((c, i) => ({
+            callId: c.id,
+            result:
+              i === v.index
+                ? verdictToolResult(v.toolName, v.verdict)
+                : batchNotExecutedResult(v.index, v.toolName)
+          }))
+        }
+      }
+    }
+  } catch (rfErr) {
+    trace('resolveToolCallWindows.rollforward-failed', {
+      conversationId,
+      error: rfErr instanceof Error ? rfErr.message.slice(0, 200) : String(rfErr)
+    })
+  }
+
   const resolved: ResolvedToolCall[] = new Array(calls.length)
   const windows = partitionToolCallWindows(calls, (id) => toolRegistry.getById(id))
   for (const win of windows) {

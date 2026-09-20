@@ -2,7 +2,7 @@
 // verify mode returns verdicts for doomed calls without executing; off mode
 // is byte-compatible pass-through to the real handler.
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -61,7 +61,7 @@ vi.mock('./tool-registry', () => ({
   }
 }))
 
-import { resolveSingleToolCall } from './chat-tool-dispatch'
+import { resolveSingleToolCall, resolveToolCallWindows } from './chat-tool-dispatch'
 import { __resetWorldModelStateForTesting } from './workspace-world-model'
 
 let root: string
@@ -163,5 +163,78 @@ describe('WM-3 per-call gate', () => {
     const ev = state.events.find((e) => e.type === 'world_model.verdict')!
     expect(JSON.stringify(ev.payload)).not.toContain('secret content')
     expect(ev.payload.violationKinds).toContain('exists')
+  })
+})
+
+describe('WM-5 batch rollforward at the windows seam', () => {
+  function batchCall(id: string, patch: string) {
+    return {
+      id,
+      type: 'function' as const,
+      function: { name: 'apply_patch', arguments: JSON.stringify({ patch }) }
+    }
+  }
+
+  it('a cross-call doom executes NOTHING and verdicts the doomed call', async () => {
+    writeFileSync(join(root, 'plan.ts'), 'x\n')
+    state.settings = { workspaceWorldModel: 'verify' }
+    const results = await resolveToolCallWindows(
+      [
+        batchCall('c1', PATCH('*** Delete File: plan.ts')),
+        batchCall('c2', PATCH('*** Update File: plan.ts\n@@\n-x\n+y'))
+      ],
+      CONV, 'test-model', root, new AbortController().signal
+    )
+    expect(state.executed).toEqual([])
+    expect(readFileSync(join(root, 'plan.ts'), 'utf8')).toBe('x\n')
+    expect(JSON.parse(results[0].result).error).toBe('batch_not_executed')
+    expect(JSON.parse(results[1].result).error).toBe('world_model_precondition_failed')
+  })
+
+  it('an index-0 violation falls through to the per-call gate', async () => {
+    writeFileSync(join(root, 'ok2.ts'), 'fine\n')
+    state.settings = { workspaceWorldModel: 'verify' }
+    const results = await resolveToolCallWindows(
+      [
+        batchCall('c1', PATCH('*** Update File: nowhere.ts\n@@\n-a\n+b')),
+        batchCall('c2', PATCH('*** Update File: ok2.ts\n@@\n-fine\n+better'))
+      ],
+      CONV, 'test-model', root, new AbortController().signal
+    )
+    expect(JSON.parse(results[0].result).error).toBe('world_model_precondition_failed')
+    expect(results[1].result).toContain('Applied 1 change')
+    expect(readFileSync(join(root, 'ok2.ts'), 'utf8')).toBe('better\n')
+  })
+
+  it('a coherent batch executes fully in order', async () => {
+    writeFileSync(join(root, 'seq.ts'), 'one\n')
+    state.settings = { workspaceWorldModel: 'verify' }
+    const results = await resolveToolCallWindows(
+      [
+        batchCall('c1', PATCH('*** Update File: seq.ts\n@@\n-one\n+two')),
+        batchCall('c2', PATCH('*** Update File: seq.ts\n@@\n-two\n+three'))
+      ],
+      CONV, 'test-model', root, new AbortController().signal
+    )
+    expect(results.map((r) => r.result)).toEqual([
+      expect.stringContaining('Applied 1 change'),
+      expect.stringContaining('Applied 1 change')
+    ])
+    expect(readFileSync(join(root, 'seq.ts'), 'utf8')).toBe('three\n')
+  })
+
+  it('off mode never rolls forward', async () => {
+    writeFileSync(join(root, 'off.ts'), 'x\n')
+    state.settings = { workspaceWorldModel: 'off' }
+    await resolveToolCallWindows(
+      [
+        batchCall('c1', PATCH('*** Delete File: off.ts')),
+        batchCall('c2', PATCH('*** Update File: off.ts\n@@\n-x\n+y'))
+      ],
+      CONV, 'test-model', root, new AbortController().signal
+    )
+    // Baseline behavior: call 1 deletes, call 2 fails at the tool itself.
+    expect(state.executed).toEqual(['apply_patch', 'apply_patch'])
+    expect(existsSync(join(root, 'off.ts'))).toBe(false)
   })
 })

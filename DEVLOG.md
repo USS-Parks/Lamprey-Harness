@@ -1,3 +1,30 @@
+## 2026-09-20 - [Workspace World Model — WM-8] Goal ledger on the GA goals store
+
+`goal-ledger.ts` gives unmet(g) a home without touching the goals schema: extracted
+subtasks become GA goals through the existing `createGoal`/`transitionGoal` API
+(visible, editable, cancellable in Plans & goals; `lastActor: 'system'`; predicate
+summary in the description), while the machine-checkable predicates stay in a
+per-conversation ledger — per-turn working state by design, since every mutating turn
+re-extracts. Same-title open goals are reused, not duplicated. `evaluateLedger` checks
+file predicates directly against the live workspace and routes command predicates
+through an injected runner behind two gates: the dangerous-command inspection (a
+`git reset --hard` predicate is refused and counts unmet with the refusal named) and
+a three-command cap per evaluation. `recordEvaluationOutcomes`: met goals complete
+with the evidence string in the store's completion column; unmet goals stay open
+mid-flight and get blocked with the evidence as blocker on the final settle, so Plans
+& goals shows exactly why follow-through stopped. Zero-predicate goals are never met
+by vacuity. Conversation delete clears the ledger next to the other clears.
+
+**Files changed:** `electron/services/goal-ledger.ts` (new), `electron/services/goal-ledger.test.ts` (new), `electron/ipc/conversation.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest goal-ledger + plan-goal-store + goal-db-integration ✓ (41 tests)
+
+**Notes:** No additive schema fields were needed after all — the plan allowed them
+"only if required" and the per-turn ledger removed the requirement. Restart loses
+in-flight predicates but keeps the goal rows; a reopened conversation's next mutating
+turn re-extracts.
+
 ## 2026-09-20 - [Workspace World Model — WM-7] Goal extraction
 
 `goal-extraction.ts` is the task-understanding stage without training: a mutating-

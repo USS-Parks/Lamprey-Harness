@@ -18,6 +18,7 @@ import { recordEvent } from '../services/event-log'
 import { clearToolUnlockState, setToolUnlockPersist } from '../services/tool-unlock-state'
 import { clearWorldModelState } from '../services/workspace-world-model'
 import { clearWorldModelBudget } from '../services/world-model-budget'
+import { clearGoalLedger } from '../services/goal-ledger'
 import { createSqliteToolUnlockPersist } from '../services/tool-unlock-persist'
 import { clearCapabilityTrackingForConversation } from '../services/providers/capability-tracker'
 
@@ -386,6 +387,7 @@ export function registerConversationHandlers(): void {
       clearCapabilityTrackingForConversation(id)
       clearWorldModelState(id)
       clearWorldModelBudget(id)
+      clearGoalLedger(id)
       return { success: true, data: null }
     } catch (err: any) {
       return { success: false, error: err.message }

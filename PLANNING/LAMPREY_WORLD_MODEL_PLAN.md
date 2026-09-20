@@ -230,7 +230,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-8 — Goal ledger on the GA goals store**
-- [ ] `goal-ledger.ts` + test: persist extracted subtasks/predicates through
+- [x] `goal-ledger.ts` + test: persist extracted subtasks/predicates through
       `plan-goal-persistence.ts` (additive fields only if needed), lifecycle wired to the
       existing Plans & goals surface so extracted goals are visible, editable, and
       cancellable by the user. Deterministic `unmet(g, workspace)` evaluation using the

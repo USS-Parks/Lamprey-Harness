@@ -1,3 +1,29 @@
+## 2026-09-20 - [Workspace World Model — WM-0] Baseline, metrics, pre-registered margins
+
+Phase start for the GAVEL translation (arXiv:2609.19315): a deterministic workspace
+world model in front of tool dispatch, with plan rollforward, mechanical repair, goal
+extraction, bounded follow-through, beliefs, and online subtask reordering. WM-0 fixes
+the ground truth before any code: file:line anchors for every seam the phase touches,
+the dispatch-order byte baseline the `'off'` lock will assert, metric definitions
+(first-dispatch validity, LLM calls per completed task, bench success, continuation
+rounds, net tokens), and pre-registered live pass margins per lamprey-research-
+methodology. Key WM-0 discovery, recorded with consequences: Lamprey has no native
+read_file/list_dir tools — the model's file interface is shell_command + apply_patch —
+so the live filesystem is the authoritative graph (the apply_patch anchor dry-run is
+the phase's strongest check) and the shell-read observation ledger is verdict evidence,
+never a sole gate. Plan approval state flipped to APPROVED with the owner's two §0
+overrides (push-to-main per prompt; session branch) recorded verbatim.
+
+**Files changed:** `PLANNING/WM_BASELINE.md` (new), `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓ (doc-only prompt; tree untouched)
+- full vitest baseline this session: 318 files, 3314 passed / 4 skipped / 0 failed (34.8s)
+- better-sqlite3 rebuilt for Node in this container; native-DB cohort runs (not skipped)
+
+**Notes:** npm ci's electron-rebuild postinstall fails in the cloud container; `npm
+rebuild better-sqlite3` restores the Node binding vitest needs. Owner capture protocol
+(WM_BASELINE §7) feeds WM-16 replay fixtures; synthetic fixtures stand in until then.
+
 ## 2026-09-07 - Pages download page with evergreen links and macOS first-launch flow
 
 The repo's GitHub Pages site 404ed at its root (legacy branch build, no index ever committed) while customers hunted for working installers. New `site/index.html` is a self-contained download page: evergreen `releases/latest/download/` links that never go stale, the visitor's platform highlighted, live version text from the GitHub releases API (static v0.33.1 fallback), a three-step macOS first-launch section with the `xattr -cr` one-liner, and the SmartScreen note for Windows. Deployment moves off the racing legacy path onto `.github/workflows/pages.yml` (Pages `build_type: workflow`) with `concurrency: { group: pages, cancel-in-progress: false }` per CANON §12. README's stale "GitHub Latest is v0.33.0" sentence corrected.

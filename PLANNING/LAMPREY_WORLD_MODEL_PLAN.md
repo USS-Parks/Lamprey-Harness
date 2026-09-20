@@ -139,7 +139,12 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
   awaits the owner's machine, with the replay-suite numbers standing in.
 
 ### Approval state
-- **PENDING** — awaiting explicit user green light + STS instruction.
+- **APPROVED 2026-09-20** by the owner: "Run the World Model Plan STS now with my full
+  approval for commit and push to main after every verified successful prompt has been
+  completed." Two §0 overrides recorded in WM_BASELINE.md §1: push to `main` after every
+  verified prompt (supersedes push-at-wrap), and work on the session branch
+  `claude/lamprey-harness-pspr-vltrbb` pushed to both refs (supersedes the
+  `feat/workspace-world-model` line). Era-lock authorization carried by this approval.
 
 ---
 
@@ -148,7 +153,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 ### Track A — Substrate
 
 ### **WM-0 — Baseline, metrics, pre-registered margins**
-- [ ] `PLANNING/WM_BASELINE.md`: mapping table with `file:line` anchors; current
+- [x] `PLANNING/WM_BASELINE.md`: mapping table with `file:line` anchors; current
       dispatch-order byte-baseline inside `resolveSingleToolCall`; metric definitions
       (first-dispatch validity, LLM calls per completed task, bench single/multi success,
       continuation rounds used, net tokens per task); the pre-registered pass margins for

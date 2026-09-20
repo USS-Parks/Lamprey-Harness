@@ -181,7 +181,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-3 — VALIDATE and the per-call gate**
-- [ ] `world-model-validate.ts` + test: verdict
+- [x] `world-model-validate.ts` + test: verdict
       `{applicable, violations[], unmetGoals[], unrestored[]}` from a pending call, its
       semantics, and state. Wire into `resolveSingleToolCall` after schema validation,
       before approval, gated on the setting; violated calls return the verdict as a

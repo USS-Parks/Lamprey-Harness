@@ -15,9 +15,12 @@ import { dispatchNativeTool } from './native-dispatch'
 import { emitChatEvent } from './chat-events'
 import { trace } from './debug-trace'
 import { readSettings } from './settings-helper'
-import { resolveWorldModelConfig } from './world-model-config'
+import { modeAtLeast, resolveWorldModelConfig } from './world-model-config'
 import { parsePatch } from './apply-patch-tool'
 import { recordPatchOutcome, recordShellOutcome } from './workspace-world-model'
+import { analyzeToolCall } from './tool-action-semantics'
+import { validateAnalysis, verdictToolResult } from './world-model-validate'
+import { recordEvent } from './event-log'
 
 /**
  * WM-1 — feed the workspace world model from settled tool results. Pure
@@ -188,6 +191,62 @@ export async function resolveSingleToolCall(
     args = validation.parsed
   }
   if (isSearch) return handleToolSearch(tc.id, conversationId, args)
+
+  // WM-3 — per-call world-model gate. In 'verify' mode and above, a call
+  // whose blocking preconditions fail against the live workspace returns
+  // the structured verdict instead of executing (the JM-10 corrective-result
+  // shape, one round earlier). 'off' skips everything: dispatch below is
+  // byte-identical to the pre-phase baseline. The gate itself must never
+  // throw — a world-model defect degrades to normal dispatch, not a broken
+  // turn.
+  try {
+    const wmConfig = resolveWorldModelConfig(readSettings())
+    if (modeAtLeast(wmConfig.mode, 'verify')) {
+      const analysis = analyzeToolCall(toolName, args)
+      if (analysis) {
+        const verdict = validateAnalysis(analysis, {
+          workspaceRoot: workspacePath,
+          conversationId
+        })
+        if (!verdict.applicable) {
+          try {
+            recordEvent({
+              type: 'world_model.verdict',
+              actorKind: 'system',
+              severity: 'info',
+              conversationId,
+              correlationId,
+              toolCallId: tc.id,
+              entityKind: 'tool',
+              entityId: toolName,
+              payload: {
+                tool: toolName,
+                violationKinds: verdict.violations.map((v) => v.kind),
+                paths: verdict.violations.map((v) => v.path).filter(Boolean),
+                blocked: true
+              }
+            })
+          } catch {
+            // Audit failures never fail the verdict.
+          }
+          trace('resolveToolCall.world-model-verdict', {
+            callId: tc.id,
+            conversationId,
+            toolName,
+            violations: verdict.violations.map((v) => v.kind)
+          })
+          return { callId: tc.id, result: verdictToolResult(toolName, verdict) }
+        }
+      }
+    }
+  } catch (wmErr) {
+    trace('resolveToolCall.world-model-gate-failed', {
+      callId: tc.id,
+      conversationId,
+      toolName,
+      error: wmErr instanceof Error ? wmErr.message.slice(0, 200) : String(wmErr)
+    })
+  }
 
   const startTime = Date.now()
   trace('resolveToolCall.enter', {

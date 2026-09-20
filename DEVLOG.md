@@ -1,3 +1,31 @@
+## 2026-09-20 - [Workspace World Model — WM-3] VALIDATE and the per-call gate
+
+`world-model-validate.ts` evaluates a WM-2 analysis into the verdict ω against the live
+workspace or a rollforward overlay: within-workspace, exists, absent, and the anchors
+dry-run that replays every hunk through the real `applyHunk` against current bytes,
+quoting the nearest-match region (whitespace-only mismatches named as such) plus WM-1
+observation evidence ("changed after this conversation last observed it"). Applicable
+verdicts advance the overlay with simulated content, which is the WM-5 substrate landed
+early. The dispatch gate sits after schema validation in `resolveSingleToolCall`,
+active at 'verify'+: a blocked call returns `world_model_precondition_failed` (JM-10
+shape) with the not-executed hint, emits `world_model.verdict` (kinds + paths, never
+patch bodies), and the whole gate is wrapped so a world-model defect degrades to
+normal dispatch rather than a broken turn. The multi-op partial-application hole is
+closed: op 2's anchor failure now blocks the call before op 1 writes, which the disk
+applier could never roll back. Four `world_model.*` event types added to the spine.
+
+**Files changed:** `electron/services/world-model-validate.ts` (new), `electron/services/world-model-validate.test.ts` (new), `electron/services/chat-tool-dispatch.world-model.test.ts` (new), `electron/services/chat-tool-dispatch.ts`, `electron/services/event-log.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest world-model-validate + dispatch.world-model + chat-tool-dispatch ✓ (33 tests)
+- full services suite: 246 files, 2827 passed / 4 skipped / 0 failed
+- verify:proof --no-tests exit 0 (dispatch touched)
+
+**Notes:** In test fixtures without an Electron userData path, `readSettings` throws
+and the gate degrades to pass-through by design — the existing dispatch suite runs
+unchanged. The verdict path returns before audit recordCallStart, matching where
+argument_validation_failed already returns.
+
 ## 2026-09-20 - [Workspace World Model — WM-2] Action semantics and coverage lock
 
 `tool-action-semantics.ts` is the ⟨pre, eff⟩ table: `analyzeToolCall` maps a pending

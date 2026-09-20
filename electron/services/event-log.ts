@@ -152,7 +152,14 @@ export const EVENT_TYPES = [
   'proof.gate.failed',
   'proof.gate.waived',
   'failure_ledger.recorded',
-  'failure_ledger.repeated'
+  'failure_ledger.repeated',
+
+  // Workspace World Model Phase (WM-3/WM-4/WM-5/WM-9). Payloads carry
+  // violation kinds, path subjects, and counts — never tool argument bodies.
+  'world_model.verdict',
+  'world_model.repair',
+  'world_model.downgrade',
+  'world_model.followthrough'
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]

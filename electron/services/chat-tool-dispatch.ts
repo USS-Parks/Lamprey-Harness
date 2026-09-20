@@ -20,6 +20,7 @@ import { parsePatch } from './apply-patch-tool'
 import { recordPatchOutcome, recordShellOutcome } from './workspace-world-model'
 import { analyzeToolCall } from './tool-action-semantics'
 import { validateAnalysis, verdictToolResult } from './world-model-validate'
+import { repairToolCall } from './world-model-repair'
 import { recordEvent } from './event-log'
 
 /**
@@ -204,10 +205,53 @@ export async function resolveSingleToolCall(
     if (modeAtLeast(wmConfig.mode, 'verify')) {
       const analysis = analyzeToolCall(toolName, args)
       if (analysis) {
-        const verdict = validateAnalysis(analysis, {
+        let verdict = validateAnalysis(analysis, {
           workspaceRoot: workspacePath,
           conversationId
         })
+        // WM-4 — repair tier. A deterministic rewrite (path normalization,
+        // unique-basename resolution, whitespace re-anchor) that makes the
+        // call applicable replaces the arguments and dispatch continues on
+        // the standard path below; the audit row records what actually ran.
+        if (!verdict.applicable && modeAtLeast(wmConfig.mode, 'repair') && wmConfig.repairBudget > 0) {
+          const repair = repairToolCall(toolName, args, {
+            workspaceRoot: workspacePath,
+            conversationId
+          })
+          if (repair.outcome === 'repaired') {
+            args = repair.args
+            tc = {
+              ...tc,
+              function: { ...tc.function, arguments: JSON.stringify(repair.args) }
+            }
+            verdict = repair.verdict
+            try {
+              recordEvent({
+                type: 'world_model.repair',
+                actorKind: 'system',
+                severity: 'info',
+                conversationId,
+                correlationId,
+                toolCallId: tc.id,
+                entityKind: 'tool',
+                entityId: toolName,
+                payload: {
+                  tool: toolName,
+                  edits: repair.notes.map((n) => ({ kind: n.kind, detail: n.detail })),
+                  editsUsed: repair.editsUsed
+                }
+              })
+            } catch {
+              // Audit failures never fail the repair.
+            }
+            trace('resolveToolCall.world-model-repaired', {
+              callId: tc.id,
+              conversationId,
+              toolName,
+              edits: repair.notes.map((n) => n.kind)
+            })
+          }
+        }
         if (!verdict.applicable) {
           try {
             recordEvent({

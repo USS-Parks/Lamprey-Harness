@@ -132,6 +132,31 @@ describe('WM-3 per-call gate', () => {
     expect(state.events.filter((e) => e.type === 'world_model.verdict')).toEqual([])
   })
 
+  it('repair mode fixes a whitespace-only mismatch end-to-end', async () => {
+    writeFileSync(join(root, 'ws.ts'), '  indented old\n')
+    state.settings = { workspaceWorldModel: 'repair' }
+    const r = await dispatch(PATCH('*** Update File: ws.ts\n@@\n-indented old\n+indented new'))
+    expect(r.result).toContain('Applied 1 change')
+    expect(readFileSync(join(root, 'ws.ts'), 'utf8')).toBe('  indented new\n')
+    expect(state.events.some((e) => e.type === 'world_model.repair')).toBe(true)
+  })
+
+  it('verify mode never repairs — the same call stays a verdict', async () => {
+    writeFileSync(join(root, 'ws2.ts'), '  indented old\n')
+    state.settings = { workspaceWorldModel: 'verify' }
+    const r = await dispatch(PATCH('*** Update File: ws2.ts\n@@\n-indented old\n+indented new'))
+    expect(JSON.parse(r.result).error).toBe('world_model_precondition_failed')
+    expect(readFileSync(join(root, 'ws2.ts'), 'utf8')).toBe('  indented old\n')
+    expect(state.events.filter((e) => e.type === 'world_model.repair')).toEqual([])
+  })
+
+  it('a zero repair budget disables the repair tier', async () => {
+    writeFileSync(join(root, 'ws3.ts'), '  indented old\n')
+    state.settings = { workspaceWorldModel: 'repair', worldModelRepairBudget: 0 }
+    const r = await dispatch(PATCH('*** Update File: ws3.ts\n@@\n-indented old\n+x'))
+    expect(JSON.parse(r.result).error).toBe('world_model_precondition_failed')
+  })
+
   it('verdict events carry kinds and paths, never patch bodies', async () => {
     state.settings = { workspaceWorldModel: 'full' }
     await dispatch(PATCH('*** Update File: missing.ts\n@@\n-secret content\n+b'))

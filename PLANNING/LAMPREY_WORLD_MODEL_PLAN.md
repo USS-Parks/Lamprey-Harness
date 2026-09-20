@@ -190,7 +190,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–4.
 
 ### **WM-4 — REPAIR loop**
-- [ ] `world-model-repair.ts` + test, mirroring Alg. 2: visited set, bounded edits,
+- [x] `world-model-repair.ts` + test, mirroring Alg. 2: visited set, bounded edits,
       best-candidate rank. Repairs: auto-observe (read/list the violated precondition
       implies, then re-validate); freshness repair (re-read, proceed only if the hunk
       still anchors); argument normalization (separators, unique workspace-relative

@@ -1,3 +1,33 @@
+## 2026-09-20 - [Workspace World Model — WM-4] REPAIR loop
+
+`world-model-repair.ts` is Alg. 2 for the workspace: validate → derive a deterministic
+edit for the first repairable blocking violation → re-validate, with a visited set
+against cycles, MAX_EDITS 8, and best-candidate retention where ties prefer the LATER
+candidate (a post-edit verdict carries better evidence). Three edit families, all
+rewriting the CALL and never the workspace: normalize-path (backslash spellings that
+resolve once normalized), resolve-basename (a missing target whose basename matches
+exactly one file in a bounded walk that skips node_modules/.git and caps at 20k
+entries), and reanchor-whitespace (a hunk that trim-matches the file is rewritten to
+the file's actual bytes, with add lines re-indented by their neighbor's whitespace
+delta). `serializeOps` roundtrips parsed patches for rewriting, locked structurally.
+Dispatch: at 'repair'+ with a nonzero budget, a repairable call proceeds with the
+repaired arguments (audit row records what actually ran) and emits `world_model.repair`
+with the edit list; verify mode still verdicts. Two premise corrections recorded:
+absolute paths under the workspace root are already valid in apply_patch (zero-edit
+repair), and on POSIX a backslash path fails at exists, not within-workspace, so
+separator normalization now runs first in the exists edit path.
+
+**Files changed:** `electron/services/world-model-repair.ts` (new), `electron/services/world-model-repair.test.ts` (new), `electron/services/chat-tool-dispatch.ts`, `electron/services/chat-tool-dispatch.world-model.test.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest all five WM suites ✓ (72 tests) + baseline dispatch suite ✓ (14)
+- verify:proof --no-tests exit 0 (dispatch touched)
+
+**Notes:** The add-line indentation delta in reanchorHunk was caught by the suite
+before commit — without it a whitespace repair inserted unindented lines into
+indented code, a worse outcome than the verdict. Chained repairs verified
+(resolve-basename then reanchor-whitespace, editsUsed 2).
+
 ## 2026-09-20 - [Workspace World Model — WM-3] VALIDATE and the per-call gate
 
 `world-model-validate.ts` evaluates a WM-2 analysis into the verdict ω against the live

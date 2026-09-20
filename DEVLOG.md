@@ -1,3 +1,31 @@
+## 2026-09-20 - [Workspace World Model — WM-9] Follow-through
+
+The turn now keeps working until unmet(g) reaches zero or a ceiling. Wiring in
+`runHeadlessTurn`: 'full' mode + mutating-intent prompt → one goal-extraction call
+(chatOnce, role goal-extraction) populates the ledger before the first round. At the
+final-answer boundary in `runChatRound` (after steering, before settle):
+`runFollowThroughCheck` evaluates open ledger entries — all met completes them and
+settles; unmet with rounds remaining saves a transcript system row ("round N/M …
+continuing"), pushes the model's own reply plus the structured complaint (each unmet
+predicate with its evidence detail), and recurses like the JM-10 corrective round;
+exhaustion (rounds spent OR tool-round-cap adjacency) blocks the unmet goals with
+evidence and settles with an honest system note. The model's reply is never rewritten.
+Ceilings hold: MAX_TOOL_ROUNDS still caps the recursion, `beginWorldModelTurn` is the
+only round-counter reset, and user cancel aborts through the shared signal. One
+semantics defect found by the suite: blocked goals still counted as open, so an
+exhausted goal would resurrect on later settles — blocked is now closed for the
+ledger unless the user resumes it in Plans & goals.
+
+**Files changed:** `electron/services/goal-followthrough.ts` (new), `electron/services/goal-followthrough.test.ts` (new), `electron/services/world-model-budget.ts`, `electron/services/goal-ledger.ts`, `electron/ipc/chat.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest followthrough + ledger + budget ✓ (24 tests); full electron/ipc suite 12 files / 137 passed
+- verify:proof --no-tests exit 0 (chat.ts touched)
+
+**Notes:** Command predicates run through the sandboxed one-shot shell with the
+dangerous-command inspection and a 3-command cap — the same no-approval precedent
+verify_workspace set. Extraction latency rides only mutating-intent turns.
+
 ## 2026-09-20 - [Workspace World Model — WM-8] Goal ledger on the GA goals store
 
 `goal-ledger.ts` gives unmet(g) a home without touching the goals schema: extracted

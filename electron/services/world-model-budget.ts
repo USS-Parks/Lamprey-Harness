@@ -11,6 +11,7 @@
 interface TurnBudgetState {
   interventions: number
   downgraded: boolean
+  followThroughRounds: number
 }
 
 const turnState = new Map<string, TurnBudgetState>()
@@ -18,7 +19,7 @@ const turnState = new Map<string, TurnBudgetState>()
 function stateFor(conversationId: string): TurnBudgetState {
   let s = turnState.get(conversationId)
   if (!s) {
-    s = { interventions: 0, downgraded: false }
+    s = { interventions: 0, downgraded: false, followThroughRounds: 0 }
     turnState.set(conversationId, s)
   }
   return s
@@ -26,7 +27,22 @@ function stateFor(conversationId: string): TurnBudgetState {
 
 /** Reset the per-turn counters. Called from runHeadlessTurn at turn start. */
 export function beginWorldModelTurn(conversationId: string): void {
-  turnState.set(conversationId, { interventions: 0, downgraded: false })
+  turnState.set(conversationId, { interventions: 0, downgraded: false, followThroughRounds: 0 })
+}
+
+/**
+ * WM-9 — count one follow-through continuation round. Returns the new
+ * count. Like interventions, only beginWorldModelTurn resets it, so an
+ * exhausted follow-through cannot re-arm within a turn.
+ */
+export function recordFollowThroughRound(conversationId: string): number {
+  const s = stateFor(conversationId)
+  s.followThroughRounds++
+  return s.followThroughRounds
+}
+
+export function getFollowThroughRounds(conversationId: string): number {
+  return turnState.get(conversationId)?.followThroughRounds ?? 0
 }
 
 /** True when this turn's gate has downgraded — dispatch passes through. */

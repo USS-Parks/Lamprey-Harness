@@ -29,6 +29,10 @@ import {
 } from '../services/chat-tool-dispatch'
 import { emitTurnStarted } from '../services/turn-lifecycle-events'
 import { beginWorldModelTurn } from '../services/world-model-budget'
+import { resolveWorldModelConfig } from '../services/world-model-config'
+import { extractGoals, looksMutatingIntent } from '../services/goal-extraction'
+import { recordExtractedGoals } from '../services/goal-ledger'
+import { runFollowThroughCheck } from '../services/goal-followthrough'
 import {
   createQueuedFollowUpDispatchDependencies,
   dispatchNextQueuedFollowUp,
@@ -655,6 +659,36 @@ export async function runHeadlessTurn(input: {
       settingsRaw
     )
 
+    // WM-9 — goal extraction at turn start ('full' mode, mutating-intent
+    // turns with a prompt body only). One structured call, honest
+    // degradation inside extractGoals; a failure here never blocks the turn.
+    try {
+      const wmConfig = resolveWorldModelConfig(settingsRaw)
+      const promptBody = input.promptBody ?? ''
+      if (
+        wmConfig.mode === 'full' &&
+        wmConfig.followThroughRounds > 0 &&
+        promptBody.trim() !== '' &&
+        looksMutatingIntent(promptBody)
+      ) {
+        const extraction = await extractGoals(
+          promptBody,
+          wmConfig.extractionModel ?? model,
+          (msgs, m, sig) =>
+            chatOnce(msgs, m, sig, {
+              correlationId,
+              conversationId,
+              role: 'goal-extraction',
+              purpose: 'other'
+            }),
+          runtime.signal
+        )
+        recordExtractedGoals(conversationId, extraction.subtasks)
+      }
+    } catch (err) {
+      console.error('[chat] goal extraction failed; turn proceeds without a ledger:', err)
+    }
+
     const historyWithInputs = resolveModel(model).supportsVision ? promptHistory.map(message => message.role === 'user' ? { ...message, apiUserContent: readStructuredUserContent(message.id) } : message) : promptHistory
     const apiMessages = buildApiMessagesFromStoredMessages(systemPrompt, historyWithInputs, model)
     if (input.injectedUserMessage) apiMessages.push(input.injectedUserMessage.apiMessage)
@@ -1124,6 +1158,78 @@ export async function runChatRound(
                   return
                 }
               }
+              // WM-9 — follow-through at the final-answer boundary. When the
+              // goal ledger has open entries, evaluate; unmet goals with
+              // rounds remaining drive a continuation round (the JM-10
+              // corrective-round shape); exhaustion settles honestly with a
+              // system row and blocked goals. Steering above wins first;
+              // user cancel aborts through the shared signal as usual.
+              try {
+                const wmConfig = resolveWorldModelConfig(readSettingsJson())
+                if (wmConfig.mode === 'full' && wmConfig.followThroughRounds > 0) {
+                  const ft = await runFollowThroughCheck({
+                    conversationId,
+                    workspaceRoot: workspacePath,
+                    maxRounds: wmConfig.followThroughRounds,
+                    atRoundCap: round + 1 >= MAX_TOOL_ROUNDS,
+                    correlationId
+                  })
+                  signal.throwIfAborted()
+                  if (ft.systemNote) {
+                    const noteMsg = convStore.saveMessage({
+                      id: randomUUID(),
+                      conversationId,
+                      role: 'system',
+                      content: ft.systemNote,
+                      stage: 'system'
+                    })
+                    emitChatEvent('chat:done', { conversationId, message: noteMsg })
+                  }
+                  if (ft.continue && ft.complaint) {
+                    messages.push({
+                      role: 'assistant',
+                      content: fullContent || '',
+                      ...(fullReasoning &&
+                        modelEchoesReasoningContent(model) && {
+                          reasoning_content: fullReasoning
+                        })
+                    } as ChatCompletionMessageParam)
+                    messages.push({ role: 'user', content: ft.complaint } as ChatCompletionMessageParam)
+                    if (runtime) {
+                      emitChatEvent('chat:round-complete', {
+                        conversationId,
+                        turnId: runtime.turnId,
+                        message: assistantMsg
+                      })
+                    }
+                    const ftReasonings =
+                      fullReasoning && fullReasoning.length > 0
+                        ? [...roundReasonings, fullReasoning]
+                        : roundReasonings
+                    const next = await runChatRound(
+                      conversationId,
+                      model,
+                      messages,
+                      rebuildToolsForNextRound(conversationId, model, tools),
+                      workspacePath,
+                      signal,
+                      round + 1,
+                      params,
+                      correlationId,
+                      ftReasonings,
+                      turnStartedAt,
+                      charCounter,
+                      runtime
+                    )
+                    resolve(next)
+                    return
+                  }
+                }
+              } catch (ftErr) {
+                if (signal.aborted) throw ftErr
+                console.error('[chat] follow-through failed; settling normally:', ftErr)
+              }
+
               emitPhase(conversationId, 'done')
               emitChatEvent('chat:done', { conversationId, message: assistantMsg })
               void fireHooks('agentStop', { conversationId })

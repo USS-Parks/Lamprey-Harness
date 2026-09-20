@@ -131,12 +131,23 @@ export function getLedger(conversationId: string): LedgerEntry[] {
   return [...(ledgers.get(conversationId) ?? [])]
 }
 
-/** Entries that still have anything to check (with unfinished GA goals). */
+/**
+ * Entries that still have anything to check. Completed and aborted goals
+ * are done; BLOCKED goals are also excluded — a blocked ledger goal means
+ * follow-through already gave up on it this conversation, and it must not
+ * resurrect on later settles or turns unless the user resumes it in
+ * Plans & goals (which flips the lifecycle back to active).
+ */
 export function getOpenLedgerEntries(conversationId: string): LedgerEntry[] {
   const goals = new Map(listGoals(conversationId).map((g) => [g.id, g]))
   return getLedger(conversationId).filter((e) => {
     const g = goals.get(e.goalId)
-    return g !== undefined && g.lifecycleStatus !== 'completed' && g.lifecycleStatus !== 'aborted'
+    return (
+      g !== undefined &&
+      g.lifecycleStatus !== 'completed' &&
+      g.lifecycleStatus !== 'aborted' &&
+      g.lifecycleStatus !== 'blocked'
+    )
   })
 }
 

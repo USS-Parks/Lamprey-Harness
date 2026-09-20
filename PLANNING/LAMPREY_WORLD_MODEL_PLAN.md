@@ -239,7 +239,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-9 — Follow-through**
-- [ ] `goal-followthrough.ts` + test: at turn end, evaluate the ledger; if unmet goals
+- [x] `goal-followthrough.ts` + test: at turn end, evaluate the ledger; if unmet goals
       remain and rounds remain (`worldModelFollowThroughRounds`, default 5), inject the
       structured unmet-goal complaint as a continuation round of the same turn instead of
       settling; on exhaustion or a `blocker`, settle honestly with the unmet list in the

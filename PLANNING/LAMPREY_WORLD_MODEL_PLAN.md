@@ -171,7 +171,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-2 — Action semantics and restoration constraints**
-- [ ] `tool-action-semantics.ts` + test: declarative ⟨pre, eff⟩ for core native tools —
+- [x] `tool-action-semantics.ts` + test: declarative ⟨pre, eff⟩ for core native tools —
       `apply_patch` (exists, observed, fresh), create (parent exists, target absent),
       delete (exists, observed), path-referencing shell commands (attributable paths
       exist); effects observe/write/invalidate; restoration constraints registered as

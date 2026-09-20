@@ -1,3 +1,29 @@
+## 2026-09-20 - [Workspace World Model — WM-2] Action semantics and coverage lock
+
+`tool-action-semantics.ts` is the ⟨pre, eff⟩ table: `analyzeToolCall` maps a pending
+call to typed requirements (within-workspace / exists / absent / anchors, each blocking
+or advisory) and effects (creates / modifies / removes / observes), pure with no fs
+access — evaluation is WM-3's job. apply_patch gets the full treatment including parsed
+ops for the hunk dry-run and malformed-patch capture; shell_command reuses the WM-1
+classifier with blocking severity ONLY for single-segment strict reads (cat/type/
+Get-Content family) so a wrong attribution can never block a call. Enumerated all 44
+`mutates: true` natives via a throwaway registry test; the 42 without workspace-file
+semantics live on `EXEMPT_MUTATING_TOOLS` with a reason each, and the coverage lock
+imports the real tool packs and fails when a future mutating native lands in neither
+set. Fixed a live classifier hazard found during design: grep-family pattern arguments
+("foo.bar") are path-shaped and were attributing as reads — the pattern slot is now
+skipped.
+
+**Files changed:** `electron/services/tool-action-semantics.ts` (new), `electron/services/tool-action-semantics.test.ts` (new), `electron/services/workspace-world-model.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest tool-action-semantics + workspace-world-model ✓ (37 tests)
+
+**Notes:** Restoration obligations beyond git stash (background process stops) wait on
+WM-4's repair synthesis; the stash ledger from WM-1 is the v1 restoration source.
+pr_patch_accept stays exempt: it applies through the canonical workspace authority
+with its own stale-head fail-closed gate, and double-gating it would fight PR-6.
+
 ## 2026-09-20 - [Workspace World Model — WM-1] Workspace observation state
 
 The believed-graph analog: `workspace-world-model.ts` keeps per-conversation in-memory

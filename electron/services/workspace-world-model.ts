@@ -199,6 +199,14 @@ export function classifyShellCommand(command: string): ShellClassification {
       continue
     }
 
+    if (head === 'grep' || head === 'rg' || head === 'egrep' || head === 'fgrep' || head === 'findstr' || head === 'select-string') {
+      // The first non-option argument is the PATTERN, not a path — a pattern
+      // like "foo.bar" is path-shaped and must never attribute (WM-2 fix).
+      const nonOption = args.filter((a) => !isOption(a))
+      out.reads.push(...nonOption.slice(1).filter(isPathLike))
+      continue
+    }
+
     if (READ_HEADS.has(head)) {
       if (head === 'ls' || head === 'dir' || head === 'tree' || head === 'get-childitem' || head === 'gci') {
         // Directory operands are often bare names with no extension, so the

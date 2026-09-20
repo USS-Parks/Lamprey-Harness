@@ -1,3 +1,28 @@
+## 2026-09-20 - [Workspace World Model — WM-1] Workspace observation state
+
+The believed-graph analog: `workspace-world-model.ts` keeps per-conversation in-memory
+observation state (file sha1+size+mtime at read, dirs listed, search ledger, writes,
+stash obligations, unattributed-mutation timestamp) on the tool-unlock-state pattern.
+`classifyShellCommand` is the pure three-tier attribution from WM_BASELINE §4.3:
+read heads observe, write heads and redirect targets invalidate then re-observe,
+build tools mark mutation-capable only — a wrong classification can never block a
+call because observations are evidence, not gates. `world-model-config.ts` resolves
+`workspaceWorldModel` mode ('off'|'verify'|'repair'|'full', default 'full') plus
+bounded budgets from settings.json; the keys formalize in WM-13. Dispatch feeds the
+model post-result via `recordWorldModelOutcome` (never throws, no-op in 'off');
+conversation delete clears state next to the JM-11 clears. `apply-patch-tool.ts`
+exports `FileOp`/`Hunk`/`applyHunk` for the WM-3/WM-5 dry-run to come.
+
+**Files changed:** `electron/services/workspace-world-model.ts` (new), `electron/services/world-model-config.ts` (new), `electron/services/workspace-world-model.test.ts` (new), `electron/services/chat-tool-dispatch.ts`, `electron/services/apply-patch-tool.ts`, `electron/ipc/conversation.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest workspace-world-model + apply-patch-tool + chat-tool-dispatch ✓ (66 tests)
+- verify:proof --no-tests exit 0 (dispatch touched)
+
+**Notes:** Two classifier defects caught by the suite before commit: sed expression
+tokens counted as paths, and bare directory operands missed by the ls family. Both
+fixed; the conservative-attribution posture held.
+
 ## 2026-09-20 - [Workspace World Model — WM-0] Baseline, metrics, pre-registered margins
 
 Phase start for the GAVEL translation (arXiv:2609.19315): a deterministic workspace

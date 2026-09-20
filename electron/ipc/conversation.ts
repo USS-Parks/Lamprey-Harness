@@ -16,6 +16,7 @@ import { chunk as chunkText } from '../services/rag/chunker'
 import { readSettings } from '../services/settings-helper'
 import { recordEvent } from '../services/event-log'
 import { clearToolUnlockState, setToolUnlockPersist } from '../services/tool-unlock-state'
+import { clearWorldModelState } from '../services/workspace-world-model'
 import { createSqliteToolUnlockPersist } from '../services/tool-unlock-persist'
 import { clearCapabilityTrackingForConversation } from '../services/providers/capability-tracker'
 
@@ -382,6 +383,7 @@ export function registerConversationHandlers(): void {
       // pinned to a conversationId forever (even one being deleted).
       clearToolUnlockState(id)
       clearCapabilityTrackingForConversation(id)
+      clearWorldModelState(id)
       return { success: true, data: null }
     } catch (err: any) {
       return { success: false, error: err.message }

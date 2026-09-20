@@ -16,12 +16,14 @@ export interface ApplyPatchResult {
   result: string
 }
 
-type FileOp =
+// Exported for the workspace world model (WM-1/WM-5): the validator and
+// rollforward parse patches and dry-run hunks without touching disk.
+export type FileOp =
   | { kind: 'add'; path: string; lines: string[] }
   | { kind: 'delete'; path: string }
   | { kind: 'update'; path: string; hunks: Hunk[] }
 
-interface Hunk {
+export interface Hunk {
   // Optional anchor (the `@@ <context>` line). We don't currently use the
   // anchor for matching — the deletion+context block has to find itself in
   // file order — but we capture it so error messages can identify the hunk.
@@ -214,7 +216,7 @@ export function parsePatch(patch: string): FileOp[] {
  * line list, or throws if the hunk's context+deletion block can't be
  * located in order.
  */
-function applyHunk(fileLines: string[], hunk: Hunk, hunkIndex: number): string[] {
+export function applyHunk(fileLines: string[], hunk: Hunk, hunkIndex: number): string[] {
   // Build the "expected" block (keep + remove, in order) and the
   // "replacement" block (keep + add). Then scan fileLines for the
   // expected block and splice in the replacement.

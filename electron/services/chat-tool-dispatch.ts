@@ -14,6 +14,39 @@ import { inspectShellCommand } from './dangerous-command-policy'
 import { dispatchNativeTool } from './native-dispatch'
 import { emitChatEvent } from './chat-events'
 import { trace } from './debug-trace'
+import { readSettings } from './settings-helper'
+import { resolveWorldModelConfig } from './world-model-config'
+import { parsePatch } from './apply-patch-tool'
+import { recordPatchOutcome, recordShellOutcome } from './workspace-world-model'
+
+/**
+ * WM-1 — feed the workspace world model from settled tool results. Pure
+ * bookkeeping: never changes the result, never throws (a world-model
+ * recording failure must not fail the call), and does nothing in 'off'
+ * mode so the pre-phase dispatch behavior is byte-identical.
+ */
+function recordWorldModelOutcome(
+  conversationId: string,
+  toolName: string,
+  args: Record<string, unknown>,
+  result: string,
+  status: 'done' | 'error' | 'denied',
+  workspacePath: string
+): void {
+  try {
+    if (resolveWorldModelConfig(readSettings()).mode === 'off') return
+    if (toolName === 'shell_command' && typeof args.command === 'string') {
+      recordShellOutcome(conversationId, args.command, status === 'done', workspacePath)
+      return
+    }
+    if (toolName === 'apply_patch' && status === 'done' && typeof args.patch === 'string') {
+      const ops = parsePatch(args.patch).map((op) => ({ kind: op.kind, path: op.path }))
+      recordPatchOutcome(conversationId, ops, workspacePath)
+    }
+  } catch {
+    // Recording is advisory; the dispatched result stands regardless.
+  }
+}
 
 function emitPhase(conversationId: string, phase: AgentRunPhase): void {
   emitChatEvent('chat:phase', { conversationId, phase })
@@ -326,6 +359,7 @@ export async function resolveSingleToolCall(
   const duration = Date.now() - startTime
   const finishedAt = startTime + duration
   const auditStatus = explicitStatus ?? classifyToolResult(result)
+  recordWorldModelOutcome(conversationId, toolName, args, result, auditStatus, workspacePath)
   toolRegistry.recordCallEnd(tc.id, {
     status: auditStatus,
     result: auditStatus === 'error' ? undefined : result,

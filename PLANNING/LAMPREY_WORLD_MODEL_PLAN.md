@@ -162,7 +162,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: doc-only; gate 1–2.
 
 ### **WM-1 — Workspace observation state**
-- [ ] `workspace-world-model.ts` + test: per-conversation state — files observed (hash,
+- [x] `workspace-world-model.ts` + test: per-conversation state — files observed (hash,
       mtime at read), dirs listed, searches (query, scope, hits), writes, processes
       started, git snapshot; staleness marks; updates fed from tool results (reads/lists
       observe, `apply_patch` re-observes its writes, shell writes invalidate what

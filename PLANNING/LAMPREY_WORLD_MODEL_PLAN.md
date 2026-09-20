@@ -257,7 +257,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-11 — Location beliefs**
-- [ ] `location-beliefs.ts` + test: for a named-but-unlocated file/symbol, rank candidate
+- [x] `location-beliefs.ts` + test: for a named-but-unlocated file/symbol, rank candidate
       scopes from repo layout conventions and a filename index, plus RAG embedding
       similarity when a collection exists (the RSN analog, deterministic at inference);
       full distribution retained, never collapsed to the top candidate (the paper's

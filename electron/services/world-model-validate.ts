@@ -17,6 +17,7 @@ import {
 } from './apply-patch-tool'
 import type { ActionAnalysis, ActionRequirement } from './tool-action-semantics'
 import { checkFreshness, getFileObservation } from './workspace-world-model'
+import { beliefEvidence, buildLocationBelief } from './location-beliefs'
 
 export interface VerdictViolation {
   kind: 'within-workspace' | 'exists' | 'absent' | 'anchors' | 'malformed-patch'
@@ -212,14 +213,26 @@ export function validateAnalysis(
     if (abs === null) continue // the within-workspace violation already covers it
 
     if (req.kind === 'exists' && !overlayAwareExists(ctx, abs)) {
+      // WM-11 — ranked candidates from the location belief: the unique-match
+      // case repairs (WM-4); the ambiguous case gives the model the ranked
+      // list instead of a bare "not found".
+      let candidateNote = ''
+      try {
+        const belief = buildLocationBelief(ctx.workspaceRoot, ctx.conversationId, req.path)
+        candidateNote = beliefEvidence(belief)
+      } catch {
+        // Belief construction is evidence only; failures stay silent.
+      }
       violations.push({
         kind: 'exists',
         path: req.path,
         severity: req.severity,
-        evidence: `No file at "${req.path}". ${observationEvidence(ctx, abs)}`,
+        evidence: `No file at "${req.path}". ${candidateNote} ${observationEvidence(ctx, abs)}`.replace(/\s+/g, ' ').trim(),
         repairable: true,
         opIndex: req.opIndex,
-        fix: 'List the directory or search for the file before retrying.'
+        fix: candidateNote
+          ? 'Use one of the candidate paths, or search before retrying.'
+          : 'List the directory or search for the file before retrying.'
       })
       continue
     }

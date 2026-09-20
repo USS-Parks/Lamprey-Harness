@@ -1,3 +1,25 @@
+## 2026-09-20 - [Workspace World Model — WM-11] Location beliefs
+
+`location-beliefs.ts` is the RSN analog run deterministically: a bounded filename
+index (20k-entry walk, cached per conversation and invalidated by the WM-10
+`lastWriteAt` stamp) scores candidates for a named-but-unlocated file — exact
+basename 3.0, stem 1.5, containment 0.6 — multiplied by repo layout priors
+(src/electron 1.0 down to docs 0.3) and normalized into a FULL distribution, never
+collapsed to top-1 (the paper's 47%-top-1 lesson is cited in the module doc).
+`pruneBelief` removes candidates under zero-hit search scopes and renormalizes,
+refusing to prune the belief to nothing. An optional `semanticScorer` seam takes
+RAG-embedding similarities where a caller has the collection warmed; the embedder is
+an async transformers pipeline, too heavy for the sync verdict path, so the
+deterministic sources carry the claims. Consumption: exists-violation verdicts now
+carry "Closest existing candidates: …" — the ambiguous-basename case that WM-4
+refuses to repair now hands the model the ranked list instead of a bare not-found.
+
+**Files changed:** `electron/services/location-beliefs.ts` (new), `electron/services/location-beliefs.test.ts` (new), `electron/services/world-model-validate.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest location-beliefs + validate + dispatch.world-model ✓ (37 tests)
+- verify:proof --no-tests exit 0
+
 ## 2026-09-20 - [Workspace World Model — WM-10] Search ledger and pruning
 
 `world-model-search-gate.ts` is belief-support pruning for searches: an EXACT repeat

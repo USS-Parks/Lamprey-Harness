@@ -26,7 +26,43 @@ import {
   rollforwardCalls,
   type BatchCall
 } from './world-model-rollforward'
+import {
+  isWorldModelTurnDowngraded,
+  recordWorldModelIntervention
+} from './world-model-budget'
 import { recordEvent } from './event-log'
+
+/**
+ * WM-6 — count one intervention against the per-turn budget; on crossing
+ * the threshold emit the downgrade event once. Never throws.
+ */
+function recordInterventionAndMaybeDowngrade(
+  conversationId: string,
+  budget: number,
+  toolCallId: string,
+  toolName: string,
+  correlationId?: string
+): void {
+  try {
+    const crossed = recordWorldModelIntervention(conversationId, budget)
+    if (crossed) {
+      recordEvent({
+        type: 'world_model.downgrade',
+        actorKind: 'system',
+        severity: 'warning',
+        conversationId,
+        correlationId,
+        toolCallId,
+        entityKind: 'tool',
+        entityId: toolName,
+        payload: { budget, reason: 'per-turn intervention budget exhausted' }
+      })
+      trace('worldModel.turn-downgraded', { conversationId, budget })
+    }
+  } catch {
+    // Budget accounting failures never fail the call.
+  }
+}
 
 /**
  * WM-1 — feed the workspace world model from settled tool results. Pure
@@ -207,7 +243,7 @@ export async function resolveSingleToolCall(
   // turn.
   try {
     const wmConfig = resolveWorldModelConfig(readSettings())
-    if (modeAtLeast(wmConfig.mode, 'verify')) {
+    if (modeAtLeast(wmConfig.mode, 'verify') && !isWorldModelTurnDowngraded(conversationId)) {
       const analysis = analyzeToolCall(toolName, args)
       if (analysis) {
         let verdict = validateAnalysis(analysis, {
@@ -255,6 +291,9 @@ export async function resolveSingleToolCall(
               toolName,
               edits: repair.notes.map((n) => n.kind)
             })
+            recordInterventionAndMaybeDowngrade(
+              conversationId, wmConfig.repairBudget, tc.id, toolName, correlationId
+            )
           }
         }
         if (!verdict.applicable) {
@@ -284,6 +323,9 @@ export async function resolveSingleToolCall(
             toolName,
             violations: verdict.violations.map((v) => v.kind)
           })
+          recordInterventionAndMaybeDowngrade(
+            conversationId, wmConfig.repairBudget, tc.id, toolName, correlationId
+          )
           return { callId: tc.id, result: verdictToolResult(toolName, verdict) }
         }
       }
@@ -510,7 +552,7 @@ export async function resolveToolCallWindows(
   // per-call gate (WM-3/WM-4, including repair) owns single-call causes.
   // Never throws: a rollforward defect degrades to normal dispatch.
   try {
-    if (calls.length > 1) {
+    if (calls.length > 1 && !isWorldModelTurnDowngraded(conversationId)) {
       const wmConfig = resolveWorldModelConfig(readSettings())
       if (modeAtLeast(wmConfig.mode, 'verify')) {
         const batch: BatchCall[] = calls.map((c) => {
@@ -560,6 +602,9 @@ export async function resolveToolCallWindows(
             violationIndex: v.index,
             tool: v.toolName
           })
+          recordInterventionAndMaybeDowngrade(
+            conversationId, wmConfig.repairBudget, calls[v.index].id, v.toolName, correlationId
+          )
           return calls.map((c, i) => ({
             callId: c.id,
             result:

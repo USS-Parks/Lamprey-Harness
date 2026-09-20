@@ -1,3 +1,24 @@
+## 2026-09-20 - [Workspace World Model — WM-6] Structured complaint and turn budget
+
+The budget T lands: `world-model-budget.ts` counts interventions (verdicts returned,
+repairs applied, batch rejections) per turn against `worldModelRepairBudget`; crossing
+the threshold downgrades the gate for the REST of the turn (per-call and batch seams
+both check it), emits `world_model.downgrade` exactly once, and only the
+`beginWorldModelTurn` reset in `runHeadlessTurn` re-arms it — recordIntervention only
+increments, so mid-turn re-arming is impossible by construction. Budget 0 means
+unlimited verdicts with the repair tier separately disabled, documented in the config.
+Verdict compactness: `verdictToolResult` now sorts blocking violations first and caps
+at five with an `omitted_violations` count, so a many-op patch cannot bury a 4B model.
+Conversation delete clears budget state next to the other JM-11 clears. Best-candidate
+retention across complaint rounds needs no product state: the model re-issues the
+call, and WM-4's within-call retention already returns the most-informative verdict.
+
+**Files changed:** `electron/services/world-model-budget.ts` (new), `electron/services/world-model-budget.test.ts` (new), `electron/services/chat-tool-dispatch.ts`, `electron/services/world-model-validate.ts`, `electron/services/chat-tool-dispatch.world-model.test.ts`, `electron/ipc/chat.ts`, `electron/ipc/conversation.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest budget + dispatch.world-model + validate ✓ (32 tests)
+- verify:proof --no-tests exit 0 (chat.ts + dispatch touched)
+
 ## 2026-09-20 - [Workspace World Model — WM-5] Plan rollforward
 
 `world-model-rollforward.ts` simulates a model turn's whole tool-call batch in order on

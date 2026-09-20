@@ -211,7 +211,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–4.
 
 ### **WM-6 — Structured complaint and turn budget**
-- [ ] Complaint format for rollforward and per-call verdicts: violated precondition or
+- [x] Complaint format for rollforward and per-call verdicts: violated precondition or
       unmet goal, the state facts proving it, minimal fix, compact enough for a 4B model.
       Per-turn budget `worldModelRepairBudget` across repairs and verdicts; on exhaustion
       dispatch downgrades for the rest of the turn and emits `world_model.downgrade`

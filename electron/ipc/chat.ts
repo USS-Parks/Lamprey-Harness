@@ -28,6 +28,7 @@ import {
   type ResolvedToolCall
 } from '../services/chat-tool-dispatch'
 import { emitTurnStarted } from '../services/turn-lifecycle-events'
+import { beginWorldModelTurn } from '../services/world-model-budget'
 import {
   createQueuedFollowUpDispatchDependencies,
   dispatchNextQueuedFollowUp,
@@ -546,6 +547,10 @@ export async function runHeadlessTurn(input: {
 
   try {
     emitPhase(conversationId, 'understanding')
+
+    // WM-6 — fresh per-turn world-model intervention budget. The reset here
+    // is the only re-arm; exhaustion inside a turn is final for that turn.
+    beginWorldModelTurn(conversationId)
 
     void fireHooks('promptSubmit', { conversationId, promptBody: input.promptBody ?? '' })
 

@@ -63,6 +63,11 @@ vi.mock('./tool-registry', () => ({
 
 import { resolveSingleToolCall, resolveToolCallWindows } from './chat-tool-dispatch'
 import { __resetWorldModelStateForTesting } from './workspace-world-model'
+import {
+  __resetWorldModelBudgetForTesting,
+  beginWorldModelTurn,
+  isWorldModelTurnDowngraded
+} from './world-model-budget'
 
 let root: string
 const CONV = 'conv-wm3-dispatch'
@@ -78,6 +83,7 @@ function patchCall(patch: string) {
 
 beforeEach(() => {
   __resetWorldModelStateForTesting()
+  __resetWorldModelBudgetForTesting()
   root = mkdtempSync(join(tmpdir(), 'wm3d-'))
   state.settings = {}
   state.executed = []
@@ -221,6 +227,20 @@ describe('WM-5 batch rollforward at the windows seam', () => {
       expect.stringContaining('Applied 1 change')
     ])
     expect(readFileSync(join(root, 'seq.ts'), 'utf8')).toBe('three\n')
+  })
+
+  it('budget exhaustion downgrades the gate for the rest of the turn', async () => {
+    state.settings = { workspaceWorldModel: 'verify', worldModelRepairBudget: 2 }
+    beginWorldModelTurn(CONV)
+    const doomed = PATCH('*** Update File: nope.ts\n@@\n-a\n+b')
+    await dispatch(doomed)
+    await dispatch(doomed)
+    expect(isWorldModelTurnDowngraded(CONV)).toBe(true)
+    expect(state.events.filter((e) => e.type === 'world_model.downgrade')).toHaveLength(1)
+    // Third identical call passes through to the real handler (baseline path).
+    const r3 = await dispatch(doomed)
+    expect(r3.result).toContain('does not exist')
+    expect(state.executed).toEqual(['apply_patch'])
   })
 
   it('off mode never rolls forward', async () => {

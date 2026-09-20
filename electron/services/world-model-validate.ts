@@ -309,12 +309,22 @@ export function applyEffectsToOverlay(analysis: ActionAnalysis, ctx: ValidateCon
   }
 }
 
+const VERDICT_VIOLATION_CAP = 5
+
 /** Shape the verdict as the corrective tool result the model receives. */
 export function verdictToolResult(toolName: string, verdict: WorldModelVerdict): string {
+  // WM-6 — compactness: a many-op patch can violate a dozen ways; a 4B
+  // model needs the first few, not a wall. Blocking violations sort first.
+  const ordered = [...verdict.violations].sort((a, b) =>
+    a.severity === b.severity ? 0 : a.severity === 'blocking' ? -1 : 1
+  )
+  const shown = ordered.slice(0, VERDICT_VIOLATION_CAP)
+  const omitted = ordered.length - shown.length
   return JSON.stringify({
     error: 'world_model_precondition_failed',
     tool: toolName,
-    violations: verdict.violations.map((v) => ({
+    ...(omitted > 0 ? { omitted_violations: omitted } : {}),
+    violations: shown.map((v) => ({
       kind: v.kind,
       path: v.path,
       severity: v.severity,

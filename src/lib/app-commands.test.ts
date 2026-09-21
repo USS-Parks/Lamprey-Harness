@@ -9,8 +9,8 @@ vi.mock('./attach-file', () => ({ pickAndAttachFiles: vi.fn() }))
 import { APP_COMMANDS, TOOL_COMMANDS, commandById, executeCommand, validateCommands, workflowCommands, shortcutCommand } from './app-commands'
 import { SETTINGS_LEAVES } from './settings-navigation'
 import { TOOL_LABELS } from './workspace-tools'
-it('includes every existing tool and all 24 settings leaves without conflicting bindings', () => {
-  expect(SETTINGS_LEAVES).toHaveLength(24)
+it('includes every existing tool and all 25 settings leaves without conflicting bindings', () => {
+  expect(SETTINGS_LEAVES).toHaveLength(25)
   expect(TOOL_COMMANDS.map(command => command.id)).toEqual(Object.keys(TOOL_LABELS).map(id => `tool.${id}`))
   for (const leaf of SETTINGS_LEAVES) expect(commandById(`settings.${leaf.id}`).label).toBe(leaf.label)
   expect(() => validateCommands(APP_COMMANDS)).not.toThrow()

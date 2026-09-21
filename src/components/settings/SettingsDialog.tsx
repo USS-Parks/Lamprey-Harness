@@ -9,6 +9,7 @@ import { AgenticCodingSettings } from './AgenticCodingSettings'
 import { HooksSettings } from './HooksSettings'
 import { AutomationsSettings } from './AutomationsSettings'
 import { LoopSettings } from './LoopSettings'
+import { WorldModelSettings } from './WorldModelSettings'
 import { OrchestrationSettings } from './OrchestrationSettings'
 import { WebToolsSettings } from './WebToolsSettings'
 import { CurrentInfoSettings } from './CurrentInfoSettings'
@@ -156,6 +157,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             {activeTab === 'automations' && <AutomationsSettings />}
             {activeTab === 'loops' && <LoopSettings />}
             {activeTab === 'orchestration' && <OrchestrationSettings />}
+            {activeTab === 'worldModel' && <WorldModelSettings />}
             {activeTab === 'library' && <LibraryView />}
             {activeTab === 'rag' && <RagSettings />}
             {activeTab === 'snip' && <SnipSettings />}

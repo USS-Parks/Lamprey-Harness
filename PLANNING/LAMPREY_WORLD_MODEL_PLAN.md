@@ -277,7 +277,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 ### Track D — Product surface
 
 ### **WM-13 — Settings, parity, UI**
-- [ ] The four settings keys in `DEFAULT_APP_SETTINGS`, renderer mirror, parity test;
+- [x] The four settings keys in `DEFAULT_APP_SETTINGS`, renderer mirror, parity test;
       Settings → World model section (mode, budgets, extraction model), Loops-tab
       pattern.
 - Verify: gate 1–3.

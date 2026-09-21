@@ -575,6 +575,11 @@ export interface AppSettings {
   orchMaxCandidates?: number
   orchMaxDepth?: number
   orchAdvisorModel?: string
+  /** WM-13 — workspace world model mode + budgets (era-lock exception #3). */
+  workspaceWorldModel?: 'off' | 'verify' | 'repair' | 'full'
+  worldModelRepairBudget?: number
+  worldModelFollowThroughRounds?: number
+  worldModelExtractionModel?: string
   /** TL-B2 — OpenRouter fallback model ids. Empty = no `models` extra. */
   openrouterFallbacks?: string[]
   openrouterProviderSort?: 'default' | 'price' | 'latency' | 'throughput'

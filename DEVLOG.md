@@ -1,3 +1,28 @@
+## 2026-09-21 - [Workspace World Model — WM-13] Settings, parity, UI
+
+Four keys added to `DEFAULT_APP_SETTINGS`, the renderer literal, `AppSettings` in
+`src/lib/types.ts`, and the SP-1 parity lock (byte-for-byte): `workspaceWorldModel`
+('off'|'verify'|'repair'|'full', default 'full'), `worldModelRepairBudget` (5, 0
+disables repair), `worldModelFollowThroughRounds` (5, 0 disables), and
+`worldModelExtractionModel` (''=conversation model). New Settings → Advanced → World
+model tab (`WorldModelSettings.tsx`, LoopSettings pattern): a four-way mode radio group
+with plain-language blurbs, the two budget number rows (dimmed unless repair/full), and
+the extraction-model text field. New `worldModel` id threaded through `SettingsTabId`,
+`settings-navigation.ts`, and the dialog body switch. The leaf-inventory locks that
+hardcode the count (settings-navigation, app-commands, ux35-daily-work,
+tools-settings.wiring) were bumped 24→25 with `worldModel` added to their sorted lists
+— a real leaf addition, not a loosened assertion.
+
+**Files changed:** `electron/services/default-app-settings.ts`, `src/stores/settings-store.ts`, `src/lib/types.ts`, `src/stores/ui-store.ts`, `src/lib/settings-navigation.ts`, `src/components/settings/WorldModelSettings.tsx` (new), `src/components/settings/SettingsDialog.tsx`, `src/lib/settings-navigation.test.ts`, `src/lib/app-commands.test.ts`, `src/lib/ux35-daily-work.test.ts`, `src/components/settings/tools-settings.wiring.test.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest src/lib + settings components + default-app-settings parity ✓ (287 tests)
+- verify:proof --no-tests exit 0
+
+**Notes:** Plans & goals already renders the WM-8 ledger goals (they are ordinary GA
+goals), so no new surface was needed there — the plan's "Plans & goals shows ledger
+goals" line was satisfied at WM-8.
+
 ## 2026-09-20 - [Workspace World Model — WM-12] Expected cost and online reordering
 
 `subtask-ordering.ts` is Eq. 7 with workspace units: located targets cost a flat

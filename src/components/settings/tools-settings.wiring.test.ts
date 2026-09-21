@@ -18,7 +18,7 @@ describe('AC-20/AC-22/AC-23/AC-24 settings and tool-search wiring', () => {
   it('SettingsTabId includes every SettingsDialog tab', () => {
     const ui = read('src/stores/ui-store.ts')
     const tabIds = SETTINGS_LEAVES.map(leaf => leaf.id)
-    expect(tabIds).toHaveLength(24)
+    expect(tabIds).toHaveLength(25)
     for (const id of tabIds) {
       expect(ui, `SettingsTabId missing '${id}'`).toMatch(new RegExp(`\\|\\s*'${id}'`))
     }

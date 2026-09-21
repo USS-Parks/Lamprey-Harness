@@ -30,6 +30,7 @@ export const SETTINGS_LEAVES: readonly SettingsLeaf[] = [
   { id: 'hooks', label: 'Hooks', group: 'advanced', aliases: [], description: 'Lifecycle hooks and configured commands.' },
   { id: 'loops', label: 'Loops', group: 'advanced', aliases: [], description: 'Repeated work, iteration limits and execution budgets.' },
   { id: 'orchestration', label: 'Orchestration', group: 'advanced', aliases: [], description: 'Agent coordination and resource limits.' },
+  { id: 'worldModel', label: 'World Model', group: 'advanced', aliases: ['Workspace World Model', 'Verify'], description: 'Verify, repair and follow through on tool calls against the workspace.' },
   { id: 'snip', label: 'Output Filtering (Snip)', group: 'advanced', aliases: ['Snip'], description: 'Filter verbose command output and inspect filtering preferences.' },
   { id: 'timeouts', label: 'Timeouts', group: 'advanced', aliases: [], description: 'Streaming inactivity and tool execution time limits.' },
   { id: 'seedBudget', label: 'Context Budgets', group: 'advanced', aliases: ['Seed Budget'], description: 'Context window, seed length and token budgets.' },

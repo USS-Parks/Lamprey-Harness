@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { SETTINGS_GROUPS, SETTINGS_LEAVES, settingsLeaf, searchSettings } from './settings-navigation'
 it('preserves all old settings IDs in exactly six nonempty groups', () => {
-  const ids = ['general','models','agenticCoding','api','github','appearance','webTools','currentInfo','imageGen','permissions','planGoal','hooks','automations','loops','orchestration','library','rag','snip','timeouts','tools','seedBudget','reasoning','persistence','activity']
+  const ids = ['general','models','agenticCoding','api','github','appearance','webTools','currentInfo','imageGen','permissions','planGoal','hooks','automations','loops','orchestration','worldModel','library','rag','snip','timeouts','tools','seedBudget','reasoning','persistence','activity']
   expect(SETTINGS_LEAVES.map(leaf => leaf.id).sort()).toEqual(ids.sort())
   expect(SETTINGS_GROUPS).toHaveLength(6)
   for (const group of SETTINGS_GROUPS) expect(SETTINGS_LEAVES.some(leaf => leaf.group === group.id)).toBe(true)

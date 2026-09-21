@@ -63,6 +63,10 @@ const defaultSettings: AppSettings = {
   orchMaxDepth: 2,
   orchAdvisorModel: '',
   openrouterFallbacks: [],
+  workspaceWorldModel: 'full',
+  worldModelRepairBudget: 5,
+  worldModelFollowThroughRounds: 5,
+  worldModelExtractionModel: '',
   openrouterProviderSort: 'default',
   openrouterProviderOrder: [],
   openrouterProviderIgnore: []

@@ -81,6 +81,16 @@ export interface DefaultAppSettings {
    * means no fallbacks are sent (K4: default OpenRouter body unchanged).
    */
   openrouterFallbacks: string[]
+  // Workspace World Model Phase WM-13 — GAVEL-style verify/repair/follow-
+  // through in front of tool dispatch. Ships ON ('full') per the owner-
+  // approved plan: era-lock exception #3, recorded in WM_BASELINE §1.
+  // 'off' restores the pre-phase dispatch byte-for-byte (locked by
+  // world-model-safety.test.ts). Budgets: 0 disables that tier alone.
+  workspaceWorldModel: 'off' | 'verify' | 'repair' | 'full'
+  worldModelRepairBudget: number
+  worldModelFollowThroughRounds: number
+  /** Model id for goal extraction; empty means the conversation's model. */
+  worldModelExtractionModel: string
   /** TL-B3 — OpenRouter provider sort. `default` omits the provider object. */
   openrouterProviderSort: 'default' | 'price' | 'latency' | 'throughput'
   openrouterProviderOrder: string[]
@@ -127,6 +137,10 @@ export const DEFAULT_APP_SETTINGS: DefaultAppSettings = {
   orchMaxDepth: 2,
   orchAdvisorModel: '',
   openrouterFallbacks: [],
+  workspaceWorldModel: 'full',
+  worldModelRepairBudget: 5,
+  worldModelFollowThroughRounds: 5,
+  worldModelExtractionModel: '',
   openrouterProviderSort: 'default',
   openrouterProviderOrder: [],
   openrouterProviderIgnore: []

@@ -65,12 +65,12 @@ describe('UX-35 daily-work contract', () => {
       'sources', 'artifacts', 'plan', 'background', 'afterAction', 'loop', 'agents',
     ])
     expect(SETTINGS_GROUPS).toHaveLength(6)
-    expect(SETTINGS_LEAVES).toHaveLength(24)
+    expect(SETTINGS_LEAVES).toHaveLength(25)
     expect(SETTINGS_LEAVES.map(leaf => leaf.id).sort()).toEqual([
       'activity', 'agenticCoding', 'api', 'appearance', 'automations', 'currentInfo',
       'general', 'github', 'hooks', 'imageGen', 'library', 'loops', 'models',
       'orchestration', 'permissions', 'persistence', 'planGoal', 'rag', 'reasoning',
-      'seedBudget', 'snip', 'timeouts', 'tools', 'webTools',
+      'seedBudget', 'snip', 'timeouts', 'tools', 'webTools', 'worldModel',
     ])
   })
 

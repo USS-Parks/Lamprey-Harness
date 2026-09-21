@@ -167,6 +167,7 @@ export type SettingsTabId =
   | 'automations'
   | 'loops'
   | 'orchestration'
+  | 'worldModel'
   | 'library'
   | 'rag'
   | 'snip'

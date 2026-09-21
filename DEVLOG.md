@@ -1,3 +1,19 @@
+## 2026-09-21 - [Workspace World Model — WM-18] AFTER doc
+
+`PLANNING/WM_AFTER.md`: the honest post-phase state. Measured now — 15 world-model
+test files / 163 tests passing, prompt-surface byte delta ZERO (system-prompt-builder
+untouched, its 62-test byte guard still green, which is the thesis made concrete: the
+controls live outside the model), the four safety invariants source-locked, the bench
+harness proven by self-test with an 8-single/2-multi catalog. Awaiting the owner's
+machine — the live bench margins (no GUI/model here, so the parity claim is
+mechanism-and-unit-proven, not yet live-numbered; status OPEN), the replay capture, and
+the settings/After-action GUI pass. Corrects the WM-15 DEVLOG's "9 single" to the actual
+8 (DEVLOG is append-only; the AFTER note is the correction of record).
+
+**Files changed:** `PLANNING/WM_AFTER.md` (new), `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓ (doc-only)
+
 ## 2026-09-21 - [Workspace World Model — WM-17] Smoke playbook
 
 `PLANNING/WM_SMOKE_PLAYBOOK.md`: the owner-run live protocol mirroring the paper's

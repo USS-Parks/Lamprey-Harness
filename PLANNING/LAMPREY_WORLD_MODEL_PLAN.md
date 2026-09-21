@@ -318,7 +318,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: doc-only; gate 1–2.
 
 ### **WM-18 — AFTER doc**
-- [ ] `PLANNING/WM_AFTER.md`: replay-suite numbers, prompt-surface byte delta (expected
+- [x] `PLANNING/WM_AFTER.md`: replay-suite numbers, prompt-surface byte delta (expected
       zero: the controls live outside the model, which is the thesis), live bench results
       against the pre-registered margins if run by wrap time, else the honest awaiting
       note; residual gaps named.

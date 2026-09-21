@@ -1,3 +1,18 @@
+## 2026-09-21 - [Workspace World Model — WM-17] Smoke playbook
+
+`PLANNING/WM_SMOKE_PLAYBOOK.md`: the owner-run live protocol mirroring the paper's
+three experiments. Single-task reliability (off/verify/repair/full on Qwen3-8B and
+4B) with the pre-registered margins restated beside each — repair beats verify by ≥ 8
+points at equal-or-fewer LLM calls, full beats off by ≥ 20; multi-task (off vs full on
+8B) with full beats off by ≥ 25; and the Experiment 3 complementarity row on a
+frontier-keyed model. Numbers are written before the run per research-methodology; a
+miss is recorded as a miss in WM_AFTER.md, not explained away. Setup, five-seed
+protocol, and the honest floor caveat included.
+
+**Files changed:** `PLANNING/WM_SMOKE_PLAYBOOK.md` (new), `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓ (doc-only)
+
 ## 2026-09-21 - [Workspace World Model — WM-16] Safety locks and replay corpus
 
 `world-model-safety.test.ts` (loop-safety pattern) locks the four invariants that keep

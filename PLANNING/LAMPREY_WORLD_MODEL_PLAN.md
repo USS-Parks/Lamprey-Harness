@@ -311,7 +311,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–4, full replay suite green.
 
 ### **WM-17 — Smoke playbook (Experiments 1–3 analog)**
-- [ ] `PLANNING/WM_SMOKE_PLAYBOOK.md`: owner-run protocol — Qwen3-8B and Qwen3-4B via
+- [x] `PLANNING/WM_SMOKE_PLAYBOOK.md`: owner-run protocol — Qwen3-8B and Qwen3-4B via
       Ollama across both benches in `'off'`, `'verify'`, `'repair'`, `'full'`; one
       frontier-keyed row for the complementarity check; the WM-0 margins restated beside
       each expected observation; capture instructions feeding WM-16 fixtures.

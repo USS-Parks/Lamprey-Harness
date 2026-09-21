@@ -1,3 +1,22 @@
+## 2026-09-21 - [Workspace World Model — WM-19] Phase wrap (v0.34.0)
+
+The Workspace World Model phase is complete. Twenty prompts (WM-0–WM-19) translated
+GAVEL (arXiv:2609.19315) into a deterministic verify/repair/rollforward/goal-follow-
+through layer in front of tool dispatch, ON by default, off byte-compatible with the
+pre-phase dispatch, and — the point — adding ZERO prompt-surface bytes. `package.json`
+→ 0.34.0 (+ lockfile), CLAUDE.md Current State entry added, README carries an honest
+"v0.34.0 (source)" note that leaves the download links at the last published release
+(v0.33.1). No release/Bucket: shipping is a separate owner decision after the
+WM_SMOKE_PLAYBOOK verdict.
+
+**Files changed:** `package.json`, `package-lock.json`, `CLAUDE.md`, `README.md`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Final gate:** lint OK · tsc node+web OK · vitest 3486 passed / 4 skipped / 0 failed · build OK · verify:proof exit 0
+**Honest gaps:**
+- The live bench margins (`WM_BASELINE.md` §6 / `WM_SMOKE_PLAYBOOK.md`) await the owner's Qwen-via-Ollama machine — the parity claim is mechanism-and-unit-proven, not yet live-numbered. Status OPEN.
+- The replay corpus (`bench/wm/replay/`) awaits the WM-0 capture protocol; pure suites + labeled-synthetic fixtures are the standing coverage.
+- GUI pass of the World model settings tab and the After-action World-model section is an owner first-install check.
+- The bench catalog is a representative floor (8 single + 2 multi), extensible via `bench/wm/tasks.ts`.
+
 ## 2026-09-21 - [Workspace World Model — WM-18] AFTER doc
 
 `PLANNING/WM_AFTER.md`: the honest post-phase state. Measured now — 15 world-model

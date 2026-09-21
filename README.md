@@ -32,6 +32,18 @@ Conversations and control state live in SQLite on your machine. API keys are sto
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
+**New in v0.34.0 (source) — Workspace world model.** Before a tool call runs,
+Lamprey now checks it against what actually exists in the workspace: a patch
+whose target moved or whose context drifted comes back with the reason instead
+of failing blindly, mechanical mistakes (a wrong path, a whitespace-only patch
+mismatch) get fixed without spending a model turn, and in its default full mode
+the turn keeps working until the goals of a coding request are met. It is on by
+default and can be set to off in Settings → Advanced → World model. This is a
+translation of the GAVEL paper (arXiv:2609.19315) aimed at making open-weight
+models like Qwen finish long-horizon coding tasks reliably; the live benchmark
+numbers are still being measured. **v0.34.0 is a source milestone — the
+download links below remain the last published release (v0.33.1).**
+
 **New in v0.33.1 — macOS install fix.** The v0.32.0 and v0.33.0 DMGs shipped
 an app whose code seal was broken by packaging (signing was skipped in CI),
 so quarantined installs failed with macOS's "Lamprey is damaged and can't be

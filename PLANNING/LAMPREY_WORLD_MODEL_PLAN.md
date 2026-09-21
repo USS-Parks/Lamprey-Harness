@@ -325,7 +325,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: doc-only; gate 1–2.
 
 ### **WM-19 — Phase wrap**
-- [ ] Full gate green (vitest + build + verify:proof), DEVLOG phase-complete entry,
+- [x] Full gate green (vitest + build + verify:proof), DEVLOG phase-complete entry,
       CLAUDE.md Current State + reference-only list updated, README currency,
       `package.json` → **0.34.0**. Release/Bucket is a separate owner decision after the
       playbook verdict.

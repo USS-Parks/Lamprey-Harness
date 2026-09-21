@@ -302,7 +302,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3 + predicate-engine self-test on a known-good and known-bad fixture.
 
 ### **WM-16 — Replay corpus and zero-delta locks**
-- [ ] Record/replay seam at the provider boundary: captured transcripts (WM-0 protocol
+- [x] Record/replay seam at the provider boundary: captured transcripts (WM-0 protocol
       output; synthetic and labeled as such until capture lands) re-drive dispatch,
       rollforward, repair, and follow-through deterministically in vitest, no network.
       `world-model-safety.test.ts`: `'off'` byte-compatible at every entry; auto-action

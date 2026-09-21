@@ -1,3 +1,28 @@
+## 2026-09-21 - [Workspace World Model — WM-16] Safety locks and replay corpus
+
+`world-model-safety.test.ts` (loop-safety pattern) locks the four invariants that keep
+the layer honest: (1) off mode is inert — the gate is guarded by
+modeAtLeast(...,'verify'), recording no-ops when mode is off, and the state module
+never reads settings; (2) repairs never mutate — the repair module imports no
+fs-write function and the three edit families only rewrite the CALL; (3) budgets and
+follow-through cannot re-arm within a turn — the counters only increment, exactly two
+`downgraded: false` resets exist (init + beginWorldModelTurn), and MAX_TOOL_ROUNDS
+stays the hard ceiling; (4) a world-model defect never breaks a turn — the per-call
+gate, rollforward, extraction, and follow-through are each wrapped to degrade to
+normal dispatch. `bench/wm/replay/README.md` documents the captured-transcript drop
+point for the WM-0 protocol; the deterministic layers are already network-free and
+unit-tested, so the corpus locks the real-model failure distribution, owner-filled.
+
+**Files changed:** `electron/services/world-model-safety.test.ts` (new), `bench/wm/replay/README.md` (new), `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest world-model-safety ✓ (14 locks)
+- verify:proof --no-tests exit 0
+
+**Notes:** The replay corpus is a directory + protocol, not synthetic captures dressed
+as real ones — until the owner runs the WM-0 capture it holds only its README, and the
+pure suites plus the labeled synthetic fixtures are the standing coverage.
+
 ## 2026-09-21 - [Workspace World Model — WM-15] Lamprey Workspace Bench
 
 The measurement rig. `goal-predicate-eval.ts` extracts the deterministic predicate

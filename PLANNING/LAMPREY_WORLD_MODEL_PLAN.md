@@ -283,7 +283,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 - Verify: gate 1–3.
 
 ### **WM-14 — Audit and After action**
-- [ ] `world_model.verdict` / `.repair` / `.downgrade` / `.followthrough` events in the
+- [x] `world_model.verdict` / `.repair` / `.downgrade` / `.followthrough` events in the
       existing events table (ids, kinds, path subjects only); After-action World model
       section with the four counts; repaired calls carry a metadata note on their tool
       result row; extracted goals already visible via Plans & goals (WM-8).

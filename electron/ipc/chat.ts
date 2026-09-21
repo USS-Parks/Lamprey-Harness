@@ -1289,12 +1289,14 @@ export async function runChatRound(
                   ? spillSettings.toolResultSpillBytes
                   : DEFAULT_SPILL_THRESHOLD
             for (const r of resolved) {
-              // Persist the FULL result — the UI shows it in full.
+              // Persist the FULL result — the UI shows it in full. WM-14: a
+              // world-model repair note rides the persisted (UI) copy only;
+              // the model-facing copy pushed below stays exactly what ran.
               convStore.saveMessage({
                 id: randomUUID(),
                 conversationId,
                 role: 'tool',
-                content: r.result,
+                content: r.note ? `${r.note}\n\n${r.result}` : r.result,
                 toolCallId: r.callId
               })
               // Feed the MODEL a head+tail preview when the result is large; the

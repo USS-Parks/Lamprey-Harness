@@ -84,6 +84,17 @@ export interface AfterActionReport {
     skippedCommands: string[]
     reviewerCheckedModes: string[]
   }
+  // Workspace World Model Phase WM-14 — deterministic verify/repair/follow-
+  // through counts from the world_model.* event spine (metadata only).
+  worldModel: {
+    verdicts: number
+    repairs: number
+    downgrades: number
+    followThroughContinues: number
+    followThroughExhausted: number
+    goalsMet: number
+    goalsUnmet: number
+  }
 }
 
 const PREVIEW_CHARS = 280
@@ -226,7 +237,19 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
   )
   const modelCounts = terminalModelCounts(events)
 
+  // WM-14 — world-model event tallies (pure; see tallyWorldModelEvents).
+  const worldModel = tallyWorldModelEvents(events)
+
   const causes: AfterActionCause[] = []
+  if (worldModel.followThroughExhausted > 0) {
+    causes.push({
+      severity: 'warning',
+      title: 'World-model goals left unmet',
+      detail:
+        `Follow-through ended with unmet goals ${worldModel.followThroughExhausted} time(s). ` +
+        'The remaining goals are visible in Plans & goals with the evidence of what was still failing.'
+    })
+  }
   if (emptyAssistantMessages.length > 0) {
     causes.push({
       severity: 'warning',
@@ -369,6 +392,65 @@ export function buildAfterActionReport(conversationId: string): AfterActionRepor
         .filter((receipt) => receipt.status === 'skipped')
         .map((receipt) => receipt.command),
       reviewerCheckedModes: extractReviewerCheckedModes(messages)
+    },
+    worldModel
+  }
+}
+
+export interface WorldModelTally {
+  verdicts: number
+  repairs: number
+  downgrades: number
+  followThroughContinues: number
+  followThroughExhausted: number
+  goalsMet: number
+  goalsUnmet: number
+}
+
+/**
+ * WM-14 — count world-model activity from the event spine. Pure over the
+ * `world_model.*` rows. `followthrough` events carry a `phase`
+ * ('met' | 'continue' | 'exhausted') and the goals/unmet counts of the round
+ * that emitted them; the LATEST such event holds the conversation's most
+ * recent goal picture, so goalsMet/goalsUnmet reflect where things stand now
+ * rather than a running sum across rounds.
+ */
+export function tallyWorldModelEvents(events: EventRecord[]): WorldModelTally {
+  let verdicts = 0
+  let repairs = 0
+  let downgrades = 0
+  let followThroughContinues = 0
+  let followThroughExhausted = 0
+  let latestGoals = 0
+  let latestUnmet = 0
+  for (const e of events) {
+    switch (e.type) {
+      case 'world_model.verdict':
+        verdicts++
+        break
+      case 'world_model.repair':
+        repairs++
+        break
+      case 'world_model.downgrade':
+        downgrades++
+        break
+      case 'world_model.followthrough': {
+        const phase = e.payload?.phase
+        if (phase === 'continue') followThroughContinues++
+        else if (phase === 'exhausted') followThroughExhausted++
+        if (typeof e.payload?.goals === 'number') latestGoals = e.payload.goals as number
+        latestUnmet = typeof e.payload?.unmet === 'number' ? (e.payload.unmet as number) : 0
+        break
+      }
     }
+  }
+  return {
+    verdicts,
+    repairs,
+    downgrades,
+    followThroughContinues,
+    followThroughExhausted,
+    goalsMet: Math.max(0, latestGoals - latestUnmet),
+    goalsUnmet: latestUnmet
   }
 }

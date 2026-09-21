@@ -107,6 +107,13 @@ function emitPhase(conversationId: string, phase: AgentRunPhase): void {
 export interface ResolvedToolCall {
   callId: string
   result: string
+  /**
+   * WM-14 — a compact human-facing note about a world-model intervention
+   * that changed how this call ran (a repair rewrote its arguments). Shown
+   * on the persisted transcript row ONLY; the model-facing result copy is
+   * unchanged, so the note never enters the model's context.
+   */
+  note?: string
 }
 
 /** AC-16 — named tool_search handler. Unlocks conversation tool state. */
@@ -241,6 +248,9 @@ export async function resolveSingleToolCall(
   }
   if (isSearch) return handleToolSearch(tc.id, conversationId, args)
 
+  // WM-14 — a transcript note set when a repair rewrote this call's args.
+  let worldModelNote: string | undefined
+
   // WM-3 — per-call world-model gate. In 'verify' mode and above, a call
   // whose blocking preconditions fail against the live workspace returns
   // the structured verdict instead of executing (the JM-10 corrective-result
@@ -311,6 +321,9 @@ export async function resolveSingleToolCall(
               toolName,
               edits: repair.notes.map((n) => n.kind)
             })
+            worldModelNote =
+              'World model auto-corrected this call before running it: ' +
+              repair.notes.map((n) => n.detail).join('; ') + '.'
             recordInterventionAndMaybeDowngrade(
               conversationId, wmConfig.repairBudget, tc.id, toolName, correlationId
             )
@@ -553,7 +566,7 @@ export async function resolveSingleToolCall(
     resultLen: result.length
   })
 
-  return { callId: tc.id, result }
+  return { callId: tc.id, result, note: worldModelNote }
 }
 
 export async function resolveToolCallWindows(

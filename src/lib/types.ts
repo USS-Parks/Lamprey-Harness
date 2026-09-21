@@ -1204,6 +1204,15 @@ export interface AfterActionReport {
     skippedCommands: string[]
     reviewerCheckedModes: string[]
   }
+  worldModel: {
+    verdicts: number
+    repairs: number
+    downgrades: number
+    followThroughContinues: number
+    followThroughExhausted: number
+    goalsMet: number
+    goalsUnmet: number
+  }
 }
 
 // ──────────────────── RAG (Local Retrieval) ────────────────────

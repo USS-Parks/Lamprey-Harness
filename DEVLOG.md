@@ -1,3 +1,29 @@
+## 2026-09-21 - [Workspace World Model — WM-14] Audit and After action
+
+The four `world_model.*` events (verdict / repair / downgrade / followthrough) already
+emit from WM-3/4/6/9; this prompt surfaces them. `tallyWorldModelEvents` (pure, unit-
+tested against synthetic event arrays) counts verdicts, repairs, downgrades, and
+follow-through continues/exhausted, and reads goals met/unmet from the LATEST
+follow-through event — the current picture, not a running sum. `buildAfterActionReport`
+gains a `worldModel` block plus a warning cause when follow-through exhausted with
+goals unmet; the After-action panel renders a World-model count grid, shown only once
+the layer has actually intervened so quiet or off-mode conversations carry no empty
+section. Repaired calls now carry a transcript note: `ResolvedToolCall.note` holds
+"World model auto-corrected this call before running it: …" and rides the PERSISTED
+(UI) tool row only — the model-facing copy is exactly what ran, so the note never
+enters the model's context. Renderer `AfterActionReport` type mirrors the new block.
+
+**Files changed:** `electron/services/after-action-report.ts`, `electron/services/after-action-world-model.test.ts` (new), `electron/services/chat-tool-dispatch.ts`, `electron/ipc/chat.ts`, `electron/services/chat-tool-dispatch.world-model.test.ts`, `src/lib/types.ts`, `src/components/tools/panels/AfterActionPanel.tsx`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest after-action tally + dispatch.world-model (note assertion) ✓ (18 tests)
+- verify:proof --no-tests exit 0 (chat.ts + dispatch touched)
+
+**Notes:** No schema migration for the note — prepending to the persisted tool-row
+content string keeps it a display-only concern, consistent with the spill asymmetry
+(DB/UI hold truth, the model gets the operational copy). Plans & goals already shows
+the ledger goals from WM-8.
+
 ## 2026-09-21 - [Workspace World Model — WM-13] Settings, parity, UI
 
 Four keys added to `DEFAULT_APP_SETTINGS`, the renderer literal, `AppSettings` in

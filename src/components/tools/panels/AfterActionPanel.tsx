@@ -262,6 +262,31 @@ export function AfterActionPanel(): React.ReactElement {
                 (gate counts, contracts, receipts, reviewer modes) is excised
                 with the proof machinery. */}
 
+            {/* WM-14 — world-model activity. Shown only once the layer has
+                actually intervened this conversation, so an 'off'-mode or
+                quiet conversation carries no empty section. */}
+            {(report.worldModel.verdicts +
+              report.worldModel.repairs +
+              report.worldModel.downgrades +
+              report.worldModel.followThroughContinues +
+              report.worldModel.followThroughExhausted >
+              0 ||
+              report.worldModel.goalsMet + report.worldModel.goalsUnmet > 0) && (
+              <section>
+                <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                  World model
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <CountPill label="verdicts" value={report.worldModel.verdicts} />
+                  <CountPill label="repairs" value={report.worldModel.repairs} />
+                  <CountPill label="downgrades" value={report.worldModel.downgrades} />
+                  <CountPill label="continues" value={report.worldModel.followThroughContinues} />
+                  <CountPill label="goals met" value={report.worldModel.goalsMet} />
+                  <CountPill label="goals unmet" value={report.worldModel.goalsUnmet} />
+                </div>
+              </section>
+            )}
+
             {recs.length > 0 && (
               <section>
                 <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">

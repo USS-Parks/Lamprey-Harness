@@ -145,6 +145,9 @@ describe('WM-3 per-call gate', () => {
     expect(r.result).toContain('Applied 1 change')
     expect(readFileSync(join(root, 'ws.ts'), 'utf8')).toBe('  indented new\n')
     expect(state.events.some((e) => e.type === 'world_model.repair')).toBe(true)
+    // WM-14 — the repair carries a transcript note; the result body does not.
+    expect(r.note).toContain('auto-corrected')
+    expect(r.result).not.toContain('auto-corrected')
   })
 
   it('verify mode never repairs — the same call stays a verdict', async () => {

@@ -12,7 +12,7 @@ import { resolve } from 'node:path'
 export default defineConfig({
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
   test: {
-    include: ['electron/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
+    include: ['electron/**/*.test.ts', 'src/**/*.test.{ts,tsx}', 'bench/**/*.test.ts'],
     environment: 'node',
     testTimeout: 15_000,
     coverage: {

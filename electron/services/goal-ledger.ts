@@ -12,16 +12,21 @@
 // the verify-workspace path, the same no-approval precedent verify_workspace
 // already established, with the dangerous-command inspection as a gate).
 
-import { existsSync, readFileSync, statSync } from 'fs'
-import { resolvePathWithinWorkspace } from './apply-patch-tool'
 import { inspectShellCommand } from './dangerous-command-policy'
 import type { ExtractedSubtask, GoalPredicate } from './goal-extraction'
+import {
+  evaluateFilePredicate,
+  type CommandRunner,
+  type PredicateResult
+} from './goal-predicate-eval'
 import {
   createGoal,
   listGoals,
   transitionGoal,
   type Goal
 } from './plan-goal-store'
+
+export type { CommandRunner, PredicateResult } from './goal-predicate-eval'
 
 export interface LedgerEntry {
   goalId: string
@@ -30,21 +35,12 @@ export interface LedgerEntry {
   predicates: GoalPredicate[]
 }
 
-export interface PredicateResult {
-  predicate: GoalPredicate
-  met: boolean
-  detail: string
-}
-
 export interface GoalEvaluation {
   goalId: string
   title: string
   met: boolean
   results: PredicateResult[]
 }
-
-/** exitCode null means the command could not run (or was refused). */
-export type CommandRunner = (command: string) => Promise<{ ok: boolean; detail: string }>
 
 const ledgers = new Map<string, LedgerEntry[]>()
 
@@ -151,39 +147,6 @@ export function getOpenLedgerEntries(conversationId: string): LedgerEntry[] {
   })
 }
 
-function evaluateFilePredicate(
-  predicate: Exclude<GoalPredicate, { kind: 'command-succeeds' }>,
-  workspaceRoot: string
-): PredicateResult {
-  const abs = resolvePathWithinWorkspace(workspaceRoot, predicate.path)
-  if (!abs) {
-    return { predicate, met: false, detail: `path "${predicate.path}" is outside the workspace` }
-  }
-  const exists = existsSync(abs)
-  if (predicate.kind === 'file-exists') {
-    return { predicate, met: exists, detail: exists ? 'file exists' : 'file missing' }
-  }
-  if (predicate.kind === 'file-absent') {
-    return { predicate, met: !exists, detail: exists ? 'file still present' : 'file absent' }
-  }
-  if (!exists) return { predicate, met: predicate.kind === 'file-not-contains', detail: 'file missing' }
-  let content: string
-  try {
-    if (!statSync(abs).isFile()) return { predicate, met: false, detail: 'not a regular file' }
-    content = readFileSync(abs, 'utf8')
-  } catch (err) {
-    return {
-      predicate,
-      met: false,
-      detail: `unreadable: ${err instanceof Error ? err.message : String(err)}`
-    }
-  }
-  const has = content.includes(predicate.needle)
-  if (predicate.kind === 'file-contains') {
-    return { predicate, met: has, detail: has ? 'needle found' : 'needle not found' }
-  }
-  return { predicate, met: !has, detail: has ? 'needle still present' : 'needle gone' }
-}
 
 /**
  * Evaluate every open ledger entry. Command predicates run through the

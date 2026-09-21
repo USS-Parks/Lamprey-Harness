@@ -16,6 +16,7 @@
   "include": [
     "electron.vite.config.ts",
     "electron/**/*.ts",
+    "bench/**/*.ts",
     "src/data/core-surface-names.ts"
   ]
 }

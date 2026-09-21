@@ -292,7 +292,7 @@ with the paper is the point of the phase. Approval of this plan is the authoriza
 ### Track E — Evidence
 
 ### **WM-15 — Bench: single-task and multi-task**
-- [ ] `bench/wm/`: 30 single-turn long-horizon fixtures (Experiment 1 analog) and 20
+- [x] `bench/wm/`: 30 single-turn long-horizon fixtures (Experiment 1 analog) and 20
       multi-part fixtures with 2–5 independent subtasks each (Experiment 2 analog), goal
       predicates expressed in the SAME predicate engine the product uses; fixture trees +
       expected-state definitions; `scripts/wm-bench.cjs` drives `runHeadlessTurn` per

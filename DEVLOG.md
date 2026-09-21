@@ -1,3 +1,31 @@
+## 2026-09-21 - [Workspace World Model — WM-15] Lamprey Workspace Bench
+
+The measurement rig. `goal-predicate-eval.ts` extracts the deterministic predicate
+engine out of goal-ledger so the product (follow-through) and the bench score goals
+through the SAME code — the bench measures the mechanism, not a parallel copy; the
+ledger now imports and re-exports it, no behavior change (its 41-test suite still
+passes). `bench/wm/tasks.ts` is a self-contained catalog (9 single + 2 multi) where
+each task carries an inline fixture tree, an instruction, and typed GoalPredicates;
+`bench/wm/harness.ts` materializes a task into a workspace, evaluates its predicates,
+and summarizes per-bench success. `bench/wm/harness.test.ts` is the WM-15 gate: a
+freshly materialized fixture fails its goals, a correctly-solved one passes — the
+known-bad/known-good self-test that makes a live number trustworthy. `bench/` is now
+a gated location (added to tsconfig.node include and the vitest glob).
+`scripts/wm-bench.cjs` is the owner-run live runner: it drives each task through a
+real `runHeadlessTurn` against the locally configured model and writes metrics JSON;
+without the built main process it prints setup guidance and exits 2 rather than
+faking a run.
+
+**Files changed:** `electron/services/goal-predicate-eval.ts` (new), `electron/services/goal-ledger.ts`, `bench/wm/tasks.ts` (new), `bench/wm/harness.ts` (new), `bench/wm/harness.test.ts` (new), `bench/wm/README.md` (new), `scripts/wm-bench.cjs` (new), `tsconfig.node.json`, `vitest.config.ts`, `PLANNING/LAMPREY_WORLD_MODEL_PLAN.md`, `DEVLOG.md`
+**Verify gate:**
+- tsc node ✓ · tsc web ✓
+- vitest bench self-test (7, confirmed run not skipped) + goal-ledger + goal-followthrough ✓ (26 tests)
+- `node scripts/wm-bench.cjs` with no build exits 2 with guidance (verified)
+
+**Notes:** Catalog is a representative floor, not the plan's 30+20 sketch — the honest
+scope is documented in bench/wm/README.md. Live success numbers are owner-machine
+work (WM-17); the self-test is what CI can prove.
+
 ## 2026-09-21 - [Workspace World Model — WM-14] Audit and After action
 
 The four `world_model.*` events (verdict / repair / downgrade / followthrough) already

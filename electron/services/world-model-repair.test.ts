@@ -51,8 +51,16 @@ describe('edit family: normalize-path', () => {
       ctx()
     )
     expect(r.outcome).toBe('repaired')
-    expect(r.notes[0].kind).toBe('normalize-path')
-    expect(String(r.args.patch)).toContain('src/a.ts')
+    if (process.platform === 'win32') {
+      // Windows treats "\" as a native separator, so src\a.ts already resolves
+      // to the real file — the call is applicable as-is and no normalize-path
+      // repair is emitted. Backslash normalization is a POSIX-only concern.
+      expect(r.editsUsed).toBe(0)
+      expect(r.notes).toHaveLength(0)
+    } else {
+      expect(r.notes[0].kind).toBe('normalize-path')
+      expect(String(r.args.patch)).toContain('src/a.ts')
+    }
   })
 
   it('an absolute path under the workspace root is already valid — zero edits', () => {

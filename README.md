@@ -32,21 +32,22 @@ Conversations and control state live in SQLite on your machine. API keys are sto
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
 > All releases: [github.com/USS-Parks/Lamprey-Harness/releases](https://github.com/USS-Parks/Lamprey-Harness/releases)
 
-**New in v0.34.0 — Workspace world model.** Before a tool call runs, Lamprey now
-checks it against what actually exists in the workspace: a patch whose target
-moved or whose context drifted comes back with the reason instead of failing
-blindly, mechanical mistakes (a wrong path, a whitespace-only patch mismatch)
-get fixed without spending a model turn, batches of edits that would contradict
-themselves are caught before anything changes on disk, and in its default full
-mode the turn keeps working until the goals of a coding request are met. It is
-on by default and can be set to off in Settings → Advanced → World model, adds
-zero bytes to the model's prompt, and is a translation of the GAVEL paper
-(arXiv:2609.19315) aimed at making open-weight models like Qwen finish
-long-horizon coding tasks reliably. The mechanism and its 163 unit tests pass;
-the size of the live gain on local models is still being measured against
-margins fixed in advance. **The v0.34.0 installers are not published yet — the
-download links above remain the last published release (v0.33.1) until the
-tag build runs.**
+**New in v0.34.0 — Workspace world model.** Lamprey now understands the
+workspace it is editing. Before a tool call changes a file, it is checked
+against what is actually on disk: a patch whose target moved or whose context
+drifted is caught and explained before it half-applies, a wrong path or a
+whitespace-only mismatch is corrected and run with no extra model turn, a batch
+of edits that contradicts itself is rejected before anything changes, and in
+the default mode the turn keeps working until the goals of a request are met.
+The checks run outside the model and add zero bytes to its prompt — a
+translation of the GAVEL paper (arXiv:2609.19315) aimed at making open-weight
+models like Qwen and DeepSeek finish long-horizon coding work reliably. On by
+default; set it to off in Settings → Advanced → World model. The mechanism is
+proven end to end by a behavioral smoke on real files, with 3493 tests passing;
+the size of the live speedup on a local model is the one number still to be
+measured, against margins fixed in advance. **The v0.34.0 installers are not
+published yet — the download links above stay at the last published release
+(v0.33.1) until the tag build runs.**
 
 **New in v0.33.1 — macOS install fix.** The v0.32.0 and v0.33.0 DMGs shipped
 an app whose code seal was broken by packaging (signing was skipped in CI),

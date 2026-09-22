@@ -23,10 +23,10 @@ Conversations and control state live in SQLite on your machine. API keys are sto
 
 | Platform                | Format       | Link                                                                                                                      |
 | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-x64.exe)                 |
-| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-x64.zip)                 |
-| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-arm64.dmg)             |
-| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.33.1/Lamprey-x86_64.AppImage) |
+| **Windows** x64         | Installer    | [Lamprey-x64.exe](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.34.0/Lamprey-x64.exe)                 |
+| **Windows** x64         | Portable ZIP | [Lamprey-x64.zip](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.34.0/Lamprey-x64.zip)                 |
+| **macOS** Apple Silicon | DMG          | [Lamprey-arm64.dmg](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.34.0/Lamprey-arm64.dmg)             |
+| **Linux** x64           | AppImage     | [Lamprey-x86_64.AppImage](https://github.com/USS-Parks/Lamprey-Harness/releases/download/v0.34.0/Lamprey-x86_64.AppImage) |
 
 > **macOS note:** The app is ad-hoc signed, not notarized. On first launch, right-click the app &rarr; Open &rarr; Open, or approve it under System Settings &rarr; Privacy & Security.
 > **Linux note:** `chmod +x Lamprey-x86_64.AppImage` then run it.
@@ -45,9 +45,9 @@ models like Qwen and DeepSeek finish long-horizon coding work reliably. On by
 default; set it to off in Settings → Advanced → World model. The mechanism is
 proven end to end by a behavioral smoke on real files, with 3493 tests passing;
 the size of the live speedup on a local model is the one number still to be
-measured, against margins fixed in advance. **The v0.34.0 installers are not
-published yet — the download links above stay at the last published release
-(v0.33.1) until the tag build runs.**
+measured, against margins fixed in advance. **The v0.34.0 installers are
+published — the download links above point at v0.34.0, verified byte-for-byte
+across the GitHub release and the CDN.**
 
 **New in v0.33.1 — macOS install fix.** The v0.32.0 and v0.33.0 DMGs shipped
 an app whose code seal was broken by packaging (signing was skipped in CI),
